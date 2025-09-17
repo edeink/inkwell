@@ -1,4 +1,9 @@
-import { Application } from "pixi.js";
+import {
+  Application,
+  TextStyle,
+  Text,
+  type TextStyleFontWeight,
+} from "pixi.js";
 import type { IRenderer, RendererOptions } from "../IRenderer";
 
 /**
@@ -7,17 +12,30 @@ import type { IRenderer, RendererOptions } from "../IRenderer";
 export class PixiRenderer implements IRenderer {
   private app: Application | null = null;
   private container: HTMLElement | null = null;
+  private isDataDirty: boolean = false;
+  private tickerRunning: boolean = false;
+  private tickerStopTimer: number | null = null;
 
   /**
-   * 初始化 Pixi 渲染器
+   * 初始化渲染器
    * @param container 容器元素
-   * @param options 渲染器配置
+   * @param options 渲染选项
    */
-  initialize(container: HTMLElement, options: RendererOptions): void {
+  async initialize(
+    container: HTMLElement,
+    options: RendererOptions
+  ): Promise<void> {
     this.container = container;
     this.app = new Application();
 
-    this.app.init({
+    if (options.width) {
+      this.container.style.width = `${options.width}px`;
+    }
+    if (options.height) {
+      this.container.style.height = `${options.height}px`;
+    }
+
+    await this.app.init({
       antialias: options.antialias,
       resolution: options.resolution,
       background: options.background,
@@ -28,7 +46,14 @@ export class PixiRenderer implements IRenderer {
     });
 
     // 将 Pixi 应用添加到容器中
-    container.appendChild(this.app.view as HTMLCanvasElement);
+    container.appendChild(this.app.canvas);
+
+    // 初始化时设置 canvas 大小，避免拉伸图片
+    this.app.canvas.style.setProperty("width", container.clientWidth + "px");
+    this.app.canvas.style.setProperty("height", container.clientHeight + "px");
+
+    // 初始化时停止 ticker 以节省资源
+    this.stopTicker();
   }
 
   /**
@@ -46,9 +71,18 @@ export class PixiRenderer implements IRenderer {
    * 渲染一帧
    */
   render(): void {
-    // Pixi 自动处理渲染循环，此方法可用于手动触发渲染
     if (this.app) {
+      // 标记数据已更新，需要渲染
+      this.markDataDirty();
+
+      // 启动 ticker 进行持续渲染（如果尚未启动）
+      this.startTicker();
+
+      // 手动触发一次渲染
       this.app.render();
+
+      // 渲染完成后停止 ticker，避免持续渲染
+      this.stopTicker();
     }
   }
 
@@ -56,15 +90,28 @@ export class PixiRenderer implements IRenderer {
    * 销毁渲染器，释放资源
    */
   destroy(): void {
+    // 停止 ticker
+    this.stopTicker();
+
+    // 清理定时器
+    if (this.tickerStopTimer) {
+      clearTimeout(this.tickerStopTimer);
+      this.tickerStopTimer = null;
+    }
+
     if (this.app) {
       this.app.destroy(true, { children: true, texture: true });
       this.app = null;
     }
-    
+
     if (this.container) {
       this.container.innerHTML = "";
       this.container = null;
     }
+
+    // 重置状态
+    this.isDataDirty = false;
+    this.tickerRunning = false;
   }
 
   /**
@@ -73,5 +120,141 @@ export class PixiRenderer implements IRenderer {
    */
   getRawInstance(): Application | null {
     return this.app;
+  }
+
+  /**
+   * 保存当前绘图状态
+   * 在 Pixi.js 中通过保存 stage 的变换矩阵实现
+   */
+  save(): void {
+    if (this.app && this.app.stage) {
+      // Pixi.js 中可以通过保存变换状态来实现类似功能
+      // 这里可以扩展为保存更多状态信息
+      const stage = this.app.stage;
+      (stage as any)._savedStates = (stage as any)._savedStates || [];
+      (stage as any)._savedStates.push({
+        x: stage.position.x,
+        y: stage.position.y,
+        scaleX: stage.scale.x,
+        scaleY: stage.scale.y,
+        rotation: stage.rotation,
+      });
+    }
+  }
+
+  /**
+   * 恢复之前保存的绘图状态
+   * 在 Pixi.js 中通过恢复 stage 的变换矩阵实现
+   */
+  restore(): void {
+    if (this.app && this.app.stage) {
+      const stage = this.app.stage;
+      const savedStates = (stage as any)._savedStates;
+      if (savedStates && savedStates.length > 0) {
+        const state = savedStates.pop();
+        stage.position.set(state.x, state.y);
+        stage.scale.set(state.scaleX, state.scaleY);
+        stage.rotation = state.rotation;
+      }
+    }
+  }
+
+  /**
+   * 平移坐标系
+   * @param x X轴偏移量
+   * @param y Y轴偏移量
+   */
+  translate(x: number, y: number): void {
+    if (this.app && this.app.stage) {
+      this.app.stage.position.x += x;
+      this.app.stage.position.y += y;
+    }
+  }
+
+  drawText(options: {
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fontSize?: number;
+    fontFamily?: string;
+    fontWeight?: string | number;
+    color?: string;
+    lineHeight?: number;
+    textAlign?: "left" | "center" | "right";
+    lines: string[];
+  }): void {
+    if (!this.app || !this.app.stage) {
+      console.warn("PixiRenderer not initialized");
+      return;
+    }
+
+    // 标记数据已更新
+    this.markDataDirty();
+
+    // 创建文本样式
+    const style = new TextStyle({
+      fontFamily: options.fontFamily || "Arial",
+      fontSize: options.fontSize || 16,
+      fontWeight:
+        (options.fontWeight as unknown as TextStyleFontWeight) || "normal",
+      fill: options.color || "#000000",
+      align: options.textAlign || "left",
+      lineHeight: options.lineHeight || 1.2,
+      wordWrap: true,
+      wordWrapWidth: options.width,
+    });
+
+    // 创建文本对象
+    const textObject = new Text({ text: options.text, style });
+    textObject.resolution = 4;
+
+    // 设置位置
+    textObject.x = options.x;
+    textObject.y = options.y;
+
+    // 设置文本对齐
+    if (options.textAlign === "center") {
+      textObject.anchor.x = 0.5;
+      textObject.x += options.width / 2;
+    } else if (options.textAlign === "right") {
+      textObject.anchor.x = 1;
+      textObject.x += options.width;
+    }
+
+    // 添加到舞台
+    this.app.stage.addChild(textObject);
+  }
+
+  /**
+   * 标记数据为脏状态
+   */
+  private markDataDirty(): void {
+    this.isDataDirty = true;
+  }
+
+  /**
+   * 启动 ticker
+   */
+  private startTicker(): void {
+    if (!this.app || this.tickerRunning) {
+      return;
+    }
+
+    this.app.ticker.start();
+    this.tickerRunning = true;
+  }
+
+  /**
+   * 停止 ticker
+   */
+  private stopTicker(): void {
+    if (!this.app || !this.tickerRunning) {
+      return;
+    }
+
+    this.app.ticker.stop();
+    this.tickerRunning = false;
   }
 }
