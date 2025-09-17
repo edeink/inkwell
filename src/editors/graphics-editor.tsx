@@ -3,8 +3,8 @@ import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
 import { PixiRenderer } from "../renderer/pixi/PixiRenderer";
 import { Widget } from "../core/base";
 import type { WidgetData, BuildContext, BoxConstraints } from "../core/base";
-import { Column } from "../core/column";
-import { Text } from "../core/text";
+// 导入注册表以确保所有组件类型都已注册
+import "../core/registry";
 
 /**
  * 编辑器配置接口
@@ -26,7 +26,7 @@ export interface EditorOptions {
  * JSON组件数据接口
  */
 export interface ComponentData {
-  type: "column" | "text";
+  type: "column" | "text" | "row" | "image" | "sizedBox";
   children?: ComponentData[];
   [key: string]: any;
 }
@@ -44,7 +44,10 @@ export default class Editor {
    * @param containerId 容器元素ID
    * @param options 编辑器配置
    */
-  static async create(containerId: string, options: EditorOptions = {}): Promise<Editor> {
+  static async create(
+    containerId: string,
+    options: EditorOptions = {}
+  ): Promise<Editor> {
     const editor = new Editor();
     await editor.init(containerId, options);
     return editor;
@@ -54,7 +57,10 @@ export default class Editor {
     // 私有构造函数，强制使用 create 方法
   }
 
-  private async init(containerId: string, options: EditorOptions): Promise<void> {
+  private async init(
+    containerId: string,
+    options: EditorOptions
+  ): Promise<void> {
     this.container = this.initContainer(containerId);
     this.renderer = this.createRenderer(options.renderer || "pixi");
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
@@ -99,7 +105,10 @@ export default class Editor {
    * @param options 编辑器配置选项
    * @param size 可选的尺寸参数，如果不提供则使用容器尺寸
    */
-  private async initRenderer(options: EditorOptions = {}, size?: { width: number; height: number }): Promise<void> {
+  private async initRenderer(
+    options: EditorOptions = {},
+    size?: { width: number; height: number }
+  ): Promise<void> {
     if (!this.renderer || !this.container) return;
 
     const rendererOptions: RendererOptions = {
@@ -156,13 +165,13 @@ export default class Editor {
     if (this.rootWidget) {
       // 先进行布局计算获得总尺寸
       const totalSize = this.calculateLayout();
-      
+
       // 根据布局尺寸初始化渲染器
       await this.initRenderer({}, totalSize);
-      
+
       // 清除之前的渲染内容
       this.clearCanvas();
-      
+
       // 执行渲染
       this.performRender();
     }
@@ -174,31 +183,22 @@ export default class Editor {
    * @returns Widget实例
    */
   private parseComponentData(data: ComponentData): Widget | null {
-    // 递归解析子组件数据
-    const childrenData: WidgetData[] | undefined = data.children
-      ?.map((child) => {
-        const childWidget = this.parseComponentData(child);
-        if (childWidget) {
-          // 从Widget中提取WidgetData
-          return child;
-        }
-        return null;
-      })
-      .filter(Boolean) as WidgetData[];
+    if (!data || !data.type) {
+      console.warn("Invalid component data:", data);
+      return null;
+    }
 
-    const widgetData: WidgetData = {
-      ...data,
-      children: childrenData,
-    };
+    // 确保数据完整性
+    if (!data.key) {
+      console.warn("Missing key for component:", data.type);
+    }
 
-    switch (data.type) {
-      case "column":
-        return new Column(widgetData);
-      case "text":
-        return new Text(widgetData as any);
-      default:
-        console.warn(`Unknown component type: ${data.type}`);
-        return null;
+    // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
+    try {
+      return Widget.createWidget(data);
+    } catch (error) {
+      console.error("Failed to create widget:", error, data);
+      return null;
     }
   }
 
@@ -220,19 +220,18 @@ export default class Editor {
 
     // 执行布局计算
     const size = this.rootWidget.layout(constraints);
-    
+
     const finalSize = {
       width: Math.max(size.width, 100), // 最小宽度
       height: Math.max(size.height, 100), // 最小高度
     };
-    
+
     return finalSize;
   }
 
   /**
    * 根据布局尺寸初始化渲染器
    */
-
 
   /**
    * 执行渲染

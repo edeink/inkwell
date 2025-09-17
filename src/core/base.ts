@@ -110,21 +110,42 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
   // 创建组件实例
   public static createWidget(data: WidgetData): Widget | null {
+    if (!data) {
+      console.error('createWidget: data is null or undefined');
+      return null;
+    }
+    if (!data.type) {
+      console.error('createWidget: data.type is missing', data);
+      return null;
+    }
+    
     const constructor = Widget.registry.get(data.type);
     if (constructor) {
-      return new constructor(data);
+      try {
+        return new constructor(data);
+      } catch (error) {
+        console.error(`Failed to create widget of type ${data.type}:`, error, data);
+        return null;
+      }
     }
     console.warn(`Unknown widget type: ${data.type}`);
     return null;
   }
 
   constructor(data: TData) {
+    if (!data) {
+      throw new Error('Widget data cannot be null or undefined');
+    }
+    if (!data.type) {
+      throw new Error('Widget data must have a type property');
+    }
+    
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
     this.type = data.type;
     this.data = { ...data };
 
     // 递归构建子组件
-    if (data.children && Array.isArray(data.children)) {
+    if (data.children && Array.isArray(data.children) && data.children.length > 0) {
       this.buildChildren(data.children);
     }
   }
@@ -274,5 +295,15 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   build(context: BuildContext): Widget {
     // 默认返回自身，子类可以覆盖此方法返回其他组件
     return this;
+  }
+
+  /**
+   * 标记需要重新布局
+   * 类似于 Flutter 的 markNeedsLayout 方法
+   */
+  markNeedsLayout(): void {
+    // 在实际应用中，这里应该触发重新布局和渲染
+    // 目前只是一个占位实现
+    console.log(`Widget ${this.key} marked for layout`);
   }
 }

@@ -115,6 +115,133 @@ export class KonvaRenderer implements IRenderer {
   }
 
   /**
+   * 保存当前绘图状态
+   */
+  save(): void {
+    // Konva 使用 Group 来管理状态
+    // 这里可以创建一个新的 Group 来保存状态
+  }
+
+  /**
+   * 恢复之前保存的绘图状态
+   */
+  restore(): void {
+    // 对应 save 方法的恢复操作
+  }
+
+  /**
+   * 平移坐标系
+   * @param x X轴偏移量
+   * @param y Y轴偏移量
+   */
+  translate(x: number, y: number): void {
+    if (this.layer) {
+      this.layer.x(this.layer.x() + x);
+      this.layer.y(this.layer.y() + y);
+    }
+  }
+
+  /**
+   * 绘制文本
+   * @param options 文本绘制选项
+   */
+  drawText(options: {
+    text: string;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    fontSize?: number;
+    fontFamily?: string;
+    fontWeight?: string | number;
+    color?: string;
+    lineHeight?: number;
+    textAlign?: "left" | "center" | "right";
+    textBaseline?: "top" | "middle" | "bottom";
+    lines?: string[];
+  }): void {
+    if (!this.layer) return;
+
+    const text = new Konva.Text({
+      text: options.text,
+      x: options.x,
+      y: options.y,
+      width: options.width,
+      height: options.height,
+      fontSize: options.fontSize || 16,
+      fontFamily: options.fontFamily || "Arial",
+      fill: options.color || "#000000",
+      align: options.textAlign || "left",
+      verticalAlign: options.textBaseline || "top",
+      lineHeight: options.lineHeight || 1.2,
+    });
+
+    this.layer.add(text);
+  }
+
+  /**
+   * 绘制矩形
+   * @param options 矩形绘制选项
+   */
+  drawRect(options: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+  }): void {
+    if (!this.layer) return;
+
+    const rect = new Konva.Rect({
+      x: options.x,
+      y: options.y,
+      width: options.width,
+      height: options.height,
+      fill: options.fill,
+      stroke: options.stroke,
+      strokeWidth: options.strokeWidth || 0,
+    });
+
+    this.layer.add(rect);
+  }
+
+  /**
+   * 绘制图片
+   * @param options 图片绘制选项
+   */
+  drawImage(options: {
+    image: HTMLImageElement;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    sx?: number;
+    sy?: number;
+    sWidth?: number;
+    sHeight?: number;
+  }): void {
+    if (!this.layer) return;
+
+    const imageNode = new Konva.Image({
+      image: options.image,
+      x: options.x,
+      y: options.y,
+      width: options.width,
+      height: options.height,
+      crop: options.sx !== undefined ? {
+        x: options.sx,
+        y: options.sy || 0,
+        width: options.sWidth || options.image.width,
+        height: options.sHeight || options.image.height,
+      } : undefined,
+    });
+
+    this.layer.add(imageNode);
+  }
+
+  /**
    * 添加形状到主图层
    * @param shape Konva 形状
    */

@@ -2,6 +2,10 @@ import {
   Application,
   TextStyle,
   Text,
+  Graphics,
+  Sprite,
+  Texture,
+  Rectangle,
   type TextStyleFontWeight,
 } from "pixi.js";
 import type { IRenderer, RendererOptions } from "../IRenderer";
@@ -175,15 +179,16 @@ export class PixiRenderer implements IRenderer {
     text: string;
     x: number;
     y: number;
-    width: number;
-    height: number;
+    width?: number;
+    height?: number;
     fontSize?: number;
     fontFamily?: string;
     fontWeight?: string | number;
     color?: string;
     lineHeight?: number;
     textAlign?: "left" | "center" | "right";
-    lines: string[];
+    textBaseline?: "top" | "middle" | "bottom";
+    lines?: string[];
   }): void {
     if (!this.app || !this.app.stage) {
       console.warn("PixiRenderer not initialized");
@@ -202,8 +207,8 @@ export class PixiRenderer implements IRenderer {
       fill: options.color || "#000000",
       align: options.textAlign || "left",
       lineHeight: options.lineHeight || 1.2,
-      wordWrap: true,
-      wordWrapWidth: options.width,
+      wordWrap: options.width ? true : false,
+      wordWrapWidth: options.width || 0,
     });
 
     // 创建文本对象
@@ -215,16 +220,116 @@ export class PixiRenderer implements IRenderer {
     textObject.y = options.y;
 
     // 设置文本对齐
-    if (options.textAlign === "center") {
+    if (options.textAlign === "center" && options.width) {
       textObject.anchor.x = 0.5;
       textObject.x += options.width / 2;
-    } else if (options.textAlign === "right") {
+    } else if (options.textAlign === "right" && options.width) {
       textObject.anchor.x = 1;
       textObject.x += options.width;
     }
 
+    // 设置垂直对齐
+    if (options.textBaseline === "middle") {
+      textObject.anchor.y = 0.5;
+    } else if (options.textBaseline === "bottom") {
+      textObject.anchor.y = 1;
+    }
+
     // 添加到舞台
     this.app.stage.addChild(textObject);
+  }
+
+  /**
+   * 绘制矩形
+   * @param options 矩形绘制选项
+   */
+  drawRect(options: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+  }): void {
+    if (!this.app || !this.app.stage) {
+      console.warn("PixiRenderer not initialized");
+      return;
+    }
+
+    // 标记数据已更新
+    this.markDataDirty();
+
+    // 使用 Graphics 绘制矩形
+    const graphics = new Graphics();
+
+    // 设置填充色
+    if (options.fill) {
+      graphics.beginFill(options.fill);
+    }
+
+    // 设置边框
+    if (options.stroke) {
+      graphics.lineStyle(options.strokeWidth || 1, options.stroke);
+    }
+
+    // 绘制矩形
+    graphics.drawRect(options.x, options.y, options.width, options.height);
+    graphics.endFill();
+
+    // 添加到舞台
+    this.app.stage.addChild(graphics);
+  }
+
+  /**
+   * 绘制图片
+   * @param options 图片绘制选项
+   */
+  drawImage(options: {
+    image: HTMLImageElement;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    sx?: number;
+    sy?: number;
+    sWidth?: number;
+    sHeight?: number;
+  }): void {
+    if (!this.app || !this.app.stage) {
+      console.warn("PixiRenderer not initialized");
+      return;
+    }
+
+    // 标记数据已更新
+    this.markDataDirty();
+
+    // 使用 Sprite 绘制图片
+    const texture = Texture.from(options.image);
+    const sprite = new Sprite(texture);
+
+    // 设置位置和尺寸
+    sprite.x = options.x;
+    sprite.y = options.y;
+    sprite.width = options.width;
+    sprite.height = options.height;
+
+    // 如果需要裁剪，创建裁剪纹理
+    if (options.sx !== undefined && options.sy !== undefined) {
+      const cropTexture = new Texture({
+        source: texture.source,
+        frame: new Rectangle(
+          options.sx || 0,
+          options.sy || 0,
+          options.sWidth || options.image.width,
+          options.sHeight || options.image.height
+        )
+      });
+      sprite.texture = cropTexture;
+    }
+
+    // 添加到舞台
+    this.app.stage.addChild(sprite);
   }
 
   /**

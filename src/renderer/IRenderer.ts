@@ -82,14 +82,45 @@ export interface IRenderer {
     text: string;
     x: number;
     y: number;
-    width: number;
-    height: number;
+    width?: number;
+    height?: number;
     fontSize?: number;
     fontFamily?: string;
     fontWeight?: string | number;
     color?: string;
     lineHeight?: number;
     textAlign?: "left" | "center" | "right";
-    lines: string[];
+    textBaseline?: "top" | "middle" | "bottom";
+    lines?: string[];
+  }): void;
+
+  /**
+   * 绘制矩形
+   * @param options 矩形绘制选项
+   */
+  drawRect(options: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+  }): void;
+
+  /**
+   * 绘制图片
+   * @param options 图片绘制选项
+   */
+  drawImage(options: {
+    image: HTMLImageElement;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    sx?: number; // 源图片裁剪起始X坐标
+    sy?: number; // 源图片裁剪起始Y坐标
+    sWidth?: number; // 源图片裁剪宽度
+    sHeight?: number; // 源图片裁剪高度
   }): void;
 }
