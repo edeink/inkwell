@@ -23,11 +23,25 @@ export interface EditorOptions {
   backgroundAlpha?: number;
 }
 
+export const enum ComponentType {
+  Column = "Column",
+  Text = "Text",
+  Row = "Row",
+  Expanded = "Expanded",
+  Image = "Image",
+  SizedBox = "SizedBox",
+  Container = "Container",
+  Padding = "Padding",
+  Center = "Center",
+  Stack = "Stack",
+  Positioned = "Positioned",
+}
+
 /**
  * JSON组件数据接口
  */
 export interface ComponentData {
-  type: "column" | "text" | "row" | "image" | "sizedbox" | "container" | "padding" | "center" | "stack" | "positioned";
+  type: ComponentType;
   children?: ComponentData[];
   [key: string]: any;
 }
@@ -165,23 +179,64 @@ export default class Editor {
       return;
     }
 
-    // 解析JSON并创建组件树
-    this.rootWidget = this.parseComponentData(jsonData);
+    try {
+      // 解析JSON并创建组件树
+      this.rootWidget = this.parseComponentData(jsonData);
 
-    console.log("~~~ root", this.rootWidget);
+      console.log("~~~ root", this.rootWidget);
 
-    if (this.rootWidget) {
-      // 先进行布局计算获得总尺寸
-      const totalSize = this.calculateLayout();
+      if (this.rootWidget) {
+        // 先进行布局计算获得总尺寸
+        const totalSize = this.calculateLayout();
 
-      // 根据布局尺寸初始化渲染器
-      await this.initRenderer({}, totalSize);
+        // 根据布局尺寸初始化渲染器
+        await this.initRenderer({}, totalSize);
 
-      // 清除之前的渲染内容
-      this.clearCanvas();
+        // 清除之前的渲染内容
+        this.clearCanvas();
 
-      // 执行渲染
-      this.performRender();
+        // 执行渲染
+        this.performRender();
+      }
+    } catch (error) {
+      // 捕获并显示Flutter风格的错误
+      console.error("渲染错误:", error);
+
+      // 在页面上显示错误信息
+      if (this.container) {
+        const errorDiv = document.createElement("div");
+        errorDiv.style.cssText = `
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          background: #ffebee;
+          border: 2px solid #f44336;
+          border-radius: 8px;
+          padding: 16px;
+          font-family: monospace;
+          font-size: 14px;
+          color: #c62828;
+          white-space: pre-wrap;
+          z-index: 1000;
+          max-height: 300px;
+          overflow-y: auto;
+        `;
+        errorDiv.textContent =
+          error instanceof Error ? error.message : String(error);
+
+        // 清除之前的错误信息
+        const existingError = this.container.querySelector(".flutter-error");
+        if (existingError) {
+          existingError.remove();
+        }
+
+        errorDiv.className = "flutter-error";
+        this.container.appendChild(errorDiv);
+      }
+
+      // 重新抛出错误以便调试
+      throw error;
     }
   }
 
@@ -218,12 +273,12 @@ export default class Editor {
       return { width: 800, height: 600 }; // 默认尺寸
     }
 
-    // 创建约束条件
+    // 创建约束条件 - 临时修改为无限高度约束来测试Flutter风格错误
     const constraints: BoxConstraints = {
       minWidth: 0,
-      maxWidth: this.container.clientWidth || 800,
+      maxWidth: 4096,
       minHeight: 0,
-      maxHeight: this.container.clientHeight || 600,
+      maxHeight: 4096,
     };
 
     // 执行布局计算

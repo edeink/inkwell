@@ -53,7 +53,7 @@ export class Text extends Widget<TextData> {
 
   // 注册 Text 组件类型
   static {
-    Widget.registerType("text", Text);
+    Widget.registerType("Text", Text);
   }
 
   /**

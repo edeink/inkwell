@@ -1,5 +1,6 @@
 import React from "react";
-import type { ComponentData } from "../editors/graphics-editor";
+import { ComponentType, type ComponentData } from "../editors/graphics-editor";
+import type { FlexProperties } from "../core/flex/type";
 
 // 定义支持的组件类型
 export interface JSXComponentProps {
@@ -75,6 +76,11 @@ export interface ImageProps extends JSXComponentProps {
     | "bottomRight";
 }
 
+// Expanded 组件 Props
+export interface ExpandedProps extends JSXComponentProps {
+  flex?: FlexProperties;
+}
+
 // Container 组件 Props
 export interface ContainerProps extends JSXComponentProps {
   width?: number;
@@ -102,7 +108,16 @@ export interface CenterProps extends JSXComponentProps {
 // Stack 组件 Props
 export interface StackProps extends JSXComponentProps {
   fit?: "expand" | "passthrough" | "loose";
-  alignment?: "topLeft" | "topCenter" | "topRight" | "centerLeft" | "center" | "centerRight" | "bottomLeft" | "bottomCenter" | "bottomRight";
+  alignment?:
+    | "topLeft"
+    | "topCenter"
+    | "topRight"
+    | "centerLeft"
+    | "center"
+    | "centerRight"
+    | "bottomLeft"
+    | "bottomCenter"
+    | "bottomRight";
 }
 
 // Positioned 组件 Props
@@ -141,6 +156,7 @@ export const Padding: React.FC<PaddingProps> = () => null;
 export const Center: React.FC<CenterProps> = () => null;
 export const Stack: React.FC<StackProps> = () => null;
 export const Positioned: React.FC<PositionedProps> = () => null;
+export const Expanded: React.FC<ExpandedProps> = () => null;
 
 // 生成唯一 key 的辅助函数
 function generateKey(type: string): string {
@@ -155,13 +171,25 @@ function convertElementToComponentData(
 
   // 获取组件类型名称
   const componentTypeName =
-    typeof type === "function" ? type.name.toLowerCase() : String(type);
+    typeof type === "function" ? type.name : String(type);
 
   // 确保类型是有效的 ComponentData 类型
-  const validTypes = ["column", "text", "row", "image", "sizedbox", "container", "padding", "center", "stack", "positioned"] as const;
+  const validTypes: ComponentType[] = [
+    ComponentType.Column,
+    ComponentType.Text,
+    ComponentType.Row,
+    ComponentType.Expanded,
+    ComponentType.Image,
+    ComponentType.SizedBox,
+    ComponentType.Container,
+    ComponentType.Padding,
+    ComponentType.Center,
+    ComponentType.Stack,
+    ComponentType.Positioned,
+  ];
   const componentType = validTypes.includes(componentTypeName as any)
     ? (componentTypeName as ComponentData["type"])
-    : "text"; // 默认类型
+    : ComponentType.Text; // 默认类型
 
   // 基础数据结构
   const componentData: ComponentData = {
@@ -174,7 +202,18 @@ function convertElementToComponentData(
 
   // 处理不同组件类型的特定属性
   switch (componentType) {
-    case "column":
+    case ComponentType.Column:
+      if (safeProps.mainAxisAlignment)
+        componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
+      if (safeProps.crossAxisAlignment)
+        componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
+      if (safeProps.spacing !== undefined)
+        componentData.spacing = safeProps.spacing;
+      if (safeProps.mainAxisSize)
+        componentData.mainAxisSize = safeProps.mainAxisSize;
+      break;
+
+    case ComponentType.Row:
       if (safeProps.mainAxisAlignment)
         componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
       if (safeProps.crossAxisAlignment)
@@ -183,21 +222,17 @@ function convertElementToComponentData(
         componentData.spacing = safeProps.spacing;
       break;
 
-    case "row":
-      if (safeProps.mainAxisAlignment)
-        componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
-      if (safeProps.crossAxisAlignment)
-        componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
-      if (safeProps.spacing !== undefined)
-        componentData.spacing = safeProps.spacing;
+    case ComponentType.Expanded:
+      if (safeProps.flex !== undefined) componentData.flex = safeProps.flex;
+      if (safeProps.fit) componentData.fit = safeProps.fit;
       break;
 
-    case "text":
+    case ComponentType.Text:
       componentData.text = safeProps.text;
       if (safeProps.style) componentData.style = safeProps.style;
       break;
 
-    case "image":
+    case ComponentType.Image:
       componentData.src = safeProps.src;
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
       if (safeProps.height !== undefined)
@@ -206,42 +241,50 @@ function convertElementToComponentData(
       if (safeProps.alignment) componentData.alignment = safeProps.alignment;
       break;
 
-    case "sizedbox":
+    case ComponentType.SizedBox:
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
       if (safeProps.height !== undefined)
         componentData.height = safeProps.height;
       break;
 
-    case "container":
+    case ComponentType.Container:
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
-      if (safeProps.height !== undefined) componentData.height = safeProps.height;
-      if (safeProps.padding !== undefined) componentData.padding = safeProps.padding;
-      if (safeProps.margin !== undefined) componentData.margin = safeProps.margin;
-      if (safeProps.backgroundColor) componentData.backgroundColor = safeProps.backgroundColor;
-      if (safeProps.borderRadius !== undefined) componentData.borderRadius = safeProps.borderRadius;
+      if (safeProps.height !== undefined)
+        componentData.height = safeProps.height;
+      if (safeProps.padding !== undefined)
+        componentData.padding = safeProps.padding;
+      if (safeProps.margin !== undefined)
+        componentData.margin = safeProps.margin;
+      if (safeProps.backgroundColor)
+        componentData.backgroundColor = safeProps.backgroundColor;
+      if (safeProps.borderRadius !== undefined)
+        componentData.borderRadius = safeProps.borderRadius;
       if (safeProps.border) componentData.border = safeProps.border;
       break;
 
-    case "padding":
-      if (safeProps.padding !== undefined) componentData.padding = safeProps.padding;
+    case ComponentType.Padding:
+      if (safeProps.padding !== undefined)
+        componentData.padding = safeProps.padding;
       break;
 
-    case "center":
+    case ComponentType.Center:
       // Center 组件没有特殊属性
       break;
 
-    case "stack":
+    case ComponentType.Stack:
       if (safeProps.fit) componentData.fit = safeProps.fit;
       if (safeProps.alignment) componentData.alignment = safeProps.alignment;
       break;
 
-    case "positioned":
+    case ComponentType.Positioned:
       if (safeProps.left !== undefined) componentData.left = safeProps.left;
       if (safeProps.top !== undefined) componentData.top = safeProps.top;
       if (safeProps.right !== undefined) componentData.right = safeProps.right;
-      if (safeProps.bottom !== undefined) componentData.bottom = safeProps.bottom;
+      if (safeProps.bottom !== undefined)
+        componentData.bottom = safeProps.bottom;
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
-      if (safeProps.height !== undefined) componentData.height = safeProps.height;
+      if (safeProps.height !== undefined)
+        componentData.height = safeProps.height;
       break;
   }
 

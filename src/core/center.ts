@@ -17,7 +17,7 @@ export interface CenterData extends WidgetData {
 export class Center extends Widget<CenterData> {
   // 注册 Center 组件类型
   static {
-    Widget.registerType("center", Center);
+    Widget.registerType("Center", Center);
   }
 
   constructor(data: CenterData) {

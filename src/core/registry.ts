@@ -50,14 +50,15 @@ registerWidget("center", Center);
 registerWidget("stack", Stack);
 registerWidget("positioned", Positioned);
 
-// 导入所有组件以自动注册
-import "./flex/column"; // 自动注册 Column 组件
-import "./flex/row"; // 自动注册 Row 组件
-import "./text"; // 自动注册 Text 组件
-import "./image"; // 自动注册 Image 组件
-import "./sizedbox"; // 自动注册 SizedBox 组件
-import "./container"; // 自动注册 Container 组件
-import "./padding"; // 自动注册 Padding 组件
-import "./center"; // 自动注册 Center 组件
-import "./stack"; // 自动注册 Stack 组件
-import "./positioned"; // 自动注册 Positioned 组件
+// 导入所有组件以确保它们被注册
+import "../core/text";
+import "../core/image";
+import "../core/sizedbox";
+import "../core/flex/column";
+import "../core/flex/row";
+import "../core/flex/expanded";
+import "../core/container";
+import "../core/padding";
+import "../core/center";
+import "../core/stack";
+import "../core/positioned";

@@ -1,3 +1,4 @@
+import { ComponentType } from "../../editors/graphics-editor";
 import { Widget } from "../base";
 import type {
   WidgetData,
@@ -67,7 +68,7 @@ export class Row extends Widget<RowData> {
    */
   // 注册 Row 组件类型
   static {
-    Widget.registerType("row", Row);
+    Widget.registerType("Row", Row);
   }
 
   /**
@@ -243,14 +244,6 @@ export class Row extends Widget<RowData> {
         // 已经在约束中处理了拉伸
         yOffset = 0;
         break;
-    }
-
-    if (isNaN(xOffset)) {
-      xOffset = 0;
-    }
-
-    if (isNaN(yOffset)) {
-      yOffset = 0;
     }
 
     return { dx: xOffset, dy: yOffset };

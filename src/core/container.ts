@@ -53,7 +53,7 @@ export class Container extends Widget<ContainerData> {
 
   // 注册 Container 组件类型
   static {
-    Widget.registerType("container", Container);
+    Widget.registerType("Container", Container);
   }
 
   constructor(data: ContainerData) {
@@ -112,15 +112,12 @@ export class Container extends Widget<ContainerData> {
    */
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    const { offset, size } = this.renderObject;
+    const { size } = this.renderObject;
 
     // 计算实际绘制区域（考虑外边距）
-    const marginOffset = this.margin
-      ? {
-          dx: offset.dx + this.margin.left,
-          dy: offset.dy + this.margin.top,
-        }
-      : offset;
+    // 注意：这里使用相对坐标，因为base.ts的paint方法已经处理了translate
+    const marginLeft = this.margin?.left || 0;
+    const marginTop = this.margin?.top || 0;
 
     const marginSize = this.margin
       ? {
@@ -129,22 +126,22 @@ export class Container extends Widget<ContainerData> {
         }
       : size;
 
-    // 绘制背景色
+    // 绘制背景色（使用相对坐标）
     if (this.color) {
       renderer.drawRect({
-        x: marginOffset.dx,
-        y: marginOffset.dy,
+        x: marginLeft,
+        y: marginTop,
         width: marginSize.width,
         height: marginSize.height,
         fill: this.color,
       });
     }
 
-    // 绘制边框
+    // 绘制边框（使用相对坐标）
     if (this.border) {
       renderer.drawRect({
-        x: marginOffset.dx,
-        y: marginOffset.dy,
+        x: marginLeft,
+        y: marginTop,
         width: marginSize.width,
         height: marginSize.height,
         stroke: this.border.color,

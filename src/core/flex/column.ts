@@ -6,7 +6,13 @@ import type {
   Offset,
   BuildContext,
 } from "../base";
-import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
+import {
+  CrossAxisAlignment,
+  MainAxisAlignment,
+  MainAxisSize,
+  FlexFit,
+} from "./type";
+import { createRenderFlexUnboundedError } from "./errors";
 
 /**
  * Column布局组件的数据接口
@@ -64,7 +70,7 @@ export class Column extends Widget<ColumnData> {
 
   // 注册 Column 组件类型
   static {
-    Widget.registerType("column", Column);
+    Widget.registerType("Column", Column);
   }
 
   /**
@@ -76,7 +82,7 @@ export class Column extends Widget<ColumnData> {
   }
 
   /**
-   * 执行布局计算
+   * 执行布局计算 - Flutter风格的flex布局
    */
   protected performLayout(
     constraints: BoxConstraints,
@@ -90,15 +96,77 @@ export class Column extends Widget<ColumnData> {
       };
     }
 
-    // 计算子组件总高度和最大宽度
-    let totalHeight = 0;
+    // 检查是否有无限高度约束
+    const hasUnboundedHeight = !isFinite(constraints.maxHeight);
+
+    // 分析子组件的flex属性
+    const flexChildren: { index: number; flex: number; fit: FlexFit }[] = [];
+    const nonFlexChildren: { index: number; size: Size }[] = [];
+    let totalFlexWeight = 0;
+    let totalNonFlexHeight = 0;
     let maxWidth = 0;
 
-    for (let i = 0; i < childrenSizes.length; i++) {
-      totalHeight += childrenSizes[i].height;
-      maxWidth = Math.max(maxWidth, childrenSizes[i].width);
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      const childSize = childrenSizes[i];
+      maxWidth = Math.max(maxWidth, childSize.width);
+
+      if (child.flex && child.flex.flex && child.flex.flex > 0) {
+        // 有flex权重的子组件
+        const flex = child.flex.flex;
+        const fit = child.flex.fit || FlexFit.Tight;
+        flexChildren.push({ index: i, flex, fit });
+        totalFlexWeight += flex;
+      } else {
+        // 固定尺寸的子组件
+        totalNonFlexHeight += childSize.height;
+        nonFlexChildren.push({
+          index: i,
+          size: { width: childSize.width, height: childSize.height },
+        });
+      }
 
       // 添加间距（除了最后一个子组件）
+      if (i < this.children.length - 1) {
+        totalNonFlexHeight += this.spacing;
+      }
+    }
+
+    // 检查Flutter风格的错误：如果有无限高度约束且有flex子组件，则抛出错误
+    if (
+      hasUnboundedHeight &&
+      flexChildren.length > 0 &&
+      this.mainAxisSize === "max"
+    ) {
+      throw createRenderFlexUnboundedError("vertical");
+    }
+
+    // 计算可用于flex分配的空间
+    let availableFlexSpace = constraints.maxHeight - totalNonFlexHeight;
+    if (availableFlexSpace < 0) {
+      availableFlexSpace = 0;
+    }
+
+    // 为flex子组件分配空间
+    for (const flexChild of flexChildren) {
+      const allocatedHeight =
+        (availableFlexSpace * flexChild.flex) / totalFlexWeight;
+      const childSize = childrenSizes[flexChild.index];
+
+      // 更新子组件尺寸
+      if (flexChild.fit === FlexFit.Tight) {
+        // Expanded行为：强制占满分配的空间
+        childSize.height = allocatedHeight;
+      } else {
+        // Flexible行为：可以小于分配的空间
+        childSize.height = Math.min(childSize.height, allocatedHeight);
+      }
+    }
+
+    // 重新计算总高度
+    let totalHeight = 0;
+    for (let i = 0; i < childrenSizes.length; i++) {
+      totalHeight += childrenSizes[i].height;
       if (i < childrenSizes.length - 1) {
         totalHeight += this.spacing;
       }
@@ -121,7 +189,6 @@ export class Column extends Widget<ColumnData> {
     );
 
     // 确保Column的宽度至少能容纳最宽的子组件
-    // 这样可以避免居中对齐时出现负数偏移
     if (maxWidth > width) {
       width = Math.min(maxWidth, constraints.maxWidth);
     }
@@ -143,7 +210,7 @@ export class Column extends Widget<ColumnData> {
         minWidth: constraints.maxWidth,
         maxWidth: constraints.maxWidth,
         minHeight: 0,
-        maxHeight: Infinity,
+        maxHeight: constraints.maxHeight, // 传递父级的高度约束
       };
     } else {
       // 子组件可以根据自己的内容决定宽度
@@ -151,7 +218,7 @@ export class Column extends Widget<ColumnData> {
         minWidth: 0,
         maxWidth: constraints.maxWidth,
         minHeight: 0,
-        maxHeight: Infinity,
+        maxHeight: constraints.maxHeight, // 传递父级的高度约束
       };
     }
   }
@@ -160,9 +227,17 @@ export class Column extends Widget<ColumnData> {
    * 定位子组件
    */
   protected positionChild(childIndex: number, childSize: Size): Offset {
-    const { offset, size } = this.renderObject;
+    const { size } = this.renderObject;
 
-    // 计算所有子组件的总高度（包括间距）
+    // 确保 childIndex 在有效范围内
+    if (childIndex < 0 || childIndex >= this.children.length) {
+      console.warn(
+        `Column: Invalid childIndex ${childIndex}, children length: ${this.children.length}`
+      );
+      return { dx: 0, dy: 0 };
+    }
+
+    // 计算所有子组件的总高度（包括间距）- 使用实际渲染尺寸
     let totalChildrenHeight = 0;
     for (let i = 0; i < this.children.length; i++) {
       totalChildrenHeight += this.children[i].renderObject.size.height;
@@ -173,7 +248,7 @@ export class Column extends Widget<ColumnData> {
 
     // 计算起始Y坐标（基于主轴对齐方式）
     let startY = 0;
-    const availableSpace = size.height - totalChildrenHeight;
+    const availableSpace = Math.max(0, size.height - totalChildrenHeight);
 
     switch (this.mainAxisAlignment) {
       case "start":
@@ -196,10 +271,11 @@ export class Column extends Widget<ColumnData> {
         break;
     }
 
-    // 计算当前子组件的Y坐标
+    // 计算当前子组件的Y坐标 - 使用实际渲染尺寸
     let yOffset = startY;
     for (let i = 0; i < childIndex; i++) {
-      yOffset += this.children[i].renderObject.size.height;
+      const prevChildSize = this.children[i].renderObject.size;
+      yOffset += prevChildSize.height; // 使用实际渲染后的高度
 
       // 添加间距或分配额外空间
       if (i < this.children.length - 1) {
@@ -240,6 +316,23 @@ export class Column extends Widget<ColumnData> {
         break;
     }
 
-    return { dx: xOffset, dy: yOffset };
+    const result = { dx: xOffset, dy: yOffset };
+
+    // 添加调试日志
+    if (this.children[childIndex]?.key === "demo-footer") {
+      console.log(`Column positioning demo-footer (index ${childIndex}):`, {
+        childSize,
+        totalChildrenHeight,
+        availableSpace,
+        startY,
+        yOffset,
+        xOffset,
+        result,
+        columnSize: size,
+        mainAxisAlignment: this.mainAxisAlignment,
+      });
+    }
+
+    return result;
   }
 }

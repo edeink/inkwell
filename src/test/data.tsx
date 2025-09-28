@@ -2,6 +2,7 @@ import {
   createTemplate,
   Column,
   Row,
+  Expanded,
   Text,
   SizedBox,
   Container,
@@ -29,8 +30,44 @@ export const getTestData = () => {
         }}
       />
 
+      {/* Row中的Expanded测试 */}
+      {/* <Row key="row-expanded-section" spacing={10}>
+        <Text
+          key="row-left-text"
+          text="左侧"
+          style={{
+            fontSize: 16,
+            color: "#d32f2f",
+          }}
+        />
+        <Expanded flex={{ flex: 1 }}>
+          <Container
+            key="row-expanded-container"
+            backgroundColor="#e8f5e8"
+            padding={8}
+          >
+            <Text
+              key="row-expanded-text"
+              text="中间弹性区域"
+              style={{
+                fontSize: 16,
+                color: "#2e7d32",
+              }}
+            />
+          </Container>
+        </Expanded>
+        <Text
+          key="row-right-text"
+          text="右侧"
+          style={{
+            fontSize: 16,
+            color: "#d32f2f",
+          }}
+        />
+      </Row> */}
+
       {/* Container 组件展示 */}
-      <Column key="container-section" spacing={15}>
+      <Column key="container-section" spacing={15} mainAxisSize="min">
         <Text
           key="container-title"
           text="Container 组件"
@@ -51,32 +88,48 @@ export const getTestData = () => {
           >
             <Text
               key="container-text"
-              text="基础 Container"
+              text="基础容器"
               style={{
-                fontSize: 14,
-                color: "#ffffff",
+                fontSize: 16,
                 fontWeight: "bold",
               }}
             />
           </Container>
 
           <Container
-            key="border-container"
+            key="rounded-container"
             width={150}
             height={100}
-            backgroundColor="#f8f9fa"
+            backgroundColor="#2ecc71"
+            borderRadius={15}
+            padding={12}
+          >
+            <Text
+              key="rounded-text"
+              text="圆角容器"
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            />
+          </Container>
+
+          <Container
+            key="bordered-container"
+            width={150}
+            height={100}
+            backgroundColor="#f39c12"
             border={{
-              width: 2,
-              color: "#007bff",
+              width: 3,
+              color: "#e67e22",
             }}
             padding={12}
           >
             <Text
-              key="border-text"
-              text="带边框 Container"
+              key="bordered-text"
+              text="边框容器"
               style={{
-                fontSize: 14,
-                color: "#007bff",
+                fontSize: 16,
                 fontWeight: "bold",
               }}
             />
@@ -84,10 +137,8 @@ export const getTestData = () => {
         </Row>
       </Column>
 
-      {/* <SizedBox key="section-spacer-1" height={20} /> */}
-
       {/* Padding 组件展示 */}
-      {/* <Column key="padding-section" spacing={15}>
+      <Column key="padding-section" spacing={15} mainAxisSize="min">
         <Text
           key="padding-title"
           text="Padding 组件"
@@ -139,12 +190,10 @@ export const getTestData = () => {
             </Padding>
           </Container>
         </Row>
-      </Column> */}
-
-      {/* <SizedBox key="section-spacer-2" height={20} /> */}
+      </Column>
 
       {/* Center 组件展示 */}
-      {/* <Column key="center-section" spacing={15}>
+      <Column key="center-section" spacing={15} mainAxisSize="min">
         <Text
           key="center-title"
           text="Center 组件"
@@ -177,12 +226,10 @@ export const getTestData = () => {
             />
           </Center>
         </Container>
-      </Column> */}
-
-      {/* <SizedBox key="section-spacer-3" height={20} /> */}
+      </Column>
 
       {/* Stack 组件展示 */}
-      {/* <Column key="stack-section" spacing={15}>
+      <Column key="stack-section" spacing={15} mainAxisSize="min">
         <Text
           key="stack-title"
           text="Stack 组件"
@@ -220,12 +267,10 @@ export const getTestData = () => {
             />
           </Stack>
         </Container>
-      </Column> */}
-
-      {/* <SizedBox key="section-spacer-4" height={20} /> */}
+      </Column>
 
       {/* Positioned 组件展示 */}
-      {/* <Column key="positioned-section" spacing={15}>
+      <Column key="positioned-section" spacing={15} mainAxisSize="min">
         <Text
           key="positioned-title"
           text="Positioned 组件"
@@ -259,7 +304,6 @@ export const getTestData = () => {
                   text="左上"
                   style={{
                     fontSize: 12,
-                    color: "#ffffff",
                     fontWeight: "bold",
                   }}
                 />
@@ -278,7 +322,6 @@ export const getTestData = () => {
                   text="右下"
                   style={{
                     fontSize: 12,
-                    color: "#ffffff",
                     fontWeight: "bold",
                   }}
                 />
@@ -286,18 +329,16 @@ export const getTestData = () => {
             </Positioned>
           </Stack>
         </Container>
-      </Column> */}
+      </Column>
 
-      {/* <SizedBox key="final-spacer" height={30} /> */}
-
-      {/* <Text
+      <Text
         key="demo-footer"
         text="以上展示了所有新增 Widget 组件的基本功能"
         style={{
           fontSize: 16,
           color: "#6c757d",
         }}
-      /> */}
+      />
     </Column>
   ));
 

@@ -30,7 +30,7 @@ export class Positioned extends Widget<PositionedData> {
 
   // 注册 Positioned 组件类型
   static {
-    Widget.registerType("positioned", Positioned);
+    Widget.registerType("Positioned", Positioned);
   }
 
   constructor(data: PositionedData) {

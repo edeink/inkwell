@@ -101,7 +101,7 @@ export class Image extends Widget<ImageData> {
 
   // 注册 Image 组件类型
   static {
-    Widget.registerType("image", Image);
+    Widget.registerType("Image", Image);
   }
 
   /**

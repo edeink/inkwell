@@ -1,4 +1,5 @@
 import { type IRenderer } from "../renderer/IRenderer";
+import type { FlexProperties } from "./flex/type";
 
 /**
  * 基础组件类，提供构建、布局和绘制的基本方法
@@ -8,6 +9,7 @@ export interface WidgetData {
   key?: string;
   type: string;
   children?: WidgetData[];
+  flex?: FlexProperties; // 添加flex属性支持
   [key: string]: unknown;
 }
 
@@ -92,6 +94,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   children: Widget[] = [];
   parent: Widget | null = null;
   data: TData;
+  flex: FlexProperties; // 添加flex属性
   renderObject: RenderObject = {
     offset: { dx: 0, dy: 0 },
     size: { width: 0, height: 0 },
@@ -147,6 +150,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
     this.type = data.type;
     this.data = { ...data };
+    this.flex = data.flex || {}; // 初始化flex属性
 
     // 递归构建子组件
     if (

@@ -34,7 +34,7 @@ export class Stack extends Widget<StackData> {
 
   // 注册 Stack 组件类型
   static {
-    Widget.registerType("stack", Stack);
+    Widget.registerType("Stack", Stack);
   }
 
   constructor(data: StackData) {
@@ -159,6 +159,24 @@ export class Stack extends Widget<StackData> {
 
   protected positionChild(childIndex: number, childSize: Size): Offset {
     const stackSize = this.renderObject.size;
+    const child = this.children[childIndex];
+
+    // 检查是否是 Positioned 组件
+    if (
+      child &&
+      typeof child === "object" &&
+      "isPositioned" in child &&
+      typeof child.isPositioned === "function" &&
+      child.isPositioned()
+    ) {
+      // 对于 Positioned 组件，使用其 getStackPosition 方法
+      if (
+        "getStackPosition" in child &&
+        typeof child.getStackPosition === "function"
+      ) {
+        return child.getStackPosition(stackSize);
+      }
+    }
 
     // 根据对齐方式计算位置
     let dx: number;
