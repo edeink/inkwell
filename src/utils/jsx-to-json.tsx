@@ -1,5 +1,5 @@
-import React from 'react';
-import type { ComponentData } from '../editors/graphics-editor';
+import React from "react";
+import type { ComponentData } from "../editors/graphics-editor";
 
 // 定义支持的组件类型
 export interface JSXComponentProps {
@@ -9,15 +9,28 @@ export interface JSXComponentProps {
 
 // Column 组件 Props
 export interface ColumnProps extends JSXComponentProps {
-  mainAxisAlignment?: 'start' | 'center' | 'end' | 'spaceBetween' | 'spaceAround' | 'spaceEvenly';
-  crossAxisAlignment?: 'start' | 'center' | 'end' | 'stretch';
+  mainAxisAlignment?:
+    | "start"
+    | "center"
+    | "end"
+    | "spaceBetween"
+    | "spaceAround"
+    | "spaceEvenly";
+  crossAxisAlignment?: "start" | "center" | "end" | "stretch";
+  mainAxisSize?: "min" | "max";
   spacing?: number;
 }
 
 // Row 组件 Props
 export interface RowProps extends JSXComponentProps {
-  mainAxisAlignment?: 'start' | 'center' | 'end' | 'spaceBetween' | 'spaceAround' | 'spaceEvenly';
-  crossAxisAlignment?: 'start' | 'center' | 'end' | 'stretch';
+  mainAxisAlignment?:
+    | "start"
+    | "center"
+    | "end"
+    | "spaceBetween"
+    | "spaceAround"
+    | "spaceEvenly";
+  crossAxisAlignment?: "start" | "center" | "end" | "stretch";
   spacing?: number;
 }
 
@@ -30,10 +43,10 @@ export interface TextProps extends JSXComponentProps {
     fontWeight?: string | number;
     color?: string;
     height?: number;
-    textAlign?: 'left' | 'center' | 'right';
+    textAlign?: "left" | "center" | "right";
     backgroundColor?: string;
     maxLines?: number;
-    overflow?: 'clip' | 'ellipsis' | 'fade';
+    overflow?: "clip" | "ellipsis" | "fade";
   };
 }
 
@@ -42,8 +55,24 @@ export interface ImageProps extends JSXComponentProps {
   src: string;
   width?: number;
   height?: number;
-  fit?: 'fill' | 'contain' | 'cover' | 'fitWidth' | 'fitHeight' | 'none' | 'scaleDown';
-  alignment?: 'topLeft' | 'topCenter' | 'topRight' | 'centerLeft' | 'center' | 'centerRight' | 'bottomLeft' | 'bottomCenter' | 'bottomRight';
+  fit?:
+    | "fill"
+    | "contain"
+    | "cover"
+    | "fitWidth"
+    | "fitHeight"
+    | "none"
+    | "scaleDown";
+  alignment?:
+    | "topLeft"
+    | "topCenter"
+    | "topRight"
+    | "centerLeft"
+    | "center"
+    | "centerRight"
+    | "bottomLeft"
+    | "bottomCenter"
+    | "bottomRight";
 }
 
 // SizedBox 组件 Props
@@ -65,18 +94,21 @@ function generateKey(type: string): string {
 }
 
 // 将 React Element 转换为 ComponentData
-function convertElementToComponentData(element: React.ReactElement): ComponentData {
+function convertElementToComponentData(
+  element: React.ReactElement
+): ComponentData {
   const { type, props, key } = element;
-  
+
   // 获取组件类型名称
-  const componentTypeName = typeof type === 'function' ? type.name.toLowerCase() : String(type);
-  
+  const componentTypeName =
+    typeof type === "function" ? type.name.toLowerCase() : String(type);
+
   // 确保类型是有效的 ComponentData 类型
-  const validTypes = ['column', 'text', 'row', 'image', 'sizedBox'] as const;
-  const componentType = validTypes.includes(componentTypeName as any) 
-    ? componentTypeName as ComponentData['type']
-    : 'text'; // 默认类型
-  
+  const validTypes = ["column", "text", "row", "image", "sizedbox"] as const;
+  const componentType = validTypes.includes(componentTypeName as any)
+    ? (componentTypeName as ComponentData["type"])
+    : "text"; // 默认类型
+
   // 基础数据结构
   const componentData: ComponentData = {
     type: componentType,
@@ -88,34 +120,42 @@ function convertElementToComponentData(element: React.ReactElement): ComponentDa
 
   // 处理不同组件类型的特定属性
   switch (componentType) {
-    case 'column':
-      if (safeProps.mainAxisAlignment) componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
-      if (safeProps.crossAxisAlignment) componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
-      if (safeProps.spacing !== undefined) componentData.spacing = safeProps.spacing;
+    case "column":
+      if (safeProps.mainAxisAlignment)
+        componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
+      if (safeProps.crossAxisAlignment)
+        componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
+      if (safeProps.spacing !== undefined)
+        componentData.spacing = safeProps.spacing;
       break;
-      
-    case 'row':
-      if (safeProps.mainAxisAlignment) componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
-      if (safeProps.crossAxisAlignment) componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
-      if (safeProps.spacing !== undefined) componentData.spacing = safeProps.spacing;
+
+    case "row":
+      if (safeProps.mainAxisAlignment)
+        componentData.mainAxisAlignment = safeProps.mainAxisAlignment;
+      if (safeProps.crossAxisAlignment)
+        componentData.crossAxisAlignment = safeProps.crossAxisAlignment;
+      if (safeProps.spacing !== undefined)
+        componentData.spacing = safeProps.spacing;
       break;
-      
-    case 'text':
+
+    case "text":
       componentData.text = safeProps.text;
       if (safeProps.style) componentData.style = safeProps.style;
       break;
-      
-    case 'image':
+
+    case "image":
       componentData.src = safeProps.src;
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
-      if (safeProps.height !== undefined) componentData.height = safeProps.height;
+      if (safeProps.height !== undefined)
+        componentData.height = safeProps.height;
       if (safeProps.fit) componentData.fit = safeProps.fit;
       if (safeProps.alignment) componentData.alignment = safeProps.alignment;
       break;
-      
-    case 'sizedBox':
+
+    case "sizedbox":
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
-      if (safeProps.height !== undefined) componentData.height = safeProps.height;
+      if (safeProps.height !== undefined)
+        componentData.height = safeProps.height;
       break;
   }
 
@@ -124,8 +164,10 @@ function convertElementToComponentData(element: React.ReactElement): ComponentDa
     const children = React.Children.toArray(safeProps.children);
     if (children.length > 0) {
       componentData.children = children
-        .filter((child): child is React.ReactElement => React.isValidElement(child))
-        .map(child => convertElementToComponentData(child));
+        .filter((child): child is React.ReactElement =>
+          React.isValidElement(child)
+        )
+        .map((child) => convertElementToComponentData(child));
     }
   }
 
@@ -146,7 +188,9 @@ export function jsxToJson(jsxElement: React.ReactElement): ComponentData {
  * @param template JSX 模板函数
  * @returns ComponentData JSON 对象
  */
-export function createTemplate(template: () => React.ReactElement): ComponentData {
+export function createTemplate(
+  template: () => React.ReactElement
+): ComponentData {
   const element = template();
   return jsxToJson(element);
 }

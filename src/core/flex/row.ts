@@ -1,72 +1,22 @@
-import { Widget } from "./base";
+import { Widget } from "../base";
 import type {
   WidgetData,
   BoxConstraints,
   Size,
   Offset,
   BuildContext,
-} from "./base";
+} from "../base";
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
 
 /**
  * Row布局组件的数据接口
  */
 export interface RowData extends WidgetData {
-  mainAxisAlignment?: MainAxisAlignmentType;
-  crossAxisAlignment?: CrossAxisAlignmentType;
-  mainAxisSize?: MainAxisSizeType;
+  mainAxisAlignment?: MainAxisAlignment;
+  crossAxisAlignment?: CrossAxisAlignment;
+  mainAxisSize?: MainAxisSize;
   spacing?: number;
 }
-
-/**
- * 主轴对齐方式类型
- */
-export type MainAxisAlignmentType =
-  | "start"
-  | "center"
-  | "end"
-  | "spaceBetween"
-  | "spaceAround"
-  | "spaceEvenly";
-
-/**
- * 主轴对齐方式常量
- */
-export const MainAxisAlignment = {
-  Start: "start" as const,
-  Center: "center" as const,
-  End: "end" as const,
-  SpaceBetween: "spaceBetween" as const,
-  SpaceAround: "spaceAround" as const,
-  SpaceEvenly: "spaceEvenly" as const,
-};
-
-/**
- * 交叉轴对齐方式类型
- */
-export type CrossAxisAlignmentType = "start" | "center" | "end" | "stretch";
-
-/**
- * 交叉轴对齐方式常量
- */
-export const CrossAxisAlignment = {
-  Start: "start" as const,
-  Center: "center" as const,
-  End: "end" as const,
-  Stretch: "stretch" as const,
-};
-
-/**
- * 主轴尺寸类型
- */
-export type MainAxisSizeType = "min" | "max";
-
-/**
- * 主轴尺寸常量
- */
-export const MainAxisSize = {
-  Min: "min" as const,
-  Max: "max" as const,
-};
 
 /**
  * Row布局组件，水平排列子组件
@@ -74,9 +24,9 @@ export const MainAxisSize = {
  */
 export class Row extends Widget {
   // 布局属性
-  mainAxisAlignment: MainAxisAlignmentType = MainAxisAlignment.Start;
-  crossAxisAlignment: CrossAxisAlignmentType = CrossAxisAlignment.Center;
-  mainAxisSize: MainAxisSizeType = MainAxisSize.Max;
+  mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
+  crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;
+  mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
   constructor(data: RowData) {
@@ -99,19 +49,23 @@ export class Row extends Widget {
    * 创建组件
    */
   createElement(data: RowData): Widget {
-    return new Row(data);
+    super.createElement(data);
+    this.initRowProperties(data);
+    return this;
   }
 
   /**
    * 创建子组件
    */
   protected createChildWidget(childData: WidgetData): Widget | null {
+    // 使用 Widget 静态方法动态创建组件
     return Widget.createWidget(childData);
   }
 
   /**
    * 注册组件类型
    */
+  // 注册 Row 组件类型
   static {
     Widget.registerType("row", Row);
   }
@@ -120,7 +74,8 @@ export class Row extends Widget {
    * 绘制自身（Row通常不需要绘制背景）
    */
   protected paintSelf(context: BuildContext): void {
-    // Row组件通常不绘制自身，只负责布局子组件
+    // Row 组件本身不需要绘制任何内容，它只是一个布局容器
+    // 子组件的绘制由基类的 paint 方法处理
   }
 
   /**
@@ -163,10 +118,18 @@ export class Row extends Widget {
       constraints.minWidth,
       Math.min(width, constraints.maxWidth)
     );
-    const height = Math.max(
-      constraints.minHeight,
-      Math.min(maxHeight, constraints.maxHeight)
-    );
+
+    // 对于高度，Row 应该根据内容来确定，而不是使用无限约束
+    // 这符合 Flutter 的行为：Row 的高度由其子组件的最大高度决定
+    let height = maxHeight;
+
+    // 如果约束的最大高度不是无限的，则需要考虑约束
+    if (constraints.maxHeight !== Infinity) {
+      height = Math.min(maxHeight, constraints.maxHeight);
+    }
+
+    // 确保满足最小高度约束
+    height = Math.max(constraints.minHeight, height);
 
     return { width, height };
   }
@@ -191,7 +154,7 @@ export class Row extends Widget {
       // 子组件可以根据自己的内容决定高度
       return {
         minWidth: 0,
-        maxWidth: Infinity,
+        maxWidth: constraints.maxWidth,
         minHeight: 0,
         maxHeight: constraints.maxHeight,
       };
@@ -280,6 +243,14 @@ export class Row extends Widget {
         // 已经在约束中处理了拉伸
         yOffset = 0;
         break;
+    }
+
+    if (isNaN(xOffset)) {
+      xOffset = 0;
+    }
+
+    if (isNaN(yOffset)) {
+      yOffset = 0;
     }
 
     return { dx: xOffset, dy: yOffset };

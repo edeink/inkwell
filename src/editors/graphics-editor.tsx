@@ -5,6 +5,7 @@ import { Widget } from "../core/base";
 import type { WidgetData, BuildContext, BoxConstraints } from "../core/base";
 // 导入注册表以确保所有组件类型都已注册
 import "../core/registry";
+import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
 
 /**
  * 编辑器配置接口
@@ -26,7 +27,7 @@ export interface EditorOptions {
  * JSON组件数据接口
  */
 export interface ComponentData {
-  type: "column" | "text" | "row" | "image" | "sizedBox";
+  type: "column" | "text" | "row" | "image" | "sizedbox";
   children?: ComponentData[];
   [key: string]: any;
 }
@@ -62,7 +63,7 @@ export default class Editor {
     options: EditorOptions
   ): Promise<void> {
     this.container = this.initContainer(containerId);
-    this.renderer = this.createRenderer(options.renderer || "pixi");
+    this.renderer = this.createRenderer(options.renderer || "canvas2d");
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
     this.initEvent();
   }
@@ -94,9 +95,14 @@ export default class Editor {
     // 这里可以根据 rendererType 创建不同的渲染器实例
     // 未来可以扩展支持更多渲染引擎
     switch (rendererType.toLowerCase()) {
-      case "pixi":
-      default:
+      case "pixi": {
         return new PixiRenderer();
+      }
+      case "canvas2d": {
+        return new Canvas2DRenderer();
+      }
+      default:
+        return new Canvas2DRenderer();
     }
   }
 
@@ -114,7 +120,7 @@ export default class Editor {
     const rendererOptions: RendererOptions = {
       antialias: options.antialias ?? true,
       resolution: options.resolution ?? LOCAL_RESOLUTION.get() ?? 4,
-      background: options.background ?? "transparent",
+      background: options.background ?? 0x000000,
       backgroundAlpha: options.backgroundAlpha ?? 0,
       width: size?.width ?? this.container.clientWidth,
       height: size?.height ?? this.container.clientHeight,
@@ -161,6 +167,8 @@ export default class Editor {
 
     // 解析JSON并创建组件树
     this.rootWidget = this.parseComponentData(jsonData);
+
+    console.log("~~~ root", this.rootWidget);
 
     if (this.rootWidget) {
       // 先进行布局计算获得总尺寸
@@ -246,8 +254,6 @@ export default class Editor {
 
     // 执行绘制
     this.rootWidget.paint(context);
-
-    // 渲染到屏幕
     this.renderer.render();
   }
 

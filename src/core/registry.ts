@@ -1,9 +1,9 @@
 import { Widget, type WidgetData } from "./base";
-import "./column"; // 自动注册 Column 组件
-import "./row"; // 自动注册 Row 组件
+import "./flex/column"; // 自动注册 Column 组件
+import "./flex/row"; // 自动注册 Row 组件
 import "./text"; // 自动注册 Text 组件
 import "./image"; // 自动注册 Image 组件
-import "./sizedBox"; // 自动注册 SizedBox 组件
+import "./sizedbox"; // 自动注册 SizedBox 组件
 
 // 组件构造函数类型
 type WidgetConstructor = new (data: WidgetData) => Widget;

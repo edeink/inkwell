@@ -19,6 +19,7 @@ export class PixiRenderer implements IRenderer {
   private isDataDirty: boolean = false;
   private tickerRunning: boolean = false;
   private tickerStopTimer: number | null = null;
+  private transformStack: Array<{ x: number; y: number }> = [];
 
   /**
    * 初始化渲染器
@@ -29,6 +30,10 @@ export class PixiRenderer implements IRenderer {
     container: HTMLElement,
     options: RendererOptions
   ): Promise<void> {
+    // fix：避免重复初始化
+    if (this.app) {
+      this.destroy();
+    }
     this.container = container;
     this.app = new Application();
 
@@ -76,8 +81,8 @@ export class PixiRenderer implements IRenderer {
    */
   render(): void {
     if (this.app) {
-      // 标记数据已更新，需要渲染
-      this.markDataDirty();
+      // 清空变换栈，确保每次渲染都从干净的状态开始
+      this.transformStack = [];
 
       // 启动 ticker 进行持续渲染（如果尚未启动）
       this.startTicker();
@@ -128,38 +133,20 @@ export class PixiRenderer implements IRenderer {
 
   /**
    * 保存当前绘图状态
-   * 在 Pixi.js 中通过保存 stage 的变换矩阵实现
+   * 保存当前的坐标变换状态
    */
   save(): void {
-    if (this.app && this.app.stage) {
-      // Pixi.js 中可以通过保存变换状态来实现类似功能
-      // 这里可以扩展为保存更多状态信息
-      const stage = this.app.stage;
-      (stage as any)._savedStates = (stage as any)._savedStates || [];
-      (stage as any)._savedStates.push({
-        x: stage.position.x,
-        y: stage.position.y,
-        scaleX: stage.scale.x,
-        scaleY: stage.scale.y,
-        rotation: stage.rotation,
-      });
-    }
+    // 保存一个新的变换状态，初始为(0,0)
+    this.transformStack.push({ x: 0, y: 0 });
   }
 
   /**
    * 恢复之前保存的绘图状态
-   * 在 Pixi.js 中通过恢复 stage 的变换矩阵实现
+   * 恢复之前保存的坐标变换状态
    */
   restore(): void {
-    if (this.app && this.app.stage) {
-      const stage = this.app.stage;
-      const savedStates = (stage as any)._savedStates;
-      if (savedStates && savedStates.length > 0) {
-        const state = savedStates.pop();
-        stage.position.set(state.x, state.y);
-        stage.scale.set(state.scaleX, state.scaleY);
-        stage.rotation = state.rotation;
-      }
+    if (this.transformStack.length > 0) {
+      this.transformStack.pop();
     }
   }
 
@@ -169,9 +156,14 @@ export class PixiRenderer implements IRenderer {
    * @param y Y轴偏移量
    */
   translate(x: number, y: number): void {
-    if (this.app && this.app.stage) {
-      this.app.stage.position.x += x;
-      this.app.stage.position.y += y;
+    // 将平移添加到当前变换栈的顶部
+    if (this.transformStack.length > 0) {
+      const top = this.transformStack[this.transformStack.length - 1];
+      top.x += x;
+      top.y += y;
+    } else {
+      // 如果栈为空，创建一个新的变换
+      this.transformStack.push({ x, y });
     }
   }
 
@@ -195,6 +187,8 @@ export class PixiRenderer implements IRenderer {
       return;
     }
 
+    console.log("绘制文本:", options.text, "位置:", options.x, options.y);
+
     // 标记数据已更新
     this.markDataDirty();
 
@@ -213,9 +207,9 @@ export class PixiRenderer implements IRenderer {
 
     // 创建文本对象
     const textObject = new Text({ text: options.text, style });
-    textObject.resolution = 4;
+    textObject.resolution = 2;
 
-    // 设置位置
+    // 直接使用传入的坐标，因为base.ts已经通过translate处理了变换
     textObject.x = options.x;
     textObject.y = options.y;
 
@@ -237,6 +231,13 @@ export class PixiRenderer implements IRenderer {
 
     // 添加到舞台
     this.app.stage.addChild(textObject);
+    console.log(
+      "文本已添加到舞台，舞台子元素数量:",
+      this.app.stage.children.length
+    );
+
+    // 启动渲染
+    this.startTicker();
   }
 
   /**
@@ -257,6 +258,14 @@ export class PixiRenderer implements IRenderer {
       return;
     }
 
+    console.log(
+      "绘制矩形:",
+      options.x,
+      options.y,
+      options.width,
+      options.height
+    );
+
     // 标记数据已更新
     this.markDataDirty();
 
@@ -273,12 +282,19 @@ export class PixiRenderer implements IRenderer {
       graphics.lineStyle(options.strokeWidth || 1, options.stroke);
     }
 
-    // 绘制矩形
+    // 直接使用传入的坐标，因为base.ts已经通过translate处理了变换
     graphics.drawRect(options.x, options.y, options.width, options.height);
     graphics.endFill();
 
     // 添加到舞台
     this.app.stage.addChild(graphics);
+    console.log(
+      "矩形已添加到舞台，舞台子元素数量:",
+      this.app.stage.children.length
+    );
+
+    // 启动渲染
+    this.startTicker();
   }
 
   /**
@@ -301,6 +317,14 @@ export class PixiRenderer implements IRenderer {
       return;
     }
 
+    console.log(
+      "绘制图片:",
+      options.x,
+      options.y,
+      options.width,
+      options.height
+    );
+
     // 标记数据已更新
     this.markDataDirty();
 
@@ -308,7 +332,7 @@ export class PixiRenderer implements IRenderer {
     const texture = Texture.from(options.image);
     const sprite = new Sprite(texture);
 
-    // 设置位置和尺寸
+    // 直接使用传入的坐标，因为base.ts已经通过translate处理了变换
     sprite.x = options.x;
     sprite.y = options.y;
     sprite.width = options.width;
@@ -323,13 +347,20 @@ export class PixiRenderer implements IRenderer {
           options.sy || 0,
           options.sWidth || options.image.width,
           options.sHeight || options.image.height
-        )
+        ),
       });
       sprite.texture = cropTexture;
     }
 
     // 添加到舞台
     this.app.stage.addChild(sprite);
+    console.log(
+      "图片已添加到舞台，舞台子元素数量:",
+      this.app.stage.children.length
+    );
+
+    // 启动渲染
+    this.startTicker();
   }
 
   /**

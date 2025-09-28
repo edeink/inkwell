@@ -7,7 +7,7 @@ export interface RendererOptions {
   /** 分辨率 */
   resolution?: number;
   /** 背景色 */
-  background?: string;
+  background?: string | number;
   /** 背景透明度 */
   backgroundAlpha?: number;
   /** 宽度 */

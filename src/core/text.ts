@@ -248,8 +248,8 @@ export class Text extends Widget<TextData> {
       if (typeof renderer.drawText === "function") {
         renderer.drawText({
           text: this.text,
-          x: offset.dx,
-          y: offset.dy,
+          x: 0, // 使用 0，因为 translate 已经处理了偏移
+          y: 0, // 使用 0，因为 translate 已经处理了偏移
           width: size.width,
           height: this.textMetrics.height, // 只使用文本部分的高度
           fontSize: this.style.fontSize,

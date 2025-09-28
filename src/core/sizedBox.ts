@@ -11,7 +11,7 @@ import type {
  * SizedBox组件的数据接口
  */
 export interface SizedBoxData extends WidgetData {
-  type: "sizedBox";
+  type: "sizedbox";
   width?: number; // 固定宽度
   height?: number; // 固定高度
 }
@@ -27,7 +27,7 @@ export class SizedBox extends Widget<SizedBoxData> {
 
   // 注册 SizedBox 组件类型
   static {
-    Widget.registerType("sizedBox", SizedBox);
+    Widget.registerType("sizedbox", SizedBox);
   }
 
   constructor(data: SizedBoxData) {
@@ -158,7 +158,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static square(size: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedBox",
+      type: "sizedbox",
       width: size,
       height: size,
       children: child ? [child] : undefined,
@@ -170,7 +170,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static width(width: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedBox",
+      type: "sizedbox",
       width: width,
       children: child ? [child] : undefined,
     };
@@ -181,7 +181,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static height(height: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedBox",
+      type: "sizedbox",
       height: height,
       children: child ? [child] : undefined,
     };
@@ -192,7 +192,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static shrink(): SizedBoxData {
     return {
-      type: "sizedBox",
+      type: "sizedbox",
       width: 0,
       height: 0,
     };
@@ -203,7 +203,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static expand(child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedBox",
+      type: "sizedbox",
       width: Infinity,
       height: Infinity,
       children: child ? [child] : undefined,

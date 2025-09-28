@@ -1,72 +1,22 @@
-import { Widget } from "./base";
+import { Widget } from "../base";
 import type {
   WidgetData,
   BoxConstraints,
   Size,
   Offset,
   BuildContext,
-} from "./base";
+} from "../base";
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
 
 /**
  * Column布局组件的数据接口
  */
 export interface ColumnData extends WidgetData {
-  mainAxisAlignment?: MainAxisAlignmentType;
-  crossAxisAlignment?: CrossAxisAlignmentType;
-  mainAxisSize?: MainAxisSizeType;
+  mainAxisAlignment?: MainAxisAlignment;
+  crossAxisAlignment?: CrossAxisAlignment;
+  mainAxisSize?: MainAxisSize;
   spacing?: number;
 }
-
-/**
- * 主轴对齐方式类型
- */
-export type MainAxisAlignmentType =
-  | "start"
-  | "center"
-  | "end"
-  | "spaceBetween"
-  | "spaceAround"
-  | "spaceEvenly";
-
-/**
- * 主轴对齐方式常量
- */
-export const MainAxisAlignment = {
-  Start: "start" as const,
-  Center: "center" as const,
-  End: "end" as const,
-  SpaceBetween: "spaceBetween" as const,
-  SpaceAround: "spaceAround" as const,
-  SpaceEvenly: "spaceEvenly" as const,
-};
-
-/**
- * 交叉轴对齐方式类型
- */
-export type CrossAxisAlignmentType = "start" | "center" | "end" | "stretch";
-
-/**
- * 交叉轴对齐方式常量
- */
-export const CrossAxisAlignment = {
-  Start: "start" as const,
-  Center: "center" as const,
-  End: "end" as const,
-  Stretch: "stretch" as const,
-};
-
-/**
- * 主轴尺寸类型
- */
-export type MainAxisSizeType = "min" | "max";
-
-/**
- * 主轴尺寸常量
- */
-export const MainAxisSize = {
-  Min: "min" as const,
-  Max: "max" as const,
-};
 
 /**
  * Column布局组件，垂直排列子组件
@@ -74,9 +24,9 @@ export const MainAxisSize = {
  */
 export class Column extends Widget {
   // 布局属性
-  mainAxisAlignment: MainAxisAlignmentType = MainAxisAlignment.Start;
-  crossAxisAlignment: CrossAxisAlignmentType = CrossAxisAlignment.Center;
-  mainAxisSize: MainAxisSizeType = MainAxisSize.Max;
+  mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
+  crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;
+  mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
   constructor(data: ColumnData) {
@@ -165,10 +115,16 @@ export class Column extends Widget {
       constraints.minHeight,
       Math.min(height, constraints.maxHeight)
     );
-    const width = Math.max(
+    let width = Math.max(
       constraints.minWidth,
       Math.min(maxWidth, constraints.maxWidth)
     );
+
+    // 确保Column的宽度至少能容纳最宽的子组件
+    // 这样可以避免居中对齐时出现负数偏移
+    if (maxWidth > width) {
+      width = Math.min(maxWidth, constraints.maxWidth);
+    }
 
     return { width, height };
   }

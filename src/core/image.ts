@@ -383,8 +383,8 @@ export class Image extends Widget<ImageData> {
       // 图片未加载，绘制占位符
       const { size } = this.renderObject;
       context.renderer.drawRect({
-        x: 0,
-        y: 0,
+        x: 0, // 使用 0，因为 translate 已经处理了偏移
+        y: 0, // 使用 0，因为 translate 已经处理了偏移
         width: size.width,
         height: size.height,
         fill: "#f0f0f0",
@@ -395,8 +395,8 @@ export class Image extends Widget<ImageData> {
       // 绘制加载提示文本
       context.renderer.drawText({
         text: this.src ? "Loading..." : "No Image",
-        x: size.width / 2,
-        y: size.height / 2,
+        x: size.width / 2, // 相对于组件内部的中心位置
+        y: size.height / 2, // 相对于组件内部的中心位置
         fontSize: 12,
         color: "#666666",
         textAlign: "center",

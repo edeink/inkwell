@@ -111,20 +111,24 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   // 创建组件实例
   public static createWidget(data: WidgetData): Widget | null {
     if (!data) {
-      console.error('createWidget: data is null or undefined');
+      console.error("createWidget: data is null or undefined");
       return null;
     }
     if (!data.type) {
-      console.error('createWidget: data.type is missing', data);
+      console.error("createWidget: data.type is missing", data);
       return null;
     }
-    
+
     const constructor = Widget.registry.get(data.type);
     if (constructor) {
       try {
         return new constructor(data);
       } catch (error) {
-        console.error(`Failed to create widget of type ${data.type}:`, error, data);
+        console.error(
+          `Failed to create widget of type ${data.type}:`,
+          error,
+          data
+        );
         return null;
       }
     }
@@ -134,18 +138,22 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
   constructor(data: TData) {
     if (!data) {
-      throw new Error('Widget data cannot be null or undefined');
+      throw new Error("Widget data cannot be null or undefined");
     }
     if (!data.type) {
-      throw new Error('Widget data must have a type property');
+      throw new Error("Widget data must have a type property");
     }
-    
+
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
     this.type = data.type;
     this.data = { ...data };
 
     // 递归构建子组件
-    if (data.children && Array.isArray(data.children) && data.children.length > 0) {
+    if (
+      data.children &&
+      Array.isArray(data.children) &&
+      data.children.length > 0
+    ) {
       this.buildChildren(data.children);
     }
   }
@@ -192,18 +200,21 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 类似于 Flutter 的 layout 方法
    */
   layout(constraints: BoxConstraints): Size {
-    // 首先布局子组件
+    // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);
 
     // 根据子组件布局结果计算自身布局
     const size = this.performLayout(constraints, childrenSizes);
     this.renderObject.size = size;
 
+    // 现在自身尺寸已确定，可以正确定位子组件
+    this.positionChildren(childrenSizes);
+
     return size;
   }
 
   /**
-   * 布局子组件
+   * 布局子组件（只计算尺寸，不设置位置）
    */
   protected layoutChildren(parentConstraints: BoxConstraints): Size[] {
     const sizes: Size[] = [];
@@ -216,15 +227,22 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
         i
       );
       const childSize = child.layout(childConstraints);
-
-      // 设置子组件的位置
-      const childOffset = this.positionChild(i, childSize);
-      child.renderObject.offset = childOffset;
-
       sizes.push(childSize);
     }
 
     return sizes;
+  }
+
+  /**
+   * 定位子组件（在自身尺寸确定后调用）
+   */
+  protected positionChildren(childrenSizes: Size[]): void {
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      const childSize = childrenSizes[i];
+      const childOffset = this.positionChild(i, childSize);
+      child.renderObject.offset = childOffset;
+    }
   }
 
   /**
@@ -305,5 +323,27 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     // 在实际应用中，这里应该触发重新布局和渲染
     // 目前只是一个占位实现
     console.log(`Widget ${this.key} marked for layout`);
+  }
+
+  /**
+   * 获取当前节点距离浏览器原点的绝对位置
+   * 用于调试和定位
+   */
+  getAbsolutePosition(): Offset {
+    let absoluteX = this.renderObject.offset.dx;
+    let absoluteY = this.renderObject.offset.dy;
+
+    // 遍历父组件链，累加所有父组件的偏移量
+    let currentParent = this.parent;
+    while (currentParent) {
+      absoluteX += currentParent.renderObject.offset.dx;
+      absoluteY += currentParent.renderObject.offset.dy;
+      currentParent = currentParent.parent;
+    }
+
+    return {
+      dx: absoluteX,
+      dy: absoluteY,
+    };
   }
 }
