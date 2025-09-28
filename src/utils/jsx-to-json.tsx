@@ -75,6 +75,55 @@ export interface ImageProps extends JSXComponentProps {
     | "bottomRight";
 }
 
+// Container 组件 Props
+export interface ContainerProps extends JSXComponentProps {
+  width?: number;
+  height?: number;
+  padding?: EdgeInsets | number;
+  margin?: EdgeInsets | number;
+  backgroundColor?: string;
+  borderRadius?: number;
+  border?: {
+    width: number;
+    color: string;
+  };
+}
+
+// Padding 组件 Props
+export interface PaddingProps extends JSXComponentProps {
+  padding: EdgeInsets | number;
+}
+
+// Center 组件 Props
+export interface CenterProps extends JSXComponentProps {
+  // Center 组件只需要基础属性
+}
+
+// Stack 组件 Props
+export interface StackProps extends JSXComponentProps {
+  fit?: "expand" | "passthrough" | "loose";
+  alignment?: "topLeft" | "topCenter" | "topRight" | "centerLeft" | "center" | "centerRight" | "bottomLeft" | "bottomCenter" | "bottomRight";
+}
+
+// Positioned 组件 Props
+export interface PositionedProps extends JSXComponentProps {
+  left?: number;
+  top?: number;
+  right?: number;
+  bottom?: number;
+  width?: number;
+  height?: number;
+}
+
+// EdgeInsets 接口
+export interface EdgeInsets {
+  left?: number;
+  top?: number;
+  right?: number;
+  bottom?: number;
+  all?: number;
+}
+
 // SizedBox 组件 Props
 export interface SizedBoxProps extends JSXComponentProps {
   width?: number;
@@ -87,6 +136,11 @@ export const Row: React.FC<RowProps> = () => null;
 export const Text: React.FC<TextProps> = () => null;
 export const Image: React.FC<ImageProps> = () => null;
 export const SizedBox: React.FC<SizedBoxProps> = () => null;
+export const Container: React.FC<ContainerProps> = () => null;
+export const Padding: React.FC<PaddingProps> = () => null;
+export const Center: React.FC<CenterProps> = () => null;
+export const Stack: React.FC<StackProps> = () => null;
+export const Positioned: React.FC<PositionedProps> = () => null;
 
 // 生成唯一 key 的辅助函数
 function generateKey(type: string): string {
@@ -104,7 +158,7 @@ function convertElementToComponentData(
     typeof type === "function" ? type.name.toLowerCase() : String(type);
 
   // 确保类型是有效的 ComponentData 类型
-  const validTypes = ["column", "text", "row", "image", "sizedbox"] as const;
+  const validTypes = ["column", "text", "row", "image", "sizedbox", "container", "padding", "center", "stack", "positioned"] as const;
   const componentType = validTypes.includes(componentTypeName as any)
     ? (componentTypeName as ComponentData["type"])
     : "text"; // 默认类型
@@ -156,6 +210,38 @@ function convertElementToComponentData(
       if (safeProps.width !== undefined) componentData.width = safeProps.width;
       if (safeProps.height !== undefined)
         componentData.height = safeProps.height;
+      break;
+
+    case "container":
+      if (safeProps.width !== undefined) componentData.width = safeProps.width;
+      if (safeProps.height !== undefined) componentData.height = safeProps.height;
+      if (safeProps.padding !== undefined) componentData.padding = safeProps.padding;
+      if (safeProps.margin !== undefined) componentData.margin = safeProps.margin;
+      if (safeProps.backgroundColor) componentData.backgroundColor = safeProps.backgroundColor;
+      if (safeProps.borderRadius !== undefined) componentData.borderRadius = safeProps.borderRadius;
+      if (safeProps.border) componentData.border = safeProps.border;
+      break;
+
+    case "padding":
+      if (safeProps.padding !== undefined) componentData.padding = safeProps.padding;
+      break;
+
+    case "center":
+      // Center 组件没有特殊属性
+      break;
+
+    case "stack":
+      if (safeProps.fit) componentData.fit = safeProps.fit;
+      if (safeProps.alignment) componentData.alignment = safeProps.alignment;
+      break;
+
+    case "positioned":
+      if (safeProps.left !== undefined) componentData.left = safeProps.left;
+      if (safeProps.top !== undefined) componentData.top = safeProps.top;
+      if (safeProps.right !== undefined) componentData.right = safeProps.right;
+      if (safeProps.bottom !== undefined) componentData.bottom = safeProps.bottom;
+      if (safeProps.width !== undefined) componentData.width = safeProps.width;
+      if (safeProps.height !== undefined) componentData.height = safeProps.height;
       break;
   }
 

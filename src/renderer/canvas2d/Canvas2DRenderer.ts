@@ -44,7 +44,7 @@ export class Canvas2DRenderer implements IRenderer {
     // 设置高分辨率支持
     const devicePixelRatio = window.devicePixelRatio || 1;
     const resolution = options.resolution || devicePixelRatio;
-    
+
     if (resolution !== 1) {
       this.canvas.width = options.width * resolution;
       this.canvas.height = options.height * resolution;
@@ -80,12 +80,12 @@ export class Canvas2DRenderer implements IRenderer {
     this.options.height = height;
 
     const resolution = this.options.resolution || window.devicePixelRatio || 1;
-    
+
     this.canvas.width = width * resolution;
     this.canvas.height = height * resolution;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
-    
+
     this.ctx.scale(resolution, resolution);
 
     // 重新设置抗锯齿
@@ -164,7 +164,7 @@ export class Canvas2DRenderer implements IRenderer {
     if (!this.ctx || !this.options) return;
 
     const { width, height } = this.options;
-    
+
     // 清除整个画布
     this.ctx.clearRect(0, 0, width, height);
 

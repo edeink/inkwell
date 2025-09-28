@@ -1,0 +1,211 @@
+import { Widget } from "./base";
+import type {
+  WidgetData,
+  BoxConstraints,
+  Size,
+  Offset,
+  BuildContext,
+} from "./base";
+
+export type StackFit = "loose" | "expand" | "passthrough";
+export type AlignmentGeometry =
+  | "topLeft"
+  | "topCenter"
+  | "topRight"
+  | "centerLeft"
+  | "center"
+  | "centerRight"
+  | "bottomLeft"
+  | "bottomCenter"
+  | "bottomRight";
+
+export interface StackData extends WidgetData {
+  alignment?: AlignmentGeometry;
+  fit?: StackFit;
+  children?: WidgetData[];
+}
+
+/**
+ * Stack 组件 - 将子组件堆叠在一起
+ */
+export class Stack extends Widget<StackData> {
+  alignment: AlignmentGeometry = "center";
+  fit: StackFit = "loose";
+
+  // 注册 Stack 组件类型
+  static {
+    Widget.registerType("stack", Stack);
+  }
+
+  constructor(data: StackData) {
+    super(data);
+    this.initStackProperties(data);
+  }
+
+  private initStackProperties(data: StackData): void {
+    this.alignment = data.alignment || "topLeft";
+    this.fit = data.fit || "loose";
+  }
+
+  createElement(data: StackData): Widget {
+    super.createElement(data);
+    this.initStackProperties(data);
+    return this;
+  }
+
+  protected createChildWidget(childData: WidgetData): Widget | null {
+    // Stack 可以有多个子组件
+    return Widget.createWidget(childData);
+  }
+
+  /**
+   * Stack 不需要绘制自己
+   */
+  protected paintSelf(context: BuildContext): void {
+    // Stack 组件不绘制任何内容
+  }
+
+  protected performLayout(
+    constraints: BoxConstraints,
+    childrenSizes: Size[]
+  ): Size {
+    if (childrenSizes.length === 0) {
+      return {
+        width: constraints.minWidth,
+        height: constraints.minHeight,
+      };
+    }
+
+    let width: number;
+    let height: number;
+
+    switch (this.fit) {
+      case "expand":
+        // 扩展到最大约束
+        width =
+          constraints.maxWidth === Infinity
+            ? Math.max(...childrenSizes.map((s) => s.width))
+            : constraints.maxWidth;
+        height =
+          constraints.maxHeight === Infinity
+            ? Math.max(...childrenSizes.map((s) => s.height))
+            : constraints.maxHeight;
+        break;
+
+      case "passthrough":
+        // 传递约束给子组件，Stack 本身尺寸由约束决定
+        width =
+          constraints.maxWidth === Infinity
+            ? Math.max(...childrenSizes.map((s) => s.width))
+            : constraints.maxWidth;
+        height =
+          constraints.maxHeight === Infinity
+            ? Math.max(...childrenSizes.map((s) => s.height))
+            : constraints.maxHeight;
+        break;
+
+      case "loose":
+      default:
+        // 根据子组件的最大尺寸确定
+        width = Math.max(...childrenSizes.map((s) => s.width));
+        height = Math.max(...childrenSizes.map((s) => s.height));
+        break;
+    }
+
+    // 确保满足约束条件
+    width = Math.max(
+      constraints.minWidth,
+      Math.min(width, constraints.maxWidth)
+    );
+    height = Math.max(
+      constraints.minHeight,
+      Math.min(height, constraints.maxHeight)
+    );
+
+    return { width, height };
+  }
+
+  protected getConstraintsForChild(
+    constraints: BoxConstraints,
+    childIndex: number
+  ): BoxConstraints {
+    switch (this.fit) {
+      case "expand":
+        // 强制子组件扩展到 Stack 的尺寸
+        return {
+          minWidth:
+            constraints.maxWidth === Infinity ? 0 : constraints.maxWidth,
+          maxWidth: constraints.maxWidth,
+          minHeight:
+            constraints.maxHeight === Infinity ? 0 : constraints.maxHeight,
+          maxHeight: constraints.maxHeight,
+        };
+
+      case "passthrough":
+        // 直接传递约束
+        return constraints;
+
+      case "loose":
+      default:
+        // 宽松约束，子组件可以是任意尺寸
+        return {
+          minWidth: 0,
+          maxWidth: constraints.maxWidth,
+          minHeight: 0,
+          maxHeight: constraints.maxHeight,
+        };
+    }
+  }
+
+  protected positionChild(childIndex: number, childSize: Size): Offset {
+    const stackSize = this.renderObject.size;
+
+    // 根据对齐方式计算位置
+    let dx: number;
+    let dy: number;
+
+    switch (this.alignment) {
+      case "topLeft":
+        dx = 0;
+        dy = 0;
+        break;
+      case "topCenter":
+        dx = (stackSize.width - childSize.width) / 2;
+        dy = 0;
+        break;
+      case "topRight":
+        dx = stackSize.width - childSize.width;
+        dy = 0;
+        break;
+      case "centerLeft":
+        dx = 0;
+        dy = (stackSize.height - childSize.height) / 2;
+        break;
+      case "center":
+        dx = (stackSize.width - childSize.width) / 2;
+        dy = (stackSize.height - childSize.height) / 2;
+        break;
+      case "centerRight":
+        dx = stackSize.width - childSize.width;
+        dy = (stackSize.height - childSize.height) / 2;
+        break;
+      case "bottomLeft":
+        dx = 0;
+        dy = stackSize.height - childSize.height;
+        break;
+      case "bottomCenter":
+        dx = (stackSize.width - childSize.width) / 2;
+        dy = stackSize.height - childSize.height;
+        break;
+      case "bottomRight":
+        dx = stackSize.width - childSize.width;
+        dy = stackSize.height - childSize.height;
+        break;
+      default:
+        dx = 0;
+        dy = 0;
+    }
+
+    return { dx, dy };
+  }
+}

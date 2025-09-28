@@ -111,13 +111,102 @@ export class Text extends Widget<TextData> {
    * 计算文本的度量信息（宽度、高度、行数等）
    */
   private calculateTextMetrics(constraints: BoxConstraints): void {
-    // 在实际应用中，这里应该使用canvas或其他方式测量文本
-    // 这里使用简化的估算方法
+    const fontSize = this.style.fontSize || 16;
+    const lineHeight = this.style.height || 1.2;
+    const lines: string[] = [];
+
+    const maxWidth = constraints.maxWidth;
+
+    // 使用 Canvas 进行精确的文字度量
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      // 如果无法获取 Canvas 上下文，回退到估算方法
+      this.calculateTextMetricsEstimate(constraints);
+      return;
+    }
+
+    // 设置字体样式
+    const fontFamily = this.style.fontFamily || "Arial, sans-serif";
+    const fontWeight = this.style.fontWeight || "normal";
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+
+    // 测量单行文本宽度
+    const textWidth = ctx.measureText(this.text).width;
+
+    if (maxWidth === Infinity || textWidth <= maxWidth) {
+      // 单行文本
+      lines.push(this.text);
+      this.textMetrics = {
+        width: Math.max(
+          constraints.minWidth,
+          Math.min(textWidth, maxWidth === Infinity ? textWidth : maxWidth)
+        ),
+        height: Math.max(constraints.minHeight, fontSize * lineHeight),
+        lines: lines,
+      };
+    } else {
+      // 多行文本 - 使用精确的文字分割
+      const words = this.text.split(" ");
+      let currentLine = "";
+      const maxLines = this.style.maxLines || Infinity;
+
+      for (let i = 0; i < words.length && lines.length < maxLines; i++) {
+        const testLine = currentLine + (currentLine ? " " : "") + words[i];
+        const testWidth = ctx.measureText(testLine).width;
+
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = words[i];
+          } else {
+            // 单个词太长，强制分割
+            lines.push(words[i]);
+          }
+        }
+      }
+
+      // 添加最后一行
+      if (currentLine && lines.length < maxLines) {
+        lines.push(currentLine);
+      }
+
+      // 处理省略号
+      if (lines.length >= maxLines && this.style.overflow === "ellipsis") {
+        const lastLineIndex = maxLines - 1;
+        let lastLine = lines[lastLineIndex];
+        const ellipsisWidth = ctx.measureText("...").width;
+
+        while (
+          ctx.measureText(lastLine + "...").width > maxWidth &&
+          lastLine.length > 0
+        ) {
+          lastLine = lastLine.slice(0, -1);
+        }
+        lines[lastLineIndex] = lastLine + "...";
+      }
+
+      this.textMetrics = {
+        width: maxWidth,
+        height: Math.max(
+          constraints.minHeight,
+          lines.length * fontSize * lineHeight
+        ),
+        lines: lines,
+      };
+    }
+  }
+
+  /**
+   * 估算方法的文字度量计算（备用方法）
+   */
+  private calculateTextMetricsEstimate(constraints: BoxConstraints): void {
     const fontSize = this.style.fontSize || 16;
     const lineHeight = this.style.height || 1.2;
     const avgCharWidth = fontSize * 0.6;
     const lines: string[] = [];
-
     const maxWidth = constraints.maxWidth;
 
     if (maxWidth === Infinity || this.text.length * avgCharWidth <= maxWidth) {
@@ -135,15 +224,11 @@ export class Text extends Widget<TextData> {
       // 多行文本
       const charsPerLine = Math.floor(maxWidth / avgCharWidth);
       let remainingText = this.text;
-
-      // 考虑 maxLines 限制
       const maxLines = this.style.maxLines || Infinity;
 
       while (remainingText.length > 0 && lines.length < maxLines) {
-        // 简单的按字符数分行，实际应用中应该按单词分行
         let line = remainingText.substring(0, charsPerLine);
 
-        // 如果是最后一行且有溢出处理
         if (
           lines.length === maxLines - 1 &&
           remainingText.length > charsPerLine &&
@@ -155,7 +240,6 @@ export class Text extends Widget<TextData> {
         lines.push(line);
         remainingText = remainingText.substring(charsPerLine);
 
-        // 如果达到最大行数，停止处理
         if (lines.length >= maxLines) {
           break;
         }
@@ -164,7 +248,7 @@ export class Text extends Widget<TextData> {
       this.textMetrics = {
         width: maxWidth,
         height: Math.max(
-          constraints.minHeight,
+          constraints.minWidth,
           lines.length * fontSize * lineHeight
         ),
         lines: lines,

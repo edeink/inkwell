@@ -27,7 +27,7 @@ export interface EditorOptions {
  * JSON组件数据接口
  */
 export interface ComponentData {
-  type: "column" | "text" | "row" | "image" | "sizedbox";
+  type: "column" | "text" | "row" | "image" | "sizedbox" | "container" | "padding" | "center" | "stack" | "positioned";
   children?: ComponentData[];
   [key: string]: any;
 }

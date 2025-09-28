@@ -22,7 +22,7 @@ export interface RowData extends WidgetData {
  * Row布局组件，水平排列子组件
  * 类似于Flutter的Row widget
  */
-export class Row extends Widget {
+export class Row extends Widget<RowData> {
   // 布局属性
   mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
   crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;

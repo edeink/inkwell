@@ -22,7 +22,7 @@ export interface ColumnData extends WidgetData {
  * Column布局组件，垂直排列子组件
  * 类似于Flutter的Column widget
  */
-export class Column extends Widget {
+export class Column extends Widget<ColumnData> {
   // 布局属性
   mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
   crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;

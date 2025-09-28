@@ -1,18 +1,11 @@
 import React, { useRef, useState } from "react";
-import { PixiRenderer } from "../renderer/pixi/PixiRenderer";
+import styles from "./index.module.less";
+import { getTestData } from "./data";
 import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
 import { KonvaRenderer } from "../renderer/konva/KonvaRenderer";
+import { PixiRenderer } from "../renderer/pixi/PixiRenderer";
 import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
 import Editor from "../editors/graphics-editor";
-import type { ComponentData } from "../editors/graphics-editor";
-import {
-  createTemplate,
-  Column,
-  Row,
-  Text,
-  SizedBox,
-} from "../utils/jsx-to-json";
-import styles from "./index.module.less";
 
 /**
  * 渲染器测试类
@@ -49,7 +42,7 @@ class RendererTest {
       background: 0xffffff,
       backgroundAlpha: 1,
       antialias: true,
-      resolution: 2,
+      resolution: 4,
     };
 
     await this.renderer.initialize(this.container, options);
@@ -111,160 +104,33 @@ class RendererTest {
   }
 
   /**
-   * 运行完整流程测试 - 使用编辑器
+   * 运行完整流程测试
    */
   async runCompleteTest(): Promise<void> {
-    try {
-      console.log("开始运行编辑器完整流程测试...");
+    console.log("运行完整流程测试...");
 
-      // 创建测试数据（使用JSX语法）
-      const testData: ComponentData = createTemplate(() => (
-        <Column
-          key="root"
-          mainAxisAlignment="start"
-          crossAxisAlignment="start"
-          spacing={4}
-        >
-          <Text
-            key="title"
-            text="Build → Layout → Paint 完整流程测试"
-            style={{
-              fontSize: 24,
-              color: "#333333",
-              fontWeight: "bold",
-            }}
-          />
-          <SizedBox key="spacer1" height={20} />
-          <Row key="content-row" spacing={4}>
-            <Column key="build-column" spacing={4}>
-              <Text
-                key="build-title"
-                text="Build 阶段"
-                style={{
-                  fontSize: 18,
-                  color: "#007bff",
-                  fontWeight: "bold",
-                }}
-              />
-              <Text
-                key="build-1"
-                text="✓ 解析组件数据"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <Text
-                key="build-2"
-                text="✓ 构建组件树"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <SizedBox key="spacer2" height={10} />
-              <Text
-                key="layout-title"
-                text="Layout 阶段"
-                style={{
-                  fontSize: 18,
-                  color: "#007bff",
-                  fontWeight: "bold",
-                }}
-              />
-              <Text
-                key="layout-1"
-                text="✓ 计算约束条件"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <Text
-                key="layout-2"
-                text="✓ 确定组件尺寸"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <Text
-                key="layout-3"
-                text="✓ 定位子组件"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-            </Column>
-            <Column key="paint-column" spacing={4}>
-              <Text
-                key="paint-title"
-                text="Paint 阶段"
-                style={{
-                  fontSize: 18,
-                  color: "#007bff",
-                  fontWeight: "bold",
-                }}
-              />
-              <Text
-                key="paint-1"
-                text="✓ 绘制文本内容"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <Text
-                key="paint-2"
-                text="✓ 绘制背景色"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <Text
-                key="paint-3"
-                text="✓ 应用变换矩阵"
-                style={{
-                  fontSize: 14,
-                  color: "#28a745",
-                }}
-              />
-              <SizedBox key="spacer3" height={10} />
-              <Text
-                key="renderer-info"
-                text={`当前渲染器: ${this.rendererType.toUpperCase()}`}
-                style={{
-                  fontSize: 16,
-                  color: "#dc3545",
-                  fontWeight: "bold",
-                }}
-              />
-            </Column>
-          </Row>
-        </Column>
-      ));
+    // 清空画布
+    this.clearCanvas();
 
-      // 清空容器内容
-      this.container.innerHTML = "";
+    // 获取测试数据
+    const testData = getTestData();
 
-      // 为容器设置临时ID（如果没有的话）
-      if (!this.container.id) {
-        this.container.id =
-          "temp-editor-container-" + Math.random().toString(36).substr(2, 9);
-      }
+    // 清空容器内容
+    this.container.innerHTML = "";
 
-      // 创建编辑器实例并渲染
-      const editor = await Editor.create(this.container.id, {
-        renderer: this.rendererType,
-      });
-      await editor.renderFromJSON(testData);
-
-      console.log("编辑器完整流程测试完成");
-    } catch (error) {
-      console.error("编辑器完整流程测试失败:", error);
+    // 为容器设置临时ID（如果没有的话）
+    if (!this.container.id) {
+      this.container.id =
+        "temp-editor-container-" + Math.random().toString(36).substr(2, 9);
     }
+
+    // 创建编辑器实例并渲染
+    const editor = await Editor.create(this.container.id, {
+      renderer: this.rendererType,
+    });
+    await editor.renderFromJSON(testData);
+
+    console.log("编辑器完整流程测试完成");
   }
 }
 
