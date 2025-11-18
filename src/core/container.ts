@@ -123,6 +123,15 @@ export class Container extends Widget<ContainerData> {
       }
       : size;
 
+    const borderRadius = this.borderRadius
+      ? {
+          topLeft: this.borderRadius.topLeft,
+          topRight: this.borderRadius.topRight,
+          bottomLeft: this.borderRadius.bottomLeft,
+          bottomRight: this.borderRadius.bottomRight,
+        }
+      : undefined;
+
     // 绘制背景色（使用相对坐标）
     if (this.color) {
       renderer.drawRect({
@@ -131,6 +140,7 @@ export class Container extends Widget<ContainerData> {
         width: marginSize.width,
         height: marginSize.height,
         fill: this.color,
+        borderRadius,
       });
     }
 
@@ -143,6 +153,7 @@ export class Container extends Widget<ContainerData> {
         height: marginSize.height,
         stroke: this.border.color,
         strokeWidth: this.border.width,
+        borderRadius,
       });
     }
   }

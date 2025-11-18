@@ -106,6 +106,12 @@ export interface IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
+    borderRadius?: number | {
+      topLeft: number;
+      topRight: number;
+      bottomLeft: number;
+      bottomRight: number;
+    };
   }): void;
 
   /**

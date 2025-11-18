@@ -243,26 +243,51 @@ export class Canvas2DRenderer implements IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
+    borderRadius?: number | {
+      topLeft: number;
+      topRight: number;
+      bottomLeft: number;
+      bottomRight: number;
+    };
   }): void {
     if (!this.ctx) return;
 
     this.ctx.save();
 
-    // 绘制填充
-    if (options.fill) {
-      this.ctx.fillStyle = options.fill;
-      this.ctx.fillRect(options.x, options.y, options.width, options.height);
-    }
+    const r = normalizeRadius(options.borderRadius);
 
-    // 绘制边框
-    if (options.stroke) {
-      this.ctx.strokeStyle = options.stroke;
-      this.ctx.lineWidth = options.strokeWidth || 1;
-      this.ctx.strokeRect(options.x, options.y, options.width, options.height);
+    if (r.total === 0) {
+      // 普通矩形
+      if (options.fill) {
+        this.ctx.fillStyle = options.fill;
+        this.ctx.fillRect(options.x, options.y, options.width, options.height);
+      }
+      if (options.stroke) {
+        this.ctx.strokeStyle = options.stroke;
+        this.ctx.lineWidth = options.strokeWidth || 1;
+        this.ctx.strokeRect(options.x, options.y, options.width, options.height);
+      }
+    } else {
+      // 圆角矩形
+      const { x, y, width, height } = options;
+      this.ctx.beginPath();
+      roundedRectPath(this.ctx, x, y, width, height, r);
+      this.ctx.closePath();
+      if (options.fill) {
+        this.ctx.fillStyle = options.fill;
+        this.ctx.fill();
+      }
+      if (options.stroke) {
+        this.ctx.strokeStyle = options.stroke;
+        this.ctx.lineWidth = options.strokeWidth || 1;
+        this.ctx.stroke();
+      }
     }
 
     this.ctx.restore();
   }
+
+// helper functions moved to file scope after class
 
   /**
    * 绘制图片
@@ -318,4 +343,36 @@ export class Canvas2DRenderer implements IRenderer {
 
     this.ctx.restore();
   }
+}
+
+function normalizeRadius(
+  radius?: number | { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number }
+) {
+  const r = typeof radius === "number"
+    ? { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius }
+    : radius || { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 };
+  return { ...r, total: r.topLeft + r.topRight + r.bottomLeft + r.bottomRight };
+}
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  r: { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number }
+) {
+  const tl = r.topLeft || 0;
+  const tr = r.topRight || 0;
+  const br = r.bottomRight || 0;
+  const bl = r.bottomLeft || 0;
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + width - tr, y);
+  if (tr) ctx.quadraticCurveTo(x + width, y, x + width, y + tr);
+  ctx.lineTo(x + width, y + height - br);
+  if (br) ctx.quadraticCurveTo(x + width, y + height, x + width - br, y + height);
+  ctx.lineTo(x + bl, y + height);
+  if (bl) ctx.quadraticCurveTo(x, y + height, x, y + height - bl);
+  ctx.lineTo(x, y + tl);
+  if (tl) ctx.quadraticCurveTo(x, y, x + tl, y);
 }
