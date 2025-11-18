@@ -1,11 +1,14 @@
+import React from "react";
+import { Widget } from "./base";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
 // Text component implementation for UI rendering system
 
 /**
@@ -350,3 +353,6 @@ export class Text extends Widget<TextData> {
     }
   }
 }
+
+export type TextProps = Omit<TextData, "type" | "children"> & JSXComponentProps;
+export const TextElement: React.FC<TextProps> = () => null;

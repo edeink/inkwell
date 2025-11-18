@@ -53,7 +53,7 @@ export interface IRenderer {
    * 用于访问特定渲染引擎的高级功能
    * @returns 原始渲染器实例
    */
-  getRawInstance(): any;
+  getRawInstance(): unknown;
 
   /**
    * 保存当前绘图状态

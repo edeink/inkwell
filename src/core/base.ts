@@ -1,5 +1,13 @@
 import { type IRenderer } from "../renderer/IRenderer";
+
 import type { FlexProperties } from "./flex/type";
+
+
+export interface JSXComponentProps {
+  key?: string;
+  children?: React.ReactNode;
+}
+
 
 /**
  * 基础组件类，提供构建、布局和绘制的基本方法

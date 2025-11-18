@@ -1,18 +1,15 @@
+import React from "react";
+import { Widget } from "./base";
+
 import type {
   BoxConstraints,
   BuildContext,
+  EdgeInsets,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
-
-export interface EdgeInsets {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
 
 export interface BorderRadius {
   topLeft: number;
@@ -255,3 +252,6 @@ export class Container extends Widget<ContainerData> {
     };
   }
 }
+
+export type ContainerProps = Omit<ContainerData, "type" | "child" | "children"> & JSXComponentProps;
+export const ContainerElement: React.FC<ContainerProps> = () => null;

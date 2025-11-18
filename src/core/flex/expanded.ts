@@ -1,12 +1,15 @@
+import { Widget } from "../base";
+
+import { FlexFit } from "./type";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "../base";
-import { Widget } from "../base";
-import { FlexFit } from "./type";
 
 export interface ExpandedData extends WidgetData {
   child: WidgetData;
@@ -86,3 +89,6 @@ export class Expanded extends Widget<ExpandedData> {
     return { dx: 0, dy: 0 };
   }
 }
+
+export type RowProps = Omit<ExpandedData, "type" | "children"> & JSXComponentProps;
+export const ExpandedElement: React.FC<RowProps> = () => null;

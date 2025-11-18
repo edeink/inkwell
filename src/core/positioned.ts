@@ -1,11 +1,14 @@
+import { Widget } from "./base";
+import React from "react";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
 
 export interface PositionedData extends WidgetData {
   left?: number;
@@ -171,6 +174,9 @@ export class Positioned extends Widget<PositionedData> {
     return true;
   }
 }
+
+export type PositionedProps = Omit<PositionedData, "type" | "child" | "children"> & JSXComponentProps;
+export const PositionedElement: React.FC<PositionedProps> = () => null;
 
 // 便捷函数：创建填充整个 Stack 的 Positioned
 export function fill(child: WidgetData): PositionedData {

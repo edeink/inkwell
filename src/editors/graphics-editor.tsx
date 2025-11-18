@@ -1,8 +1,11 @@
-import type { BoxConstraints, BuildContext } from "../core/base";
+import React from "react";
+import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
+import { compileElement, compileTemplate } from "../utils/jsx-compiler";
 import { Widget } from "../core/base";
+import type { BoxConstraints, BuildContext } from "../core/base";
 import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
-import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
-import { LOCAL_RESOLUTION } from "../utils/localStorage";
+import { LOCAL_RESOLUTION } from "../utils/local-storage";
+import type { AnyElement } from "../utils/jsx-compiler";
 // 导入注册表以确保所有组件类型都已注册
 import "../core/registry";
 
@@ -158,6 +161,22 @@ export default class Editor {
     // 创建新渲染器
     this.renderer = this.createRenderer(rendererType);
     this.initRenderer(options);
+  }
+
+  /**
+   * 从 JSX 元素渲染
+   */
+  async renderFromJSX(element: AnyElement): Promise<void> {
+    const json = compileElement(element);
+    await this.renderFromJSON(json);
+  }
+
+  /**
+   * 从模板函数渲染（返回 JSX 元素）
+   */
+  async renderTemplate(template: () => AnyElement): Promise<void> {
+    const json = compileTemplate(template);
+    await this.renderFromJSON(json);
   }
 
   /**

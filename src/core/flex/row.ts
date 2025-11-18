@@ -1,12 +1,16 @@
+import React from "react";
+import { Widget } from "../base";
+
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "../base";
-import { Widget } from "../base";
-import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
 
 /**
  * Row布局组件的数据接口
@@ -248,3 +252,6 @@ export class Row extends Widget<RowData> {
     return { dx: xOffset, dy: yOffset };
   }
 }
+
+export type ExpandedProps = Omit<RowData, "type" | "children"> & JSXComponentProps;
+export const RowElement: React.FC<ExpandedProps> = () => null;

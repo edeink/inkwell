@@ -1,11 +1,14 @@
+import React from "react";
+import { Widget } from "./base";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
 
 export type StackFit = "loose" | "expand" | "passthrough";
 export type AlignmentGeometry =
@@ -227,3 +230,6 @@ export class Stack extends Widget<StackData> {
     return { dx, dy };
   }
 }
+
+export type StackProps = Omit<StackData, "type" | "children"> & JSXComponentProps;
+export const StackElement: React.FC<StackProps> = () => null;

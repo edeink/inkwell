@@ -8,7 +8,7 @@
 ## 技术栈
 - 核心：`TypeScript` 严格模式、模块化（`ESNext`）、Vite 构建、React 19 用于演示页面。
 - 渲染器：`Canvas2D`、`PixiJS`、`Konva`，统一遵循 `IRenderer` 接口。
-- 模板转换：通过 `jsx-to-json` 将 JSX 转为组件 JSON 数据。
+- 模板转换：通过统一的 JSX 编译器将 JSX 转为组件 JSON 数据。
 
 ## 关键架构
 - 编辑器入口：`Editor.create(containerId, options)`，从 JSON 渲染组件树并完成布局与绘制。
@@ -60,9 +60,13 @@
 
 ## 模板与数据
 - JSX → JSON 转换：在演示与测试中以 JSX 定义结构，转换后交由编辑器渲染。
-  - 转换入口：`src/utils/jsx-to-json.tsx:311`；模板函数：`src/utils/jsx-to-json.tsx:320`。
-  - 组件类型枚举来源：`src/editors/graphics-editor.tsx:26`。
-- 示例数据：完整演示场景见 `src/test/data.tsx`，测试页面入口见 `src/test/test-page.tsx`。
+  - 运行时：自定义 `jsx-runtime`/`jsx-dev-runtime`（`src/utils/jsx-runtime.ts`、`src/utils/jsx-dev-runtime.ts`）。
+  - 编译器：`src/utils/jsx-compiler.ts`（识别 `*Element` 命名并映射到真实组件类型）。
+  - 兼容入口：`src/utils/jsx-to-json.tsx` 复用新编译器提供 `jsxToJson`/`createTemplate`。
+  - 编辑器模板渲染：`Editor.renderTemplate` 直接使用新编译器（`src/editors/graphics-editor.tsx`）。
+  - `src/test/data.tsx` 顶部按文件使用 `/** @jsxImportSource ../utils */` 指向自定义运行时。
+  - 组件类型枚举来源：`src/editors/graphics-editor.tsx:28`。
+  - 示例数据：完整演示场景见 `src/test/data.tsx`，测试页面入口见 `src/test/test-page.tsx`。
 
 ## 代码风格与工程约束
 - TypeScript：`strict: true`，`noUnusedLocals/Parameters: true`，`moduleResolution: 'bundler'`，`verbatimModuleSyntax: true`。
@@ -72,7 +76,8 @@
 - 命名与文件：
   - 类与组件类型使用 `PascalCase`，文件名常见 `camelCase.ts` 或明确模块名。
   - 组件 `type` 字段大小写敏感，需与注册值一致（常为 `PascalCase`）。
-- 依赖管理：`pnpm`/`npm` 均可；开发脚本：`dev`、`build`、`preview`、`lint`（`package.json:6`）。
+- 依赖管理：`pnpm` 均可；开发脚本：`dev`、`build`、`preview`、`lint`、`test`（`package.json`）。
+  - 测试：新增 `vitest` 与单元测试样例（`src/utils/__tests__/jsx-compiler.spec.tsx`）。
 
 ## 为此项目编写代码的建议（AI 编码规范）
 - 严格遵守 `IRenderer` 与 `Widget` 约定：任何新渲染器或组件都必须实现接口并注册类型。
@@ -87,11 +92,12 @@
   - 文本需进行行分割与省略号处理，并保证与约束一致（`src/core/text.ts:134`、`src/core/text.ts:176`）。
 - 错误与日志：沿用当前日志与错误风格，尽量在问题发生处提供清晰的中文提示与栈信息。
 
-## 开发与测试
+- 开发与测试
 - 演示页面：`src/test/test-page.tsx` 提供“完整流程测试”与“渲染器测试”两套路径。
   - 渲染器选择与初始化参见 `src/test/test-page.tsx:147`～`src/test/test-page.tsx:155`。
   - 完整流程（Build → Layout → Paint）参见 `src/test/test-page.tsx:163`～`src/test/test-page.tsx:172`。
 - 本地分辨率设置：`LOCAL_RESOLUTION` 用于渲染分辨率（`src/utils/localStorage.ts:92`）。
+- 单元测试：运行 `pnpm test`，验证 JSX 编译输出一致性与属性映射。
 
 ## 扩展点
 - 可新增渲染器实现，遵循 `IRenderer` 并在编辑器中选择。

@@ -1,11 +1,14 @@
+import { Widget } from "./base";
+import React from "react";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
 
 export interface CenterData extends WidgetData {
   child?: WidgetData;
@@ -81,3 +84,6 @@ export class Center extends Widget<CenterData> {
     return { dx, dy };
   }
 }
+
+export type CenterProps = Omit<CenterData, "type" | "child" | "children"> & JSXComponentProps;
+export const CenterElement: React.FC<CenterProps> = () => null;

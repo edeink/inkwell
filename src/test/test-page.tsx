@@ -1,9 +1,12 @@
 import React, { useRef, useState } from "react";
+
 import Editor from "../editors/graphics-editor";
-import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
-import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
-import { getTestData } from "./data";
+import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
+
+import { getTestTemplate } from "./data";
 import styles from "./index.module.less";
+
+import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
 
 /**
  * 渲染器测试类
@@ -115,7 +118,7 @@ class RendererTest {
     this.clearCanvas();
 
     // 获取测试数据
-    const testData = getTestData();
+    const template = getTestTemplate;
 
     // 清空容器内容
     this.container.innerHTML = "";
@@ -132,7 +135,7 @@ class RendererTest {
       background: this.theme === "dark" ? "#000000" : "#ffffff",
       backgroundAlpha: 1,
     });
-    await editor.renderFromJSON(testData);
+    await editor.renderTemplate(template);
 
     console.log("编辑器完整流程测试完成");
   }

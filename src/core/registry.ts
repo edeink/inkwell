@@ -9,9 +9,9 @@ import "../core/flex/row";
 import "../core/image";
 import "../core/padding";
 import "../core/positioned";
-import "../core/sizedBox";
 import "../core/stack";
 import "../core/text";
+import "./sized-box";
 
 export class WidgetRegistry {
   private widgets: Map<string, new (data: any) => Widget> = new Map();

@@ -1,11 +1,14 @@
+import React from "react";
+import { Widget } from "./base";
+
 import type {
   BoxConstraints,
   BuildContext,
+  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
 } from "./base";
-import { Widget } from "./base";
 
 /**
  * SizedBox组件的数据接口
@@ -210,3 +213,6 @@ export class SizedBox extends Widget<SizedBoxData> {
     };
   }
 }
+
+export type SizedBoxProps = Omit<SizedBoxData, "type" | "children"> & JSXComponentProps;
+export const SizedBoxElement: React.FC<SizedBoxProps> = () => null;
