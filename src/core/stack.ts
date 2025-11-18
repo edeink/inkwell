@@ -1,11 +1,11 @@
-import { Widget } from "./base";
 import type {
-  WidgetData,
   BoxConstraints,
-  Size,
-  Offset,
   BuildContext,
+  Offset,
+  Size,
+  WidgetData,
 } from "./base";
+import { Widget } from "./base";
 
 export type StackFit = "loose" | "expand" | "passthrough";
 export type AlignmentGeometry =

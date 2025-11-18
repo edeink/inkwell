@@ -1,35 +1,32 @@
 import React, { useRef, useState } from "react";
-import styles from "./index.module.less";
-import { getTestData } from "./data";
-import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
-import { KonvaRenderer } from "../renderer/konva/KonvaRenderer";
-import { PixiRenderer } from "../renderer/pixi/PixiRenderer";
-import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
 import Editor from "../editors/graphics-editor";
+import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
+import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
+import { getTestData } from "./data";
+import styles from "./index.module.less";
 
 /**
  * 渲染器测试类
  * 用于直接测试不同渲染器的图片和文字渲染功能
  */
+type Theme = "light" | "dark";
+
 class RendererTest {
   private renderer: IRenderer;
   private container: HTMLElement;
-  private rendererType: "pixi" | "canvas2d" | "konva";
+  private rendererType: "canvas2d";
+  private theme: Theme;
 
   constructor(
     container: HTMLElement,
-    rendererType: "pixi" | "canvas2d" | "konva" = "pixi"
+    rendererType: "canvas2d" = "canvas2d",
+    theme: Theme = "dark"
   ) {
     this.container = container;
     this.rendererType = rendererType;
+    this.theme = theme;
 
-    if (rendererType === "canvas2d") {
-      this.renderer = new Canvas2DRenderer();
-    } else if (rendererType === "konva") {
-      this.renderer = new KonvaRenderer();
-    } else {
-      this.renderer = new PixiRenderer();
-    }
+    this.renderer = new Canvas2DRenderer();
   }
 
   /**
@@ -39,7 +36,7 @@ class RendererTest {
     const options: RendererOptions = {
       width: 800,
       height: 600,
-      background: 0xffffff,
+      background: this.theme === "dark" ? 0x000000 : 0xffffff,
       backgroundAlpha: 1,
       antialias: true,
       resolution: 4,
@@ -53,7 +50,12 @@ class RendererTest {
    * 清空画布
    */
   clearCanvas(): void {
-    this.renderer.render();
+    const raw = this.renderer.getRawInstance();
+    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === "function") {
+      const ctx = raw as CanvasRenderingContext2D;
+      const canvas = ctx.canvas;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
   }
 
   /**
@@ -127,6 +129,8 @@ class RendererTest {
     // 创建编辑器实例并渲染
     const editor = await Editor.create(this.container.id, {
       renderer: this.rendererType,
+      background: this.theme === "dark" ? "#000000" : "#ffffff",
+      backgroundAlpha: 1,
     });
     await editor.renderFromJSON(testData);
 
@@ -140,15 +144,15 @@ const TestPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const testInstanceRef = useRef<RendererTest | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("complete");
-  const [rendererType, setRendererType] = useState<
-    "pixi" | "canvas2d" | "konva"
-  >("canvas2d");
+  const [rendererType] = useState<"canvas2d">("canvas2d");
+  const [theme, setTheme] = useState<Theme>("light");
 
   const initRenderer = async () => {
     if (containerRef.current) {
       testInstanceRef.current = new RendererTest(
         containerRef.current,
-        rendererType
+        rendererType,
+        theme
       );
       await testInstanceRef.current.init();
     }
@@ -167,7 +171,11 @@ const TestPage: React.FC = () => {
 
     if (!containerRef.current) return;
 
-    const testInstance = new RendererTest(containerRef.current, rendererType);
+    const testInstance = new RendererTest(
+      containerRef.current,
+      rendererType,
+      theme
+    );
     await testInstance.runCompleteTest();
   };
 
@@ -185,25 +193,32 @@ const TestPage: React.FC = () => {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    testInstanceRef.current = null;
+  };
+
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${theme === "dark" ? styles.dark : styles.light}`}>
+      <div className={styles.themeSwitch} onClick={toggleTheme}>
+        <span className={styles.switchLabel}>{theme === "dark" ? "黑夜" : "白天"}</span>
+        <span className={`${styles.switch} ${theme === "dark" ? styles.on : styles.off}`}></span>
+      </div>
       <h1 className={styles.title}>渲染器测试页面</h1>
 
       {/* Tab 导航 */}
       <div className={styles.tabNavigation}>
         <button
           onClick={() => setActiveTab("complete")}
-          className={`${styles.tabButton} ${
-            activeTab === "complete" ? styles.active : ""
-          }`}
+          className={`${styles.tabButton} ${activeTab === "complete" ? styles.active : ""
+            }`}
         >
           完整流程测试
         </button>
         <button
           onClick={() => setActiveTab("renderer")}
-          className={`${styles.tabButton} ${
-            activeTab === "renderer" ? styles.active : ""
-          }`}
+          className={`${styles.tabButton} ${activeTab === "renderer" ? styles.active : ""
+            }`}
         >
           渲染器测试
         </button>
@@ -216,17 +231,8 @@ const TestPage: React.FC = () => {
           <p>测试 Build → Layout → Paint 三个阶段的完整渲染流程</p>
 
           <div className={styles.controlSection}>
-            <label>选择渲染器:</label>
-            <select
-              value={rendererType}
-              onChange={(e) =>
-                setRendererType(e.target.value as "pixi" | "canvas2d" | "konva")
-              }
-            >
-              <option value="pixi">PixiJS 渲染器</option>
-              <option value="canvas2d">Canvas2D 渲染器</option>
-              <option value="konva">Konva 渲染器</option>
-            </select>
+            <label>渲染器:</label>
+            <span>Canvas2D</span>
           </div>
 
           <div className={styles.buttonGroup}>
@@ -249,17 +255,8 @@ const TestPage: React.FC = () => {
           <p>直接测试渲染器的绘制功能，不经过 Build 和 Layout 阶段</p>
 
           <div className={styles.controlSection}>
-            <label>选择渲染器:</label>
-            <select
-              value={rendererType}
-              onChange={(e) =>
-                setRendererType(e.target.value as "pixi" | "canvas2d" | "konva")
-              }
-            >
-              <option value="pixi">PixiJS 渲染器</option>
-              <option value="canvas2d">Canvas2D 渲染器</option>
-              <option value="konva">Konva 渲染器</option>
-            </select>
+            <label>渲染器:</label>
+            <span>Canvas2D</span>
           </div>
 
           <div className={styles.buttonGroup}>

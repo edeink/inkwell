@@ -1,11 +1,11 @@
-import { Widget } from "./base";
 import type {
-  WidgetData,
   BoxConstraints,
-  Size,
-  Offset,
   BuildContext,
+  Offset,
+  Size,
+  WidgetData,
 } from "./base";
+import { Widget } from "./base";
 
 /**
  * 图片组件特有的数据接口
@@ -119,7 +119,7 @@ export class Image extends Widget<ImageData> {
     if (children) {
       console.warn('Image组件不支持子组件，已忽略children属性');
     }
-    
+
     super(imageData as ImageData);
     this.initImageProperties(imageData as ImageData);
     this.loadImage();

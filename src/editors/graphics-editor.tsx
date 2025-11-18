@@ -1,18 +1,16 @@
-import { LOCAL_RESOLUTION } from "../utils/localStorage";
-import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
-import { PixiRenderer } from "../renderer/pixi/PixiRenderer";
+import type { BoxConstraints, BuildContext } from "../core/base";
 import { Widget } from "../core/base";
-import type { WidgetData, BuildContext, BoxConstraints } from "../core/base";
+import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
+import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
+import { LOCAL_RESOLUTION } from "../utils/localStorage";
 // 导入注册表以确保所有组件类型都已注册
 import "../core/registry";
-import { Canvas2DRenderer } from "../renderer/canvas2d/Canvas2DRenderer";
 
 /**
  * 编辑器配置接口
  */
 export interface EditorOptions {
-  /** 渲染器类型，默认为 'pixi' */
-  renderer?: "pixi" | string;
+  renderer?: "canvas2d" | string;
   /** 是否开启抗锯齿 */
   antialias?: boolean;
   /** 分辨率 */
@@ -85,7 +83,7 @@ export default class Editor {
   /**
    * 初始化事件
    */
-  private initEvent() {}
+  private initEvent() { }
 
   /**
    * 初始化容器
@@ -106,15 +104,8 @@ export default class Editor {
    * @returns 渲染器实例
    */
   private createRenderer(rendererType: string): IRenderer {
-    // 这里可以根据 rendererType 创建不同的渲染器实例
-    // 未来可以扩展支持更多渲染引擎
     switch (rendererType.toLowerCase()) {
-      case "pixi": {
-        return new PixiRenderer();
-      }
-      case "canvas2d": {
-        return new Canvas2DRenderer();
-      }
+      case "canvas2d":
       default:
         return new Canvas2DRenderer();
     }
@@ -316,11 +307,12 @@ export default class Editor {
    * 清除画布内容
    */
   private clearCanvas(): void {
-    if (this.renderer) {
-      const rawInstance = this.renderer.getRawInstance();
-      if (rawInstance && rawInstance.stage) {
-        rawInstance.stage.removeChildren();
-      }
+    if (!this.renderer) return;
+    const raw = this.renderer.getRawInstance();
+    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === "function") {
+      const ctx = raw as CanvasRenderingContext2D;
+      const canvas = ctx.canvas;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
 

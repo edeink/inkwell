@@ -1,6 +1,6 @@
 import React from "react";
-import { ComponentType, type ComponentData } from "../editors/graphics-editor";
 import type { FlexProperties } from "../core/flex/type";
+import { ComponentType, type ComponentData } from "../editors/graphics-editor";
 
 // 定义支持的组件类型
 export interface JSXComponentProps {
@@ -11,12 +11,12 @@ export interface JSXComponentProps {
 // Column 组件 Props
 export interface ColumnProps extends JSXComponentProps {
   mainAxisAlignment?:
-    | "start"
-    | "center"
-    | "end"
-    | "spaceBetween"
-    | "spaceAround"
-    | "spaceEvenly";
+  | "start"
+  | "center"
+  | "end"
+  | "spaceBetween"
+  | "spaceAround"
+  | "spaceEvenly";
   crossAxisAlignment?: "start" | "center" | "end" | "stretch";
   mainAxisSize?: "min" | "max";
   spacing?: number;
@@ -25,12 +25,12 @@ export interface ColumnProps extends JSXComponentProps {
 // Row 组件 Props
 export interface RowProps extends JSXComponentProps {
   mainAxisAlignment?:
-    | "start"
-    | "center"
-    | "end"
-    | "spaceBetween"
-    | "spaceAround"
-    | "spaceEvenly";
+  | "start"
+  | "center"
+  | "end"
+  | "spaceBetween"
+  | "spaceAround"
+  | "spaceEvenly";
   crossAxisAlignment?: "start" | "center" | "end" | "stretch";
   spacing?: number;
 }
@@ -57,23 +57,23 @@ export interface ImageProps extends JSXComponentProps {
   width?: number;
   height?: number;
   fit?:
-    | "fill"
-    | "contain"
-    | "cover"
-    | "fitWidth"
-    | "fitHeight"
-    | "none"
-    | "scaleDown";
+  | "fill"
+  | "contain"
+  | "cover"
+  | "fitWidth"
+  | "fitHeight"
+  | "none"
+  | "scaleDown";
   alignment?:
-    | "topLeft"
-    | "topCenter"
-    | "topRight"
-    | "centerLeft"
-    | "center"
-    | "centerRight"
-    | "bottomLeft"
-    | "bottomCenter"
-    | "bottomRight";
+  | "topLeft"
+  | "topCenter"
+  | "topRight"
+  | "centerLeft"
+  | "center"
+  | "centerRight"
+  | "bottomLeft"
+  | "bottomCenter"
+  | "bottomRight";
 }
 
 // Expanded 组件 Props
@@ -109,15 +109,15 @@ export interface CenterProps extends JSXComponentProps {
 export interface StackProps extends JSXComponentProps {
   fit?: "expand" | "passthrough" | "loose";
   alignment?:
-    | "topLeft"
-    | "topCenter"
-    | "topRight"
-    | "centerLeft"
-    | "center"
-    | "centerRight"
-    | "bottomLeft"
-    | "bottomCenter"
-    | "bottomRight";
+  | "topLeft"
+  | "topCenter"
+  | "topRight"
+  | "centerLeft"
+  | "center"
+  | "centerRight"
+  | "bottomLeft"
+  | "bottomCenter"
+  | "bottomRight";
 }
 
 // Positioned 组件 Props

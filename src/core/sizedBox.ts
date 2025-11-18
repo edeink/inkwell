@@ -1,11 +1,11 @@
-import { Widget } from "./base";
 import type {
-  WidgetData,
   BoxConstraints,
-  Size,
-  Offset,
   BuildContext,
+  Offset,
+  Size,
+  WidgetData,
 } from "./base";
+import { Widget } from "./base";
 
 /**
  * SizedBox组件的数据接口
@@ -145,7 +145,7 @@ export class SizedBox extends Widget<SizedBoxData> {
     }
 
     const { size } = this.renderObject;
-    
+
     // 将子组件居中放置
     const x = (size.width - childSize.width) / 2;
     const y = (size.height - childSize.height) / 2;

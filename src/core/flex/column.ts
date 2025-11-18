@@ -1,18 +1,18 @@
-import { Widget } from "../base";
 import type {
-  WidgetData,
   BoxConstraints,
-  Size,
-  Offset,
   BuildContext,
+  Offset,
+  Size,
+  WidgetData,
 } from "../base";
+import { Widget } from "../base";
+import { createRenderFlexUnboundedError } from "./errors";
 import {
   CrossAxisAlignment,
+  FlexFit,
   MainAxisAlignment,
   MainAxisSize,
-  FlexFit,
 } from "./type";
-import { createRenderFlexUnboundedError } from "./errors";
 
 /**
  * Column布局组件的数据接口

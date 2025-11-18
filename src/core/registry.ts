@@ -1,4 +1,17 @@
-import { Widget, type WidgetData } from "./base";
+import { Widget } from "./base";
+
+// 导入所有组件以确保它们被注册
+import "../core/center";
+import "../core/container";
+import "../core/flex/column";
+import "../core/flex/expanded";
+import "../core/flex/row";
+import "../core/image";
+import "../core/padding";
+import "../core/positioned";
+import "../core/sizedBox";
+import "../core/stack";
+import "../core/text";
 
 export class WidgetRegistry {
   private widgets: Map<string, new (data: any) => Widget> = new Map();
@@ -37,11 +50,11 @@ export function createWidget(type: string, data: any): Widget | null {
 }
 
 // 导入并注册所有组件
+import { Center } from "./center";
 import { Container } from "./container";
 import { Padding } from "./padding";
-import { Center } from "./center";
-import { Stack } from "./stack";
 import { Positioned } from "./positioned";
+import { Stack } from "./stack";
 
 // 注册所有组件
 registerWidget("container", Container);
@@ -50,15 +63,4 @@ registerWidget("center", Center);
 registerWidget("stack", Stack);
 registerWidget("positioned", Positioned);
 
-// 导入所有组件以确保它们被注册
-import "../core/text";
-import "../core/image";
-import "../core/sizedbox";
-import "../core/flex/column";
-import "../core/flex/row";
-import "../core/flex/expanded";
-import "../core/container";
-import "../core/padding";
-import "../core/center";
-import "../core/stack";
-import "../core/positioned";
+

@@ -25,7 +25,7 @@ export function createRenderFlexUnboundedError(
   const axis = direction === 'vertical' ? 'height' : 'width';
   const flexWidget = direction === 'vertical' ? 'column' : 'row';
   const scrollableType = direction === 'vertical' ? 'vertical scrollable' : 'horizontal scrollable';
-  
+
   return new RenderFlexError(
     `RenderFlex children have non-zero flex but incoming ${axis} constraints are unbounded.\n\n` +
     `When a ${flexWidget} is in a parent that does not provide a finite ${axis} constraint, for example if it is ` +

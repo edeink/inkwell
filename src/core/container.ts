@@ -1,11 +1,11 @@
-import { Widget } from "./base";
 import type {
-  WidgetData,
   BoxConstraints,
-  Size,
-  Offset,
   BuildContext,
+  Offset,
+  Size,
+  WidgetData,
 } from "./base";
+import { Widget } from "./base";
 
 export interface EdgeInsets {
   top: number;
@@ -121,9 +121,9 @@ export class Container extends Widget<ContainerData> {
 
     const marginSize = this.margin
       ? {
-          width: size.width - this.margin.left - this.margin.right,
-          height: size.height - this.margin.top - this.margin.bottom,
-        }
+        width: size.width - this.margin.left - this.margin.right,
+        height: size.height - this.margin.top - this.margin.bottom,
+      }
       : size;
 
     // 绘制背景色（使用相对坐标）
