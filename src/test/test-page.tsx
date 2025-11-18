@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
+import { DevTools } from "../devtools/index";
 import Editor from "../editors/graphics-editor";
 import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
 
@@ -149,6 +150,20 @@ const TestPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("complete");
   const [rendererType] = useState<"canvas2d">("canvas2d");
   const [theme, setTheme] = useState<Theme>("light");
+  const [editorForDevtools, setEditorForDevtools] = useState<Editor | null>(null);
+  const [showDevtools, setShowDevtools] = useState(() => localStorage.getItem("INKWELL_DEVTOOLS_VISIBLE") === "true");
+  useEffect(() => {
+    function onGlobalKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowDevtools(false);
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") setShowDevtools(true);
+    }
+    window.addEventListener("keydown", onGlobalKey);
+    return () => window.removeEventListener("keydown", onGlobalKey);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("INKWELL_DEVTOOLS_VISIBLE", String(showDevtools));
+  }, [showDevtools]);
 
   const initRenderer = async () => {
     if (containerRef.current) {
@@ -179,7 +194,18 @@ const TestPage: React.FC = () => {
       rendererType,
       theme
     );
-    await testInstance.runCompleteTest();
+    // 直接创建编辑器并保存引用以用于 DevTools
+    const container = containerRef.current;
+    if (!container.id) {
+      container.id = "temp-editor-container-" + Math.random().toString(36).substr(2, 9);
+    }
+    const editor = await Editor.create(container.id, {
+      renderer: rendererType,
+      background: theme === "dark" ? "#000000" : "#ffffff",
+      backgroundAlpha: 1,
+    });
+    await editor.renderTemplate(getTestTemplate);
+    setEditorForDevtools(editor);
   };
 
   // 渲染器测试
@@ -246,8 +272,21 @@ const TestPage: React.FC = () => {
               运行完整流程测试
             </button>
           </div>
-
+          <div className={styles.buttonGroup}>
+            <button
+              onClick={() => setShowDevtools((v) => !v)}
+              className={`${styles.button}`}
+            >
+              {showDevtools ? "关闭 DevTools" : "开启 DevTools"}
+            </button>
+          </div>
+          {showDevtools && editorForDevtools && (
+            <div style={{ marginTop: 12 }}>
+              <DevTools editor={editorForDevtools} onClose={() => setShowDevtools(false)} />
+            </div>
+          )}
           <div ref={containerRef} className={styles.canvasContainer} />
+
         </div>
       )}
 

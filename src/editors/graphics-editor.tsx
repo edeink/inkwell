@@ -1,11 +1,10 @@
-import React from "react";
-import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
-import { compileElement, compileTemplate } from "../utils/jsx-compiler";
-import { Widget } from "../core/base";
 import type { BoxConstraints, BuildContext } from "../core/base";
+import { Widget } from "../core/base";
 import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
-import { LOCAL_RESOLUTION } from "../utils/local-storage";
+import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
 import type { AnyElement } from "../utils/jsx-compiler";
+import { compileElement, compileTemplate } from "../utils/jsx-compiler";
+import { LOCAL_RESOLUTION } from "../utils/local-storage";
 // 导入注册表以确保所有组件类型都已注册
 import "../core/registry";
 
@@ -143,6 +142,14 @@ export default class Editor {
    */
   getRenderer(): IRenderer | null {
     return this.renderer;
+  }
+
+  getContainer(): HTMLElement | null {
+    return this.container;
+  }
+
+  getRootWidget(): Widget | null {
+    return this.rootWidget;
   }
 
   /**
@@ -320,6 +327,15 @@ export default class Editor {
     // 执行绘制
     this.rootWidget.paint(context);
     this.renderer.render();
+  }
+
+  rebuild(): void {
+    if (!this.rootWidget || !this.renderer || !this.container) return;
+    const totalSize = this.calculateLayout();
+    void this.initRenderer({}, totalSize).then(() => {
+      this.clearCanvas();
+      this.performRender();
+    });
   }
 
   /**

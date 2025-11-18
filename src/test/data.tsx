@@ -18,40 +18,45 @@ export const getTestTemplate = () => (
       }}
     />
 
-    {/* Row中的Expanded测试 */}
-    <Row key="row-expanded-section" spacing={10}>
-      <Text
-        key="row-left-text"
-        text="左侧"
-        style={{
-          fontSize: 16,
-          color: "#d32f2f",
-        }}
-      />
+    {/* Row中的Expanded测试：居中修复并增加调试边框 */}
+    <Row key="row-expanded-section" spacing={10} mainAxisAlignment="center" crossAxisAlignment="center">
+      <Container border={{ width: 1, color: "#9e9e9e" }} padding={2}>
+        <Text
+          key="row-left-text"
+          text="左侧"
+          style={{
+            fontSize: 16,
+            color: "#d32f2f",
+            textBaseline: "top",
+          }}
+        />
+      </Container>
       <Expanded flex={{ flex: 1 }}>
-        <Container
-          key="row-expanded-container"
-          color="#e8f5e8"
-          padding={8}
-        >
-          <Text
-            key="row-expanded-text"
-            text="中间弹性区域"
-            style={{
-              fontSize: 16,
-              color: "#2e7d32",
-            }}
-          />
+        <Container key="row-expanded-container" color="#e8f5e8" height={120} padding={8} border={{ width: 1, color: "#9e9e9e" }} borderRadius={12}>
+          <Center>
+            <Text
+              key="row-expanded-text"
+              text="中间弹性区域"
+              style={{
+                fontSize: 16,
+                color: "#2e7d32",
+                textBaseline: "middle",
+              }}
+            />
+          </Center>
         </Container>
       </Expanded>
-      <Text
-        key="row-right-text"
-        text="右侧"
-        style={{
-          fontSize: 16,
-          color: "#d32f2f",
-        }}
-      />
+      <Container border={{ width: 1, color: "#9e9e9e" }} padding={2}>
+        <Text
+          key="row-right-text"
+          text="右侧"
+          style={{
+            fontSize: 16,
+            color: "#d32f2f",
+            textBaseline: "top",
+          }}
+        />
+      </Container>
     </Row>
 
     {/* Container 组件展示 */}
@@ -91,6 +96,7 @@ export const getTestTemplate = () => (
           color="#2ecc71"
           borderRadius={15}
           padding={12}
+          border={{ width: 2, color: "#1b5e20" }}
         >
           <Text
             key="rounded-text"
@@ -98,6 +104,7 @@ export const getTestTemplate = () => (
             style={{
               fontSize: 16,
               fontWeight: "bold",
+              textBaseline: "top",
             }}
           />
         </Container>
