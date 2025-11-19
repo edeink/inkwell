@@ -46,58 +46,58 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
   }
   const entries = Object.entries(local).filter(([k]) => k !== "type" && k !== "children");
 
+  const hasNested = entries.some(([, v]) => v && typeof v === "object" && !Array.isArray(v));
   return (
-    <div className={styles.propsEditor}>
+    <div className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(" ")}>
       {entries.map(([k, v]) => (
         <div key={k} className={styles.formRow}>
-          <label className={styles.formLabel}>
-            {k}
-            {
-              isProtectedKey(k) &&
-              <Tooltip title={`${k}（受保护，禁止编辑）`}>
-                <LockOutlined />
-              </Tooltip>
-            }
-          </label>
-          {v && typeof v === "object" && !Array.isArray(v) ? (
-            <ObjectEditor
-              value={v as Record<string, unknown>}
-              onChange={(nv) => updateField(k, nv)} />
-          ) : (
-            (() => {
-              if (typeof v === "number") {
+          <div className={styles.formLeft}>
+            <label className={styles.formLabel}>
+              {k}
+              {isProtectedKey(k) && (
+                <Tooltip title={`${k}（受保护，禁止编辑）`}>
+                  <LockOutlined />
+                </Tooltip>
+              )}
+            </label>
+          </div>
+          <div className={styles.formRight}>
+            {v && typeof v === "object" && !Array.isArray(v) ? (
+              <ObjectEditor value={v as Record<string, unknown>} onChange={(nv) => updateField(k, nv)} />
+            ) : (
+              (() => {
+                if (typeof v === "number") {
+                  return (
+                    <InputNumber
+                      className={styles.formInput}
+                      value={Number(v)}
+                      onChange={(num) => updateField(k, Number(num ?? 0))}
+                      disabled={isProtectedKey(k)}
+                    />
+                  );
+                }
+                const valStr = String(v ?? "");
+                const colorSuffix = (
+                  <Space>
+                    <ColorPicker
+                      value={valStr}
+                      onChangeComplete={(c: { toHexString: () => string }) => updateField(k, c.toHexString())}
+                    />
+                  </Space>
+                );
+                const isCol = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) || /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
                 return (
-                  <InputNumber
+                  <Input
                     className={styles.formInput}
-                    value={Number(v)}
-                    onChange={(num) => updateField(k, Number(num ?? 0))} disabled={isProtectedKey(k)}
-                  />
-                )
-              };
-              const valStr = String(v ?? "");
-              const colorSuffix = (
-                <Space>
-                  <ColorPicker
                     value={valStr}
-                    onChangeComplete={
-                      (c: { toHexString: () => string }) => updateField(k, c.toHexString())
-                    }
+                    disabled={isProtectedKey(k)}
+                    onChange={(e) => updateField(k, e.target.value)}
+                    suffix={isCol ? colorSuffix : undefined}
                   />
-                </Space>
-              );
-              const isCol = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase())
-                || /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
-              return (
-                <Input
-                  className={styles.formInput}
-                  value={valStr}
-                  disabled={isProtectedKey(k)}
-                  onChange={(e) => updateField(k, e.target.value)}
-                  suffix={isCol ? colorSuffix : undefined}
-                />
-              );
-            })()
-          )}
+                );
+              })()
+            )}
+          </div>
         </div>
       ))}
       <div className={styles.formActions}>

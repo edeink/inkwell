@@ -1,4 +1,12 @@
 .panel {
+  /* variables */
+  --spacing-sm: 6px;
+  --spacing-md: 10px;
+  --spacing-lg: 12px;
+  --font-size: 13px;
+  --line-height: 1.5;
+  --breakpoint: 600px;
+
   position: fixed;
   background: #ffffff;
   border: 1px solid #d0d0d0;
@@ -36,17 +44,19 @@
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid #e0e0e0;
-    padding: 8px;
+    padding: var(--spacing-md);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
 
     .headerLeft {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--spacing-md);
     }
 
     .headerRight {
       display: flex;
-      gap: 10px;
+      gap: var(--spacing-md);
       align-items: center;
     }
 
@@ -62,9 +72,8 @@
 
   .contentGrid {
     display: grid;
-    grid-template-columns: 1fr 4px 1fr;
-    gap: 12px;
-    padding: 8px;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md);
     overflow: auto;
 
     .treePane {
@@ -73,26 +82,42 @@
       overflow: auto;
       background: #fff;
       border-radius: 8px;
+      font-size: var(--font-size);
+      line-height: var(--line-height);
+
+      :global(.ant-tree-node-selected) {
+        background: #e6f4ff !important;
+        border-radius: 6px;
+      }
     }
 
     .splitHandle {
-      cursor: col-resize;
-      background: #ddd;
-      border-radius: 6px;
+      position: relative;
+      background: transparent;
 
-      &.splitActive {
-        box-shadow: inset 0 0 0 2px #4ea3ff;
+      &::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        transform: translateX(-1px);
+        background: #ddd;
       }
 
-      &.splitIdle {
+      &.splitActive::before {
+        background: #4ea3ff;
       }
     }
 
     .propsPane {
       border: 1px solid #ddd;
-      padding: 24px;
+      padding: 16px;
       background: #fff;
       border-radius: 12px;
+      font-size: var(--font-size);
+      line-height: var(--line-height);
     }
   }
 
@@ -135,11 +160,24 @@
       border-color: #4ea3ff;
     }
 
-    &.handleIdle {
-    }
+    &.handleIdle {}
   }
 
   &.closing {
     opacity: 0.3;
+  }
+
+  /* narrow mode: stack tree and props vertically */
+  .contentGrid.narrow {
+    grid-template-columns: 1fr;
+
+    .splitHandle::before {
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      width: 100%;
+      transform: translateY(-1px);
+    }
   }
 }

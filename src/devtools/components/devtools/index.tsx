@@ -44,10 +44,12 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
   const splitStorageKey = "INKWELL_DEVTOOLS_SPLIT";
   const initialSplit = (() => {
     try { const raw = localStorage.getItem(splitStorageKey); if (raw) return JSON.parse(raw); } catch { void 0; }
-    return { treeWidth: 300 } as { treeWidth: number };
+    return { treeWidth: 300, treeHeight: 240 } as { treeWidth: number; treeHeight: number };
   })();
   const [treeWidth, setTreeWidth] = useState<number>(initialSplit.treeWidth);
+  const [treeHeight, setTreeHeight] = useState<number>(initialSplit.treeHeight);
   const [splitDragging, setSplitDragging] = useState<boolean>(false);
+  const [isNarrow, setIsNarrow] = useState<boolean>(false);
 
   useEffect(() => {
     overlay.mount();
@@ -114,6 +116,16 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
   }, [editor, overlay, active]);
 
   useEffect(() => {
+    const updateNarrow = () => {
+      const w = panelRef.current?.clientWidth ?? (dock === "left" || dock === "right" ? width : window.innerWidth);
+      setIsNarrow(w < 600);
+    };
+    updateNarrow();
+    window.addEventListener("resize", updateNarrow);
+    return () => window.removeEventListener("resize", updateNarrow);
+  }, [dock, width]);
+
+  useEffect(() => {
     window.__INKWELL_DEVTOOLS = {
       getTree: () => tree,
       selectByKey: (k: string) => {
@@ -134,8 +146,8 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
   }, [dock, width, height]);
 
   useEffect(() => {
-    try { localStorage.setItem(splitStorageKey, JSON.stringify({ treeWidth })); } catch { void 0; }
-  }, [treeWidth]);
+    try { localStorage.setItem(splitStorageKey, JSON.stringify({ treeWidth, treeHeight })); } catch { void 0; }
+  }, [treeWidth, treeHeight]);
 
   function onResizeMouseDown(e: React.MouseEvent) {
     e.preventDefault();
@@ -165,11 +177,20 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
     e.preventDefault();
     setSplitDragging(true);
     const startX = e.clientX;
+    const startY = e.clientY;
     const startW = treeWidth;
+    const startH = treeHeight;
     function onMove(ev: MouseEvent) {
-      const dx = ev.clientX - startX;
-      const next = clamp(startW + dx, 200, Math.min(((dock === "left" || dock === "right") ? width : window.innerWidth) - 240, 800));
-      setTreeWidth(next);
+      if (isNarrow) {
+        const dy = ev.clientY - startY;
+        const maxH = Math.max(160, (dock === "top" || dock === "bottom") ? height - 160 : window.innerHeight - 200);
+        const nextH = clamp(startH + dy, 140, maxH);
+        setTreeHeight(nextH);
+      } else {
+        const dx = ev.clientX - startX;
+        const next = clamp(startW + dx, 200, Math.min(((dock === "left" || dock === "right") ? width : window.innerWidth) - 240, 800));
+        setTreeWidth(next);
+      }
     }
     function onUp() {
       setSplitDragging(false);
@@ -212,14 +233,18 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
           </Tooltip>
         </div>
       </div>
-      <div className={styles.contentGrid} style={{ gridTemplateColumns: `${treeWidth}px 4px 1fr`, ...(dock === "top" || dock === "bottom" ? { height: `calc(${height}px - 42px)` } : { height: "calc(100vh - 42px)" }) }}>
-        <div className={styles.treePane}>
+      <div className={[styles.contentGrid, isNarrow ? styles.narrow : ""].join(" ")} style={
+        isNarrow
+          ? { gridTemplateRows: `${treeHeight}px 8px 1fr`, ...(dock === "top" || dock === "bottom" ? { height: `calc(${height}px - 42px)` } : { height: "calc(100vh - 42px)" }) }
+          : { gridTemplateColumns: `${treeWidth}px 8px 1fr`, ...(dock === "top" || dock === "bottom" ? { height: `calc(${height}px - 42px)` } : { height: "calc(100vh - 42px)" }) }
+      }>
+        <div className={styles.treePane} style={isNarrow ? { gridRow: "1 / 2" } : undefined}>
           <div style={{ marginBottom: 8 }}>
             <Input.Search value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索节点..." allowClear />
           </div>
           <Tree
             showLine
-            height={dock === "top" || dock === "bottom" ? Math.max(120, height - 100) : undefined}
+            height={isNarrow ? Math.max(120, treeHeight - 60) : (dock === "top" || dock === "bottom" ? Math.max(120, height - 100) : undefined)}
             treeData={toAntTreeData(tree)}
             expandedKeys={Array.from(expandedKeys)}
             onExpand={(keys) => setExpandedKeys(new Set(keys as string[]))}
@@ -228,8 +253,8 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
             filterTreeNode={(node) => !!search && String(node.title).toLowerCase().includes(search.toLowerCase())}
           />
         </div>
-        <div className={[styles.splitHandle, splitDragging ? styles.splitActive : styles.splitIdle].join(" ")} onMouseDown={onSplitMouseDown} />
-        <div className={styles.propsPane}>
+        <div className={[styles.splitHandle, splitDragging ? styles.splitActive : styles.splitIdle].join(" ")} onMouseDown={onSplitMouseDown} style={isNarrow ? { gridRow: "2 / 3", cursor: "row-resize" } : { gridColumn: "2 / 3", cursor: "col-resize" }} />
+        <div className={styles.propsPane} style={isNarrow ? { gridRow: "3 / 4" } : undefined}>
           <PropsEditor widget={selected} onChange={() => editor.rebuild()} />
         </div>
       </div>

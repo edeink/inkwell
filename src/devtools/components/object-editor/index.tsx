@@ -49,37 +49,39 @@ export function ObjectEditor({ value, onChange }: { value: Record<string, unknow
         const isOpen = !!openMap[k] || !isObj;
         return (
           <div key={k} className={styles.kvRow}>
-            <Space>
+            <div className={styles.kvLeft}>
               {isObj && (
-                <Button size="small" type="text" icon={
-                  isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />
-                } onClick={() => setOpenMap({ ...openMap, [k]: !isOpen })} />
+                <Button size="small" type="text" icon={isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />} onClick={() => setOpenMap({ ...openMap, [k]: !isOpen })} />
               )}
-              <Tooltip title={k}><Input className={styles.kvKey} value={k} onChange={(e) => setKV(k, e.target.value, v)} /></Tooltip>
-            </Space>
-            {isObj ? (
-              isOpen ? (
-                <div>
-                  <ObjectEditor value={v as Record<string, unknown>} onChange={(nv) => setKV(k, k, nv)} />
-                </div>
+              <Tooltip title={k}>
+                <Input className={styles.kvKey} value={k} onChange={(e) => setKV(k, e.target.value, v)} />
+              </Tooltip>
+            </div>
+            <div className={styles.kvRight}>
+              {isObj ? (
+                isOpen ? (
+                  <div className={styles.nested}>
+                    <ObjectEditor value={v as Record<string, unknown>} onChange={(nv) => setKV(k, k, nv)} />
+                  </div>
+                ) : (
+                  <div />
+                )
               ) : (
-                <div />
-              )
-            ) : (
-              isColor(v) ? (
-                <Input
-                  className={styles.kvValue}
-                  value={String(v ?? "")}
-                  onChange={(e) => setKV(k, k, e.target.value)}
-                  suffix={<Space><ColorPicker value={String(v ?? "")} onChangeComplete={(c: { toHexString: () => string }) => setKV(k, k, c.toHexString())} /><div className={styles.colorSwatch} style={{ background: String(v ?? "transparent") }} /></Space>}
-                />
-              ) : (typeof v === "number" ? (
-                <InputNumber className={styles.kvValue} value={Number(v)} onChange={(num) => setKV(k, k, Number(num ?? 0))} />
-              ) : (
-                <Input className={styles.kvValue} value={String(v ?? "")} onChange={(e) => setKV(k, k, e.target.value)} />
-              ))
-            )}
-            <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => removeKey(k)} />
+                isColor(v) ? (
+                  <Input
+                    className={styles.kvValue}
+                    value={String(v ?? "")}
+                    onChange={(e) => setKV(k, k, e.target.value)}
+                    suffix={<Space><ColorPicker value={String(v ?? "")} onChangeComplete={(c: { toHexString: () => string }) => setKV(k, k, c.toHexString())} /><div className={styles.colorSwatch} /></Space>}
+                  />
+                ) : (typeof v === "number" ? (
+                  <InputNumber className={styles.kvValue} value={Number(v)} onChange={(num) => setKV(k, k, Number(num ?? 0))} />
+                ) : (
+                  <Input className={styles.kvValue} value={String(v ?? "")} onChange={(e) => setKV(k, k, e.target.value)} />
+                ))
+              )}
+              <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => removeKey(k)} />
+            </div>
           </div>
         );
       })}
