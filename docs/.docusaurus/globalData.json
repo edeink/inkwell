@@ -1,0 +1,113 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "当前",
+          "isLast": true,
+          "path": "/docs",
+          "mainDocId": "intro",
+          "docs": [
+            {
+              "id": "intro",
+              "path": "/docs/",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Center",
+              "path": "/docs/widgets/Center",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Column",
+              "path": "/docs/widgets/Column",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Container",
+              "path": "/docs/widgets/Container",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Expanded",
+              "path": "/docs/widgets/Expanded",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Image",
+              "path": "/docs/widgets/Image",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/overview",
+              "path": "/docs/widgets/overview",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Padding",
+              "path": "/docs/widgets/Padding",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Positioned",
+              "path": "/docs/widgets/Positioned",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Row",
+              "path": "/docs/widgets/Row",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/SizedBox",
+              "path": "/docs/widgets/SizedBox",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Stack",
+              "path": "/docs/widgets/Stack",
+              "sidebar": "docs"
+            },
+            {
+              "id": "widgets/Text",
+              "path": "/docs/widgets/Text",
+              "sidebar": "docs"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "docs": {
+              "link": {
+                "path": "/docs/",
+                "label": "intro"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  },
+  "docusaurus-plugin-search-local": {
+    "default": {
+      "externalSearchSources": [],
+      "removeDefaultStopWordFilter": false,
+      "searchResultContextMaxLength": 50,
+      "searchResultLimits": 5,
+      "translations": {
+        "search_placeholder": "Search",
+        "see_all_results": "See all results",
+        "no_results": "No results.",
+        "search_results_for": "Search results for \"{{ keyword }}\"",
+        "search_the_documentation": "Search the documentation",
+        "count_documents_found_plural": "{{ count }} documents found",
+        "count_documents_found": "{{ count }} document found",
+        "no_documents_were_found": "No documents were found"
+      },
+      "highlightSearchTermsOnTargetPage": false,
+      "indexHash": null
+    }
+  }
+}

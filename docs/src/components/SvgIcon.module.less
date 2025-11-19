@@ -1,0 +1,23 @@
+// SvgIcon 组件样式（CSS Modules + Less）
+// 提供悬停与点击态的交互反馈
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+  }
+
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+}
+
+.svg {
+  display: block;
+}

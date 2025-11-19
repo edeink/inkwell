@@ -1,0 +1,25 @@
+{
+  "id": "widgets/Expanded",
+  "title": "Expanded",
+  "description": "核心用途：在可用空间中自适应占据剩余空间。",
+  "source": "@site/docs/widgets/Expanded.mdx",
+  "sourceDirName": "widgets",
+  "slug": "/widgets/Expanded",
+  "permalink": "/docs/widgets/Expanded",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Expanded"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Column",
+    "permalink": "/docs/widgets/Column"
+  },
+  "next": {
+    "title": "Row",
+    "permalink": "/docs/widgets/Row"
+  }
+}

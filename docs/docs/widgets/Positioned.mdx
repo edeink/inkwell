@@ -1,0 +1,28 @@
+---
+title: Positioned
+---
+
+核心用途：在相对定位容器中以绝对定位放置子元素。
+
+参数：
+- `left`, `top`, `right`, `bottom`: 位置（可选）
+- `child`: 子元素（必填）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function PositionedDemo() {
+  return (
+    <div style={{ position: 'relative', width: 200, height: 120, border: '1px solid #ddd' }}>
+      <div style={{ position: 'absolute', left: 12, top: 12, width: 60, height: 32, background: '#1677ff' }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 注意层级关系与可点击区域，避免覆盖交互元素。

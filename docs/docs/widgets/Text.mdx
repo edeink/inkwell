@@ -1,0 +1,31 @@
+---
+title: Text
+---
+
+核心用途：显示文本内容，支持样式与换行策略。
+
+参数：
+- `content`: 文本内容（必填）
+- `color`: 颜色（可选）
+- `fontSize`: 字号（可选）
+- `fontWeight`: 字重（可选）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function TextDemo() {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ fontSize: 14, color: '#333' }}>普通文本</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: '#1677ff' }}>高亮文本</div>
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 文本颜色与背景对比度需符合 WCAG AA 标准。

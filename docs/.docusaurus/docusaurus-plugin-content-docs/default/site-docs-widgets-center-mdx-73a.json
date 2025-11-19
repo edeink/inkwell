@@ -1,0 +1,25 @@
+{
+  "id": "widgets/Center",
+  "title": "Center",
+  "description": "核心用途：将子元素在父容器内居中显示。",
+  "source": "@site/docs/widgets/Center.mdx",
+  "sourceDirName": "widgets",
+  "slug": "/widgets/Center",
+  "permalink": "/docs/widgets/Center",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Center"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Widgets 概览",
+    "permalink": "/docs/widgets/overview"
+  },
+  "next": {
+    "title": "Container",
+    "permalink": "/docs/widgets/Container"
+  }
+}

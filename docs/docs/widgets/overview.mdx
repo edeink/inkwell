@@ -1,0 +1,21 @@
+---
+title: Widgets 概览
+---
+
+Inkwell 提供一组常用的 Widgets，用于布局、文本、图像与绘制层管理。每个条目均包含参数说明、示例与最佳实践。
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function Demo() {
+  const [visible, setVisible] = React.useState(true);
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <button onClick={() => setVisible(v => !v)}>Toggle</button>
+      <div style={{ width: 140, height: 80, background: visible ? '#e6f4ff' : '#f5f5f5', border: '1px solid #ddd', borderRadius: 8 }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>

@@ -1,0 +1,31 @@
+---
+title: Column
+---
+
+核心用途：垂直排列子元素。
+
+参数：
+- `gap`: 子元素间距（默认 8）
+- `align`: 水平对齐方式（默认 stretch）
+- `children`: 子元素数组（必填）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function ColumnDemo() {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ height: 28, background: '#1677ff' }} />
+      <div style={{ height: 28, background: '#52c41a' }} />
+      <div style={{ height: 28, background: '#faad14' }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 结合容器宽度自适应，避免过度要求固定高度。

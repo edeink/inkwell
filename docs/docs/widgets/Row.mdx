@@ -1,0 +1,31 @@
+---
+title: Row
+---
+
+核心用途：水平排列子元素。
+
+参数：
+- `gap`: 子元素间距（默认 8）
+- `align`: 垂直对齐方式（默认 center）
+- `children`: 子元素数组（必填）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function RowDemo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ width: 60, height: 32, background: '#1677ff' }} />
+      <div style={{ width: 60, height: 32, background: '#52c41a' }} />
+      <div style={{ width: 60, height: 32, background: '#faad14' }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 少量元素优先使用 Row；大量元素考虑虚拟滚动或延迟渲染。

@@ -1,0 +1,26 @@
+---
+title: Image
+---
+
+核心用途：显示远程或本地图片。
+
+参数：
+- `src`: 图片地址（必填）
+- `fit`: 适配模式（contain/cover，默认 contain）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function ImageDemo() {
+  return (
+    <img src="https://picsum.photos/200/120" alt="demo" style={{ display: 'block', width: 200, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd' }} />
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 合理选择 `objectFit` 与尺寸，避免拉伸失真。

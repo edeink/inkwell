@@ -1,0 +1,31 @@
+---
+title: Container
+---
+
+核心用途：提供带内边距、背景与边框的通用容器。
+
+参数：
+- `padding`: 内边距（可选，默认 0）
+- `background`: 背景色（可选）
+- `borderRadius`: 圆角（可选）
+- `child`: 子元素（可选）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function ContainerDemo() {
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div style={{ padding: 12, background: '#e6f4ff', border: '1px solid #ddd', borderRadius: 8 }}>Container</div>
+      <div style={{ padding: 12, background: '#f6ffed', border: '1px solid #ddd', borderRadius: 8 }}>Container</div>
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 合理使用 `padding` 与 `borderRadius` 提升可读性；避免过度嵌套导致层级复杂。

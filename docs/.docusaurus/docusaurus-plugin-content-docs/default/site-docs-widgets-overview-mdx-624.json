@@ -1,0 +1,25 @@
+{
+  "id": "widgets/overview",
+  "title": "Widgets 概览",
+  "description": "Inkwell 提供一组常用的 Widgets，用于布局、文本、图像与绘制层管理。每个条目均包含参数说明、示例与最佳实践。",
+  "source": "@site/docs/widgets/overview.mdx",
+  "sourceDirName": "widgets",
+  "slug": "/widgets/overview",
+  "permalink": "/docs/widgets/overview",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Widgets 概览"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "指南",
+    "permalink": "/docs/"
+  },
+  "next": {
+    "title": "Center",
+    "permalink": "/docs/widgets/Center"
+  }
+}

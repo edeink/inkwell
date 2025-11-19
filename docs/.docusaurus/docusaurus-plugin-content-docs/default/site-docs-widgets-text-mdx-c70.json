@@ -1,0 +1,21 @@
+{
+  "id": "widgets/Text",
+  "title": "Text",
+  "description": "核心用途：显示文本内容，支持样式与换行策略。",
+  "source": "@site/docs/widgets/Text.mdx",
+  "sourceDirName": "widgets",
+  "slug": "/widgets/Text",
+  "permalink": "/docs/widgets/Text",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Text"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Stack",
+    "permalink": "/docs/widgets/Stack"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "widgets/Container",
+  "title": "Container",
+  "description": "核心用途：提供带内边距、背景与边框的通用容器。",
+  "source": "@site/docs/widgets/Container.mdx",
+  "sourceDirName": "widgets",
+  "slug": "/widgets/Container",
+  "permalink": "/docs/widgets/Container",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Container"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Center",
+    "permalink": "/docs/widgets/Center"
+  },
+  "next": {
+    "title": "Column",
+    "permalink": "/docs/widgets/Column"
+  }
+}

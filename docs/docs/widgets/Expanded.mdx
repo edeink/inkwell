@@ -1,0 +1,29 @@
+---
+title: Expanded
+---
+
+核心用途：在可用空间中自适应占据剩余空间。
+
+参数：
+- `flex`: 权重（默认 1）
+- `child`: 子元素（必填）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function ExpandedDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ width: 80, height: 40, background: '#ddd' }} />
+      <div style={{ flex: 1, height: 40, background: '#1677ff' }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 在横向布局中配合 Row 使用，避免内容溢出。

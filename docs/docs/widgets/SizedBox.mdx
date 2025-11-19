@@ -1,0 +1,29 @@
+---
+title: SizedBox
+---
+
+核心用途：提供固定尺寸的占位容器。
+
+参数：
+- `width`: 宽度（可选）
+- `height`: 高度（可选）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function SizedBoxDemo() {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ width: 80, height: 40, background: '#ddd' }} />
+      <div style={{ width: 120, height: 60, background: '#ddd' }} />
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 谨慎使用固定尺寸，优先考虑自适应布局。

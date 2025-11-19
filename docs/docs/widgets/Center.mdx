@@ -1,0 +1,29 @@
+---
+title: Center
+---
+
+核心用途：将子元素在父容器内居中显示。
+
+参数：
+- `child`: 子元素（必填）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function CenterDemo() {
+  return (
+    <div style={{ width: 240, height: 120, border: '1px solid #ddd', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+        <div style={{ width: 80, height: 40, background: '#1677ff', color: '#fff', display: 'grid', placeItems: 'center' }}>Center</div>
+      </div>
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 在需要固定居中效果时优先使用 Center；避免与绝对定位混用导致覆盖关系复杂。

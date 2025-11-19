@@ -1,0 +1,29 @@
+---
+title: Padding
+---
+
+核心用途：为子元素添加内边距。
+
+参数：
+- `all`: 统一内边距（可选）
+- `horizontal`: 水平内边距（可选）
+- `vertical`: 垂直内边距（可选）
+
+示例：
+
+import CodeBlock from '@theme/CodeBlock';
+
+<CodeBlock live language="jsx">
+{`
+function PaddingDemo() {
+  return (
+    <div style={{ padding: 12, border: '1px solid #ddd' }}>
+      <div style={{ padding: 12, background: '#f6ffed', border: '1px solid #ddd' }}>内容</div>
+    </div>
+  );
+}
+`}
+</CodeBlock>
+
+最佳实践：
+- 使用统一间距变量，避免样式不一致。
