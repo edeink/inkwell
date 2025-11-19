@@ -1,8 +1,14 @@
-import styles from "./overlay.module.less";
+import styles from "./index.module.less";
 
-import type { Widget } from "../core/base";
-import type Editor from "../editors/graphics-editor";
+import type { Widget } from "../../../core/base";
+import type Editor from "../../../editors/graphics-editor";
 
+/**
+ * Overlay 高亮框
+ * 功能：渲染并控制画布上的高亮框，支持跟随 Inspect 模式显示/隐藏
+ * 参数：editor - 编辑器实例，用于获取容器与渲染器
+ * 返回：类实例，提供 mount/unmount/setActive/highlight 方法
+ */
 export class Overlay {
   private editor: Editor;
   private box: HTMLDivElement | null = null;
@@ -85,7 +91,6 @@ export class Overlay {
       this.box.style.width = `${width}px`;
       this.box.style.height = `${height}px`;
 
-      // Mirror canvas CSS transform (if any) for precise alignment
       if (cssTransform && cssTransform !== "none") {
         this.box.style.transform = cssTransform;
         this.box.style.transformOrigin = cssOrigin || "0 0";
@@ -100,6 +105,12 @@ export class Overlay {
   }
 }
 
+/**
+ * 命中测试
+ * 功能：根据坐标在 Widget 树中查找最内层命中节点
+ * 参数：root - 根组件；x - 横坐标；y - 纵坐标
+ * 返回：命中的 Widget 或 null
+ */
 export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
   if (!root) return null;
   let found: Widget | null = null;

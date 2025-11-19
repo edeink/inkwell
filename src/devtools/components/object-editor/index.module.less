@@ -1,0 +1,44 @@
+.kvGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .kvRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 2px;
+    }
+
+    .kvKey {
+    }
+
+    .kvValue {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .kvActions {
+    margin-top: 8px;
+  }
+
+  .colorSwatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+  }
+}
