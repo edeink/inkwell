@@ -2,7 +2,6 @@ import type { EdgeInsets } from "@/core/base";
 import type { Border, BorderRadius } from "@/core/container";
 import type { CrossAxisAlignment, FlexFit, FlexProperties, MainAxisAlignment, MainAxisSize } from "@/core/flex/type";
 import type { AlignmentGeometry } from "@/core/stack";
-import type { TextStyle } from "@/core/text";
 import type { ComponentData } from "@/editors/graphics-editor";
 import { ComponentType } from "@/editors/graphics-editor";
 import type { JSXElement } from "./jsx-runtime";
@@ -81,7 +80,17 @@ export function compileElement(element: AnyElement): ComponentData {
       break;
     case ComponentType.Text:
       data.text = p.text as string;
-      if (p.style) data.style = p.style as TextStyle;
+      // 一级映射
+      if (p.fontSize !== undefined) data.fontSize = p.fontSize as number;
+      if (p.fontFamily !== undefined) data.fontFamily = p.fontFamily as string;
+      if (p.fontWeight !== undefined) data.fontWeight = p.fontWeight as string | number;
+      if (p.color !== undefined) data.color = p.color as string;
+      if (p.height !== undefined) data.height = p.height as number;
+      if (p.lineHeight !== undefined) data.lineHeight = p.lineHeight as number;
+      if (p.textAlign !== undefined) data.textAlign = p.textAlign as 'left' | 'center' | 'right';
+      if (p.textAlignVertical !== undefined) data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
+      if (p.maxLines !== undefined) data.maxLines = p.maxLines as number;
+      if (p.overflow !== undefined) data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
       break;
     case ComponentType.Image:
       data.src = p.src as string;

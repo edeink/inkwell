@@ -90,7 +90,7 @@ export interface IRenderer {
     color?: string;
     lineHeight?: number;
     textAlign?: "left" | "center" | "right";
-    textBaseline?: "top" | "middle" | "bottom";
+    textBaseline?: "top" | "middle" | "bottom" | "alphabetic";
     lines?: string[];
   }): void;
 
