@@ -1,10 +1,10 @@
-import type { EdgeInsets } from "../core/base";
-import type { BorderRadius, Border } from "../core/container";
-import type { MainAxisAlignment, CrossAxisAlignment, MainAxisSize, FlexProperties, FlexFit } from "../core/flex/type";
-import type { AlignmentGeometry } from "../core/stack";
-import type { TextStyle } from "../core/text";
-import type { ComponentData } from "../editors/graphics-editor";
-import { ComponentType } from "../editors/graphics-editor";
+import type { EdgeInsets } from "@/core/base";
+import type { Border, BorderRadius } from "@/core/container";
+import type { CrossAxisAlignment, FlexFit, FlexProperties, MainAxisAlignment, MainAxisSize } from "@/core/flex/type";
+import type { AlignmentGeometry } from "@/core/stack";
+import type { TextStyle } from "@/core/text";
+import type { ComponentData } from "@/editors/graphics-editor";
+import { ComponentType } from "@/editors/graphics-editor";
 import type { JSXElement } from "./jsx-runtime";
 
 /**
@@ -44,7 +44,7 @@ function toArrayChildren(children: unknown): AnyElement[] {
   if (Array.isArray(children)) {
     return children.filter((c) => c && typeof c === "object");
   }
-  return [children].filter((c) => c && typeof c === "object");
+  return [children].filter((c): c is AnyElement => c && typeof c === "object");
 }
 
 export function compileElement(element: AnyElement): ComponentData {

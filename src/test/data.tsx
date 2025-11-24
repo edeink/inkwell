@@ -1,4 +1,4 @@
-/** @jsxImportSource ../utils */
+/** @jsxImportSource @/utils/compiler */
 import { Center, Column, Container, Expanded, Padding, Positioned, Row, Stack, Text } from "../core";
 
 export const getTestTemplate = () => (
