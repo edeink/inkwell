@@ -183,7 +183,6 @@ export default class Editor {
    */
   async renderTemplate(template: () => AnyElement): Promise<void> {
     const json = compileTemplate(template);
-    console.log('~~~', json);
     await this.renderFromJSON(json);
   }
 

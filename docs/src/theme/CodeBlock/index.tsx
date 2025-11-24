@@ -1,25 +1,20 @@
-import InkPlayground from '@site/src/components/InkPlayground';
-import CodeBlockOriginal from '@theme-original/CodeBlock';
+import InkPlayground from '@site/src/components/InkPlayground'
+import OriginalCodeBlock from '@theme-original/CodeBlock'
 
 type Props = {
-  children?: string | { props?: { children?: string } };
-  className?: string;
-  language?: string;
-  metastring?: string;
-};
-
-function getCode(children: Props['children']): string {
-  if (typeof children === 'string') return children;
-  const maybe = (children as any)?.props?.children;
-  return typeof maybe === 'string' ? maybe : '';
+  children: string | { props?: { children?: string } }
+  className?: string
+  metastring?: string
 }
 
 export default function CodeBlock(props: Props) {
-  const language = props.language || (props.className?.replace('language-', '') ?? '');
-  const code = getCode(props.children);
-  const useInk = language === 'tsx' || /\bink\b/.test(props.metastring || '') || /language-tsx/.test(props.className || '');
-  if (useInk && code) {
-    return <InkPlayground code={code} />;
+  const { children, className, metastring } = props
+  const code = typeof children === 'string' ? children : String(children?.props?.children ?? '')
+  const lang = (className || '').replace(/^language-/, '')
+  const isTSX = lang === 'tsx' || lang === 'jsx'
+  const forceStatic = typeof metastring === 'string' && metastring.includes('static')
+  if (isTSX && !forceStatic) {
+    return <InkPlayground code={code} />
   }
-  return <CodeBlockOriginal {...props as any} />;
+  return <OriginalCodeBlock {...props} />
 }
