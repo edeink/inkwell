@@ -38,7 +38,10 @@ export class Expanded extends Widget<ExpandedData> {
   }
 
   createElement(data: ExpandedData): Widget<ExpandedData> {
-    return new Expanded(data);
+    super.createElement(data);
+    this.initExpandedProperties(data);
+    this.child = this.children[0] ?? null;
+    return this;
   }
 
   protected createChildWidget(childData: WidgetData): Widget | null {
@@ -59,7 +62,7 @@ export class Expanded extends Widget<ExpandedData> {
     constraints: BoxConstraints,
     childrenSizes: Size[]
   ): Size {
-    if (!this.child || childrenSizes.length === 0) {
+    if (childrenSizes.length === 0) {
       return {
         width: constraints.minWidth,
         height: constraints.minHeight,

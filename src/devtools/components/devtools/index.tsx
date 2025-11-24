@@ -246,6 +246,23 @@ export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => 
             showLine
             height={isNarrow ? Math.max(120, treeHeight - 60) : (dock === "top" || dock === "bottom" ? Math.max(120, height - 100) : undefined)}
             treeData={toAntTreeData(tree)}
+            titleRender={(node: any) => (
+              <span
+                data-key={String(node.key)}
+                onMouseEnter={() => {
+                  const w = findByKey(editor.getRootWidget(), String(node.key));
+                  hoverRef.current = w;
+                  overlay.setActive(true);
+                  overlay.highlight(w);
+                }}
+                onMouseLeave={() => {
+                  overlay.setActive(false);
+                  overlay.highlight(null);
+                }}
+              >
+                {String(node.title)}
+              </span>
+            )}
             expandedKeys={Array.from(expandedKeys)}
             onExpand={(keys) => setExpandedKeys(new Set(keys as string[]))}
             selectedKeys={selected ? [selected.key] : []}

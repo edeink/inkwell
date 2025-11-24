@@ -1,5 +1,5 @@
-import type { Widget } from "../../core/base";
 import type { DataNode } from "antd/es/tree";
+import type { Widget } from "../../core/base";
 
 /**
  * DevTools 树节点类型

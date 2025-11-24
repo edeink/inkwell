@@ -114,7 +114,10 @@ export class Row extends Widget<RowData> {
     // 根据主轴尺寸确定宽度
     let width = totalWidth;
     if (this.mainAxisSize === "max") {
-      width = Math.max(totalWidth, constraints.maxWidth);
+      // 在无界约束下保持由子元素决定的宽度
+      width = isFinite(constraints.maxWidth)
+        ? Math.max(totalWidth, constraints.maxWidth)
+        : totalWidth;
     }
 
     // 确保满足约束条件

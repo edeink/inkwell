@@ -7,6 +7,7 @@ export const getTestTemplate = () => (
     mainAxisAlignment="start"
     crossAxisAlignment="start"
     spacing={20}
+    mainAxisSize="min"
   >
     <Text
       key="demo-title"
@@ -19,7 +20,7 @@ export const getTestTemplate = () => (
     />
 
     {/* Row中的Expanded测试：居中修复并增加调试边框 */}
-    <Row key="row-expanded-section" spacing={10} mainAxisAlignment="center" crossAxisAlignment="center">
+    <Row key="row-expanded-section" spacing={10} mainAxisAlignment="center" crossAxisAlignment="center" mainAxisSize="min">
       <Container border={{ width: 1, color: "#9e9e9e" }} padding={2}>
         <Text
           key="row-left-text"
@@ -71,7 +72,7 @@ export const getTestTemplate = () => (
         }}
       />
 
-      <Row key="container-examples" spacing={20}>
+      <Row key="container-examples" spacing={20} mainAxisSize="min">
         <Container
           key="basic-container"
           width={150}

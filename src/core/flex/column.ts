@@ -179,7 +179,10 @@ export class Column extends Widget<ColumnData> {
     // 根据主轴尺寸确定高度
     let height = totalHeight;
     if (this.mainAxisSize === "max") {
-      height = Math.max(totalHeight, constraints.maxHeight);
+      // 在无界约束下保持由子元素决定的高度
+      height = isFinite(constraints.maxHeight)
+        ? Math.max(totalHeight, constraints.maxHeight)
+        : totalHeight;
     }
 
     // 确保满足约束条件

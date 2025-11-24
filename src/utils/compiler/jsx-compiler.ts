@@ -73,6 +73,7 @@ export function compileElement(element: AnyElement): ComponentData {
       if (p.mainAxisAlignment) data.mainAxisAlignment = p.mainAxisAlignment as MainAxisAlignment;
       if (p.crossAxisAlignment) data.crossAxisAlignment = p.crossAxisAlignment as CrossAxisAlignment;
       if (p.spacing !== undefined) data.spacing = p.spacing as number;
+      if (p.mainAxisSize) data.mainAxisSize = p.mainAxisSize as MainAxisSize;
       break;
     case ComponentType.Expanded:
       if (p.flex !== undefined) data.flex = p.flex as FlexProperties;
