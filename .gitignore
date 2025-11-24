@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+ 
+# Docusaurus build artifacts
+docs/.docusaurus/
