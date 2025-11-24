@@ -1,7 +1,7 @@
 import React from 'react';
 import cls from './SvgIcon.module.less';
 
-export type SvgIconName = 'github' | 'code' | 'chat' | 'performance' | 'jsx' | 'compat' | 'tooling';
+export type SvgIconName = 'github' | 'code' | 'chat' | 'copy' | 'performance' | 'jsx' | 'compat' | 'tooling';
 
 export interface SvgIconProps {
   name: SvgIconName;
@@ -59,6 +59,15 @@ export function SvgIcon({ name, size = 24, color = 'currentColor', title, classN
           <svg {...svgProps}>
             <path d="M4 5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3V7a2 2 0 0 1 2-2z" />
             <path d="M7 9h8M7 12h6" />
+          </svg>
+        </span>
+      );
+    case 'copy':
+      return (
+        <span {...commonProps}>
+          <svg {...svgProps}>
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <rect x="4" y="4" width="11" height="11" rx="2" />
           </svg>
         </span>
       );

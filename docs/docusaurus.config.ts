@@ -40,6 +40,12 @@ const config: Config = {
         name: 'inkwell-less-modules',
         configureWebpack() {
           return {
+            devtool: 'source-map',
+            resolve: {
+              alias: {
+                '@': require('path').resolve(__dirname, '../src'),
+              },
+            },
             module: {
               rules: [
                 {

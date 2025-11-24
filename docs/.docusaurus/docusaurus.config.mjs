@@ -40,7 +40,7 @@ export default {
     ]
   ],
   "plugins": [
-    "/Users/edeink/Documents/inkwell/node_modules/.pnpm/docusaurus-plugin-search-local@2.1.2_@docusaurus+core@3.9.2_@mdx-js+react@3.1.1_@types+_56c56bcc8ec73676816e229db9b6f551/node_modules/docusaurus-plugin-search-local/lib/server/index.js",
+    "/Users/edeink/Documents/inkwell/node_modules/.pnpm/docusaurus-plugin-search-local@2.1.2_@docusaurus+core@3.9.2_@mdx-js+react@3.1.1_@types+_5b86a1010117f27988e1eda6663b9d8a/node_modules/docusaurus-plugin-search-local/lib/server/index.js",
     null
   ],
   "themeConfig": {

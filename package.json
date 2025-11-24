@@ -2,13 +2,15 @@
   "name": "@edeink/inkwell",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "doc": "docusaurus start docs",
+    "doc:build": "docusaurus build docs",
+    "doc:serve": "docusaurus serve docs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
@@ -17,10 +19,19 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@babel/standalone": "^7.26.3",
+    "@docusaurus/core": "^3.2.1",
+    "@docusaurus/preset-classic": "^3.2.1",
+    "@docusaurus/theme-live-codeblock": "^3.2.1",
+    "@docusaurus/tsconfig": "^3.9.2",
+    "@docusaurus/types": "^3.9.2",
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "baseline-browser-mapping": "^2.8.31",
+    "css-loader": "^6.10.0",
+    "docusaurus-plugin-search-local": "^2.1.2",
     "eslint": "^9.33.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -28,6 +39,10 @@
     "eslint-plugin-unused-imports": "^3.2.0",
     "globals": "^16.3.0",
     "less": "^4.4.1",
+    "less-loader": "^11.1.0",
+    "prism-react-renderer": "^2.4.0",
+    "react-live": "^4.1.8",
+    "style-loader": "^3.3.4",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^5.4.10",

@@ -1,9 +1,9 @@
+import type { AnyElement } from "@/utils/compiler/jsx-compiler";
+import { compileElement, compileTemplate } from "@/utils/compiler/jsx-compiler";
 import type { BoxConstraints, BuildContext } from "../core/base";
 import { Widget } from "../core/base";
 import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
 import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
-import type { AnyElement } from "../utils/jsx-compiler";
-import { compileElement, compileTemplate } from "../utils/jsx-compiler";
 import { LOCAL_RESOLUTION } from "../utils/local-storage";
 // 导入注册表以确保所有组件类型都已注册
 import "../core/registry";
@@ -183,6 +183,7 @@ export default class Editor {
    */
   async renderTemplate(template: () => AnyElement): Promise<void> {
     const json = compileTemplate(template);
+    console.log('~~~', json);
     await this.renderFromJSON(json);
   }
 
@@ -199,8 +200,6 @@ export default class Editor {
     try {
       // 解析JSON并创建组件树
       this.rootWidget = this.parseComponentData(jsonData);
-
-      console.log("~~~ root", this.rootWidget);
 
       if (this.rootWidget) {
         // 先进行布局计算获得总尺寸
@@ -290,12 +289,12 @@ export default class Editor {
       return { width: 800, height: 600 }; // 默认尺寸
     }
 
-    // 创建约束条件 - 临时修改为无限高度约束来测试Flutter风格错误
+    // 创建约束条件
     const constraints: BoxConstraints = {
       minWidth: 0,
-      maxWidth: 4096,
+      maxWidth: Infinity,
       minHeight: 0,
-      maxHeight: 4096,
+      maxHeight: Infinity,
     };
 
     // 执行布局计算

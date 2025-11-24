@@ -4,26 +4,29 @@ title: Center
 
 核心用途：将子元素在父容器内居中显示。
 
-参数：
-- `child`: 子元素（必填）
+使用说明：
+- 通过编辑器方法 `editor.renderTemplate` 渲染模板，`template` 必须返回 JSX（而非 HTML）。
+- JSX 使用项目内自定义运行时进行编译，参考 `src/test/data.tsx` 中的示例。
 
-示例：
+示例（实时可编辑与预览）：
 
-import CodeBlock from '@theme/CodeBlock';
+import InkPlayground from '@site/src/components/InkPlayground';
 
-<CodeBlock live language="jsx">
-{`
-function CenterDemo() {
-  return (
-    <div style={{ width: 240, height: 120, border: '1px solid #ddd', position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-        <div style={{ width: 80, height: 40, background: '#1677ff', color: '#fff', display: 'grid', placeItems: 'center' }}>Center</div>
-      </div>
-    </div>
-  );
-}
-`}
-</CodeBlock>
+<InkPlayground code={`/** @jsxImportSource @/utils/compiler */
+
+ <Container width={300} height={120} border={{ width: 1, color: '#ddd' }}>
+    <Center>
+      <Text text="居中显示的文本" />
+    </Center>
+  </Container>`} />
+
+属性（CenterProps）：
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `children` | 子元素（仅支持一个） | `React.ReactNode` | 无 |
+| `key` | 组件唯一键 | `string` | 自动生成 |
+| `flex` | 布局扩展属性（权重与适应方式） | `&#123; flex?: number; fit?: 'tight' | 'loose' &#125;` | 无 |
 
 最佳实践：
 - 在需要固定居中效果时优先使用 Center；避免与绝对定位混用导致覆盖关系复杂。
