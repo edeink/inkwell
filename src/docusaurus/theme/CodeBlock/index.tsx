@@ -1,10 +1,19 @@
-import InkPlayground from '@site/src/components/InkPlayground'
+import InkPlayground from '@/docusaurus/components/ink-playground'
 import OriginalCodeBlock from '@theme-original/CodeBlock'
+import { CopyOutlined } from '@ant-design/icons'
+import styles from './index.module.less'
 
 type Props = {
   children: string | { props?: { children?: string } }
   className?: string
   metastring?: string
+}
+
+function stripJsxImportSource(src: string) {
+  return src
+    .replace(/\/\*+\s*@jsxImportSource[\s\S]*?\*\//g, '')
+    .replace(/\/\/\s*@jsxImportSource[^\n]*/g, '')
+    .trim()
 }
 
 export default function CodeBlock(props: Props) {
@@ -16,5 +25,17 @@ export default function CodeBlock(props: Props) {
   if (isTSX && !forceStatic) {
     return <InkPlayground code={code} />
   }
-  return <OriginalCodeBlock {...props} />
+  const cleaned = stripJsxImportSource(code)
+  return (
+    <div className={styles.codeContainer}>
+      <button
+        className={styles.copyBtn}
+        onClick={() => { navigator.clipboard.writeText(cleaned).catch(() => { }) }}
+        aria-label="复制代码"
+      >
+        <CopyOutlined /> 复制
+      </button>
+      <OriginalCodeBlock {...props} children={cleaned} />
+    </div>
+  )
 }

@@ -1,5 +1,4 @@
-import React from 'react';
-import cls from './SvgIcon.module.less';
+import cls from './index.module.less';
 
 export type SvgIconName = 'github' | 'code' | 'chat' | 'copy' | 'performance' | 'jsx' | 'compat' | 'tooling';
 

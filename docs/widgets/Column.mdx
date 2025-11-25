@@ -14,14 +14,11 @@ title: Column
 
 ```tsx
 /** @jsxImportSource @/utils/compiler */
-// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
-
 <Container width={300} height={160}>
   <Column spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
     <Container width={180} height={28} color="#e6f4ff"/>
     <Container width={200} height={28} color="#f6ffed"/>
     <Container width={160} height={28} color="#fff7e6"/>
-     
   </Column>
 </Container>
 ```
@@ -30,8 +27,6 @@ title: Column
 
 ```tsx
 /** @jsxImportSource @/utils/compiler */
-// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
-
 <Container width={360} height={140}>
   <Column crossAxisAlignment="stretch" spacing={8}>
     <Container height={28} color="#e6f4ff" />
@@ -44,8 +39,6 @@ title: Column
 
 ```tsx
 /** @jsxImportSource @/utils/compiler */
-// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
-
 <Container width={360} height={180}>
   <Column spacing={8} mainAxisSize="max">
     <Container color="#e6f4ff" flex={{ flex: 1, fit: 'tight' }}>

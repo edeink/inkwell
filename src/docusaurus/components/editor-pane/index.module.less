@@ -1,0 +1,141 @@
+.editorPane {
+  display: grid;
+  gap: var(--ink-space-2);
+  background: var(--ink-card);
+  border-radius: var(--ink-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.editorPaneCollapsed {
+  max-height: var(--collapsed-h);
+  overflow: hidden;
+  position: relative;
+}
+
+.editorPaneExpanded {
+  height: auto;
+  overflow: visible;
+  position: relative;
+}
+
+.overlayBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(#0000, #fff 90%);
+}
+
+.overlayButton {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-text-muted);
+  padding: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform .15s ease;
+
+  &:hover {
+    transform: translateY(4px);
+  }
+}
+.copyBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  appearance: none;
+  background: var(--ink-card);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ink-radius);
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-text-muted);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  transition: opacity .15s ease, transform .15s ease, box-shadow .15s ease, color .15s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.editorPane:hover .copyBtn,
+.copyBtn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.copyBtn:hover {
+  transform: translateY(-1px);
+  color: var(--ifm-font-color-base);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+
+.copyBtn:active {
+  transform: scale(.98);
+}
+
+@media (hover: none) {
+  .copyBtn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.copyToast {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  z-index: 3;
+  background: var(--ink-card);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ink-radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+
+.copyToastSuccess {
+  color: #2e7d32;
+  border-color: #81c784;
+}
+
+.copyToastError {
+  color: #c62828;
+  border-color: #ef9a9a;
+}
+.editorContent {
+  position: relative;
+}
+
+.prismWithLines {
+  :global(pre.prism-code) {
+    counter-reset: line;
+  }
+  :global(.token-line) {
+    position: relative;
+    padding-left: 36px;
+  }
+  :global(.token-line::before) {
+    counter-increment: line;
+    content: counter(line);
+    position: absolute;
+    left: 8px;
+    color: var(--ink-text-muted);
+    font-family: var(--ifm-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-size: 12px;
+    user-select: none;
+    pointer-events: none;
+  }
+}

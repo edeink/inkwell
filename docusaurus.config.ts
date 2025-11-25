@@ -44,6 +44,7 @@ const config: Config = {
             resolve: {
               alias: {
                 '@': require('path').resolve(__dirname, './src'),
+                '@site/src': require('path').resolve(__dirname, './src/docusaurus'),
               },
             },
             module: {
@@ -85,6 +86,15 @@ const config: Config = {
         path: './src/docusaurus/pages',
       },
     ],
+    function localThemePlugin() {
+      const path = require('path');
+      return {
+        name: 'inkwell-local-theme',
+        getThemePath() {
+          return path.resolve(__dirname, './src/docusaurus/theme');
+        },
+      };
+    },
   ],
   themeConfig: {
     image: 'img/social-card.png',

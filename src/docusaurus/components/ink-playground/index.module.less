@@ -1,0 +1,36 @@
+.rootVertical {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: var(--ink-space-3);
+  padding: var(--ink-space-3);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ink-radius);
+  margin: 16px 0;
+  box-sizing: border-box;
+  max-width: 100%;
+  position: relative;
+}
+
+/* 在容器文件中仅保留根布局样式，其余样式已拆分到各组件 */
+.copyBtn {
+  position: absolute;
+  top: var(--ink-space-3);
+  right: var(--ink-space-3);
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ink-radius);
+  background: var(--ink-card);
+  color: var(--ink-text-muted);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.copyBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
