@@ -2,30 +2,75 @@
 title: Column
 ---
 
-核心用途：垂直排列子元素。
+核心用途：垂直排列多个子元素，支持主轴/交叉轴对齐与子元素 flex 分配。
 
-参数：
-- `gap`: 子元素间距（默认 8）
-- `align`: 水平对齐方式（默认 stretch）
-- `children`: 子元素数组（必填）
+## 如何引入
+- 项目代码：`import { Column, Container, Text } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 基础垂直排列
 
-<CodeBlock live language="jsx">
-{`
-function ColumnDemo() {
-  return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      <div style={{ height: 28, background: '#1677ff' }} />
-      <div style={{ height: 28, background: '#52c41a' }} />
-      <div style={{ height: 28, background: '#faad14' }} />
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
 
-最佳实践：
-- 结合容器宽度自适应，避免过度要求固定高度。
+<Container width={300} height={160}>
+  <Column spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
+    <Container width={180} height={28} color="#e6f4ff"/>
+    <Container width={200} height={28} color="#f6ffed"/>
+    <Container width={160} height={28} color="#fff7e6"/>
+     
+  </Column>
+</Container>
+```
+
+### 交叉轴拉伸（stretch）
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
+
+<Container width={360} height={140}>
+  <Column crossAxisAlignment="stretch" spacing={8}>
+    <Container height={28} color="#e6f4ff" />
+    <Container height={28} color="#f6ffed" />
+  </Column>
+</Container>
+```
+
+### 使用 flex 子元素分配高度
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；列表场景为子元素设置稳定 key 更佳
+
+<Container width={360} height={180}>
+  <Column spacing={8} mainAxisSize="max">
+    <Container color="#e6f4ff" flex={{ flex: 1, fit: 'tight' }}>
+      <Text text="flex: 1" />
+    </Container>
+    <Container color="#f6ffed" flex={{ flex: 2, fit: 'tight' }}>
+      <Text text="flex: 2" />
+    </Container>
+  </Column>
+</Container>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `mainAxisAlignment` | `'start' \| 'center' \| 'end' \| 'spaceBetween' \| 'spaceAround' \| 'spaceEvenly'` | 否 | `'start'` | 主轴（垂直）对齐方式 |
+| `crossAxisAlignment` | `'start' \| 'center' \| 'end' \| 'stretch'` | 否 | `'center'` | 交叉轴（水平）对齐方式 |
+| `mainAxisSize` | `'min' \| 'max'` | 否 | `'max'` | 主轴尺寸策略：`min` 收缩包裹内容；`max` 尝试占满可用高度 |
+| `spacing` | `number` | 否 | `0` | 子元素之间的固定间距 |
+| `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器（如 `Row`/`Stack`）时的扩展布局属性 |
+
+- children 支持类型：`Multiple`
+
+## Tips
+- 包含 `flex` 子元素时需提供有界的父高度；否则在 `mainAxisSize='max'` 且父高度无界的场景会触发布局错误（参考 `src/core/flex/column.ts:139-146`）。
+- 使用 `mainAxisSize="min"` 让 Column 高度按内容收缩，适合嵌套在滚动容器或未限定高度的父容器中。
+- 交叉轴 `stretch` 仅影响宽度；若希望子元素占满高度，请通过 `flex` 或为子元素设置固定高度。

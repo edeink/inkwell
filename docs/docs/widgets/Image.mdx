@@ -2,25 +2,49 @@
 title: Image
 ---
 
-核心用途：显示远程或本地图片。
+核心用途：显示远程或本地图片，支持尺寸、适配方式与对齐；不支持子元素。
 
-参数：
-- `src`: 图片地址（必填）
-- `fit`: 适配模式（contain/cover，默认 contain）
+## 如何引入
+- 项目代码：`import { Image, Container } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 等比缩放填满（cover）
 
-<CodeBlock live language="jsx">
-{`
-function ImageDemo() {
-  return (
-    <img src="https://picsum.photos/200/120" alt="demo" style={{ display: 'block', width: 200, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd' }} />
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
 
-最佳实践：
-- 合理选择 `objectFit` 与尺寸，避免拉伸失真。
+<Container width={240} height={140} border={{ width: 1, color: '#ddd' }}>
+  <Image src="https://picsum.photos/480/320" fit="cover" />
+</Container>
+```
+
+### 保持完整显示（contain）并居中对齐
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+
+<Container width={240} height={140} border={{ width: 1, color: '#ddd' }}>
+  <Image src="https://picsum.photos/160/100" fit="contain" alignment="center" />
+</Container>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `src` | `string` | 是 | 无 | 图片源地址 |
+| `width` | `number` | 否 | 无 | 固定图片宽度 |
+| `height` | `number` | 否 | 无 | 固定图片高度 |
+| `fit` | `'fill' \| 'contain' \| 'cover' \| 'fitWidth' \| 'fitHeight' \| 'none' \| 'scaleDown'` | 否 | `'contain'` | 适配方式 |
+| `alignment` | `'topLeft' \| 'topCenter' \| 'topRight' \| 'centerLeft' \| 'center' \| 'centerRight' \| 'bottomLeft' \| 'bottomCenter' \| 'bottomRight'` | 否 | `'center'` | 图片在容器中的对齐方式 |
+| `key` | `string` | 否 | 自动生成 | 组件唯一键 |
+| `children` | 不支持 | - | - | Image 不支持子元素 |
+
+- children 支持类型：`None`
+
+## Tips
+- 未设置 `width/height` 时按 `fit` 与自然尺寸计算；设置固定尺寸后优先使用固定值。
+- `fit='cover'` 可能裁剪图片，`fit='contain'` 保证完整可见；选择取决于场景需求。
+- 加载中的占位与无图提示由组件内置（参考 `src/core/image.ts:373-405`）。

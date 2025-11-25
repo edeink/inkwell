@@ -2,28 +2,45 @@
 title: Padding
 ---
 
-核心用途：为子元素添加内边距。
+核心用途：为单个子元素添加内边距；支持数字简写与对象形式。
 
-参数：
-- `all`: 统一内边距（可选）
-- `horizontal`: 水平内边距（可选）
-- `vertical`: 垂直内边距（可选）
+## 如何引入
+- 项目代码：`import { Padding, Text, Container } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 数字简写（四边等距）
 
-<CodeBlock live language="jsx">
-{`
-function PaddingDemo() {
-  return (
-    <div style={{ padding: 12, border: '1px solid #ddd' }}>
-      <div style={{ padding: 12, background: '#f6ffed', border: '1px solid #ddd' }}>内容</div>
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
+<Container width={300} height={120} color="#e6f4ff">
+  <Padding padding={12}>
+    <Text text="数字简写（四边等距）" />
+  </Padding>
+</Container>
+```
 
-最佳实践：
-- 使用统一间距变量，避免样式不一致。
+### 对象形式（分别控制四边）
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+<Container width={300} height={120} color="#e6f4ff">
+  <Padding padding={{ top: 32, right: 16, bottom: 8, left: 16 }}>
+    <Text text="对象形式（分别控制四边）" />
+  </Padding>
+</Container>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `padding` | `number \| { top:number; right:number; bottom:number; left:number }` | 是 | 无 | 内边距，支持数字简写与对象 |
+| `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
+
+- children 支持类型：`Single`
+
+## Tips
+- 内边距会影响子元素的可用空间；与 `Container.padding` 行为一致但语义更清晰。
+- 使用统一间距变量可保持一致的视觉节奏；支持辅助函数 `symmetric/only/all`（见 `src/core/padding.ts:112-148`）。

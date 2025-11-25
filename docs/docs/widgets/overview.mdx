@@ -2,20 +2,34 @@
 title: Widgets 概览
 ---
 
-Inkwell 提供一组常用的 Widgets，用于布局、文本、图像与绘制层管理。每个条目均包含参数说明、示例与最佳实践。
+Inkwell 的 Widget 是构建界面的基础单元，采用 Flutter 风格的声明式布局与约束模型。你通过组合不同类型的 Widget 构建出层次清晰的布局树。
 
-import CodeBlock from '@theme/CodeBlock';
+## Widget 有哪些作用
+- 布局：负责元素的排列、对齐与空间分配（如行/列、居中、层叠）。
+- 容器：提供尺寸限制、内外边距与背景（如通用容器、占位盒）。
+- 媒体与文本：展示文本/图片等内容。
+- 定位与层叠：在同一层内控制子元素的绝对位置与覆盖关系。
 
-<CodeBlock live language="jsx">
-{`
-function Demo() {
-  const [visible, setVisible] = React.useState(true);
-  return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      <button onClick={() => setVisible(v => !v)}>Toggle</button>
-      <div style={{ width: 140, height: 80, background: visible ? '#e6f4ff' : '#f5f5f5', border: '1px solid #ddd', borderRadius: 8 }} />
-    </div>
-  );
-}
-`}
-</CodeBlock>
+## 分类与对应组件
+- 布局器：[`Row`](./Row)、[`Column`](./Column)、[`Center`](./Center)、[`Stack`](./Stack)
+- 容器与间距：[`Container`](./Container)、[`Padding`](./Padding)、[`SizedBox`](./SizedBox)
+- 文本与媒体：[`Text`](./Text)、[`Image`](./Image)
+- 定位：[`Positioned`](./Positioned)
+
+## 核心布局模型（简要）
+- Flex（弹性布局）：`Row/Column` 按主轴/交叉轴对齐；子元素可通过 `flex` 参与剩余空间分配。
+- Alignment（对齐）：`Center/Stack` 控制子元素在父容器中的对齐位置。
+- Constraints（约束）：`Container/SizedBox` 提供固定或紧约束；`Padding` 通过内边距缩减可用空间。
+
+## children 支持类型标识
+- 不支持嵌套：如 `Text`、`Image`。
+- 支持单 children：如 `Center`、`Padding`、`SizedBox`、`Container`、`Positioned`。
+- 支持多 children：如 `Row`、`Column`、`Stack`。
+
+## 常见布局模式（选择合适的组件）
+- 水平排列并控制间距/对齐：使用 `Row`。
+- 垂直排列并支持子元素按权重分配高度：使用 `Column` 与子元素的 `flex`。
+- 同时水平/垂直居中：使用 `Center`。
+- 层叠与绝对定位：使用 `Stack`，必要时配合 `Positioned`。
+- 设定固定尺寸或制造空白：使用 `SizedBox`。
+- 设置背景色、边框与内外边距：使用 `Container` 或 `Padding`。

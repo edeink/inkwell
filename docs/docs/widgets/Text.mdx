@@ -2,26 +2,27 @@
 title: Text
 ---
 
-核心用途：显示文本内容，支持像素级行高与换行控制。
+核心用途：显示文本内容，支持像素级行高、基线布局与换行控制。
 
-使用说明：
-- 通过编辑器方法 `editor.renderTemplate` 渲染模板，`template` 必须返回 JSX（而非 HTML）。
-- JSX 使用项目内自定义运行时进行编译，参考 `src/test/data.tsx` 中的示例。
+## 如何引入
 
-示例（实时可编辑与预览）：
+- 项目代码：`import { Text, Container, Row, Column } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
 
 ```tsx
 /** @jsxImportSource @/utils/compiler */
 
 <Container width={360} padding={8} border={{ width: 1, color: '#ddd' }}>
   <Column spacing={8} mainAxisSize="min">
-    <Text text="默认行高等于字号" fontSize={16} color="#000" />
+    <Text text="默认：行高等于字号" fontSize={16} />
 
-    <Text text="像素行高为 24px（lineHeight 生效）" fontSize={16} lineHeight={24} color="#000" />
+    <Text text="指定行高 24px（lineHeight）" fontSize={16} lineHeight={24} />
 
-    <Text text="使用 height 作为行高（同义字段）" fontSize={16} height={28} color="#000" />
+    <Text text="使用 height 作为行高（同义字段）" fontSize={16} height={28} />
 
-    <Text text={"多行文本示例，多行文本示例，多行文本示例，多行文本示例，多行文本示例"} fontSize={16} lineHeight={22} maxLines={3} overflow="ellipsis" />
+    <Text text={"多行省略：多行文本示例，多行文本示例，多行文本示例，多行文本示例，多行文本示例"} fontSize={16} lineHeight={22} maxLines={3} overflow="ellipsis" />
 
     <Row spacing={8} mainAxisSize="min" crossAxisAlignment="center">
       <Container width={100} height={60} border={{ width: 1, color: '#ccc' }}>
@@ -38,7 +39,7 @@ title: Text
 </Container>
 ```
 
-属性（TextProps）：
+## 属性
 
 | 属性名 | 说明 | 类型 | 默认值 |
 | --- | --- | --- | --- |
@@ -51,8 +52,13 @@ title: Text
 | `maxLines` | 最大行数 | `number` | `Infinity` |
 | `overflow` | 溢出策略 | `'clip' \| 'ellipsis' \| 'fade'` | `'clip'` |
 
-最佳实践：
+- children 支持类型：`None`
+
+## Tips
+
 - 行高使用像素值更直观，未设置时默认等于字号；`height` 与 `lineHeight` 任选其一即可。
 - 多行文本结合 `maxLines + overflow='ellipsis'` 可实现省略号效果。
-- 在固定文本块尺寸下，使用 `textAlignVertical` 控制顶部/居中/底部对齐；`textAlign` 控制水平对齐。
- - 文本默认以 `alphabetic` 基线渲染，额外的行距（leading）在行高内上下均分，保证不同行高下视觉居中。
+- 固定块尺寸下，使用 `textAlignVertical` 控制顶部/居中/底部对齐；`textAlign` 控制水平对齐。
+- 文本默认以 `alphabetic` 基线渲染，额外的行距（leading）在行高内上下均分，保证不同行高下视觉居中。
+- 与容器尺寸/边界相关：参见 [`Container`](./Container)
+- 与多元素布局相关：参见 [`Row`](./Row) 与 [`Column`](./Column)

@@ -2,27 +2,39 @@
 title: Positioned
 ---
 
-核心用途：在相对定位容器中以绝对定位放置子元素。
+核心用途：在 `Stack` 中通过绝对定位放置单个子元素，支持 `left/top/right/bottom/width/height`。
 
-参数：
-- `left`, `top`, `right`, `bottom`: 位置（可选）
-- `child`: 子元素（必填）
+## 如何引入
+- 项目代码：`import { Stack, Positioned, Container, Text } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 基础定位
 
-<CodeBlock live language="jsx">
-{`
-function PositionedDemo() {
-  return (
-    <div style={{ position: 'relative', width: 200, height: 120, border: '1px solid #ddd' }}>
-      <div style={{ position: 'absolute', left: 12, top: 12, width: 60, height: 32, background: '#1677ff' }} />
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
 
-最佳实践：
-- 注意层级关系与可点击区域，避免覆盖交互元素。
+<Stack>
+  <Positioned left={12} top={12} width={80} height={40}>
+    <Container color="#e6f4ff" />
+  </Positioned>
+</Stack>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `left` | `number` | 否 | 无 | 左侧偏移 |
+| `top` | `number` | 否 | 无 | 顶部偏移 |
+| `right` | `number` | 否 | 无 | 右侧偏移 |
+| `bottom` | `number` | 否 | 无 | 底部偏移 |
+| `width` | `number` | 否 | 无 | 固定宽度（与 `left/right` 同时存在时由二者决定） |
+| `height` | `number` | 否 | 无 | 固定高度（与 `top/bottom` 同时存在时由二者决定） |
+
+- children 支持类型：`Single`
+
+## Tips
+- Positioned 仅在 `Stack` 中生效；实际绘制位置由 `Stack` 根据父尺寸计算。
+- 当同时设置 `left/right` 或 `top/bottom` 时，会根据父尺寸与边距进行拉伸计算（参考 `src/core/positioned.ts:89-99`、`102-135`）。

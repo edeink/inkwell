@@ -2,30 +2,53 @@
 title: Container
 ---
 
-核心用途：提供带内边距、背景与边框的通用容器。
+核心用途：提供带内/外边距、背景与边框的通用容器，常用于包裹内容与限定尺寸。
 
-参数：
-- `padding`: 内边距（可选，默认 0）
-- `background`: 背景色（可选）
-- `borderRadius`: 圆角（可选）
-- `child`: 子元素（可选）
+## 如何引入
+- 项目代码：`import { Container, Text, Row, Column } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 基础容器（背景色+边框+圆角）
 
-<CodeBlock live language="jsx">
-{`
-function ContainerDemo() {
-  return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div style={{ padding: 12, background: '#e6f4ff', border: '1px solid #ddd', borderRadius: 8 }}>Container</div>
-      <div style={{ padding: 12, background: '#f6ffed', border: '1px solid #ddd', borderRadius: 8 }}>Container</div>
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
 
-最佳实践：
-- 合理使用 `padding` 与 `borderRadius` 提升可读性；避免过度嵌套导致层级复杂。
+<Container width={100} height={100} color="#e6f4ff" borderRadius={20} />
+```
+
+### 组合内外边距
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
+
+<Container width={320} height={120} margin={12} padding={12} color="#eee">
+  <Row spacing={8} mainAxisSize="min">
+    <Container width={60} height={36} color="#e6f4ff" border={{ width: 1, color: '#FFD591' }} />
+    <Container width={60} height={36} color="#f6ffed" border={{ width: 1, color: '#C3F781' }} />
+  </Row>
+</Container>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `width` | `number` | 否 | 无 | 固定宽度 |
+| `height` | `number` | 否 | 无 | 固定高度 |
+| `padding` | `number \| { top:number; right:number; bottom:number; left:number }` | 否 | 无 | 内边距，支持简写数字与对象 |
+| `margin` | `number \| { top:number; right:number; bottom:number; left:number }` | 否 | 无 | 外边距，支持简写数字与对象 |
+| `color` | `string` | 否 | 无 | 背景色 |
+| `border` | `{ width:number; color:string; style?: 'solid' \| 'dashed' \| 'dotted' }` | 否 | 无 | 边框样式 |
+| `borderRadius` | `number \| { topLeft:number; topRight:number; bottomLeft:number; bottomRight:number }` | 否 | 无 | 圆角，支持简写数字与对象 |
+| `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
+
+- children 支持类型：`Single`
+
+## Tips
+- 同时设置 `padding` 与 `border` 时，边框绘制在内容外层；`margin` 影响组件占位尺寸。
+- `borderRadius` 支持数字简写（四角统一）与对象（四角独立）。
+- 在未知内容尺寸的场景，建议不设置固定 `width/height`，让 Container 根据子元素和边距计算尺寸。

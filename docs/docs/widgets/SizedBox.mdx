@@ -2,28 +2,50 @@
 title: SizedBox
 ---
 
-核心用途：提供固定尺寸的占位容器。
+核心用途：提供固定尺寸的包裹容器或占位，用于限制子元素尺寸或制造空白。
 
-参数：
-- `width`: 宽度（可选）
-- `height`: 高度（可选）
+## 如何引入
+- 项目代码：`import { SizedBox, Container, Text } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 固定尺寸包裹内容
 
-<CodeBlock live language="jsx">
-{`
-function SizedBoxDemo() {
-  return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      <div style={{ width: 80, height: 40, background: '#ddd' }} />
-      <div style={{ width: 120, height: 60, background: '#ddd' }} />
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
 
-最佳实践：
-- 谨慎使用固定尺寸，优先考虑自适应布局。
+<SizedBox width={120} height={48}>
+  <Container color="#e6f4ff" />
+</SizedBox>
+```
+
+### 用作间距（空盒）
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
+
+<Container width={320} height={100}>
+  <Column spacing={0}>
+    <Container height={20} color="#f6ffed" />
+    <SizedBox height={12} />
+    <Container height={20} color="#fff7e6" />
+  </Column>
+</Container>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `width` | `number` | 否 | 无 | 固定宽度 |
+| `height` | `number` | 否 | 无 | 固定高度 |
+| `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
+
+- children 支持类型：`Single`
+
+## Tips
+- 未设置尺寸时，`SizedBox` 会根据子元素和约束计算尺寸；设置尺寸后将以固定值为准。
+- 使用 `SizedBox` 作为间距更具语义性，避免在 `Container` 中硬编码空白。

@@ -2,31 +2,39 @@
 title: Center
 ---
 
-核心用途：将子元素在父容器内居中显示。
+核心用途：将子元素在父容器内水平与垂直方向同时居中。
 
-使用说明：
-- 通过编辑器方法 `editor.renderTemplate` 渲染模板，`template` 必须返回 JSX（而非 HTML）。
-- JSX 使用项目内自定义运行时进行编译，参考 `src/test/data.tsx` 中的示例。
+## 如何引入
+- 项目代码：`import { Center, Container, Text } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例（实时可编辑与预览）：
+常见属性与用法
+- Center 仅接收一个子元素；如需多个元素，请将子元素包装在 `Row` 或 `Column` 中。
+- 配合 `Container` 的 `width/height/padding/border` 控制可视区域与边界。
+
+## 示例
+
+### 最简基础用法
 
 ```tsx
 /** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
 
- <Container width={300} height={120} border={{ width: 1, color: '#ddd' }}>
-    <Center>
-      <Text text="居中显示的文本" />
-    </Center>
-  </Container>
+<Container width={300} height={120} color="#e6f4ff">
+  <Center>
+    <Text text="居中元素" />
+  </Center>
+</Container>
 ```
 
-属性（CenterProps）：
+## 属性
 
 | 属性名 | 说明 | 类型 | 默认值 |
 | --- | --- | --- | --- |
-| `children` | 子元素（仅支持一个） | `React.ReactNode` | 无 |
-| `key` | 组件唯一键 | `string` | 自动生成 |
 | `flex` | 布局扩展属性（权重与适应方式） | `&#123; flex?: number; fit?: 'tight' | 'loose' &#125;` | 无 |
 
-最佳实践：
+- children 支持类型：`Single`
+
+## Tips
+
 - 在需要固定居中效果时优先使用 Center；避免与绝对定位混用导致覆盖关系复杂。

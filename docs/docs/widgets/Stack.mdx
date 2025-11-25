@@ -2,27 +2,54 @@
 title: Stack
 ---
 
-核心用途：堆叠多个子元素，支持层级控制。
+核心用途：堆叠多个子元素，支持对齐与尺寸策略，可与 `Positioned` 配合实现绝对定位。
 
-参数：
-- `children`: 子元素数组（必填）
+## 如何引入
+- 项目代码：`import { Stack, Positioned, Container, Text } from '@/core'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
-示例：
+## 示例
 
-import CodeBlock from '@theme/CodeBlock';
+### 叠放两个元素并对齐居中
 
-<CodeBlock live language="jsx">
-{`
-function StackDemo() {
-  return (
-    <div style={{ position: 'relative', width: 200, height: 120, border: '1px solid #ddd' }}>
-      <div style={{ position: 'absolute', left: 20, top: 20, width: 80, height: 40, background: '#1677ff' }} />
-      <div style={{ position: 'absolute', left: 50, top: 40, width: 80, height: 40, background: '#52c41a', opacity: 0.8 }} />
-    </div>
-  );
-}
-`}
-</CodeBlock>
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
 
-最佳实践：
-- 控制层级与透明度，避免可访问性问题。
+<Container width={260} height={160}>
+  <Stack alignment="center" fit="loose">
+    <Container width={120} height={80} color="#e6f4ff" />
+    <Container width={80} height={40} color="#fff7e6" />
+  </Stack>
+</Container>
+```
+
+### 与 Positioned 配合使用
+
+```tsx
+/** @jsxImportSource @/utils/compiler */
+// key 用于唯一标识组件；一般无需手动设置
+
+<Stack>
+  <Positioned left={12} top={12} width={80} height={40}>
+    <Container color="#e6f4ff" />
+  </Positioned>
+  <Positioned right={12} bottom={12} width={80} height={40}>
+    <Container color="#f6ffed" />
+  </Positioned>
+</Stack>
+```
+
+## 属性
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `alignment` | `'topLeft' \| 'topCenter' \| 'topRight' \| 'centerLeft' \| 'center' \| 'centerRight' \| 'bottomLeft' \| 'bottomCenter' \| 'bottomRight'` | 否 | `'topLeft'` | 子元素的整体对齐 |
+| `fit` | `'loose' \| 'expand' \| 'passthrough'` | 否 | `'loose'` | Stack 尺寸策略：`expand` 填满约束；`loose` 取子元素最大；`passthrough` 传递约束 |
+| `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
+
+- children 支持类型：`Single`
+
+## Tips
+- `fit='expand'` 会尝试填满父约束；在无界约束下将退化为使用子元素最大尺寸。
+- 与 `Positioned` 联用实现绝对定位；未使用 `Positioned` 时按 `alignment` 对齐堆叠的子元素。
