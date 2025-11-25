@@ -1,5 +1,5 @@
-import type { Config } from '@docusaurus/types';
 import type { ThemeConfig } from '@docusaurus/preset-classic';
+import type { Config } from '@docusaurus/types';
 
 const config: Config = {
   title: 'Inkwell 文档',
@@ -28,7 +28,7 @@ const config: Config = {
           },
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve('./src/docusaurus/css/custom.css'),
         },
       },
     ],
@@ -43,7 +43,7 @@ const config: Config = {
             devtool: 'source-map',
             resolve: {
               alias: {
-                '@': require('path').resolve(__dirname, '../src'),
+                '@': require('path').resolve(__dirname, './src'),
               },
             },
             module: {
@@ -78,6 +78,13 @@ const config: Config = {
         },
       };
     },
+    [
+      '@docusaurus/plugin-content-pages',
+      {
+        id: 'custom-pages',
+        path: './src/docusaurus/pages',
+      },
+    ],
   ],
   themeConfig: {
     image: 'img/social-card.png',
@@ -103,7 +110,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Inkwell` ,
+      copyright: `Copyright © ${new Date().getFullYear()} Inkwell`,
     },
     colorMode: {
       defaultMode: 'light',

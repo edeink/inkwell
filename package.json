@@ -8,9 +8,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "doc": "docusaurus start docs",
-    "doc:build": "docusaurus build docs",
-    "doc:serve": "docusaurus serve docs"
+    "doc": "docusaurus start",
+    "doc:build": "docusaurus build",
+    "doc:serve": "docusaurus serve"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
