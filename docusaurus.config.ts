@@ -13,6 +13,9 @@ const config: Config = {
     defaultLocale: 'zh',
     locales: ['zh', 'en'],
   },
+  markdown: {
+    mermaid: true,
+  },
   presets: [
     [
       'classic',
@@ -96,14 +99,15 @@ const config: Config = {
       };
     },
   ],
+  themes: ['@docusaurus/theme-mermaid'],
   themeConfig: {
     image: 'img/social-card.png',
     navbar: {
       title: 'Inkwell',
       hideOnScroll: true,
       items: [
-        { type: 'doc', docId: 'intro', position: 'left', label: '指南' },
-        { type: 'doc', docId: 'widgets/overview', position: 'left', label: 'Widgets' },
+        { type: 'doc', docId: 'intro', position: 'left', label: '指引' },
+        // { type: 'doc', docId: 'widgets/overview', position: 'left', label: 'Widgets' },
         { href: 'https://github.com/edeink/inkwell', position: 'right', label: 'GitHub', className: 'header-github-link header-icon' },
         { href: 'https://stackblitz.com/github/edeink/inkwell', position: 'right', label: 'Playground', className: 'header-playground-link header-icon' },
         { href: 'https://github.com/edeink/inkwell/discussions', position: 'right', label: '社区', className: 'header-community-link header-icon' },
@@ -111,15 +115,15 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
-      links: [
-        {
-          title: '文档',
-          items: [
-            { label: '指南', to: '/' },
-            { label: 'Widgets', to: '/widgets/overview' },
-          ],
-        },
-      ],
+      // links: [
+      //   {
+      //     title: '文档',
+      //     items: [
+      //       { label: '指南', to: '/' },
+      //       { label: 'Widgets', to: '/docs/widgets/overview' },
+      //     ],
+      //   },
+      // ],
       copyright: `Copyright © ${new Date().getFullYear()} Inkwell`,
     },
     colorMode: {

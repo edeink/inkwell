@@ -11,7 +11,7 @@
 .container {
   padding-left: @space-3;
   padding-right: @space-3;
-  
+
   @media (min-width: 996px) {
     padding-left: @space-4;
     padding-right: @space-4;
@@ -29,7 +29,9 @@
   }
 
   .breadcrumbItem {
-    &.active { color: var(--ink-text-muted); }
+    &.active {
+      color: var(--ink-text-muted);
+    }
   }
 }
 
@@ -46,11 +48,13 @@
       margin-bottom: @space-3;
       line-height: 1.25;
     }
+
     p {
       font-size: 1.05rem;
       color: var(--ink-text-muted);
       line-height: 1.7;
     }
+
     &__cta {
       display: flex;
       gap: @space-3;
@@ -60,11 +64,12 @@
 
   &__visual {
     width: 100%;
+
     .svg {
       width: 100%;
       height: auto;
       border-radius: @radius;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
   }
 
@@ -90,10 +95,12 @@
     transition: box-shadow .2s ease;
 
     &:hover {
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
     }
 
-    &__text { font-weight: 500; }
+    &__text {
+      font-weight: 500;
+    }
   }
 
   @media (max-width: 996px) {
@@ -122,10 +129,12 @@
   padding: @space-4;
   border-radius: @radius;
   background: var(--ink-card);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   transition: transform .2s ease;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover {
+    transform: translateY(-2px);
+  }
 }
 
 .chartBox {
@@ -140,6 +149,52 @@
 .chartNote {
   margin-top: @space-2;
   color: var(--ink-text-muted);
+}
+
+.fullPageHead {
+  min-height: calc(100vh - var(--ifm-navbar-height));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.fullPageHead::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%,
+      rgba(22, 119, 255, 0.14),
+      rgba(82, 196, 26, 0.10) 40%,
+      transparent 65%);
+  filter: blur(22px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.pageTitle {
+  font-size: 2.6rem;
+  margin-bottom: @space-3;
+  line-height: 1.25;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 24px rgba(22, 119, 255, 0.18);
+}
+
+.pageSubtitle {
+  font-size: 1.05rem;
+  color: var(--ink-text-muted);
+  line-height: 1.7;
+  max-width: 860px;
+}
+
+.dataNoteFixed {
+  font-size: 12px;
+  color: var(--ink-text-muted);
+  padding: 6px 10px;
 }
 
 .imageNote {
@@ -172,4 +227,24 @@
 
 .gettingStarted {
   margin: @space-6 0;
+}
+
+.fullBleed {
+  width: 100vw;
+  position: relative;
+  top: -2em;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+.centerContent {
+  text-align: center;
+  margin: 0 auto;
+  max-width: 100%;
+  
+  .featuresGrid {
+    justify-items: center;
+  }
 }

@@ -1,20 +1,25 @@
 ---
 title: 首页
 slug: /
+hide_table_of_contents: true
 ---
 
 import styles from './index.module.less'
 
-# Inkwell · Canvas 驱动的现代 UI
-
-以 JSX 构建高性能图形界面，兼顾开发效率与渲染性能，适配复杂动效与大规模组件。
-
-<div className={styles.ctaRow}>
-  <a className="button button--primary" href="/docs/intro">快速开始</a>
-  <a className="button button--secondary" href="https://stackblitz.com/github/edeink/inkwell" target="_blank" rel="noreferrer">在线 Playground</a>
+<div className={styles.fullBleed}>
+  <div className={styles.fullPageHead}>
+    <h1 className={styles.pageTitle}>Inkwell · Canvas 驱动的现代 UI</h1>
+    <p className={styles.pageSubtitle}>以 JSX 构建高性能图形界面，兼顾开发效率与渲染性能，适配复杂动效与大规模组件。</p>
+    <div className={styles.ctaRow}>
+      <a className="button button--primary" href="/docs">快速开始</a>
+      <a className="button button--secondary" href="https://stackblitz.com/github/edeink/inkwell" target="_blank" rel="noreferrer">在线 Playground</a>
+    </div>
+  </div>
 </div>
 
-## 核心优势
+<div className={styles.centerContent}>
+
+# 核心优势
 
 <div className={styles.featuresGrid}>
   <div className={styles.card}>
@@ -37,56 +42,31 @@ import styles from './index.module.less'
     <h3>文档与社区</h3>
     <p>完善的文档与示例，GitHub 与讨论区提供支持与反馈。</p>
   </div>
+
 </div>
 
-## 性能对比（可视化）
+# 性能对比（可视化）
 
-<div className={styles.chartBox}>
-  <svg viewBox="0 0 520 200" className={styles.chartSvg} role="img" aria-label="性能对比图">
-    <defs>
-      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stopColor="#1677ff" />
-        <stop offset="100%" stopColor="#52c41a" />
-      </linearGradient>
-    </defs>
-    <text x="20" y="28" fontSize="14" fill="currentColor">渲染性能（越高越好）</text>
-    <rect x="20" y="60" width="140" height="24" rx="6" fill="#e0e0e0" />
-    <text x="24" y="76" fontSize="12" fill="#555">传统方案</text>
-    <rect x="20" y="100" width="420" height="24" rx="6" fill="url(#g1)" />
-    <text x="24" y="116" fontSize="12" fill="#fff">Canvas（≈300% 提升）</text>
-  </svg>
-  <div className={styles.chartNote}>
-    数据来源：MotionMark / WebGL Samples；环境：macOS（Safari/Chrome），Node 22，Retina 屏幕。
-  </div>
-</div>
-
-## 数据与来源说明
-
-- 性能数据基于公开基准（MotionMark、WebGL Aquarium 等）以及内部样例对比。
-- 测试环境：macOS 14、Chrome 130、Safari 17、Node 22。具体值受设备与浏览器差异影响。
-- 指标口径：在复杂场景下的平均帧率与渲染吞吐提升，典型范围 35%–300%。
-
-## 技术示例（JSX）
-
-```tsx
-/** @jsxImportSource @/utils/compiler */
-<Container width={360} height={180} color="#f6f8fa">
-  <Column spacing={8} crossAxisAlignment="center">
-    <Text text="Hello Inkwell" fontSize={18} />
-    <Row spacing={8}>
-      <Container width={60} height={36} color="#e6f4ff" />
-      <Container width={60} height={36} color="#fff7e6" />
-    </Row>
-  </Column>
- </Container>
+```tsx readonly
+<Container width={640} height={140} color="#ffffff">
+  <Padding padding={{ top: 24, bottom: 24, left: 0, right: 0 }}>
+    <Column spacing={12} crossAxisAlignment="start">
+      <Row spacing={8} crossAxisAlignment="center">
+        <Container width={140} height={24} borderRadius={4} color="#e0e0e0" />
+        <Text text="传统方案" fontSize={12} color="#555555" />
+      </Row>
+      <Row spacing={8} crossAxisAlignment="center">
+        <Container width={420} height={24} borderRadius={4} color="#1677ff" />
+        <Text text="Canvas（≈300% 提升）" fontSize={12} color="#555555" />
+      </Row>
+      <Row spacing={8} crossAxisAlignment="center" mainAxisAlignment="end">
+        <Text 
+        fontSize={12} color="#555555" lineHeight={48}
+        text=" * 数据来源：MotionMark / WebGL Samples" />
+      </Row>
+    </Column>
+  </Padding>
+</Container>
 ```
 
-## DevTools 能力
-
-- Inspect 命中与选中、Overlay 高亮框
-- 树浏览与属性编辑、停靠与尺寸调整
-- 全局 API 可编程控制选中节点
-
-<img src="https://via.placeholder.com/720x360?text=DevTools+Preview" alt="DevTools 预览图" loading="lazy" />
-
-<small className={styles.imageNote}>图片为示意，实际界面以运行效果为准（支持懒加载）。</small>
+</div>

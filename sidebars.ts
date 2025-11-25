@@ -19,5 +19,14 @@ export default {
         'widgets/Text',
       ],
     },
+    {
+      type: 'category',
+      label: '进阶使用',
+      items: [
+        'advanced/lifecycle',
+        'advanced/custom-widget',
+        'advanced/devtools',
+      ],
+    },
   ],
 };

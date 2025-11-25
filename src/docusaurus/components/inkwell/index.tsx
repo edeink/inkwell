@@ -12,9 +12,10 @@ export interface InkwellProps {
   height?: number
   onError?: (err: string) => void
   onSuccess?: () => void
+  readonly?: boolean
 }
 
-export default function Inkwell({ data, width = 600, height = 300, onError, onSuccess }: InkwellProps) {
+export default function Inkwell({ data, width = 600, height = 300, onError, onSuccess, readonly = false }: InkwellProps) {
   const canvasId = React.useMemo(() => `ink-canvas-${Math.random().toString(36).slice(2)}`, [])
   const editorRef = React.useRef<Editor | null>(null)
   const previewRef = React.useRef<HTMLDivElement | null>(null)
@@ -92,8 +93,8 @@ export default function Inkwell({ data, width = 600, height = 300, onError, onSu
   }, [cleanup])
 
   return (
-    <div className={styles.display} ref={previewRef}>
-      <div id={canvasId} className={styles.canvas} />
+    <div className={readonly ? styles.readonlyDisplay : styles.display} ref={previewRef}>
+      <div id={canvasId} className={readonly ? styles.canvasBare : styles.canvas} />
     </div>
   )
 }

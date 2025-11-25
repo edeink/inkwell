@@ -9,6 +9,7 @@ interface InkPlaygroundProps {
   code: string;
   width?: number;
   height?: number;
+  readonly?: boolean;
 }
 
 function stripJsxImportSource(src: string) {
@@ -18,7 +19,7 @@ function stripJsxImportSource(src: string) {
     .trim()
 }
 
-export default function InkPlayground({ code, width = 600, height = 300 }: InkPlaygroundProps) {
+export default function InkPlayground({ code, width = 600, height = 300, readonly = false }: InkPlaygroundProps) {
   const initial = React.useMemo(() => stripJsxImportSource(code), [code]);
   const [localCode, setLocalCode] = React.useState(initial);
   const [committedCode, setCommittedCode] = React.useState(initial);
@@ -35,6 +36,21 @@ export default function InkPlayground({ code, width = 600, height = 300 }: InkPl
     setError(null);
   }, []);
 
+  if (readonly) {
+    return (
+      <div className={styles.readOnly}>
+        <Inkwell
+          data={initial}
+          width={width}
+          height={height}
+          readonly
+          onError={(e) => { setError(e); setRunning(false); }}
+          onSuccess={() => { setError(null); setRunning(false); }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.rootVertical}>
       <button
@@ -48,6 +64,7 @@ export default function InkPlayground({ code, width = 600, height = 300 }: InkPl
         data={committedCode}
         width={width}
         height={height}
+        readonly={false}
         onError={(e) => { setError(e); setRunning(false); }}
         onSuccess={() => { setError(null); setRunning(false); }}
       />

@@ -1,0 +1,39 @@
+---
+title: 自定义 Widget
+slug: /advanced/custom-widget
+---
+
+# 如何自定义 Widget
+
+Inkwell 支持以 TypeScript 定义自定义组件，参与布局与绘制。常见步骤：
+
+1. 定义组件的属性类型与默认值
+2. 在渲染阶段使用 Canvas API 或内置绘制工具
+3. 在布局阶段返回尺寸与对子元素的布局策略
+
+## 示例（简化版）
+
+```tsx
+// 假设在 '@/core' 中注册你的组件，这里仅为示意
+type BadgeProps = { label: string; color?: string };
+
+function Badge({ label, color = '#1677ff' }: BadgeProps) {
+  return (
+    <Container padding={8} color={color} radius={6}>
+      <Text text={label} fontSize={12} color="#fff" />
+    </Container>
+  );
+}
+
+/** @jsxImportSource @/utils/compiler */
+<Row spacing={8}>
+  <Badge label="Alpha" />
+  <Badge label="Beta" color="#52c41a" />
+</Row>
+```
+
+## 设计要点
+
+- 明确组件的布局语义：固定尺寸、随内容收缩或可伸缩（flex）
+- 尽量复用现有 `Container/Row/Column/Text` 等以减少重复绘制逻辑
+- 为性能敏感组件设计增量更新与重绘边界
