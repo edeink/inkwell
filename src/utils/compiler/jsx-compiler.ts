@@ -34,16 +34,20 @@ function isValidType(t: string): t is ComponentType {
     t === ComponentType.Padding ||
     t === ComponentType.Center ||
     t === ComponentType.Stack ||
-    t === ComponentType.Positioned
+    t === ComponentType.Positioned ||
+    t === ComponentType.Wrap
   );
 }
 
 function toArrayChildren(children: unknown): AnyElement[] {
-  if (!children) return [];
-  if (Array.isArray(children)) {
-    return children.filter((c) => c && typeof c === "object");
+  const out: AnyElement[] = [];
+  function collect(c: unknown): void {
+    if (!c) return;
+    if (Array.isArray(c)) { for (const it of c) collect(it); return; }
+    if (typeof c === "object") out.push(c as AnyElement);
   }
-  return [children].filter((c): c is AnyElement => c && typeof c === "object");
+  collect(children);
+  return out;
 }
 
 export function compileElement(element: AnyElement): ComponentData {
@@ -129,6 +133,10 @@ export function compileElement(element: AnyElement): ComponentData {
       if (p.bottom !== undefined) data.bottom = p.bottom as number;
       if (p.width !== undefined) data.width = p.width as number;
       if (p.height !== undefined) data.height = p.height as number;
+      break;
+    case ComponentType.Wrap:
+      if (p.spacing !== undefined) data.spacing = p.spacing as number;
+      if (p.runSpacing !== undefined) data.runSpacing = p.runSpacing as number;
       break;
   }
 

@@ -35,6 +35,7 @@ export const enum ComponentType {
   Center = "Center",
   Stack = "Stack",
   Positioned = "Positioned",
+  Wrap = "Wrap",
 }
 
 /**

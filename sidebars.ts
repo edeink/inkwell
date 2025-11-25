@@ -13,6 +13,7 @@ export default {
         'widgets/Row',
         'widgets/Image',
         'widgets/Padding',
+        'widgets/Wrap',
         'widgets/Positioned',
         'widgets/SizedBox',
         'widgets/Stack',

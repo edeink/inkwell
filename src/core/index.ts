@@ -10,5 +10,6 @@ export { PositionedElement as Positioned } from './positioned';
 export { SizedBoxElement as SizedBox } from './sized-box';
 export { StackElement as Stack } from './stack';
 export { TextElement as Text } from './text';
+export { WrapElement as Wrap } from './wrap';
 
 
