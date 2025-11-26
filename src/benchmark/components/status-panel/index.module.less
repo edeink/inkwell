@@ -1,0 +1,58 @@
+.panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.title {
+  font-weight: 700;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.currentLine {
+  margin-bottom: 12px;
+}
+
+.currentType {
+  font-weight: 600;
+  color: #111827;
+}
+
+.tasksGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 900px) {
+  .tasksGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.taskTitle {
+  font-weight: 600;
+}
+
+.badgeDone {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.badgeRunning {
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.badgePending {
+  color: #9a3412;
+  font-weight: 600;
+}
