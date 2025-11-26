@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,14 +9,14 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 /**
  * 图片组件特有的数据接口
  * 明确不支持子组件
  */
 export interface ImageData extends WidgetData {
-  type: "image"; // 明确指定组件类型
+  type: 'image'; // 明确指定组件类型
   src: string; // 图片源地址
   width?: number; // 图片宽度
   height?: number; // 图片高度
@@ -28,54 +29,54 @@ export interface ImageData extends WidgetData {
  * 图片适应方式类型
  */
 export type ImageFit =
-  | "fill" // 填充整个容器，可能会变形
-  | "contain" // 保持比例，完整显示图片
-  | "cover" // 保持比例，填充容器，可能会裁剪
-  | "fitWidth" // 适应宽度
-  | "fitHeight" // 适应高度
-  | "none" // 原始尺寸
-  | "scaleDown"; // 缩小以适应容器
+  | 'fill' // 填充整个容器，可能会变形
+  | 'contain' // 保持比例，完整显示图片
+  | 'cover' // 保持比例，填充容器，可能会裁剪
+  | 'fitWidth' // 适应宽度
+  | 'fitHeight' // 适应高度
+  | 'none' // 原始尺寸
+  | 'scaleDown'; // 缩小以适应容器
 
 /**
  * 图片适应方式常量
  */
 export const ImageFit = {
-  Fill: "fill" as const,
-  Contain: "contain" as const,
-  Cover: "cover" as const,
-  FitWidth: "fitWidth" as const,
-  FitHeight: "fitHeight" as const,
-  None: "none" as const,
-  ScaleDown: "scaleDown" as const,
+  Fill: 'fill' as const,
+  Contain: 'contain' as const,
+  Cover: 'cover' as const,
+  FitWidth: 'fitWidth' as const,
+  FitHeight: 'fitHeight' as const,
+  None: 'none' as const,
+  ScaleDown: 'scaleDown' as const,
 };
 
 /**
  * 图片对齐方式类型
  */
 export type ImageAlignment =
-  | "topLeft"
-  | "topCenter"
-  | "topRight"
-  | "centerLeft"
-  | "center"
-  | "centerRight"
-  | "bottomLeft"
-  | "bottomCenter"
-  | "bottomRight";
+  | 'topLeft'
+  | 'topCenter'
+  | 'topRight'
+  | 'centerLeft'
+  | 'center'
+  | 'centerRight'
+  | 'bottomLeft'
+  | 'bottomCenter'
+  | 'bottomRight';
 
 /**
  * 图片对齐方式常量
  */
 export const ImageAlignment = {
-  TopLeft: "topLeft" as const,
-  TopCenter: "topCenter" as const,
-  TopRight: "topRight" as const,
-  CenterLeft: "centerLeft" as const,
-  Center: "center" as const,
-  CenterRight: "centerRight" as const,
-  BottomLeft: "bottomLeft" as const,
-  BottomCenter: "bottomCenter" as const,
-  BottomRight: "bottomRight" as const,
+  TopLeft: 'topLeft' as const,
+  TopCenter: 'topCenter' as const,
+  TopRight: 'topRight' as const,
+  CenterLeft: 'centerLeft' as const,
+  Center: 'center' as const,
+  CenterRight: 'centerRight' as const,
+  BottomLeft: 'bottomLeft' as const,
+  BottomCenter: 'bottomCenter' as const,
+  BottomRight: 'bottomRight' as const,
 };
 
 /**
@@ -84,7 +85,7 @@ export const ImageAlignment = {
  */
 export class Image extends Widget<ImageData> {
   // 图片源地址
-  src: string = "";
+  src: string = '';
 
   // 图片尺寸
   imageWidth?: number;
@@ -104,7 +105,7 @@ export class Image extends Widget<ImageData> {
 
   // 注册 Image 组件类型
   static {
-    Widget.registerType("Image", Image);
+    Widget.registerType('Image', Image);
   }
 
   /**
@@ -112,7 +113,7 @@ export class Image extends Widget<ImageData> {
    * Image 组件不支持子组件，始终返回 null 并给出警告
    */
   protected createChildWidget(childData: WidgetData): Widget | null {
-    console.warn("Image 组件不支持子组件");
+    console.warn('Image 组件不支持子组件');
     return null;
   }
 
@@ -134,8 +135,8 @@ export class Image extends Widget<ImageData> {
   private initImageProperties(data: ImageData): void {
     // 确保 data.src 存在，否则给出警告
     if (!data.src) {
-      console.warn("Image 组件必须提供 src 属性");
-      this.src = "";
+      console.warn('Image 组件必须提供 src 属性');
+      this.src = '';
     } else {
       this.src = data.src;
     }
@@ -150,7 +151,9 @@ export class Image extends Widget<ImageData> {
    * 加载图片
    */
   private loadImage(): void {
-    if (!this.src) return;
+    if (!this.src) {
+      return;
+    }
 
     this.imageElement = new window.Image();
     this.imageElement.onload = () => {
@@ -200,11 +203,11 @@ export class Image extends Widget<ImageData> {
       const containerAspectRatio = containerSize.width / containerSize.height;
 
       switch (this.fit) {
-        case "fill":
+        case 'fill':
           width = containerSize.width;
           height = containerSize.height;
           break;
-        case "contain":
+        case 'contain':
           if (aspectRatio > containerAspectRatio) {
             width = containerSize.width;
             height = width / aspectRatio;
@@ -213,7 +216,7 @@ export class Image extends Widget<ImageData> {
             width = height * aspectRatio;
           }
           break;
-        case "cover":
+        case 'cover':
           if (aspectRatio > containerAspectRatio) {
             height = containerSize.height;
             width = height * aspectRatio;
@@ -222,16 +225,19 @@ export class Image extends Widget<ImageData> {
             height = width / aspectRatio;
           }
           break;
-        case "fitWidth":
+        case 'fitWidth':
           width = containerSize.width;
           height = width / aspectRatio;
           break;
-        case "fitHeight":
+        case 'fitHeight':
           height = containerSize.height;
           width = height * aspectRatio;
           break;
-        case "scaleDown":
-          if (this.naturalWidth > containerSize.width || this.naturalHeight > containerSize.height) {
+        case 'scaleDown':
+          if (
+            this.naturalWidth > containerSize.width ||
+            this.naturalHeight > containerSize.height
+          ) {
             // 需要缩小，使用 contain 逻辑
             if (aspectRatio > containerAspectRatio) {
               width = containerSize.width;
@@ -246,7 +252,7 @@ export class Image extends Widget<ImageData> {
             height = this.naturalHeight;
           }
           break;
-        case "none":
+        case 'none':
         default:
           width = this.naturalWidth;
           height = this.naturalHeight;
@@ -259,39 +265,39 @@ export class Image extends Widget<ImageData> {
     let y = 0;
 
     switch (this.alignment) {
-      case "topLeft":
+      case 'topLeft':
         x = 0;
         y = 0;
         break;
-      case "topCenter":
+      case 'topCenter':
         x = (containerSize.width - width) / 2;
         y = 0;
         break;
-      case "topRight":
+      case 'topRight':
         x = containerSize.width - width;
         y = 0;
         break;
-      case "centerLeft":
+      case 'centerLeft':
         x = 0;
         y = (containerSize.height - height) / 2;
         break;
-      case "center":
+      case 'center':
         x = (containerSize.width - width) / 2;
         y = (containerSize.height - height) / 2;
         break;
-      case "centerRight":
+      case 'centerRight':
         x = containerSize.width - width;
         y = (containerSize.height - height) / 2;
         break;
-      case "bottomLeft":
+      case 'bottomLeft':
         x = 0;
         y = containerSize.height - height;
         break;
-      case "bottomCenter":
+      case 'bottomCenter':
         x = (containerSize.width - width) / 2;
         y = containerSize.height - height;
         break;
-      case "bottomRight":
+      case 'bottomRight':
         x = containerSize.width - width;
         y = containerSize.height - height;
         break;
@@ -303,19 +309,13 @@ export class Image extends Widget<ImageData> {
   /**
    * 执行布局计算
    */
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // 如果指定了固定尺寸，优先使用
     if (this.imageWidth && this.imageHeight) {
-      const width = Math.max(
-        constraints.minWidth,
-        Math.min(this.imageWidth, constraints.maxWidth)
-      );
+      const width = Math.max(constraints.minWidth, Math.min(this.imageWidth, constraints.maxWidth));
       const height = Math.max(
         constraints.minHeight,
-        Math.min(this.imageHeight, constraints.maxHeight)
+        Math.min(this.imageHeight, constraints.maxHeight),
       );
       return { width, height };
     }
@@ -360,7 +360,7 @@ export class Image extends Widget<ImageData> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     return {
       minWidth: 0,
@@ -390,20 +390,20 @@ export class Image extends Widget<ImageData> {
         y: 0, // 使用 0，因为 translate 已经处理了偏移
         width: size.width,
         height: size.height,
-        fill: "#f0f0f0",
-        stroke: "#cccccc",
+        fill: '#f0f0f0',
+        stroke: '#cccccc',
         strokeWidth: 1,
       });
 
       // 绘制加载提示文本
       context.renderer.drawText({
-        text: this.src ? "Loading..." : "No Image",
+        text: this.src ? 'Loading...' : 'No Image',
         x: size.width / 2, // 相对于组件内部的中心位置
         y: size.height / 2, // 相对于组件内部的中心位置
         fontSize: 12,
-        color: "#666666",
-        textAlign: "center",
-        textBaseline: "middle",
+        color: '#666666',
+        textAlign: 'center',
+        textBaseline: 'middle',
       });
       return;
     }
@@ -422,5 +422,5 @@ export class Image extends Widget<ImageData> {
   }
 }
 
-export type ImageProps = Omit<ImageData, "type" | "children"> & JSXComponentProps;
+export type ImageProps = Omit<ImageData, 'type' | 'children'> & JSXComponentProps;
 export const ImageElement: React.FC<ImageProps> = () => null;

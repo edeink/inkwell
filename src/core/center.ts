@@ -1,5 +1,6 @@
-import { Widget } from "./base";
-import React from "react";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,7 +9,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 export interface CenterData extends WidgetData {
   child?: WidgetData;
@@ -20,7 +21,7 @@ export interface CenterData extends WidgetData {
 export class Center extends Widget<CenterData> {
   // 注册 Center 组件类型
   static {
-    Widget.registerType("Center", Center);
+    Widget.registerType('Center', Center);
   }
 
   constructor(data: CenterData) {
@@ -44,26 +45,19 @@ export class Center extends Widget<CenterData> {
     // Center 组件不绘制任何内容
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // Center 组件尽可能占用所有可用空间
     return {
       width:
-        constraints.maxWidth === Infinity
-          ? childrenSizes[0]?.width || 0
-          : constraints.maxWidth,
+        constraints.maxWidth === Infinity ? childrenSizes[0]?.width || 0 : constraints.maxWidth,
       height:
-        constraints.maxHeight === Infinity
-          ? childrenSizes[0]?.height || 0
-          : constraints.maxHeight,
+        constraints.maxHeight === Infinity ? childrenSizes[0]?.height || 0 : constraints.maxHeight,
     };
   }
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // 子组件可以使用任意尺寸，但不能超过父组件的约束
     return {
@@ -85,5 +79,5 @@ export class Center extends Widget<CenterData> {
   }
 }
 
-export type CenterProps = Omit<CenterData, "type" | "child" | "children"> & JSXComponentProps;
+export type CenterProps = Omit<CenterData, 'type' | 'child' | 'children'> & JSXComponentProps;
 export const CenterElement: React.FC<CenterProps> = () => null;

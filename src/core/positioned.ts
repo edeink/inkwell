@@ -1,5 +1,6 @@
-import { Widget } from "./base";
-import React from "react";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,7 +9,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 export interface PositionedData extends WidgetData {
   left?: number;
@@ -33,7 +34,7 @@ export class Positioned extends Widget<PositionedData> {
 
   // 注册 Positioned 组件类型
   static {
-    Widget.registerType("Positioned", Positioned);
+    Widget.registerType('Positioned', Positioned);
   }
 
   constructor(data: PositionedData) {
@@ -68,10 +69,7 @@ export class Positioned extends Widget<PositionedData> {
     // Positioned 组件不绘制任何内容
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const childSize = childrenSizes[0] || { width: 0, height: 0 };
 
     // Positioned 组件的尺寸由其定位属性和子组件决定
@@ -101,7 +99,7 @@ export class Positioned extends Widget<PositionedData> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     let minWidth = 0;
     let maxWidth = constraints.maxWidth;
@@ -175,13 +173,14 @@ export class Positioned extends Widget<PositionedData> {
   }
 }
 
-export type PositionedProps = Omit<PositionedData, "type" | "child" | "children"> & JSXComponentProps;
+export type PositionedProps = Omit<PositionedData, 'type' | 'child' | 'children'> &
+  JSXComponentProps;
 export const PositionedElement: React.FC<PositionedProps> = () => null;
 
 // 便捷函数：创建填充整个 Stack 的 Positioned
 export function fill(child: WidgetData): PositionedData {
   return {
-    type: "Positioned",
+    type: 'Positioned',
     left: 0,
     top: 0,
     right: 0,
@@ -196,10 +195,10 @@ export function fromLTWH(
   top: number,
   width: number,
   height: number,
-  child: WidgetData
+  child: WidgetData,
 ): PositionedData {
   return {
-    type: "Positioned",
+    type: 'Positioned',
     left,
     top,
     width,

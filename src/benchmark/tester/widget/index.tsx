@@ -1,17 +1,17 @@
 /** @jsxImportSource @/utils/compiler */
-import { Container, Stack, Positioned } from "../../../core";
+import { Container, Stack, Positioned } from '../../../core';
 
-import type { BoxConstraints, BuildContext } from "../../../core/base";
+import type { BoxConstraints, BuildContext } from '../../../core/base';
 
-import { Widget } from "../../../core/base";
-import "../../../core/registry";
-import Editor from "../../../editors/graphics-editor";
-import { Canvas2DRenderer } from "../../../renderer/canvas2d/canvas-2d-renderer";
-import { compileElement } from "../../../utils/compiler/jsx-compiler";
-import { PerformanceTestInterface } from "../../index.types";
+import { Widget } from '../../../core/base';
+import '../../../core/registry';
+import Editor from '../../../editors/graphics-editor';
+import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
+import { compileElement } from '../../../utils/compiler/jsx-compiler';
+import { PerformanceTestInterface } from '../../index.types';
 
-import type { RendererOptions } from "../../../renderer/IRenderer";
-import type { PerformanceMetrics } from "../../index.types";
+import type { RendererOptions } from '../../../renderer/IRenderer';
+import type { PerformanceMetrics } from '../../index.types';
 
 type Ctx = { stageEl: HTMLElement; editor: Editor | null };
 
@@ -19,8 +19,8 @@ function buildJSX(count: number, W: number, H: number) {
   return (
     <Stack key="perf-root">
       {Array.from({
- length: count 
-}).map((_, i) => {
+        length: count,
+      }).map((_, i) => {
         const x = Math.floor(Math.random() * Math.max(1, W - 4));
         const y = Math.floor(Math.random() * Math.max(1, H - 4));
         return (
@@ -34,11 +34,13 @@ function buildJSX(count: number, W: number, H: number) {
 }
 
 export default class WidgetPerformanceTest extends PerformanceTestInterface {
-  name = "Widget";
+  name = 'Widget';
   private ctx: Ctx;
   private lastMetrics: PerformanceMetrics = {
- nodes: 0, createTimeMs: 0, avgPerNodeMs: 0 
-};
+    nodes: 0,
+    createTimeMs: 0,
+    avgPerNodeMs: 0,
+  };
   private frameSamples: { t: number; fps: number }[] = [];
   private startMark = 0;
 
@@ -46,10 +48,10 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     if (this.ctx.editor) {
       return this.ctx.editor;
     }
-    const id = this.ctx.stageEl.id || "stage";
+    const id = this.ctx.stageEl.id || 'stage';
     const editor = await Editor.create(id, {
- backgroundAlpha: 0 
-});
+      backgroundAlpha: 0,
+    });
     this.ctx.editor = editor;
     return editor;
   }
@@ -64,8 +66,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       if (dt > 0) {
         const fps = 1000 / dt;
         this.frameSamples.push({
- t: now - this.startMark, fps 
-});
+          t: now - this.startMark,
+          fps,
+        });
       }
       requestAnimationFrame(loop);
     };
@@ -74,7 +77,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
 
   private clearCanvas(): void {
     const el = this.ctx.stageEl;
-    while (el.firstChild) {el.removeChild(el.firstChild);}
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
     this.ctx.editor = null;
   }
 
@@ -99,8 +104,11 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     const tBuild1 = performance.now();
 
     const constraints: BoxConstraints = {
- minWidth: 0, maxWidth: stageW, minHeight: 0, maxHeight: stageH 
-};
+      minWidth: 0,
+      maxWidth: stageW,
+      minHeight: 0,
+      maxHeight: stageH,
+    };
     const tLayout0 = performance.now();
     const size = root.layout(constraints);
     const tLayout1 = performance.now();
@@ -108,17 +116,21 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     const renderer = editor.getRenderer() ?? new Canvas2DRenderer();
     const container = editor.getContainer()!;
     const opts: RendererOptions = {
- width: Math.max(stageW, 100), height: Math.max(stageH, 100), backgroundAlpha: 0 
-} as RendererOptions;
+      width: Math.max(stageW, 100),
+      height: Math.max(stageH, 100),
+      backgroundAlpha: 0,
+    } as RendererOptions;
     const tInit0 = performance.now();
     await renderer.initialize(container, opts);
     const tInit1 = performance.now();
-    while (container.firstChild) {container.removeChild(container.firstChild);}
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
 
     const tPaint0 = performance.now();
     const context: BuildContext = {
- renderer 
-};
+      renderer,
+    };
     root.paint(context);
     renderer.render();
     const tPaint1 = performance.now();
@@ -129,7 +141,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     const compileMs = tCompile1 - tCompile0;
     const buildMs = tBuild1 - tBuild0 + compileMs;
     const layoutMs = tLayout1 - tLayout0;
-    const paintMs = (tPaint1 - tPaint0) + (tInit1 - tInit0);
+    const paintMs = tPaint1 - tPaint0 + (tInit1 - tInit0);
     const createTimeMs = buildMs + layoutMs + paintMs;
 
     this.lastMetrics = {
@@ -143,14 +155,19 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     };
   }
 
-  getPerformanceMetrics() { return this.lastMetrics; }
+  getPerformanceMetrics() {
+    return this.lastMetrics;
+  }
 
-  getFrameRate() { return this.frameSamples.slice(); }
+  getFrameRate() {
+    return this.frameSamples.slice();
+  }
 
   constructor(stageEl: HTMLElement) {
     super();
     this.ctx = {
- stageEl, editor: null 
-};
+      stageEl,
+      editor: null,
+    };
   }
 }

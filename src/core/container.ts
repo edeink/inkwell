@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -9,7 +10,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 export interface BorderRadius {
   topLeft: number;
@@ -21,7 +22,7 @@ export interface BorderRadius {
 export interface Border {
   width: number;
   color: string;
-  style?: "solid" | "dashed" | "dotted";
+  style?: 'solid' | 'dashed' | 'dotted';
 }
 
 export interface ContainerData extends WidgetData {
@@ -50,7 +51,7 @@ export class Container extends Widget<ContainerData> {
 
   // 注册 Container 组件类型
   static {
-    Widget.registerType("Container", Container);
+    Widget.registerType('Container', Container);
   }
 
   constructor(data: ContainerData) {
@@ -68,21 +69,21 @@ export class Container extends Widget<ContainerData> {
     this.borderRadius = this.normalizeBorderRadius(data.borderRadius);
   }
 
-  private normalizeEdgeInsets(
-    value?: EdgeInsets | number
-  ): EdgeInsets | undefined {
-    if (value === undefined) return undefined;
-    if (typeof value === "number") {
+  private normalizeEdgeInsets(value?: EdgeInsets | number): EdgeInsets | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (typeof value === 'number') {
       return { top: value, right: value, bottom: value, left: value };
     }
     return value;
   }
 
-  private normalizeBorderRadius(
-    value?: BorderRadius | number
-  ): BorderRadius | undefined {
-    if (value === undefined) return undefined;
-    if (typeof value === "number") {
+  private normalizeBorderRadius(value?: BorderRadius | number): BorderRadius | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (typeof value === 'number') {
       return {
         topLeft: value,
         topRight: value,
@@ -118,9 +119,9 @@ export class Container extends Widget<ContainerData> {
 
     const marginSize = this.margin
       ? {
-        width: size.width - this.margin.left - this.margin.right,
-        height: size.height - this.margin.top - this.margin.bottom,
-      }
+          width: size.width - this.margin.left - this.margin.right,
+          height: size.height - this.margin.top - this.margin.bottom,
+        }
       : size;
 
     const borderRadius = this.borderRadius
@@ -158,25 +159,14 @@ export class Container extends Widget<ContainerData> {
     }
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // 计算外边距占用的空间
-    const marginHorizontal = this.margin
-      ? this.margin.left + this.margin.right
-      : 0;
-    const marginVertical = this.margin
-      ? this.margin.top + this.margin.bottom
-      : 0;
+    const marginHorizontal = this.margin ? this.margin.left + this.margin.right : 0;
+    const marginVertical = this.margin ? this.margin.top + this.margin.bottom : 0;
 
     // 计算内边距占用的空间
-    const paddingHorizontal = this.padding
-      ? this.padding.left + this.padding.right
-      : 0;
-    const paddingVertical = this.padding
-      ? this.padding.top + this.padding.bottom
-      : 0;
+    const paddingHorizontal = this.padding ? this.padding.left + this.padding.right : 0;
+    const paddingVertical = this.padding ? this.padding.top + this.padding.bottom : 0;
 
     // 如果指定了固定尺寸，使用固定尺寸
     let width = this.width;
@@ -195,35 +185,21 @@ export class Container extends Widget<ContainerData> {
     }
 
     // 确保满足约束条件
-    width = Math.max(
-      constraints.minWidth,
-      Math.min(width, constraints.maxWidth)
-    );
-    height = Math.max(
-      constraints.minHeight,
-      Math.min(height, constraints.maxHeight)
-    );
+    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
+    height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
 
     return { width, height };
   }
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // 计算可用于子组件的空间
-    const marginHorizontal = this.margin
-      ? this.margin.left + this.margin.right
-      : 0;
-    const marginVertical = this.margin
-      ? this.margin.top + this.margin.bottom
-      : 0;
-    const paddingHorizontal = this.padding
-      ? this.padding.left + this.padding.right
-      : 0;
-    const paddingVertical = this.padding
-      ? this.padding.top + this.padding.bottom
-      : 0;
+    const marginHorizontal = this.margin ? this.margin.left + this.margin.right : 0;
+    const marginVertical = this.margin ? this.margin.top + this.margin.bottom : 0;
+    const paddingHorizontal = this.padding ? this.padding.left + this.padding.right : 0;
+    const paddingVertical = this.padding ? this.padding.top + this.padding.bottom : 0;
 
     const totalHorizontal = marginHorizontal + paddingHorizontal;
     const totalVertical = marginVertical + paddingVertical;
@@ -264,5 +240,5 @@ export class Container extends Widget<ContainerData> {
   }
 }
 
-export type ContainerProps = Omit<ContainerData, "type" | "child" | "children"> & JSXComponentProps;
+export type ContainerProps = Omit<ContainerData, 'type' | 'child' | 'children'> & JSXComponentProps;
 export const ContainerElement: React.FC<ContainerProps> = () => null;

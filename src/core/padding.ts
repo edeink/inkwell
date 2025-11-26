@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -9,7 +10,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 export interface PaddingData extends WidgetData {
   padding: EdgeInsets | number;
@@ -24,7 +25,7 @@ export class Padding extends Widget<PaddingData> {
 
   // 注册 Padding 组件类型
   static {
-    Widget.registerType("Padding", Padding);
+    Widget.registerType('Padding', Padding);
   }
 
   constructor(data: PaddingData) {
@@ -37,7 +38,7 @@ export class Padding extends Widget<PaddingData> {
   }
 
   private normalizeEdgeInsets(value: EdgeInsets | number): EdgeInsets {
-    if (typeof value === "number") {
+    if (typeof value === 'number') {
       return { top: value, right: value, bottom: value, left: value };
     }
     return value;
@@ -61,10 +62,7 @@ export class Padding extends Widget<PaddingData> {
     // Padding 组件不绘制任何内容
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const childSize = childrenSizes[0] || { width: 0, height: 0 };
 
     // 计算总尺寸（子组件尺寸 + 内边距）
@@ -73,20 +71,14 @@ export class Padding extends Widget<PaddingData> {
 
     // 确保满足约束条件
     return {
-      width: Math.max(
-        constraints.minWidth,
-        Math.min(width, constraints.maxWidth)
-      ),
-      height: Math.max(
-        constraints.minHeight,
-        Math.min(height, constraints.maxHeight)
-      ),
+      width: Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth)),
+      height: Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight)),
     };
   }
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // 计算可用于子组件的空间
     const paddingHorizontal = this.padding.left + this.padding.right;
@@ -110,10 +102,7 @@ export class Padding extends Widget<PaddingData> {
 }
 
 // 便捷函数：创建对称内边距
-export function symmetric(
-  vertical: number = 0,
-  horizontal: number = 0
-): EdgeInsets {
+export function symmetric(vertical: number = 0, horizontal: number = 0): EdgeInsets {
   return {
     top: vertical,
     bottom: vertical,
@@ -147,5 +136,5 @@ export function all(value: number): EdgeInsets {
   };
 }
 
-export type PaddingProps = Omit<PaddingData, "type" | "child" | "children"> & JSXComponentProps;
+export type PaddingProps = Omit<PaddingData, 'type' | 'child' | 'children'> & JSXComponentProps;
 export const PaddingElement: React.FC<PaddingProps> = () => null;

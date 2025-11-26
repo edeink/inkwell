@@ -1,11 +1,11 @@
-import { LockOutlined } from "@ant-design/icons";
-import { Button, ColorPicker, Input, InputNumber, Space, Tooltip } from "antd";
-import { useEffect, useState } from "react";
+import { LockOutlined } from '@ant-design/icons';
+import { Button, ColorPicker, Input, InputNumber, Space, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
 
-import { isProtectedKey } from "../../helper/config";
-import { ObjectEditor } from "../object-editor";
+import { isProtectedKey } from '../../helper/config';
+import { ObjectEditor } from '../object-editor';
 
-import styles from "./index.module.less";
+import styles from './index.module.less';
 
 /**
  * PropsEditor
@@ -13,7 +13,7 @@ import styles from "./index.module.less";
  * 参数：widget - 目标组件；onChange - 应用更新后的回调
  * 返回：无（通过父组件控制实际应用）
  */
-import type { Widget } from "../../../core/base";
+import type { Widget } from '../../../core/base';
 
 export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
   const [local, setLocal] = useState<Record<string, unknown>>(widget ? { ...widget.data } : {});
@@ -24,18 +24,22 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
 
   function updateField(path: string, value: unknown) {
     const next: Record<string, unknown> = { ...local };
-    const parts = path.split(".");
+    const parts = path.split('.');
     let obj: Record<string, unknown> = next;
     for (let i = 0; i < parts.length - 1; i++) {
       const key = parts[i];
-      obj = (obj[key] as Record<string, unknown> | undefined) ?? (obj[key] = {} as Record<string, unknown>);
+      obj =
+        (obj[key] as Record<string, unknown> | undefined) ??
+        (obj[key] = {} as Record<string, unknown>);
     }
     obj[parts[parts.length - 1]] = value as unknown;
     setLocal(next);
   }
 
   function apply() {
-    if (!widget) return;
+    if (!widget) {
+      return;
+    }
     widget.data = { ...widget.data, ...local } as typeof widget.data;
     widget.createElement(widget.data as typeof widget.data);
     onChange();
@@ -44,11 +48,13 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
   if (!widget) {
     return <div className={styles.emptyHint}>未选择节点</div>;
   }
-  const entries = Object.entries(local).filter(([k]) => k !== "type" && k !== "children");
+  const entries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
 
-  const hasNested = entries.some(([, v]) => v && typeof v === "object" && !Array.isArray(v));
+  const hasNested = entries.some(([, v]) => v && typeof v === 'object' && !Array.isArray(v));
   return (
-    <div className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(" ")}>
+    <div
+      className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(' ')}
+    >
       {entries.map(([k, v]) => (
         <div key={k} className={styles.formRow}>
           <div className={styles.formLeft}>
@@ -62,11 +68,14 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
             </label>
           </div>
           <div className={styles.formRight}>
-            {v && typeof v === "object" && !Array.isArray(v) ? (
-              <ObjectEditor value={v as Record<string, unknown>} onChange={(nv) => updateField(k, nv)} />
+            {v && typeof v === 'object' && !Array.isArray(v) ? (
+              <ObjectEditor
+                value={v as Record<string, unknown>}
+                onChange={(nv) => updateField(k, nv)}
+              />
             ) : (
               (() => {
-                if (typeof v === "number") {
+                if (typeof v === 'number') {
                   return (
                     <InputNumber
                       className={styles.formInput}
@@ -76,16 +85,20 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
                     />
                   );
                 }
-                const valStr = String(v ?? "");
+                const valStr = String(v ?? '');
                 const colorSuffix = (
                   <Space>
                     <ColorPicker
                       value={valStr}
-                      onChangeComplete={(c: { toHexString: () => string }) => updateField(k, c.toHexString())}
+                      onChangeComplete={(c: { toHexString: () => string }) =>
+                        updateField(k, c.toHexString())
+                      }
                     />
                   </Space>
                 );
-                const isCol = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) || /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
+                const isCol =
+                  /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) ||
+                  /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
                 return (
                   <Input
                     className={styles.formInput}
@@ -101,7 +114,9 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
         </div>
       ))}
       <div className={styles.formActions}>
-        <Button type="primary" onClick={apply}>应用</Button>
+        <Button type="primary" onClick={apply}>
+          应用
+        </Button>
       </div>
     </div>
   );

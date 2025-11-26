@@ -1,7 +1,8 @@
-import React from "react";
-import { Widget } from "../base";
+import React from 'react';
 
-import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from "./type";
+import { Widget } from '../base';
+
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from './type';
 
 import type {
   BoxConstraints,
@@ -10,7 +11,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "../base";
+} from '../base';
 
 /**
  * Row布局组件的数据接口
@@ -43,8 +44,7 @@ export class Row extends Widget<RowData> {
    */
   private initRowProperties(data: RowData): void {
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
-    this.crossAxisAlignment =
-      data.crossAxisAlignment || CrossAxisAlignment.Center;
+    this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;
     this.mainAxisSize = data.mainAxisSize || MainAxisSize.Max;
     this.spacing = data.spacing || 0;
   }
@@ -71,7 +71,7 @@ export class Row extends Widget<RowData> {
    */
   // 注册 Row 组件类型
   static {
-    Widget.registerType("Row", Row);
+    Widget.registerType('Row', Row);
   }
 
   /**
@@ -85,10 +85,7 @@ export class Row extends Widget<RowData> {
   /**
    * 执行布局计算
    */
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     if (childrenSizes.length === 0) {
       // 没有子组件，返回最小尺寸
       return {
@@ -113,7 +110,7 @@ export class Row extends Widget<RowData> {
 
     // 根据主轴尺寸确定宽度
     let width = totalWidth;
-    if (this.mainAxisSize === "max") {
+    if (this.mainAxisSize === 'max') {
       // 在无界约束下保持由子元素决定的宽度
       width = isFinite(constraints.maxWidth)
         ? Math.max(totalWidth, constraints.maxWidth)
@@ -121,10 +118,7 @@ export class Row extends Widget<RowData> {
     }
 
     // 确保满足约束条件
-    width = Math.max(
-      constraints.minWidth,
-      Math.min(width, constraints.maxWidth)
-    );
+    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
 
     // 对于高度，Row 应该根据内容来确定，而不是使用无限约束
     // 这符合 Flutter 的行为：Row 的高度由其子组件的最大高度决定
@@ -146,10 +140,10 @@ export class Row extends Widget<RowData> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // 根据交叉轴对齐方式确定子组件高度约束
-    if (this.crossAxisAlignment === "stretch") {
+    if (this.crossAxisAlignment === 'stretch') {
       // 拉伸子组件以填充整个高度
       return {
         minWidth: 0,
@@ -188,22 +182,22 @@ export class Row extends Widget<RowData> {
     const availableSpace = size.width - totalChildrenWidth;
 
     switch (this.mainAxisAlignment) {
-      case "start":
+      case 'start':
         startX = 0;
         break;
-      case "center":
+      case 'center':
         startX = availableSpace / 2;
         break;
-      case "end":
+      case 'end':
         startX = availableSpace;
         break;
-      case "spaceBetween":
+      case 'spaceBetween':
         startX = 0; // 会在下面的计算中分配空间
         break;
-      case "spaceAround":
+      case 'spaceAround':
         startX = availableSpace / (this.children.length * 2); // 会在下面的计算中分配空间
         break;
-      case "spaceEvenly":
+      case 'spaceEvenly':
         startX = availableSpace / (this.children.length + 1); // 会在下面的计算中分配空间
         break;
     }
@@ -216,15 +210,15 @@ export class Row extends Widget<RowData> {
       // 添加间距或分配额外空间
       if (i < this.children.length - 1) {
         switch (this.mainAxisAlignment) {
-          case "spaceBetween":
+          case 'spaceBetween':
             if (this.children.length > 1) {
               xOffset += availableSpace / (this.children.length - 1);
             }
             break;
-          case "spaceAround":
+          case 'spaceAround':
             xOffset += availableSpace / this.children.length;
             break;
-          case "spaceEvenly":
+          case 'spaceEvenly':
             xOffset += availableSpace / (this.children.length + 1);
             break;
           default:
@@ -237,16 +231,16 @@ export class Row extends Widget<RowData> {
     // 计算Y坐标（基于交叉轴对齐方式）
     let yOffset = 0;
     switch (this.crossAxisAlignment) {
-      case "start":
+      case 'start':
         yOffset = 0;
         break;
-      case "center":
+      case 'center':
         yOffset = (size.height - childSize.height) / 2;
         break;
-      case "end":
+      case 'end':
         yOffset = size.height - childSize.height;
         break;
-      case "stretch":
+      case 'stretch':
         // 已经在约束中处理了拉伸
         yOffset = 0;
         break;
@@ -256,5 +250,5 @@ export class Row extends Widget<RowData> {
   }
 }
 
-export type ExpandedProps = Omit<RowData, "type" | "children"> & JSXComponentProps;
+export type ExpandedProps = Omit<RowData, 'type' | 'children'> & JSXComponentProps;
 export const RowElement: React.FC<ExpandedProps> = () => null;

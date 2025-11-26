@@ -1,11 +1,16 @@
-import type { DataNode } from "antd/es/tree";
-import type { Widget } from "../../core/base";
+import type { Widget } from '../../core/base';
+import type { DataNode } from 'antd/es/tree';
 
 /**
  * DevTools 树节点类型
  * 字段说明：key - 唯一标识；type - 组件类型；props - 展示用数据；children - 子节点列表
  */
-export type DevTreeNode = { key: string; type: string; props?: Record<string, unknown>; children: DevTreeNode[] };
+export type DevTreeNode = {
+  key: string;
+  type: string;
+  props?: Record<string, unknown>;
+  children: DevTreeNode[];
+};
 
 /**
  * Widget → DevTreeNode 转换
@@ -14,7 +19,9 @@ export type DevTreeNode = { key: string; type: string; props?: Record<string, un
  * 返回：DevTreeNode 或 null
  */
 export function toTree(node: Widget | null): DevTreeNode | null {
-  if (!node) return null;
+  if (!node) {
+    return null;
+  }
   return {
     key: node.key,
     type: node.type,
@@ -30,7 +37,9 @@ export function toTree(node: Widget | null): DevTreeNode | null {
  * 返回：`DataNode[]`
  */
 export function toAntTreeData(node: DevTreeNode | null): DataNode[] {
-  if (!node) return [];
+  if (!node) {
+    return [];
+  }
   function wrap(n: DevTreeNode): DataNode {
     return {
       title: `${n.type} [${n.key}]`,
@@ -47,11 +56,17 @@ export function toAntTreeData(node: DevTreeNode | null): DataNode[] {
  * 返回：找到的 Widget 或 null
  */
 export function findByKey(root: Widget | null, k: string): Widget | null {
-  if (!root) return null;
-  if (root.key === k) return root;
+  if (!root) {
+    return null;
+  }
+  if (root.key === k) {
+    return root;
+  }
   for (const c of root.children) {
     const r = findByKey(c, k);
-    if (r) return r;
+    if (r) {
+      return r;
+    }
   }
   return null;
 }
@@ -64,11 +79,17 @@ export function findByKey(root: Widget | null, k: string): Widget | null {
 export function getPathKeys(root: Widget | null, k: string): string[] {
   const path: string[] = [];
   function dfs(node: Widget | null): boolean {
-    if (!node) return false;
+    if (!node) {
+      return false;
+    }
     path.push(node.key);
-    if (node.key === k) return true;
+    if (node.key === k) {
+      return true;
+    }
     for (const c of node.children) {
-      if (dfs(c)) return true;
+      if (dfs(c)) {
+        return true;
+      }
     }
     path.pop();
     return false;

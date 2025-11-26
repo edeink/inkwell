@@ -1,4 +1,4 @@
-export type TestMode = "baseline" | "stress";
+export type TestMode = 'baseline' | 'stress';
 
 export type MemoryInfo = {
   totalJSHeapSize: number;
@@ -53,7 +53,7 @@ export abstract class PerformanceTestInterface {
   getMemoryUsage(): MemoryUsage {
     const pm = (performance as unknown as { memory: MemoryInfo }).memory;
     if (!pm) {
-      throw new Error("performance.memory is not available");
+      throw new Error('performance.memory is not available');
     }
     return {
       heapUsed: pm.usedJSHeapSize || 0,
@@ -70,9 +70,9 @@ export function averageSamples(samples: TestSample[]): TestSample {
     heapTotal: 0,
     heapLimit: 0,
   };
-  const hasHeapUsed = samples.every((s) => typeof s.memory.heapUsed === "number");
-  const hasHeapTotal = samples.every((s) => typeof s.memory.heapTotal === "number");
-  const hasHeapLimit = samples.every((s) => typeof s.memory.heapLimit === "number");
+  const hasHeapUsed = samples.every((s) => typeof s.memory.heapUsed === 'number');
+  const hasHeapTotal = samples.every((s) => typeof s.memory.heapTotal === 'number');
+  const hasHeapLimit = samples.every((s) => typeof s.memory.heapLimit === 'number');
 
   if (hasHeapUsed) {
     avgMemory.heapUsed = samples.reduce((a, b) => a + (b.memory.heapUsed as number), 0) / n;
@@ -90,19 +90,19 @@ export function averageSamples(samples: TestSample[]): TestSample {
     avgPerNodeMs: samples.reduce((a, b) => a + b.metrics.avgPerNodeMs, 0) / n,
     memoryDelta: undefined,
   };
-  const hasMemDelta = samples.every((s) => typeof s.metrics.memoryDelta === "number");
+  const hasMemDelta = samples.every((s) => typeof s.metrics.memoryDelta === 'number');
   if (hasMemDelta) {
     avgMetrics.memoryDelta = samples.reduce((a, b) => a + (b.metrics.memoryDelta as number), 0) / n;
   }
-  const hasBuild = samples.every((s) => typeof s.metrics.buildMs === "number");
-  const hasLayout = samples.every((s) => typeof s.metrics.layoutMs === "number");
-  const hasPaint = samples.every((s) => typeof s.metrics.paintMs === "number");
+  const hasBuild = samples.every((s) => typeof s.metrics.buildMs === 'number');
+  const hasLayout = samples.every((s) => typeof s.metrics.layoutMs === 'number');
+  const hasPaint = samples.every((s) => typeof s.metrics.paintMs === 'number');
   if (hasBuild) {
-    avgMetrics.buildMs = samples.reduce((a, b) => a + (b.metrics.buildMs as number), 0) / n
-  };
+    avgMetrics.buildMs = samples.reduce((a, b) => a + (b.metrics.buildMs as number), 0) / n;
+  }
   if (hasLayout) {
-    avgMetrics.layoutMs = samples.reduce((a, b) => a + (b.metrics.layoutMs as number), 0) / n
-  };
+    avgMetrics.layoutMs = samples.reduce((a, b) => a + (b.metrics.layoutMs as number), 0) / n;
+  }
   if (hasPaint) {
     avgMetrics.paintMs = samples.reduce((a, b) => a + (b.metrics.paintMs as number), 0) / n;
   }
@@ -110,16 +110,21 @@ export function averageSamples(samples: TestSample[]): TestSample {
   const frames: FrameRateSample[] = [];
   const maxLen = Math.max(...samples.map((s) => s.frames.length));
   for (let i = 0; i < maxLen; i++) {
-    const vals = samples.map((s) => s.frames[i]?.fps).filter((v) => typeof v === "number") as number[];
-    const ts = samples.map((s) => s.frames[i]?.t).filter((v) => typeof v === "number") as number[];
+    const vals = samples
+      .map((s) => s.frames[i]?.fps)
+      .filter((v) => typeof v === 'number') as number[];
+    const ts = samples.map((s) => s.frames[i]?.t).filter((v) => typeof v === 'number') as number[];
     if (vals.length) {
       frames.push({
- t: ts[0] ?? i, fps: vals.reduce((a, b) => a + b, 0) / vals.length 
-});
+        t: ts[0] ?? i,
+        fps: vals.reduce((a, b) => a + b, 0) / vals.length,
+      });
     }
   }
 
   return {
- memory: avgMemory, metrics: avgMetrics, frames 
-} as TestSample;
+    memory: avgMemory,
+    metrics: avgMetrics,
+    frames,
+  } as TestSample;
 }

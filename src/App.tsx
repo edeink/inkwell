@@ -1,9 +1,9 @@
-import "./App.css";
-import TestPage from "./test/test-page";
+import './App.css';
+import TestPage from './test/test-page';
 
 function App() {
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div style={{ width: '100vw', height: '100vh' }}>
       <TestPage />
     </div>
   );

@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,7 +9,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 export interface WrapData extends WidgetData {
   spacing?: number; // 同一行子元素之间的水平间距
@@ -30,7 +31,7 @@ export class Wrap extends Widget<WrapData> {
   }
 
   static {
-    Widget.registerType("Wrap", Wrap);
+    Widget.registerType('Wrap', Wrap);
   }
 
   protected createChildWidget(childData: WidgetData): Widget | null {
@@ -39,7 +40,10 @@ export class Wrap extends Widget<WrapData> {
 
   protected paintSelf(context: BuildContext): void {}
 
-  protected getConstraintsForChild(constraints: BoxConstraints, childIndex: number): BoxConstraints {
+  protected getConstraintsForChild(
+    constraints: BoxConstraints,
+    childIndex: number,
+  ): BoxConstraints {
     return {
       minWidth: 0,
       maxWidth: constraints.maxWidth,
@@ -50,17 +54,22 @@ export class Wrap extends Widget<WrapData> {
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const maxWidth = isFinite(constraints.maxWidth) ? constraints.maxWidth : Infinity;
-    let lines: { widths: number; height: number; indices: number[] }[] = [];
+    const lines: { widths: number; height: number; indices: number[] }[] = [];
     let currentLineWidth = 0;
     let currentLineHeight = 0;
     let currentIndices: number[] = [];
 
     for (let i = 0; i < childrenSizes.length; i++) {
       const sz = childrenSizes[i];
-      const nextWidth = currentIndices.length === 0 ? sz.width : currentLineWidth + this.spacing + sz.width;
+      const nextWidth =
+        currentIndices.length === 0 ? sz.width : currentLineWidth + this.spacing + sz.width;
       if (nextWidth > maxWidth) {
         // 换行
-        lines.push({ widths: currentLineWidth, height: currentLineHeight, indices: currentIndices });
+        lines.push({
+          widths: currentLineWidth,
+          height: currentLineHeight,
+          indices: currentIndices,
+        });
         currentLineWidth = sz.width;
         currentLineHeight = sz.height;
         currentIndices = [i];
@@ -74,17 +83,27 @@ export class Wrap extends Widget<WrapData> {
       lines.push({ widths: currentLineWidth, height: currentLineHeight, indices: currentIndices });
     }
 
-    const totalHeight = lines.reduce((acc, l, idx) => acc + l.height + (idx > 0 ? this.runSpacing : 0), 0);
-    const finalWidth = Math.min(Math.max(constraints.minWidth, Math.max(...lines.map(l => l.widths))), constraints.maxWidth);
+    const totalHeight = lines.reduce(
+      (acc, l, idx) => acc + l.height + (idx > 0 ? this.runSpacing : 0),
+      0,
+    );
+    const finalWidth = Math.min(
+      Math.max(constraints.minWidth, Math.max(...lines.map((l) => l.widths))),
+      constraints.maxWidth,
+    );
 
     // 记录行信息以供定位
     (this as any).__wrapLines = lines;
 
-    return { width: finalWidth, height: Math.max(constraints.minHeight, Math.min(totalHeight, constraints.maxHeight)) };
+    return {
+      width: finalWidth,
+      height: Math.max(constraints.minHeight, Math.min(totalHeight, constraints.maxHeight)),
+    };
   }
 
   protected positionChild(childIndex: number, childSize: Size): Offset {
-    const lines: { widths: number; height: number; indices: number[] }[] = (this as any).__wrapLines || [];
+    const lines: { widths: number; height: number; indices: number[] }[] =
+      (this as any).__wrapLines || [];
     let y = 0;
     for (let li = 0; li < lines.length; li++) {
       const line = lines[li];
@@ -94,7 +113,9 @@ export class Wrap extends Widget<WrapData> {
         for (let k = 0; k < idxInLine; k++) {
           const prevChild = this.children[line.indices[k]];
           x += prevChild.renderObject.size.width;
-          if (k < idxInLine) x += this.spacing;
+          if (k < idxInLine) {
+            x += this.spacing;
+          }
         }
         return { dx: x, dy: y };
       }
@@ -104,5 +125,5 @@ export class Wrap extends Widget<WrapData> {
   }
 }
 
-export type WrapProps = Omit<WrapData, "type" | "children"> & JSXComponentProps;
+export type WrapProps = Omit<WrapData, 'type' | 'children'> & JSXComponentProps;
 export const WrapElement: React.FC<WrapProps> = () => null;

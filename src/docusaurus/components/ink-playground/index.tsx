@@ -1,8 +1,10 @@
+import { CopyOutlined } from '@ant-design/icons';
 import React from 'react';
-import Inkwell from '../inkwell';
+
 import ControlPanel from '../control-panel';
 import EditorPane from '../editor-pane';
-import { CopyOutlined } from '@ant-design/icons';
+import Inkwell from '../inkwell';
+
 import styles from './index.module.less';
 
 interface InkPlaygroundProps {
@@ -16,10 +18,15 @@ function stripJsxImportSource(src: string) {
   return src
     .replace(/\/\*+\s*@jsxImportSource[\s\S]*?\*\//g, '')
     .replace(/\/\/\s*@jsxImportSource[^\n]*/g, '')
-    .trim()
+    .trim();
 }
 
-export default function InkPlayground({ code, width = 600, height = 300, readonly = false }: InkPlaygroundProps) {
+export default function InkPlayground({
+  code,
+  width = 600,
+  height = 300,
+  readonly = false,
+}: InkPlaygroundProps) {
   const initial = React.useMemo(() => stripJsxImportSource(code), [code]);
   const [localCode, setLocalCode] = React.useState(initial);
   const [committedCode, setCommittedCode] = React.useState(initial);
@@ -44,8 +51,14 @@ export default function InkPlayground({ code, width = 600, height = 300, readonl
           width={width}
           height={height}
           readonly
-          onError={(e) => { setError(e); setRunning(false); }}
-          onSuccess={() => { setError(null); setRunning(false); }}
+          onError={(e) => {
+            setError(e);
+            setRunning(false);
+          }}
+          onSuccess={() => {
+            setError(null);
+            setRunning(false);
+          }}
         />
       </div>
     );
@@ -55,7 +68,9 @@ export default function InkPlayground({ code, width = 600, height = 300, readonl
     <div className={styles.rootVertical}>
       <button
         className={styles.copyBtn}
-        onClick={() => { navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => { }) }}
+        onClick={() => {
+          navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => {});
+        }}
         aria-label="复制代码"
       >
         <CopyOutlined /> 复制
@@ -65,8 +80,14 @@ export default function InkPlayground({ code, width = 600, height = 300, readonl
         width={width}
         height={height}
         readonly={false}
-        onError={(e) => { setError(e); setRunning(false); }}
-        onSuccess={() => { setError(null); setRunning(false); }}
+        onError={(e) => {
+          setError(e);
+          setRunning(false);
+        }}
+        onSuccess={() => {
+          setError(null);
+          setRunning(false);
+        }}
       />
       <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
       <ControlPanel running={running} error={error} onRun={onRun} onClear={onClear} />

@@ -1,13 +1,11 @@
-import { type IRenderer } from "../renderer/IRenderer";
+import { type IRenderer } from '../renderer/IRenderer';
 
-import type { FlexProperties } from "./flex/type";
-
+import type { FlexProperties } from './flex/type';
 
 export interface JSXComponentProps {
   key?: string;
   children?: React.ReactNode;
 }
-
 
 /**
  * 基础组件类，提供构建、布局和绘制的基本方法
@@ -67,9 +65,7 @@ export interface BuildContext {
 /**
  * 创建默认的盒约束
  */
-export function createBoxConstraints(
-  options: Partial<BoxConstraints> = {}
-): BoxConstraints {
+export function createBoxConstraints(options: Partial<BoxConstraints> = {}): BoxConstraints {
   return {
     minWidth: options.minWidth ?? 0,
     maxWidth: options.maxWidth ?? Infinity,
@@ -81,10 +77,7 @@ export function createBoxConstraints(
 /**
  * 创建紧约束
  */
-export function createTightConstraints(
-  width: number,
-  height: number
-): BoxConstraints {
+export function createTightConstraints(width: number, height: number): BoxConstraints {
   return {
     minWidth: width,
     maxWidth: width,
@@ -114,7 +107,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   // 注册组件类型
   public static registerType<T extends WidgetData>(
     type: string,
-    constructor: new (data: T) => Widget<T>
+    constructor: new (data: T) => Widget<T>,
   ): void {
     Widget.registry.set(type, constructor);
   }
@@ -122,11 +115,11 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   // 创建组件实例
   public static createWidget(data: WidgetData): Widget | null {
     if (!data) {
-      console.error("createWidget: data is null or undefined");
+      console.error('createWidget: data is null or undefined');
       return null;
     }
     if (!data.type) {
-      console.error("createWidget: data.type is missing", data);
+      console.error('createWidget: data.type is missing', data);
       return null;
     }
 
@@ -135,11 +128,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
       try {
         return new constructor(data);
       } catch (error) {
-        console.error(
-          `Failed to create widget of type ${data.type}:`,
-          error,
-          data
-        );
+        console.error(`Failed to create widget of type ${data.type}:`, error, data);
         return null;
       }
     }
@@ -149,10 +138,10 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
   constructor(data: TData) {
     if (!data) {
-      throw new Error("Widget data cannot be null or undefined");
+      throw new Error('Widget data cannot be null or undefined');
     }
     if (!data.type) {
-      throw new Error("Widget data must have a type property");
+      throw new Error('Widget data must have a type property');
     }
 
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
@@ -161,11 +150,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.flex = data.flex || {}; // 初始化flex属性
 
     // 递归构建子组件
-    if (
-      data.children &&
-      Array.isArray(data.children) &&
-      data.children.length > 0
-    ) {
+    if (data.children && Array.isArray(data.children) && data.children.length > 0) {
       this.buildChildren(data.children);
     }
   }
@@ -234,10 +219,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     // 为每个子组件计算布局约束并执行布局
     for (let i = 0; i < this.children.length; i++) {
       const child = this.children[i];
-      const childConstraints = this.getConstraintsForChild(
-        parentConstraints,
-        i
-      );
+      const childConstraints = this.getConstraintsForChild(parentConstraints, i);
       const childSize = child.layout(childConstraints);
       sizes.push(childSize);
     }
@@ -262,7 +244,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // 默认实现，可由子类覆盖
     return constraints;
@@ -281,10 +263,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 执行布局计算
    * 类似于 Flutter 的 performLayout 方法
    */
-  protected abstract performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size;
+  protected abstract performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size;
 
   /**
    * 绘制组件及其子组件
@@ -300,10 +279,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
       context.renderer?.save?.();
 
       // 应用子组件的偏移
-      context.renderer?.translate?.(
-        child.renderObject.offset.dx,
-        child.renderObject.offset.dy
-      );
+      context.renderer?.translate?.(child.renderObject.offset.dx, child.renderObject.offset.dy);
 
       // 绘制子组件
       child.paint(context);

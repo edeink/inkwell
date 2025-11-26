@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,19 +9,19 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
-export type StackFit = "loose" | "expand" | "passthrough";
+export type StackFit = 'loose' | 'expand' | 'passthrough';
 export type AlignmentGeometry =
-  | "topLeft"
-  | "topCenter"
-  | "topRight"
-  | "centerLeft"
-  | "center"
-  | "centerRight"
-  | "bottomLeft"
-  | "bottomCenter"
-  | "bottomRight";
+  | 'topLeft'
+  | 'topCenter'
+  | 'topRight'
+  | 'centerLeft'
+  | 'center'
+  | 'centerRight'
+  | 'bottomLeft'
+  | 'bottomCenter'
+  | 'bottomRight';
 
 export interface StackData extends WidgetData {
   alignment?: AlignmentGeometry;
@@ -32,12 +33,12 @@ export interface StackData extends WidgetData {
  * Stack 组件 - 将子组件堆叠在一起
  */
 export class Stack extends Widget<StackData> {
-  alignment: AlignmentGeometry = "center";
-  fit: StackFit = "loose";
+  alignment: AlignmentGeometry = 'center';
+  fit: StackFit = 'loose';
 
   // 注册 Stack 组件类型
   static {
-    Widget.registerType("Stack", Stack);
+    Widget.registerType('Stack', Stack);
   }
 
   constructor(data: StackData) {
@@ -46,8 +47,8 @@ export class Stack extends Widget<StackData> {
   }
 
   private initStackProperties(data: StackData): void {
-    this.alignment = data.alignment || "topLeft";
-    this.fit = data.fit || "loose";
+    this.alignment = data.alignment || 'topLeft';
+    this.fit = data.fit || 'loose';
   }
 
   createElement(data: StackData): Widget {
@@ -68,10 +69,7 @@ export class Stack extends Widget<StackData> {
     // Stack 组件不绘制任何内容
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     if (childrenSizes.length === 0) {
       return {
         width: constraints.minWidth,
@@ -83,7 +81,7 @@ export class Stack extends Widget<StackData> {
     let height: number;
 
     switch (this.fit) {
-      case "expand":
+      case 'expand':
         // 扩展到最大约束
         width =
           constraints.maxWidth === Infinity
@@ -95,7 +93,7 @@ export class Stack extends Widget<StackData> {
             : constraints.maxHeight;
         break;
 
-      case "passthrough":
+      case 'passthrough':
         // 传递约束给子组件，Stack 本身尺寸由约束决定
         width =
           constraints.maxWidth === Infinity
@@ -107,7 +105,7 @@ export class Stack extends Widget<StackData> {
             : constraints.maxHeight;
         break;
 
-      case "loose":
+      case 'loose':
       default:
         // 根据子组件的最大尺寸确定
         width = Math.max(...childrenSizes.map((s) => s.width));
@@ -116,39 +114,31 @@ export class Stack extends Widget<StackData> {
     }
 
     // 确保满足约束条件
-    width = Math.max(
-      constraints.minWidth,
-      Math.min(width, constraints.maxWidth)
-    );
-    height = Math.max(
-      constraints.minHeight,
-      Math.min(height, constraints.maxHeight)
-    );
+    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
+    height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
 
     return { width, height };
   }
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     switch (this.fit) {
-      case "expand":
+      case 'expand':
         // 强制子组件扩展到 Stack 的尺寸
         return {
-          minWidth:
-            constraints.maxWidth === Infinity ? 0 : constraints.maxWidth,
+          minWidth: constraints.maxWidth === Infinity ? 0 : constraints.maxWidth,
           maxWidth: constraints.maxWidth,
-          minHeight:
-            constraints.maxHeight === Infinity ? 0 : constraints.maxHeight,
+          minHeight: constraints.maxHeight === Infinity ? 0 : constraints.maxHeight,
           maxHeight: constraints.maxHeight,
         };
 
-      case "passthrough":
+      case 'passthrough':
         // 直接传递约束
         return constraints;
 
-      case "loose":
+      case 'loose':
       default:
         // 宽松约束，子组件可以是任意尺寸
         return {
@@ -167,16 +157,13 @@ export class Stack extends Widget<StackData> {
     // 检查是否是 Positioned 组件
     if (
       child &&
-      typeof child === "object" &&
-      "isPositioned" in child &&
-      typeof child.isPositioned === "function" &&
+      typeof child === 'object' &&
+      'isPositioned' in child &&
+      typeof child.isPositioned === 'function' &&
       child.isPositioned()
     ) {
       // 对于 Positioned 组件，使用其 getStackPosition 方法
-      if (
-        "getStackPosition" in child &&
-        typeof child.getStackPosition === "function"
-      ) {
+      if ('getStackPosition' in child && typeof child.getStackPosition === 'function') {
         return child.getStackPosition(stackSize);
       }
     }
@@ -186,39 +173,39 @@ export class Stack extends Widget<StackData> {
     let dy: number;
 
     switch (this.alignment) {
-      case "topLeft":
+      case 'topLeft':
         dx = 0;
         dy = 0;
         break;
-      case "topCenter":
+      case 'topCenter':
         dx = (stackSize.width - childSize.width) / 2;
         dy = 0;
         break;
-      case "topRight":
+      case 'topRight':
         dx = stackSize.width - childSize.width;
         dy = 0;
         break;
-      case "centerLeft":
+      case 'centerLeft':
         dx = 0;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case "center":
+      case 'center':
         dx = (stackSize.width - childSize.width) / 2;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case "centerRight":
+      case 'centerRight':
         dx = stackSize.width - childSize.width;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case "bottomLeft":
+      case 'bottomLeft':
         dx = 0;
         dy = stackSize.height - childSize.height;
         break;
-      case "bottomCenter":
+      case 'bottomCenter':
         dx = (stackSize.width - childSize.width) / 2;
         dy = stackSize.height - childSize.height;
         break;
-      case "bottomRight":
+      case 'bottomRight':
         dx = stackSize.width - childSize.width;
         dy = stackSize.height - childSize.height;
         break;
@@ -231,5 +218,5 @@ export class Stack extends Widget<StackData> {
   }
 }
 
-export type StackProps = Omit<StackData, "type" | "children"> & JSXComponentProps;
+export type StackProps = Omit<StackData, 'type' | 'children'> & JSXComponentProps;
 export const StackElement: React.FC<StackProps> = () => null;

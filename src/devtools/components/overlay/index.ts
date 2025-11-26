@@ -1,7 +1,7 @@
-import styles from "./index.module.less";
+import styles from './index.module.less';
 
-import type { Widget } from "../../../core/base";
-import type Editor from "../../../editors/graphics-editor";
+import type { Widget } from '../../../core/base';
+import type Editor from '../../../editors/graphics-editor';
 
 /**
  * Overlay 高亮框
@@ -21,24 +21,26 @@ export class Overlay {
 
   mount(): void {
     const container = this.editor.getContainer();
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     try {
       const computed = window.getComputedStyle(container);
-      if (computed.position === "static") {
-        container.style.position = "relative";
+      if (computed.position === 'static') {
+        container.style.position = 'relative';
       }
     } catch (e) {
-      console.debug("DevTools overlay: unable to set container position", e);
+      console.debug('DevTools overlay: unable to set container position', e);
     }
-    const box = document.createElement("div");
+    const box = document.createElement('div');
     box.className = styles.overlayBox;
-    const info = document.createElement("div");
+    const info = document.createElement('div');
     info.className = styles.overlayInfo;
     box.appendChild(info);
     if (import.meta.env?.DEV) {
-      const guideH = document.createElement("div");
+      const guideH = document.createElement('div');
       guideH.className = styles.guideH;
-      const guideV = document.createElement("div");
+      const guideV = document.createElement('div');
       guideV.className = styles.guideV;
       box.appendChild(guideH);
       box.appendChild(guideV);
@@ -61,7 +63,9 @@ export class Overlay {
 
   setActive(v: boolean): void {
     this.active = v;
-    if (this.box && !v) this.box.style.display = "none";
+    if (this.box && !v) {
+      this.box.style.display = 'none';
+    }
   }
 
   highlight(widget: Widget | null): void {
@@ -69,10 +73,12 @@ export class Overlay {
       const container = this.editor.getContainer();
       const renderer = this.editor.getRenderer();
       const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-      const canvas = raw?.canvas ?? container?.querySelector("canvas") ?? null;
-      if (!container || !this.box || !this.info || !canvas) return;
+      const canvas = raw?.canvas ?? container?.querySelector('canvas') ?? null;
+      if (!container || !this.box || !this.info || !canvas) {
+        return;
+      }
       if (!this.active || !widget) {
-        this.box.style.display = "none";
+        this.box.style.display = 'none';
         return;
       }
       const containerRect = container.getBoundingClientRect();
@@ -85,22 +91,22 @@ export class Overlay {
       const pos = widget.getAbsolutePosition();
       const { width, height } = widget.renderObject.size;
 
-      this.box.style.display = "block";
+      this.box.style.display = 'block';
       this.box.style.left = `${pos.dx + offsetX}px`;
       this.box.style.top = `${pos.dy + offsetY}px`;
       this.box.style.width = `${width}px`;
       this.box.style.height = `${height}px`;
 
-      if (cssTransform && cssTransform !== "none") {
+      if (cssTransform && cssTransform !== 'none') {
         this.box.style.transform = cssTransform;
-        this.box.style.transformOrigin = cssOrigin || "0 0";
+        this.box.style.transformOrigin = cssOrigin || '0 0';
       } else {
-        this.box.style.transform = "none";
+        this.box.style.transform = 'none';
       }
 
       this.info.textContent = `${widget.type} · x:${Math.round(pos.dx)} y:${Math.round(pos.dy)} · w:${Math.round(width)} h:${Math.round(height)}`;
     } catch (err) {
-      console.warn("DevTools overlay highlight failed:", err);
+      console.warn('DevTools overlay highlight failed:', err);
     }
   }
 }
@@ -112,14 +118,18 @@ export class Overlay {
  * 返回：命中的 Widget 或 null
  */
 export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
-  if (!root) return null;
+  if (!root) {
+    return null;
+  }
   let found: Widget | null = null;
   function dfs(node: Widget): void {
     const pos = node.getAbsolutePosition();
     const { width, height } = node.renderObject.size;
     if (x >= pos.dx && x <= pos.dx + width && y >= pos.dy && y <= pos.dy + height) {
       found = node;
-      for (const child of node.children) dfs(child);
+      for (const child of node.children) {
+        dfs(child);
+      }
     }
   }
   dfs(root);

@@ -1,5 +1,15 @@
 /** @jsxImportSource @/utils/compiler */
-import { Center, Column, Container, Expanded, Padding, Positioned, Row, Stack, Text } from "../core";
+import {
+  Center,
+  Column,
+  Container,
+  Expanded,
+  Padding,
+  Positioned,
+  Row,
+  Stack,
+  Text,
+} from '../core';
 
 export const getTestTemplate = () => (
   <Column
@@ -20,8 +30,14 @@ export const getTestTemplate = () => (
     />
 
     {/* Row中的Expanded测试：居中修复并增加调试边框 */}
-    <Row key="row-expanded-section" spacing={10} mainAxisAlignment="center" crossAxisAlignment="center" mainAxisSize="min">
-      <Container border={{ width: 1, color: "#9e9e9e" }} padding={2}>
+    <Row
+      key="row-expanded-section"
+      spacing={10}
+      mainAxisAlignment="center"
+      crossAxisAlignment="center"
+      mainAxisSize="min"
+    >
+      <Container border={{ width: 1, color: '#9e9e9e' }} padding={2}>
         <Text
           key="row-left-text"
           text="左侧"
@@ -31,7 +47,14 @@ export const getTestTemplate = () => (
         />
       </Container>
       <Expanded flex={{ flex: 1 }}>
-        <Container key="row-expanded-container" color="#e8f5e8" height={120} padding={8} border={{ width: 1, color: "#9e9e9e" }} borderRadius={12}>
+        <Container
+          key="row-expanded-container"
+          color="#e8f5e8"
+          height={120}
+          padding={8}
+          border={{ width: 1, color: '#9e9e9e' }}
+          borderRadius={12}
+        >
           <Center>
             <Text
               key="row-expanded-text"
@@ -43,7 +66,7 @@ export const getTestTemplate = () => (
           </Center>
         </Container>
       </Expanded>
-      <Container border={{ width: 1, color: "#9e9e9e" }} padding={2}>
+      <Container border={{ width: 1, color: '#9e9e9e' }} padding={2}>
         <Text
           key="row-right-text"
           text="右侧"
@@ -65,19 +88,8 @@ export const getTestTemplate = () => (
       />
 
       <Row key="container-examples" spacing={20} mainAxisSize="min">
-        <Container
-          key="basic-container"
-          width={150}
-          height={100}
-          color="#e74c3c"
-          padding={12}
-        >
-          <Text
-            key="container-text"
-            text="基础容器"
-            fontSize={16}
-            fontWeight="bold"
-          />
+        <Container key="basic-container" width={150} height={100} color="#e74c3c" padding={12}>
+          <Text key="container-text" text="基础容器" fontSize={16} fontWeight="bold" />
         </Container>
 
         <Container
@@ -87,7 +99,7 @@ export const getTestTemplate = () => (
           color="#2ecc71"
           borderRadius={15}
           padding={12}
-          border={{ width: 2, color: "#1b5e20" }}
+          border={{ width: 2, color: '#1b5e20' }}
         >
           <Text
             key="rounded-text"
@@ -105,16 +117,11 @@ export const getTestTemplate = () => (
           color="#f39c12"
           border={{
             width: 3,
-            color: "#e67e22",
+            color: '#e67e22',
           }}
           padding={12}
         >
-          <Text
-            key="bordered-text"
-            text="边框容器"
-            fontSize={16}
-            fontWeight="bold"
-          />
+          <Text key="bordered-text" text="边框容器" fontSize={16} fontWeight="bold" />
         </Container>
       </Row>
     </Column>
@@ -135,16 +142,11 @@ export const getTestTemplate = () => (
           color="#e9ecef"
           border={{
             width: 1,
-            color: "#dee2e6",
+            color: '#dee2e6',
           }}
         >
           <Padding key="small-padding" padding={10}>
-            <Text
-              key="padding-text-1"
-              text="小间距 Padding"
-              fontSize={14}
-              color="#495057"
-            />
+            <Text key="padding-text-1" text="小间距 Padding" fontSize={14} color="#495057" />
           </Padding>
         </Container>
 
@@ -153,16 +155,11 @@ export const getTestTemplate = () => (
           color="#e9ecef"
           border={{
             width: 1,
-            color: "#dee2e6",
+            color: '#dee2e6',
           }}
         >
           <Padding key="large-padding" padding={25}>
-            <Text
-              key="padding-text-2"
-              text="大间距 Padding"
-              fontSize={14}
-              color="#495057"
-            />
+            <Text key="padding-text-2" text="大间距 Padding" fontSize={14} color="#495057" />
           </Padding>
         </Container>
       </Row>
@@ -170,13 +167,7 @@ export const getTestTemplate = () => (
 
     {/* Center 组件展示 */}
     <Column key="center-section" spacing={15} mainAxisSize="min">
-      <Text
-        key="center-title"
-        text="Center 组件"
-        fontSize={24}
-        color="#ffc107"
-        fontWeight="bold"
-      />
+      <Text key="center-title" text="Center 组件" fontSize={24} color="#ffc107" fontWeight="bold" />
 
       <Container
         key="center-demo"
@@ -185,7 +176,7 @@ export const getTestTemplate = () => (
         color="#fff3cd"
         border={{
           width: 1,
-          color: "#ffeaa7",
+          color: '#ffeaa7',
         }}
       >
         <Center key="center-widget">
@@ -202,13 +193,7 @@ export const getTestTemplate = () => (
 
     {/* Stack 组件展示 */}
     <Column key="stack-section" spacing={15} mainAxisSize="min">
-      <Text
-        key="stack-title"
-        text="Stack 组件"
-        fontSize={24}
-        color="#dc3545"
-        fontWeight="bold"
-      />
+      <Text key="stack-title" text="Stack 组件" fontSize={24} color="#dc3545" fontWeight="bold" />
 
       <Container
         key="stack-demo"
@@ -216,23 +201,12 @@ export const getTestTemplate = () => (
         height={150}
         border={{
           width: 1,
-          color: "#dee2e6",
+          color: '#dee2e6',
         }}
       >
         <Stack key="stack-widget" alignment="center">
-          <Container
-            key="stack-bg"
-            width={200}
-            height={100}
-            color="#f8d7da"
-          />
-          <Text
-            key="stack-text"
-            text="堆叠布局"
-            fontSize={18}
-            color="#721c24"
-            fontWeight="bold"
-          />
+          <Container key="stack-bg" width={200} height={100} color="#f8d7da" />
+          <Text key="stack-text" text="堆叠布局" fontSize={18} color="#721c24" fontWeight="bold" />
         </Stack>
       </Container>
     </Column>
@@ -254,39 +228,19 @@ export const getTestTemplate = () => (
         color="#f8f9fa"
         border={{
           width: 1,
-          color: "#dee2e6",
+          color: '#dee2e6',
         }}
       >
         <Stack key="positioned-stack">
           <Positioned key="positioned-tl" left={10} top={10}>
-            <Container
-              key="pos-tl-container"
-              width={60}
-              height={30}
-              color="#6f42c1"
-            >
-              <Text
-                key="pos-tl-text"
-                text="左上"
-                fontSize={12}
-                fontWeight="bold"
-              />
+            <Container key="pos-tl-container" width={60} height={30} color="#6f42c1">
+              <Text key="pos-tl-text" text="左上" fontSize={12} fontWeight="bold" />
             </Container>
           </Positioned>
 
           <Positioned key="positioned-br" right={10} bottom={10}>
-            <Container
-              key="pos-br-container"
-              width={60}
-              height={30}
-              color="#6f42c1"
-            >
-              <Text
-                key="pos-br-text"
-                text="右下"
-                fontSize={12}
-                fontWeight="bold"
-              />
+            <Container key="pos-br-container" width={60} height={30} color="#6f42c1">
+              <Text key="pos-br-text" text="右下" fontSize={12} fontWeight="bold" />
             </Container>
           </Positioned>
         </Stack>

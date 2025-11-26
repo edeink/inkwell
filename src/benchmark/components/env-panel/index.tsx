@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import styles from "./index.module.less";
+import styles from './index.module.less';
 
 export type EnvItem = { label: string; value: string };
 
@@ -14,26 +14,33 @@ function collectEnv() {
   const lang = navigator.language;
   return [
     {
- label: "操作系统", value: plat 
-},
+      label: '操作系统',
+      value: plat,
+    },
     {
- label: "浏览器", value: ua 
-},
+      label: '浏览器',
+      value: ua,
+    },
     {
- label: "CPU 核心", value: cores ? String(cores) : "未知" 
-},
+      label: 'CPU 核心',
+      value: cores ? String(cores) : '未知',
+    },
     {
- label: "内存(GB)", value: mem ? String(mem) : "未知" 
-},
+      label: '内存(GB)',
+      value: mem ? String(mem) : '未知',
+    },
     {
- label: "DPR", value: String(dpr) 
-},
+      label: 'DPR',
+      value: String(dpr),
+    },
     {
- label: "分辨率", value: screenSize 
-},
+      label: '分辨率',
+      value: screenSize,
+    },
     {
- label: "语言", value: lang 
-},
+      label: '语言',
+      value: lang,
+    },
   ];
 }
 

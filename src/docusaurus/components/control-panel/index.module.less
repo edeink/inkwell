@@ -84,14 +84,18 @@
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform .15s ease, color .15s ease, box-shadow .15s ease, background .15s ease;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 0, 0, .2);
+    background: rgba(0, 0, 0, 0.2);
   }
 
   &:disabled {
-    opacity: .6;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
     "preview": "vite preview",
     "test": "vitest",
     "benchmark": "vite --open /src/benchmark/index.html",
@@ -15,7 +16,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "antd": "^5.29.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
@@ -31,12 +31,15 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "antd": "^5.29.0",
     "baseline-browser-mapping": "^2.8.31",
     "css-loader": "^6.10.0",
     "docusaurus-plugin-search-local": "^2.1.2",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.5",
     "eslint": "^9.33.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -50,7 +53,8 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^5.4.10",
-    "vitest": "^2.1.5"
+    "vitest": "^2.1.5",
+    "prettier": "^3.3.3"
   },
   "volta": {
     "node": "22.19.0"

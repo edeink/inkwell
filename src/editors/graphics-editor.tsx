@@ -1,18 +1,20 @@
-import type { AnyElement } from "@/utils/compiler/jsx-compiler";
-import { compileElement, compileTemplate } from "@/utils/compiler/jsx-compiler";
-import type { BoxConstraints, BuildContext } from "../core/base";
-import { Widget } from "../core/base";
-import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
-import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
-import { LOCAL_RESOLUTION } from "../utils/local-storage";
+import { Widget } from '../core/base';
+import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
+import { LOCAL_RESOLUTION } from '../utils/local-storage';
+
+import type { BoxConstraints, BuildContext } from '../core/base';
+import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
+import type { AnyElement } from '@/utils/compiler/jsx-compiler';
+
+import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
 // 导入注册表以确保所有组件类型都已注册
-import "../core/registry";
+import '../core/registry';
 
 /**
  * 编辑器配置接口
  */
 export interface EditorOptions {
-  renderer?: "canvas2d" | string;
+  renderer?: 'canvas2d' | string;
   /** 是否开启抗锯齿 */
   antialias?: boolean;
   /** 分辨率 */
@@ -24,18 +26,18 @@ export interface EditorOptions {
 }
 
 export const enum ComponentType {
-  Column = "Column",
-  Text = "Text",
-  Row = "Row",
-  Expanded = "Expanded",
-  Image = "Image",
-  SizedBox = "SizedBox",
-  Container = "Container",
-  Padding = "Padding",
-  Center = "Center",
-  Stack = "Stack",
-  Positioned = "Positioned",
-  Wrap = "Wrap",
+  Column = 'Column',
+  Text = 'Text',
+  Row = 'Row',
+  Expanded = 'Expanded',
+  Image = 'Image',
+  SizedBox = 'SizedBox',
+  Container = 'Container',
+  Padding = 'Padding',
+  Center = 'Center',
+  Stack = 'Stack',
+  Positioned = 'Positioned',
+  Wrap = 'Wrap',
 }
 
 /**
@@ -60,10 +62,7 @@ export default class Editor {
    * @param containerId 容器元素ID
    * @param options 编辑器配置
    */
-  static async create(
-    containerId: string,
-    options: EditorOptions = {}
-  ): Promise<Editor> {
+  static async create(containerId: string, options: EditorOptions = {}): Promise<Editor> {
     const editor = new Editor();
     await editor.init(containerId, options);
     return editor;
@@ -73,12 +72,9 @@ export default class Editor {
     // 私有构造函数，强制使用 create 方法
   }
 
-  private async init(
-    containerId: string,
-    options: EditorOptions
-  ): Promise<void> {
+  private async init(containerId: string, options: EditorOptions): Promise<void> {
     this.container = this.initContainer(containerId);
-    this.renderer = this.createRenderer(options.renderer || "canvas2d");
+    this.renderer = this.createRenderer(options.renderer || 'canvas2d');
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
     this.initEvent();
   }
@@ -86,7 +82,7 @@ export default class Editor {
   /**
    * 初始化事件
    */
-  private initEvent() { }
+  private initEvent() {}
 
   /**
    * 初始化容器
@@ -108,7 +104,7 @@ export default class Editor {
    */
   private createRenderer(rendererType: string): IRenderer {
     switch (rendererType.toLowerCase()) {
-      case "canvas2d":
+      case 'canvas2d':
       default:
         return new Canvas2DRenderer();
     }
@@ -121,9 +117,11 @@ export default class Editor {
    */
   private async initRenderer(
     options: EditorOptions = {},
-    size?: { width: number; height: number }
+    size?: { width: number; height: number },
   ): Promise<void> {
-    if (!this.renderer || !this.container) return;
+    if (!this.renderer || !this.container) {
+      return;
+    }
 
     const rendererOptions: RendererOptions = {
       antialias: options.antialias ?? true,
@@ -159,7 +157,9 @@ export default class Editor {
    * @param options 编辑器配置
    */
   switchRenderer(rendererType: string, options: EditorOptions = {}): void {
-    if (!this.container) return;
+    if (!this.container) {
+      return;
+    }
 
     // 销毁当前渲染器
     if (this.renderer) {
@@ -193,7 +193,7 @@ export default class Editor {
    */
   async renderFromJSON(jsonData: ComponentData): Promise<void> {
     if (!this.renderer || !this.container) {
-      console.warn("Editor not initialized");
+      console.warn('Editor not initialized');
       return;
     }
 
@@ -216,11 +216,11 @@ export default class Editor {
       }
     } catch (error) {
       // 捕获并显示Flutter风格的错误
-      console.error("渲染错误:", error);
+      console.error('渲染错误:', error);
 
       // 在页面上显示错误信息
       if (this.container) {
-        const errorDiv = document.createElement("div");
+        const errorDiv = document.createElement('div');
         errorDiv.style.cssText = `
           position: absolute;
           top: 10px;
@@ -238,16 +238,15 @@ export default class Editor {
           max-height: 300px;
           overflow-y: auto;
         `;
-        errorDiv.textContent =
-          error instanceof Error ? error.message : String(error);
+        errorDiv.textContent = error instanceof Error ? error.message : String(error);
 
         // 清除之前的错误信息
-        const existingError = this.container.querySelector(".flutter-error");
+        const existingError = this.container.querySelector('.flutter-error');
         if (existingError) {
           existingError.remove();
         }
 
-        errorDiv.className = "flutter-error";
+        errorDiv.className = 'flutter-error';
         this.container.appendChild(errorDiv);
       }
 
@@ -263,20 +262,20 @@ export default class Editor {
    */
   private parseComponentData(data: ComponentData): Widget | null {
     if (!data || !data.type) {
-      console.warn("Invalid component data:", data);
+      console.warn('Invalid component data:', data);
       return null;
     }
 
     // 确保数据完整性
     if (!data.key) {
-      console.warn("Missing key for component:", data.type);
+      console.warn('Missing key for component:', data.type);
     }
 
     // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
     try {
       return Widget.createWidget(data);
     } catch (error) {
-      console.error("Failed to create widget:", error, data);
+      console.error('Failed to create widget:', error, data);
       return null;
     }
   }
@@ -316,7 +315,9 @@ export default class Editor {
    * 执行渲染
    */
   private performRender(): void {
-    if (!this.rootWidget || !this.renderer) return;
+    if (!this.rootWidget || !this.renderer) {
+      return;
+    }
 
     // 创建构建上下文
     const context: BuildContext = {
@@ -329,7 +330,9 @@ export default class Editor {
   }
 
   rebuild(): void {
-    if (!this.rootWidget || !this.renderer || !this.container) return;
+    if (!this.rootWidget || !this.renderer || !this.container) {
+      return;
+    }
     const totalSize = this.calculateLayout();
     void this.initRenderer({}, totalSize).then(() => {
       this.clearCanvas();
@@ -341,9 +344,11 @@ export default class Editor {
    * 清除画布内容
    */
   private clearCanvas(): void {
-    if (!this.renderer) return;
+    if (!this.renderer) {
+      return;
+    }
     const raw = this.renderer.getRawInstance();
-    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === "function") {
+    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === 'function') {
       const ctx = raw as CanvasRenderingContext2D;
       const canvas = ctx.canvas;
       ctx.clearRect(0, 0, canvas.width, canvas.height);

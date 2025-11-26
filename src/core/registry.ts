@@ -1,17 +1,17 @@
-import { Widget } from "./base";
+import { Widget } from './base';
 
 // 导入所有组件以确保它们被注册
-import "../core/center";
-import "../core/container";
-import "../core/flex/column";
-import "../core/flex/expanded";
-import "../core/flex/row";
-import "../core/image";
-import "../core/padding";
-import "../core/positioned";
-import "../core/stack";
-import "../core/text";
-import "./sized-box";
+import '../core/center';
+import '../core/container';
+import '../core/flex/column';
+import '../core/flex/expanded';
+import '../core/flex/row';
+import '../core/image';
+import '../core/padding';
+import '../core/positioned';
+import '../core/stack';
+import '../core/text';
+import './sized-box';
 
 export class WidgetRegistry {
   private widgets: Map<string, new (data: any) => Widget> = new Map();
@@ -38,10 +38,7 @@ export class WidgetRegistry {
 export const widgetRegistry = new WidgetRegistry();
 
 // 便捷函数
-export function registerWidget(
-  type: string,
-  widgetClass: new (data: any) => Widget
-): void {
+export function registerWidget(type: string, widgetClass: new (data: any) => Widget): void {
   widgetRegistry.register(type, widgetClass);
 }
 
@@ -50,17 +47,15 @@ export function createWidget(type: string, data: any): Widget | null {
 }
 
 // 导入并注册所有组件
-import { Center } from "./center";
-import { Container } from "./container";
-import { Padding } from "./padding";
-import { Positioned } from "./positioned";
-import { Stack } from "./stack";
+import { Center } from './center';
+import { Container } from './container';
+import { Padding } from './padding';
+import { Positioned } from './positioned';
+import { Stack } from './stack';
 
 // 注册所有组件
-registerWidget("container", Container);
-registerWidget("padding", Padding);
-registerWidget("center", Center);
-registerWidget("stack", Stack);
-registerWidget("positioned", Positioned);
-
-
+registerWidget('container', Container);
+registerWidget('padding', Padding);
+registerWidget('center', Center);
+registerWidget('stack', Stack);
+registerWidget('positioned', Positioned);

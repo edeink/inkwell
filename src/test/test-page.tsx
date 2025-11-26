@@ -1,30 +1,30 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
-import { DevTools } from "../devtools/index";
-import Editor from "../editors/graphics-editor";
-import { Canvas2DRenderer } from "../renderer/canvas2d/canvas-2d-renderer";
+import { DevTools } from '../devtools/index';
+import Editor from '../editors/graphics-editor';
+import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 
-import { getTestTemplate } from "./data";
-import styles from "./index.module.less";
+import { getTestTemplate } from './data';
+import styles from './index.module.less';
 
-import type { IRenderer, RendererOptions } from "../renderer/IRenderer";
+import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
 
 /**
  * 渲染器测试类
  * 用于直接测试不同渲染器的图片和文字渲染功能
  */
-type Theme = "light" | "dark";
+type Theme = 'light' | 'dark';
 
 class RendererTest {
   private renderer: IRenderer;
   private container: HTMLElement;
-  private rendererType: "canvas2d";
+  private rendererType: 'canvas2d';
   private theme: Theme;
 
   constructor(
     container: HTMLElement,
-    rendererType: "canvas2d" = "canvas2d",
-    theme: Theme = "dark"
+    rendererType: 'canvas2d' = 'canvas2d',
+    theme: Theme = 'dark',
   ) {
     this.container = container;
     this.rendererType = rendererType;
@@ -40,7 +40,7 @@ class RendererTest {
     const options: RendererOptions = {
       width: 800,
       height: 600,
-      background: this.theme === "dark" ? 0x000000 : 0xffffff,
+      background: this.theme === 'dark' ? 0x000000 : 0xffffff,
       backgroundAlpha: 1,
       antialias: true,
       resolution: 4,
@@ -55,7 +55,7 @@ class RendererTest {
    */
   clearCanvas(): void {
     const raw = this.renderer.getRawInstance();
-    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === "function") {
+    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === 'function') {
       const ctx = raw as CanvasRenderingContext2D;
       const canvas = ctx.canvas;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -78,12 +78,12 @@ class RendererTest {
 
     // 测试文本渲染
     this.renderer.drawText({
-      text: "渲染器测试文本",
+      text: '渲染器测试文本',
       x: 100,
       y: 100,
       fontSize: 24,
-      color: "#333333",
-      fontWeight: "bold",
+      color: '#333333',
+      fontWeight: 'bold',
     });
 
     // 测试矩形渲染
@@ -92,18 +92,18 @@ class RendererTest {
       y: 150,
       width: 200,
       height: 100,
-      fill: "#007bff",
-      stroke: "#0056b3",
+      fill: '#007bff',
+      stroke: '#0056b3',
       strokeWidth: 2,
     });
 
     // 测试更多文本
     this.renderer.drawText({
-      text: "矩形渲染测试",
+      text: '矩形渲染测试',
       x: 120,
       y: 180,
       fontSize: 16,
-      color: "#ffffff",
+      color: '#ffffff',
     });
 
     console.log(`${this.rendererType.toUpperCase()} 渲染器测试完成`);
@@ -113,7 +113,7 @@ class RendererTest {
    * 运行完整流程测试
    */
   async runCompleteTest(): Promise<void> {
-    console.log("运行完整流程测试...");
+    console.log('运行完整流程测试...');
 
     // 清空画布
     this.clearCanvas();
@@ -122,56 +122,57 @@ class RendererTest {
     const template = getTestTemplate;
 
     // 清空容器内容
-    this.container.innerHTML = "";
+    this.container.innerHTML = '';
 
     // 为容器设置临时ID（如果没有的话）
     if (!this.container.id) {
-      this.container.id =
-        "temp-editor-container-" + Math.random().toString(36).substr(2, 9);
+      this.container.id = 'temp-editor-container-' + Math.random().toString(36).substr(2, 9);
     }
 
     // 创建编辑器实例并渲染
     const editor = await Editor.create(this.container.id, {
       renderer: this.rendererType,
-      background: this.theme === "dark" ? "#000000" : "#ffffff",
+      background: this.theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,
     });
     await editor.renderTemplate(template);
 
-    console.log("编辑器完整流程测试完成");
+    console.log('编辑器完整流程测试完成');
   }
 }
 
-type TabType = "complete" | "renderer";
+type TabType = 'complete' | 'renderer';
 
 const TestPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const testInstanceRef = useRef<RendererTest | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>("complete");
-  const [rendererType] = useState<"canvas2d">("canvas2d");
-  const [theme, setTheme] = useState<Theme>("light");
+  const [activeTab, setActiveTab] = useState<TabType>('complete');
+  const [rendererType] = useState<'canvas2d'>('canvas2d');
+  const [theme, setTheme] = useState<Theme>('light');
   const [editorForDevtools, setEditorForDevtools] = useState<Editor | null>(null);
-  const [showDevtools, setShowDevtools] = useState(() => localStorage.getItem("INKWELL_DEVTOOLS_VISIBLE") === "true");
+  const [showDevtools, setShowDevtools] = useState(
+    () => localStorage.getItem('INKWELL_DEVTOOLS_VISIBLE') === 'true',
+  );
   useEffect(() => {
     function onGlobalKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setShowDevtools(false);
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") setShowDevtools(true);
+      if (e.key === 'Escape') {
+        setShowDevtools(false);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+        setShowDevtools(true);
+      }
     }
-    window.addEventListener("keydown", onGlobalKey);
-    return () => window.removeEventListener("keydown", onGlobalKey);
+    window.addEventListener('keydown', onGlobalKey);
+    return () => window.removeEventListener('keydown', onGlobalKey);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("INKWELL_DEVTOOLS_VISIBLE", String(showDevtools));
+    localStorage.setItem('INKWELL_DEVTOOLS_VISIBLE', String(showDevtools));
   }, [showDevtools]);
 
   const initRenderer = async () => {
     if (containerRef.current) {
-      testInstanceRef.current = new RendererTest(
-        containerRef.current,
-        rendererType,
-        theme
-      );
+      testInstanceRef.current = new RendererTest(containerRef.current, rendererType, theme);
       await testInstanceRef.current.init();
     }
   };
@@ -184,24 +185,22 @@ const TestPage: React.FC = () => {
 
   // 完整流程测试：Build → Layout → Paint
   const runCompleteTest = async () => {
-    console.log("运行完整流程测试...");
+    console.log('运行完整流程测试...');
     clearCanvas();
 
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
 
-    const testInstance = new RendererTest(
-      containerRef.current,
-      rendererType,
-      theme
-    );
+    const testInstance = new RendererTest(containerRef.current, rendererType, theme);
     // 直接创建编辑器并保存引用以用于 DevTools
     const container = containerRef.current;
     if (!container.id) {
-      container.id = "temp-editor-container-" + Math.random().toString(36).substr(2, 9);
+      container.id = 'temp-editor-container-' + Math.random().toString(36).substr(2, 9);
     }
     const editor = await Editor.create(container.id, {
       renderer: rendererType,
-      background: theme === "dark" ? "#000000" : "#ffffff",
+      background: theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,
     });
     await editor.renderTemplate(getTestTemplate);
@@ -210,7 +209,7 @@ const TestPage: React.FC = () => {
 
   // 渲染器测试
   const runRendererTest = async () => {
-    console.log("运行渲染器测试...");
+    console.log('运行渲染器测试...');
 
     if (!testInstanceRef.current) {
       await initRenderer();
@@ -223,38 +222,36 @@ const TestPage: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
     testInstanceRef.current = null;
   };
 
   return (
-    <div className={`${styles.container} ${theme === "dark" ? styles.dark : styles.light}`}>
+    <div className={`${styles.container} ${theme === 'dark' ? styles.dark : styles.light}`}>
       <div className={styles.themeSwitch} onClick={toggleTheme}>
-        <span className={styles.switchLabel}>{theme === "dark" ? "黑夜" : "白天"}</span>
-        <span className={`${styles.switch} ${theme === "dark" ? styles.on : styles.off}`}></span>
+        <span className={styles.switchLabel}>{theme === 'dark' ? '黑夜' : '白天'}</span>
+        <span className={`${styles.switch} ${theme === 'dark' ? styles.on : styles.off}`}></span>
       </div>
       <h1 className={styles.title}>渲染器测试页面</h1>
 
       {/* Tab 导航 */}
       <div className={styles.tabNavigation}>
         <button
-          onClick={() => setActiveTab("complete")}
-          className={`${styles.tabButton} ${activeTab === "complete" ? styles.active : ""
-            }`}
+          onClick={() => setActiveTab('complete')}
+          className={`${styles.tabButton} ${activeTab === 'complete' ? styles.active : ''}`}
         >
           完整流程测试
         </button>
         <button
-          onClick={() => setActiveTab("renderer")}
-          className={`${styles.tabButton} ${activeTab === "renderer" ? styles.active : ""
-            }`}
+          onClick={() => setActiveTab('renderer')}
+          className={`${styles.tabButton} ${activeTab === 'renderer' ? styles.active : ''}`}
         >
           渲染器测试
         </button>
       </div>
 
       {/* 完整流程测试页签 */}
-      {activeTab === "complete" && (
+      {activeTab === 'complete' && (
         <div className={styles.testContent}>
           <h2>完整流程测试</h2>
           <p>测试 Build → Layout → Paint 三个阶段的完整渲染流程</p>
@@ -265,19 +262,13 @@ const TestPage: React.FC = () => {
           </div>
 
           <div className={styles.buttonGroup}>
-            <button
-              onClick={runCompleteTest}
-              className={`${styles.button} ${styles.primary}`}
-            >
+            <button onClick={runCompleteTest} className={`${styles.button} ${styles.primary}`}>
               运行完整流程测试
             </button>
           </div>
           <div className={styles.buttonGroup}>
-            <button
-              onClick={() => setShowDevtools((v) => !v)}
-              className={`${styles.button}`}
-            >
-              {showDevtools ? "关闭 DevTools" : "开启 DevTools"}
+            <button onClick={() => setShowDevtools((v) => !v)} className={`${styles.button}`}>
+              {showDevtools ? '关闭 DevTools' : '开启 DevTools'}
             </button>
           </div>
           {showDevtools && editorForDevtools && (
@@ -286,12 +277,11 @@ const TestPage: React.FC = () => {
             </div>
           )}
           <div ref={containerRef} className={styles.canvasContainer} />
-
         </div>
       )}
 
       {/* 渲染器测试页签 */}
-      {activeTab === "renderer" && (
+      {activeTab === 'renderer' && (
         <div className={styles.testContent}>
           <h2>渲染器独立测试</h2>
           <p>直接测试渲染器的绘制功能，不经过 Build 和 Layout 阶段</p>
@@ -302,16 +292,10 @@ const TestPage: React.FC = () => {
           </div>
 
           <div className={styles.buttonGroup}>
-            <button
-              onClick={runRendererTest}
-              className={`${styles.button} ${styles.success}`}
-            >
+            <button onClick={runRendererTest} className={`${styles.button} ${styles.success}`}>
               运行渲染器测试
             </button>
-            <button
-              onClick={clearCanvas}
-              className={`${styles.button} ${styles.danger}`}
-            >
+            <button onClick={clearCanvas} className={`${styles.button} ${styles.danger}`}>
               清空画布
             </button>
           </div>

@@ -1,6 +1,6 @@
-import { Widget } from "../base";
+import { Widget } from '../base';
 
-import { FlexFit } from "./type";
+import { FlexFit } from './type';
 
 import type {
   BoxConstraints,
@@ -9,7 +9,7 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "../base";
+} from '../base';
 
 export interface ExpandedData extends WidgetData {
   child: WidgetData;
@@ -33,8 +33,12 @@ export class Expanded extends Widget<ExpandedData> {
 
   private initExpandedProperties(data: ExpandedData): void {
     // 从统一的flex属性中获取值
-    if (data.flex?.flex !== undefined) this.flexValue = data.flex.flex;
-    if (data.flex?.fit !== undefined) this.flexFit = data.flex.fit;
+    if (data.flex?.flex !== undefined) {
+      this.flexValue = data.flex.flex;
+    }
+    if (data.flex?.fit !== undefined) {
+      this.flexFit = data.flex.fit;
+    }
   }
 
   createElement(data: ExpandedData): Widget<ExpandedData> {
@@ -51,17 +55,14 @@ export class Expanded extends Widget<ExpandedData> {
 
   // 注册 Column 组件类型
   static {
-    Widget.registerType("Expanded", Expanded);
+    Widget.registerType('Expanded', Expanded);
   }
 
   protected paintSelf(context: BuildContext): void {
     // Expanded本身不绘制任何内容，只是一个布局容器
   }
 
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     if (childrenSizes.length === 0) {
       return {
         width: constraints.minWidth,
@@ -81,7 +82,7 @@ export class Expanded extends Widget<ExpandedData> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // Expanded将父级约束直接传递给子组件
     return constraints;
@@ -93,5 +94,5 @@ export class Expanded extends Widget<ExpandedData> {
   }
 }
 
-export type RowProps = Omit<ExpandedData, "type" | "children"> & JSXComponentProps;
+export type RowProps = Omit<ExpandedData, 'type' | 'children'> & JSXComponentProps;
 export const ExpandedElement: React.FC<RowProps> = () => null;

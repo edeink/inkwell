@@ -1,25 +1,27 @@
-import { PerformanceTestInterface } from "../../index.types";
+import { PerformanceTestInterface } from '../../index.types';
 
-import type { PerformanceMetrics } from "../../index.types";
+import type { PerformanceMetrics } from '../../index.types';
 
 type Ctx = {
   stage: HTMLElement;
 };
 
 export default class DomPerformanceTest extends PerformanceTestInterface {
-  name = "DOM";
+  name = 'DOM';
   private ctx: Ctx;
   private lastMetrics: PerformanceMetrics = {
- nodes: 0, createTimeMs: 0, avgPerNodeMs: 0 
-};
+    nodes: 0,
+    createTimeMs: 0,
+    avgPerNodeMs: 0,
+  };
   private frameSamples: { t: number; fps: number }[] = [];
   private startMark = 0;
 
   constructor(stage: HTMLElement) {
     super();
     this.ctx = {
- stage 
-};
+      stage,
+    };
   }
 
   private measureFramesStart(): void {
@@ -32,8 +34,9 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       if (dt > 0) {
         const fps = 1000 / dt;
         this.frameSamples.push({
- t: now - this.startMark, fps 
-});
+          t: now - this.startMark,
+          fps,
+        });
       }
       requestAnimationFrame(loop);
     };
@@ -42,7 +45,9 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
 
   private clearStage(): void {
     const el = this.ctx.stage;
-    while (el.firstChild) {el.removeChild(el.firstChild);}
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
   }
 
   async createMassiveNodes(targetCount: number): Promise<void> {
@@ -55,7 +60,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     const stageW = this.ctx.stage.clientWidth || 800;
     const stageH = this.ctx.stage.clientHeight || 600;
     for (let i = 0; i < targetCount; i++) {
-      const d = document.createElement("div");
+      const d = document.createElement('div');
       const x = Math.floor(Math.random() * Math.max(1, stageW - 4));
       const y = Math.floor(Math.random() * Math.max(1, stageH - 4));
       d.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:4px;height:4px;background:#888`;

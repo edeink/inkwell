@@ -1,5 +1,6 @@
-import React from "react";
-import { Widget } from "./base";
+import React from 'react';
+
+import { Widget } from './base';
 
 import type {
   BoxConstraints,
@@ -8,13 +9,13 @@ import type {
   Offset,
   Size,
   WidgetData,
-} from "./base";
+} from './base';
 
 /**
  * SizedBox组件的数据接口
  */
 export interface SizedBoxData extends WidgetData {
-  type: "sizedbox";
+  type: 'sizedbox';
   width?: number; // 固定宽度
   height?: number; // 固定高度
 }
@@ -30,7 +31,7 @@ export class SizedBox extends Widget<SizedBoxData> {
 
   // 注册 SizedBox 组件类型
   static {
-    Widget.registerType("SizedBox", SizedBox);
+    Widget.registerType('SizedBox', SizedBox);
   }
 
   constructor(data: SizedBoxData) {
@@ -70,10 +71,7 @@ export class SizedBox extends Widget<SizedBoxData> {
   /**
    * 执行布局计算
    */
-  protected performLayout(
-    constraints: BoxConstraints,
-    childrenSizes: Size[]
-  ): Size {
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // 计算SizedBox的尺寸
     let width = this.fixedWidth;
     let height = this.fixedHeight;
@@ -97,14 +95,8 @@ export class SizedBox extends Widget<SizedBoxData> {
     }
 
     // 确保满足约束条件
-    width = Math.max(
-      constraints.minWidth,
-      Math.min(width, constraints.maxWidth)
-    );
-    height = Math.max(
-      constraints.minHeight,
-      Math.min(height, constraints.maxHeight)
-    );
+    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
+    height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
 
     return { width, height };
   }
@@ -114,7 +106,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number
+    childIndex: number,
   ): BoxConstraints {
     // SizedBox只支持一个子组件
     if (childIndex > 0) {
@@ -161,7 +153,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static square(size: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedbox",
+      type: 'sizedbox',
       width: size,
       height: size,
       children: child ? [child] : undefined,
@@ -173,7 +165,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static width(width: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedbox",
+      type: 'sizedbox',
       width: width,
       children: child ? [child] : undefined,
     };
@@ -184,7 +176,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static height(height: number, child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedbox",
+      type: 'sizedbox',
       height: height,
       children: child ? [child] : undefined,
     };
@@ -195,7 +187,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static shrink(): SizedBoxData {
     return {
-      type: "sizedbox",
+      type: 'sizedbox',
       width: 0,
       height: 0,
     };
@@ -206,7 +198,7 @@ export class SizedBox extends Widget<SizedBoxData> {
    */
   static expand(child?: WidgetData): SizedBoxData {
     return {
-      type: "sizedbox",
+      type: 'sizedbox',
       width: Infinity,
       height: Infinity,
       children: child ? [child] : undefined,
@@ -214,5 +206,5 @@ export class SizedBox extends Widget<SizedBoxData> {
   }
 }
 
-export type SizedBoxProps = Omit<SizedBoxData, "type" | "children"> & JSXComponentProps;
+export type SizedBoxProps = Omit<SizedBoxData, 'type' | 'children'> & JSXComponentProps;
 export const SizedBoxElement: React.FC<SizedBoxProps> = () => null;

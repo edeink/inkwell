@@ -26,10 +26,7 @@ export interface IRenderer {
    * @param container 容器元素
    * @param options 渲染器配置
    */
-  initialize(
-    container: HTMLElement,
-    options: RendererOptions
-  ): void | Promise<void>;
+  initialize(container: HTMLElement, options: RendererOptions): void | Promise<void>;
 
   /**
    * 调整渲染器大小
@@ -89,8 +86,8 @@ export interface IRenderer {
     fontWeight?: string | number;
     color?: string;
     lineHeight?: number;
-    textAlign?: "left" | "center" | "right";
-    textBaseline?: "top" | "middle" | "bottom" | "alphabetic";
+    textAlign?: 'left' | 'center' | 'right';
+    textBaseline?: 'top' | 'middle' | 'bottom' | 'alphabetic';
     lines?: string[];
   }): void;
 
@@ -106,12 +103,14 @@ export interface IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    borderRadius?: number | {
-      topLeft: number;
-      topRight: number;
-      bottomLeft: number;
-      bottomRight: number;
-    };
+    borderRadius?:
+      | number
+      | {
+          topLeft: number;
+          topRight: number;
+          bottomLeft: number;
+          bottomRight: number;
+        };
   }): void;
 
   /**

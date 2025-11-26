@@ -1,4 +1,4 @@
-import type { IRenderer, RendererOptions } from "../IRenderer";
+import type { IRenderer, RendererOptions } from '../IRenderer';
 
 /**
  * Canvas2D 渲染器实现
@@ -26,19 +26,19 @@ export class Canvas2DRenderer implements IRenderer {
     this.options = options;
 
     // 创建 Canvas 元素
-    this.canvas = document.createElement("canvas");
+    this.canvas = document.createElement('canvas');
     this.canvas.width = options.width;
     this.canvas.height = options.height;
     this.canvas.style.width = `${options.width}px`;
     this.canvas.style.height = `${options.height}px`;
 
     // 获取 2D 渲染上下文
-    this.ctx = this.canvas.getContext("2d", {
+    this.ctx = this.canvas.getContext('2d', {
       alpha: options.backgroundAlpha !== 1,
     });
 
     if (!this.ctx) {
-      throw new Error("Failed to get 2D rendering context");
+      throw new Error('Failed to get 2D rendering context');
     }
 
     // 设置高分辨率支持
@@ -54,7 +54,7 @@ export class Canvas2DRenderer implements IRenderer {
     // 设置抗锯齿
     if (options.antialias !== false) {
       this.ctx.imageSmoothingEnabled = true;
-      this.ctx.imageSmoothingQuality = "high";
+      this.ctx.imageSmoothingQuality = 'high';
     }
 
     // 设置背景色
@@ -91,7 +91,7 @@ export class Canvas2DRenderer implements IRenderer {
     // 重新设置抗锯齿
     if (this.options.antialias !== false) {
       this.ctx.imageSmoothingEnabled = true;
-      this.ctx.imageSmoothingQuality = "high";
+      this.ctx.imageSmoothingQuality = 'high';
     }
 
     this.clearBackground();
@@ -131,7 +131,9 @@ export class Canvas2DRenderer implements IRenderer {
    * 保存当前绘图状态
    */
   save(): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
     this.ctx.save();
     // 保存当前变换矩阵
     this.transformStack.push(this.ctx.getTransform());
@@ -141,7 +143,9 @@ export class Canvas2DRenderer implements IRenderer {
    * 恢复之前保存的绘图状态
    */
   restore(): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
     this.ctx.restore();
     // 恢复变换矩阵
     this.transformStack.pop();
@@ -153,7 +157,9 @@ export class Canvas2DRenderer implements IRenderer {
    * @param y Y轴偏移量
    */
   translate(x: number, y: number): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
     this.ctx.translate(x, y);
   }
 
@@ -161,7 +167,9 @@ export class Canvas2DRenderer implements IRenderer {
    * 清除背景
    */
   private clearBackground(): void {
-    if (!this.ctx || !this.options) return;
+    if (!this.ctx || !this.options) {
+      return;
+    }
 
     const { width, height } = this.options;
 
@@ -193,26 +201,28 @@ export class Canvas2DRenderer implements IRenderer {
     fontWeight?: string | number;
     color?: string;
     lineHeight?: number;
-    textAlign?: "left" | "center" | "right";
-    textBaseline?: "top" | "middle" | "bottom";
+    textAlign?: 'left' | 'center' | 'right';
+    textBaseline?: 'top' | 'middle' | 'bottom';
     lines?: string[];
   }): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
 
     this.ctx.save();
 
     // 设置字体样式
     const fontSize = options.fontSize || 16;
-    const fontFamily = options.fontFamily || "Arial, sans-serif";
-    const fontWeight = options.fontWeight || "normal";
+    const fontFamily = options.fontFamily || 'Arial, sans-serif';
+    const fontWeight = options.fontWeight || 'normal';
     this.ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
 
     // 设置文本颜色
-    this.ctx.fillStyle = options.color || "#000000";
+    this.ctx.fillStyle = options.color || '#000000';
 
     // 设置文本对齐
-    this.ctx.textAlign = options.textAlign || "left";
-    this.ctx.textBaseline = options.textBaseline || "top";
+    this.ctx.textAlign = options.textAlign || 'left';
+    this.ctx.textBaseline = options.textBaseline || 'top';
 
     // 如果提供了分行文本，使用分行渲染
     if (options.lines && options.lines.length > 0) {
@@ -243,14 +253,18 @@ export class Canvas2DRenderer implements IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    borderRadius?: number | {
-      topLeft: number;
-      topRight: number;
-      bottomLeft: number;
-      bottomRight: number;
-    };
+    borderRadius?:
+      | number
+      | {
+          topLeft: number;
+          topRight: number;
+          bottomLeft: number;
+          bottomRight: number;
+        };
   }): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
 
     this.ctx.save();
 
@@ -287,7 +301,7 @@ export class Canvas2DRenderer implements IRenderer {
     this.ctx.restore();
   }
 
-// helper functions moved to file scope after class
+  // helper functions moved to file scope after class
 
   /**
    * 绘制图片
@@ -304,7 +318,9 @@ export class Canvas2DRenderer implements IRenderer {
     sWidth?: number;
     sHeight?: number;
   }): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      return;
+    }
 
     this.ctx.save();
 
@@ -325,20 +341,14 @@ export class Canvas2DRenderer implements IRenderer {
           options.x,
           options.y,
           options.width,
-          options.height
+          options.height,
         );
       } else {
         // 简单图片绘制
-        this.ctx.drawImage(
-          options.image,
-          options.x,
-          options.y,
-          options.width,
-          options.height
-        );
+        this.ctx.drawImage(options.image, options.x, options.y, options.width, options.height);
       }
     } catch (error) {
-      console.warn("Failed to draw image:", error);
+      console.warn('Failed to draw image:', error);
     }
 
     this.ctx.restore();
@@ -346,11 +356,12 @@ export class Canvas2DRenderer implements IRenderer {
 }
 
 function normalizeRadius(
-  radius?: number | { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number }
+  radius?: number | { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number },
 ) {
-  const r = typeof radius === "number"
-    ? { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius }
-    : radius || { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 };
+  const r =
+    typeof radius === 'number'
+      ? { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius }
+      : radius || { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 };
   return { ...r, total: r.topLeft + r.topRight + r.bottomLeft + r.bottomRight };
 }
 
@@ -360,7 +371,7 @@ function roundedRectPath(
   y: number,
   width: number,
   height: number,
-  r: { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number }
+  r: { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number },
 ) {
   const tl = r.topLeft || 0;
   const tr = r.topRight || 0;
@@ -368,11 +379,19 @@ function roundedRectPath(
   const bl = r.bottomLeft || 0;
   ctx.moveTo(x + tl, y);
   ctx.lineTo(x + width - tr, y);
-  if (tr) ctx.quadraticCurveTo(x + width, y, x + width, y + tr);
+  if (tr) {
+    ctx.quadraticCurveTo(x + width, y, x + width, y + tr);
+  }
   ctx.lineTo(x + width, y + height - br);
-  if (br) ctx.quadraticCurveTo(x + width, y + height, x + width - br, y + height);
+  if (br) {
+    ctx.quadraticCurveTo(x + width, y + height, x + width - br, y + height);
+  }
   ctx.lineTo(x + bl, y + height);
-  if (bl) ctx.quadraticCurveTo(x, y + height, x, y + height - bl);
+  if (bl) {
+    ctx.quadraticCurveTo(x, y + height, x, y + height - bl);
+  }
   ctx.lineTo(x, y + tl);
-  if (tl) ctx.quadraticCurveTo(x, y, x + tl, y);
+  if (tl) {
+    ctx.quadraticCurveTo(x, y, x + tl, y);
+  }
 }

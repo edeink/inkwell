@@ -35,15 +35,10 @@ export interface LocalStorageManager<T> {
  * @throws 如果键名已存在，则抛出错误
  * @returns 本地存储管理器对象
  */
-export function createLocalStorage<T>(
-  key: string,
-  defaultValue?: T
-): LocalStorageManager<T> {
+export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStorageManager<T> {
   // 检查键名是否已存在
   if (keyRegistry.has(key)) {
-    throw new Error(
-      `LocalStorage key "${key}" already exists. Keys must be unique.`
-    );
+    throw new Error(`LocalStorage key "${key}" already exists. Keys must be unique.`);
   }
 
   // 注册键名
@@ -89,7 +84,4 @@ export function createLocalStorage<T>(
 }
 
 // 基准分辨率
-export const LOCAL_RESOLUTION = createLocalStorage<number>(
-  "@edeink/editor/resolution",
-  4
-);
+export const LOCAL_RESOLUTION = createLocalStorage<number>('@edeink/editor/resolution', 4);

@@ -9,36 +9,26 @@ export interface JSXElement {
   key?: string | number | null;
 }
 
-export const Fragment = Symbol("Fragment");
+export const Fragment = Symbol('Fragment');
 
 function normalizeProps(props: unknown): Record<string, unknown> | null {
-  if (!props) return null;
+  if (!props) {
+    return null;
+  }
   // children 已由编译器处理，无需改动
   return props as Record<string, unknown>;
 }
 
-export function jsx(
-  type: unknown,
-  props: unknown,
-  key?: string | number
-): JSXElement {
+export function jsx(type: unknown, props: unknown, key?: string | number): JSXElement {
   return { type, props: normalizeProps(props), key: key ?? null };
 }
 
-export function jsxs(
-  type: unknown,
-  props: unknown,
-  key?: string | number
-): JSXElement {
+export function jsxs(type: unknown, props: unknown, key?: string | number): JSXElement {
   return { type, props: normalizeProps(props), key: key ?? null };
 }
 
 // 开发模式下 Vite/TS 可能会请求 jsx-dev-runtime 的 jsxDEV
-export function jsxDEV(
-  type: unknown,
-  props: unknown,
-  key?: string | number
-): JSXElement {
+export function jsxDEV(type: unknown, props: unknown, key?: string | number): JSXElement {
   return { type, props: normalizeProps(props), key: key ?? null };
 }
 

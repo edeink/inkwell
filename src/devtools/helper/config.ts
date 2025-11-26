@@ -4,9 +4,7 @@
  * 参数：k - 待判断的属性键
  * 返回：true 表示受保护（不可编辑），false 表示可编辑
  */
-export const PROTECTED_KEYS: string[] = [
-  "key",
-];
+export const PROTECTED_KEYS: string[] = ['key'];
 
 export function isProtectedKey(k: string): boolean {
   return PROTECTED_KEYS.includes(k);
