@@ -1,8 +1,9 @@
-import { Button, Modal, Select, Space } from 'antd';
+import { Card, Modal } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import Charts from './components/charts';
+import ControlPanel from './components/control-panel';
 import EnvPanel from './components/env-panel';
 import StageContainer from './components/stage-container';
 import StatusPanel from './components/status-panel';
@@ -26,14 +27,8 @@ type ProgressItem = {
 
 function listTests(): LoadedTest[] {
   return [
-    {
-      name: 'DOM',
-      create: (stage) => new DomPerformanceTest(stage),
-    },
-    {
-      name: 'Widget',
-      create: (stage) => new WidgetPerformanceTest(stage),
-    },
+    { name: 'DOM', create: (stage) => new DomPerformanceTest(stage) },
+    { name: 'Widget', create: (stage) => new WidgetPerformanceTest(stage) },
   ];
 }
 
@@ -45,25 +40,38 @@ async function runSingleWithProgress(
 ): Promise<TestResult> {
   const samples: TestSample[] = [];
   const total = repeat;
+  let longTaskDuration = 0;
+  const winStart = performance.now();
+  let po: PerformanceObserver | null = null;
+  try {
+    po = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      for (const e of entries as any) {
+        const d = (e.duration as number) || 0;
+        longTaskDuration += d;
+      }
+    });
+    po.observe({ entryTypes: ['longtask'] as any });
+  } catch {}
   for (let i = 1; i <= total; i++) {
     await test.createMassiveNodes(nodes);
     const memory = test.getMemoryUsage();
     const metrics = test.getPerformanceMetrics();
     const frames = test.getFrameRate();
-    samples.push({
-      memory,
-      metrics,
-      frames,
-    });
+    samples.push({ memory, metrics, frames });
     onProgress(i, total);
   }
   const avg = averageSamples(samples);
-  return {
-    name: test.name,
-    mode: 'compare' as any,
-    samples,
-    average: avg,
-  };
+  const winEnd = performance.now();
+  if (po) {
+    try {
+      po.disconnect();
+    } catch {}
+  }
+  const windowMs = Math.max(1, winEnd - winStart);
+  const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100);
+  avg.metrics.cpuBusyPercent = cpuBusyPercent;
+  return { name: test.name, mode: 'compare' as any, samples, average: avg };
 }
 
 function useRunAll(stageRef: RefObject<HTMLDivElement>) {
@@ -107,6 +115,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       })),
     );
     const list: TestResult[] = [];
+    {
+      const inst = tests[0].create(stage);
+      await runSingleWithProgress(inst, 50, 1, () => {});
+    }
     for (const t of tests) {
       const inst = t.create(stage);
       let done = 0;
@@ -146,6 +158,13 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
           ),
         );
       }
+    }
+    const expected = tests.length * nodeCounts.length;
+    if (list.length !== expected) {
+      console.warn('unexpected test result count', {
+        expected,
+        actual: list.length,
+      });
     }
     setResults(list);
     setLoading(false);
@@ -187,42 +206,32 @@ function App() {
     setNodeCounts,
   } = useRunAll(stageRef as React.RefObject<HTMLDivElement>);
 
+  const [repeat, setRepeat] = useState<number>(3);
+
   return (
-    <div>
-      <div className={styles.headerRow}>
-        <EnvPanel />
-        <StatusPanel items={progressItems} current={currentTask} />
-        <Space direction="vertical" size={8}>
-          <Select
-            style={{
-              width: 240,
-            }}
-            value={nodeCounts.map(String)}
-            mode="multiple"
-            options={[100, 500, 1000, 5000, 10000].map((n) => ({
-              label: `${n} 节点`,
-              value: String(n),
-            }))}
-            onChange={(vals) =>
-              setNodeCounts(
-                vals
-                  .map((v) => Number(v))
-                  .filter((v) => !Number.isNaN(v))
-                  .sort((a, b) => a - b),
-              )
-            }
+    <div className={styles.page}>
+      <div className={styles.toolbar}>
+        <Card size="small" variant="outlined">
+          <EnvPanel />
+        </Card>
+        <Card size="small" variant="outlined">
+          <StatusPanel items={progressItems} current={currentTask} />
+        </Card>
+        <Card size="small" variant="outlined">
+          <ControlPanel
+            nodeCounts={nodeCounts}
+            setNodeCounts={setNodeCounts}
+            repeat={repeat}
+            setRepeat={setRepeat}
+            start={start}
+            stop={stop}
+            loading={loading}
           />
-          <Space>
-            <Button type="primary" onClick={start} disabled={loading}>
-              运行测试
-            </Button>
-            <Button danger onClick={stop} disabled={!loading}>
-              停止
-            </Button>
-          </Space>
-        </Space>
+        </Card>
       </div>
-      <Charts results={results} />
+      <Card size="small" variant="outlined">
+        <Charts results={results} />
+      </Card>
       <Modal
         open={showStage}
         footer={null}

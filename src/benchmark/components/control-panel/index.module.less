@@ -1,0 +1,120 @@
+@space-1: 8px;
+@space-2: 16px;
+@space-3: 24px;
+@color-bg: #ffffff;
+@color-surface: #f7f7f7;
+@color-border: #e5e7eb;
+@text-muted: #6b7280;
+@text-default: #111827;
+
+.panel {
+  border: 1px solid @color-border;
+  border-radius: 12px;
+  padding: @space-2;
+  background: @color-bg;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: @space-2;
+}
+
+.sectionTitle {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: @text-default;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: @space-1 @space-2;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: @space-1;
+  flex-wrap: wrap;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: @space-1;
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: @space-2;
+  justify-content: flex-end;
+}
+
+.label {
+  color: @text-muted;
+  font-size: 13px;
+}
+
+.textSmall {
+  font-size: 12px;
+  color: #374151;
+}
+
+.divider {
+  color: @text-muted;
+}
+
+.input {
+  min-width: 100px;
+}
+
+.presetBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: @space-1;
+}
+
+.presetButton {
+  transition:
+    background-color 0.2s ease,
+    transform 0.05s ease;
+}
+
+.actionButton {
+  transition:
+    background-color 0.2s ease,
+    transform 0.05s ease;
+}
+
+.actionButton:hover,
+.presetButton:hover {
+  filter: brightness(0.98);
+}
+
+.actionButton:active,
+.presetButton:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 480px) {
+  .sectionTitle {
+    font-size: 14px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+}

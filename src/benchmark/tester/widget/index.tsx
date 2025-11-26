@@ -42,6 +42,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     avgPerNodeMs: 0,
   };
   private frameSamples: { t: number; fps: number }[] = [];
+  private memoryDebug: { t: number; used: number }[] = [];
   private startMark = 0;
 
   private async ensureEditor(): Promise<Editor> {
@@ -89,7 +90,11 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.startMark = performance.now();
     this.measureFramesStart();
 
-    const beforeMem = this.getMemoryUsage();
+    let beforeMem: { heapUsed: number } | null = null;
+    try {
+      beforeMem = this.getMemoryUsage();
+      this.memoryDebug.push({ t: 0, used: beforeMem.heapUsed });
+    } catch {}
 
     const tCompile0 = performance.now();
     const stageEl = this.ctx.stageEl;
@@ -123,26 +128,33 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     const tInit0 = performance.now();
     await renderer.initialize(container, opts);
     const tInit1 = performance.now();
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
 
-    const tPaint0 = performance.now();
-    const context: BuildContext = {
-      renderer,
-    };
+    const context: BuildContext = { renderer };
     root.paint(context);
     renderer.render();
-    const tPaint1 = performance.now();
+    const paintMs = await new Promise<number>((resolve) => {
+      const t0 = performance.now();
+      requestAnimationFrame(() => {
+        const t1 = performance.now();
+        resolve(t1 - t0);
+      });
+    });
 
-    const afterMem = this.getMemoryUsage();
-    const delta = afterMem.heapUsed - beforeMem.heapUsed;
+    let delta = 0;
+    try {
+      const afterMem = this.getMemoryUsage();
+      const tAfter = performance.now();
+      this.memoryDebug.push({ t: tAfter - this.startMark, used: afterMem.heapUsed });
+      if (beforeMem) {
+        delta = afterMem.heapUsed - beforeMem.heapUsed;
+      }
+    } catch {}
 
     const compileMs = tCompile1 - tCompile0;
     const buildMs = tBuild1 - tBuild0 + compileMs;
     const layoutMs = tLayout1 - tLayout0;
-    const paintMs = tPaint1 - tPaint0 + (tInit1 - tInit0);
-    const createTimeMs = buildMs + layoutMs + paintMs;
+    const paintTotalMs = paintMs + (tInit1 - tInit0);
+    const createTimeMs = buildMs + layoutMs + paintTotalMs;
 
     this.lastMetrics = {
       nodes: targetCount,
@@ -150,8 +162,8 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       avgPerNodeMs: createTimeMs / Math.max(1, targetCount),
       buildMs,
       layoutMs,
-      paintMs,
-      memoryDelta: delta,
+      paintMs: paintTotalMs,
+      memoryDelta: Math.max(0, delta),
     };
   }
 
@@ -161,6 +173,13 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
 
   getFrameRate() {
     return this.frameSamples.slice();
+  }
+
+  getDebugInfo() {
+    return {
+      memoryTimeline: this.memoryDebug.slice(),
+      frameZeroCount: this.frameSamples.filter((f) => f.fps <= 0).length,
+    };
   }
 
   constructor(stageEl: HTMLElement) {

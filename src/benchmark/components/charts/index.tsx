@@ -102,27 +102,56 @@ export default function Charts({ results }: { results: TestResult[] }) {
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, v.fps]),
       showSymbol: false,
+      markLine: { data: [{ yAxis: 60 }], label: { formatter: '60FPS 基准线' } },
     }));
     return {
-      title: {
-        text: '刷新率(Hz) vs 节点数',
-      },
-      tooltip: {
-        trigger: 'axis',
-      },
+      title: { text: '帧率（FPS）' },
+      tooltip: { trigger: 'axis' },
       legend: {},
-      xAxis: {
-        type: 'log',
-        name: '节点数',
-        logBase: 10,
-      },
-      yAxis: {
-        type: 'value',
-        name: 'Hz',
-      },
+      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      yAxis: { type: 'value', name: '帧率（FPS）' },
       series,
     } as EChartsOption;
   }, [byTest]);
+
+  const jankOption = useMemo<EChartsOption>(() => {
+    const series: any[] = Object.keys(byTest).map((name) => ({
+      name,
+      type: 'line',
+      data: byTest[name].map((v) => [v.nodes, r1pLow(results, name, v.nodes).jankCount]),
+      showSymbol: false,
+    }));
+    const yVals = series.flatMap((s: any) => s.data.map((d: any) => d[1]));
+    const ySpan = rangeOf(yVals).span;
+    return {
+      title: { text: '卡顿帧（Jank）' },
+      tooltip: { trigger: 'axis' },
+      legend: {},
+      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      yAxis: { type: ySpan > 1000 ? 'log' : 'value', name: '帧数（frames）' },
+      series,
+    } as EChartsOption;
+  }, [byTest, results]);
+
+  const low1Option = useMemo<EChartsOption>(() => {
+    const series: any[] = Object.keys(byTest).map((name) => ({
+      name,
+      type: 'line',
+      data: byTest[name].map((v) => [v.nodes, r1pLow(results, name, v.nodes).low1]),
+      showSymbol: false,
+      markLine: { data: [{ yAxis: 60 }], label: { formatter: '60FPS 基准线' } },
+    }));
+    const yVals = series.flatMap((s: any) => s.data.map((d: any) => d[1]));
+    const ySpan = rangeOf(yVals).span;
+    return {
+      title: { text: '1% Low 帧率（FPS）' },
+      tooltip: { trigger: 'axis' },
+      legend: {},
+      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      yAxis: { type: ySpan > 1000 ? 'log' : 'value', name: '帧率（FPS）' },
+      series,
+    } as EChartsOption;
+  }, [byTest, results]);
 
   const handleDownload = () => {
     if (!results.length) {
@@ -178,10 +207,46 @@ export default function Charts({ results }: { results: TestResult[] }) {
           }}
           option={fpsOption}
         />
+        <ReactECharts
+          className={styles.chart}
+          style={{
+            height: 320,
+          }}
+          option={jankOption}
+        />
+        <ReactECharts
+          className={styles.chart}
+          style={{
+            height: 320,
+          }}
+          option={low1Option}
+        />
       </div>
       <div>
         <button onClick={handleDownload}>下载测试结果</button>
       </div>
     </>
   );
+}
+
+function rangeOf(nums: number[]) {
+  if (!nums.length) {
+    return { min: 0, max: 0, span: 0 };
+  }
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  return { min, max, span: max - min };
+}
+
+function r1pLow(results: TestResult[], name: string, nodes: number) {
+  const r = results.find((x) => x.name === name && x.average.metrics.nodes === nodes);
+  if (!r) {
+    return { low1: 0, jankCount: 0 };
+  }
+  const arr = r.average.frames.map((f) => f.fps).sort((a, b) => a - b);
+  const n = Math.max(1, Math.floor(arr.length * 0.01));
+  const low = arr.slice(0, n);
+  const low1 = low.reduce((s, v) => s + v, 0) / low.length;
+  const jankCount = arr.filter((v) => v < 55).length;
+  return { low1, jankCount };
 }

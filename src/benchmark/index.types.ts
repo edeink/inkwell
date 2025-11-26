@@ -20,6 +20,7 @@ export type PerformanceMetrics = {
   layoutMs?: number;
   paintMs?: number;
   memoryDelta?: number;
+  cpuBusyPercent?: number;
 };
 
 export type FrameRateSample = {

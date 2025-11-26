@@ -20,6 +20,24 @@
   color: #111827;
 }
 
+.currentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressText {
+  font-size: 12px;
+  color: #374151;
+}
+
 .tasksGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -34,12 +52,49 @@
 
 .taskItem {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
 }
 
 .taskTitle {
   font-weight: 600;
+}
+
+.taskRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.progressMini {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progressNum {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.hourglass {
+  display: inline-flex;
+  animation: spin 1.6s linear infinite;
+  will-change: transform;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .badgeDone {

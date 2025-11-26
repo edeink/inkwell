@@ -9,6 +9,7 @@ type Ctx = {
 export default class DomPerformanceTest extends PerformanceTestInterface {
   name = 'DOM';
   private ctx: Ctx;
+  private memoryDebug: { t: number; used: number }[] = [];
   private lastMetrics: PerformanceMetrics = {
     nodes: 0,
     createTimeMs: 0,
@@ -54,7 +55,11 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     this.clearStage();
     this.startMark = performance.now();
     this.measureFramesStart();
-    const beforeMem = this.getMemoryUsage();
+    let beforeMem: { heapUsed: number } | null = null;
+    try {
+      beforeMem = this.getMemoryUsage();
+      this.memoryDebug.push({ t: 0, used: beforeMem.heapUsed });
+    } catch {}
     const tBuild0 = performance.now();
     const frag = document.createDocumentFragment();
     const stageW = this.ctx.stage.clientWidth || 800;
@@ -78,8 +83,14 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
         resolve(t1 - t0);
       });
     });
-    const afterMem = this.getMemoryUsage();
-    const delta = afterMem.heapUsed - beforeMem.heapUsed;
+    let delta = 0;
+    try {
+      const afterMem = this.getMemoryUsage();
+      this.memoryDebug.push({ t: tLayout1 - this.startMark, used: afterMem.heapUsed });
+      if (beforeMem) {
+        delta = afterMem.heapUsed - beforeMem.heapUsed;
+      }
+    } catch {}
     const buildMs = tBuild1 - tBuild0;
     const layoutMs = tLayout1 - tLayout0;
     const createTimeMs = buildMs + layoutMs + paintMs;
@@ -90,7 +101,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       buildMs,
       layoutMs,
       paintMs,
-      memoryDelta: delta,
+      memoryDelta: Math.max(0, delta),
     };
   }
 
@@ -100,5 +111,12 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
 
   getFrameRate() {
     return this.frameSamples.slice();
+  }
+
+  getDebugInfo() {
+    return {
+      memoryTimeline: this.memoryDebug.slice(),
+      frameZeroCount: this.frameSamples.filter((f) => f.fps <= 0).length,
+    };
   }
 }

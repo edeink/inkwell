@@ -4,28 +4,77 @@
   padding: 12px;
   background: #fff;
 }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .title {
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   font-size: 15px;
 }
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+}
+
 .list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
+
 .item {
   display: flex;
   justify-content: space-between;
-  line-height: 1.6;
+  align-items: center;
+  line-height: 1.8;
 }
+
 .label {
   color: #6b7280;
   font-size: 13px;
 }
+
 .value {
   font-weight: 600;
   color: #111827;
+}
+
+.itemIcon {
+  color: #6b7280;
+}
+
+.copyBtn {
+  color: #6b7280;
+}
+
+.copyBtn:hover {
+  color: #4b5563;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 10px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+
+  .value {
+    font-size: 12px;
+  }
 }
