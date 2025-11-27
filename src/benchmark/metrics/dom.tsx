@@ -7,10 +7,17 @@ import { FrameSampler, type Timings } from './collector';
 
 import type { PerformanceMetrics } from '../index.types';
 
+/**
+ * DOM 测试上下文
+ */
 type Ctx = {
   stage: HTMLElement;
 };
 
+/**
+ * DomPerformanceTest
+ * 通过原生 DOM 构建测试场景，测量不同布局下的构建/布局/绘制耗时、内存变化与帧率。
+ */
 export default class DomPerformanceTest extends PerformanceTestInterface {
   name = 'DOM';
   private ctx: Ctx;
@@ -29,6 +36,10 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     this.layout = layout;
   }
 
+  /**
+   * 按当前布局创建指定数量的节点并记录阶段耗时。
+   * @param targetCount 目标节点数量
+   */
   async createNodes(targetCount: number): Promise<void> {
     if (this.layout === 'absolute') {
       this.lastTimings = await createAbsoluteDomNodes(this.ctx.stage, targetCount);
@@ -39,6 +50,11 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     }
   }
 
+  /**
+   * 采集两次（前后）统计以计算增量内存与帧率序列：
+   * 第一次调用初始化采样与内存基准；第二次调用停止采样并汇总指标。
+   * @param targetCount 目标节点数量
+   */
   async collectStatistics(targetCount: number): Promise<void> {
     if (!this.collecting) {
       this.startMark = performance.now();
@@ -46,7 +62,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch {}
+      } catch { }
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -58,7 +74,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch {}
+    } catch { }
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;
@@ -74,10 +90,12 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     this.collecting = false;
   }
 
+  /** 返回上一轮构建后的性能指标快照 */
   getPerformanceMetrics() {
     return this.lastMetrics;
   }
 
+  /** 返回采样得到的帧率序列（相对于 startMark 的时间戳） */
   getFrameRate() {
     return this.frameSampler.get();
   }

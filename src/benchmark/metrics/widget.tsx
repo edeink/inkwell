@@ -8,8 +8,15 @@ import { FrameSampler, type Timings } from './collector';
 
 import type { PerformanceMetrics } from '../index.types';
 
+/**
+ * Widget 测试上下文
+ */
 type Ctx = { stageEl: HTMLElement; editor: Editor | null };
 
+/**
+ * WidgetPerformanceTest
+ * 基于自研 Widget 渲染管线构建场景，测量构建/布局/绘制耗时与帧率、内存变化。
+ */
 export default class WidgetPerformanceTest extends PerformanceTestInterface {
   name = 'Widget';
   private ctx: Ctx;
@@ -22,6 +29,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
   private memoryDebug: { t: number; used: number }[] = [];
   private beforeMem: { heapUsed: number } | null = null;
 
+  /**
+   * 清空画布容器，释放上一次绘制的内容与编辑器引用。
+   */
   private clearCanvas(): void {
     const el = this.ctx.stageEl;
     while (el.firstChild) {
@@ -36,6 +46,10 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.layout = layout;
   }
 
+  /**
+   * 创建指定数量的 Widget 节点场景，并记录关键阶段耗时。
+   * @param targetCount 目标节点数量
+   */
   async createNodes(targetCount: number): Promise<void> {
     this.clearCanvas();
     let editor: Editor;
@@ -52,6 +66,11 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.ctx.editor = editor;
   }
 
+  /**
+   * 采集两次（前后）统计以计算增量内存与帧率序列：
+   * 第一次调用初始化采样与内存基准；第二次调用停止采样并汇总指标。
+   * @param targetCount 目标节点数量
+   */
   async collectStatistics(targetCount: number): Promise<void> {
     if (!this.collecting) {
       this.startMark = performance.now();
@@ -59,7 +78,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch {}
+      } catch { }
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -71,7 +90,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch {}
+    } catch { }
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;
@@ -87,10 +106,12 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.collecting = false;
   }
 
+  /** 返回上一轮构建后的性能指标快照 */
   getPerformanceMetrics() {
     return this.lastMetrics;
   }
 
+  /** 返回采样得到的帧率序列（相对于 startMark 的时间戳） */
   getFrameRate() {
     return this.frameSampler.get();
   }

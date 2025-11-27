@@ -17,6 +17,14 @@ type Props = {
 
 // 结果统一在一套图表中展示（DOM 与 Widget 为不同 series）
 
+/**
+ * 计算性能指标相对于基线的差异：返回包含字段级差异的列表。
+ *
+ * @param baseline 基线测试结果集
+ * @param current 当前测试结果集
+ * @param thresholdPercent 劣化阈值（百分比，0~1）
+ * @returns 差异度量列表
+ */
 function computeDiff(
   baseline: TestResult[],
   current: TestResult[],
@@ -62,6 +70,17 @@ function computeDiff(
   return diffs;
 }
 
+/**
+ * CompareView
+ * 展示图表与（历史模式下的）性能劣化报告 HTML，支持外部切换模式与上传基线数据。
+ *
+ * @param results 当前测试结果集
+ * @param experimentType 展示模式
+ * @param baseline 历史基线结果集
+ * @param thresholdPercent 劣化阈值（默认 5%）
+ * @param onToggleMode 切换模式回调
+ * @param onUploadBaseline 上传基线回调
+ */
 export default function CompareView({
   results,
   experimentType,
@@ -70,9 +89,9 @@ export default function CompareView({
   onToggleMode,
   onUploadBaseline,
 }: Props) {
-  const showTwo = false;
   const showHistory = experimentType === 'history' && baseline && baseline.length > 0;
 
+  // 当处于历史模式且存在基线时，生成劣化项的报告 HTML
   const diffHtml = useMemo(() => {
     if (!showHistory || !baseline) {
       return '';

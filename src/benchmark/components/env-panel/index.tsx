@@ -18,6 +18,11 @@ import styles from './index.module.less';
 
 export type EnvItem = { label: string; value: string; icon?: React.ReactNode };
 
+/**
+ * 简单 UA 解析：识别常见浏览器名称与主版本号。
+ * @param ua User-Agent 字符串
+ * @returns 浏览器名称、版本与图标
+ */
 function parseBrowser(ua: string): { name: string; version: string; icon: React.ReactNode } {
   const mEdge = ua.match(/Edg\/(\d+)/);
   if (mEdge) {
@@ -46,6 +51,10 @@ function formatResolution(w: number, h: number) {
   return `${w} × ${h}`;
 }
 
+/**
+ * 收集运行环境信息：平台、浏览器、硬件、网络与时区。
+ * @returns 环境信息条目列表
+ */
 function collectEnv() {
   const ua = navigator.userAgent;
   const plat = navigator.platform;
@@ -106,6 +115,10 @@ function collectEnv() {
   ];
 }
 
+/**
+ * EnvPanel
+ * 展示环境信息列表，并支持复制到剪贴板。
+ */
 export default function EnvPanel() {
   const items = useMemo(() => collectEnv(), []);
   const [battery, setBattery] = useState<string | null>(null);
@@ -121,7 +134,7 @@ export default function EnvPanel() {
           const pct = Math.round((b.level || 0) * 100);
           setBattery(`${pct}% ${b.charging ? '充电中' : ''}`.trim());
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
   const withExtra = battery
@@ -139,7 +152,7 @@ export default function EnvPanel() {
             className={styles.copyBtn}
             onClick={() => {
               const text = withExtra.map((it) => `${it.label}: ${it.value}`).join('\n');
-              navigator.clipboard?.writeText(text).catch(() => {});
+              navigator.clipboard?.writeText(text).catch(() => { });
             }}
           >
             复制环境信息

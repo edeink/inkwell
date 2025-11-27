@@ -1,5 +1,8 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 
+/**
+ * 在 Flex 布局容器中批量创建 count 个方块元素，测量构建、布局与绘制耗时。
+ */
 export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
   const el = stage;
   while (el.firstChild) {
@@ -18,7 +21,7 @@ export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<T
   const tBuild1 = performance.now();
   stage.appendChild(container);
   const tLayout0 = performance.now();
-  void stage.offsetHeight;
+  void stage.offsetHeight; // 强制布局
   const tLayout1 = performance.now();
   return measureNextPaint().then((paintMs) => ({
     buildMs: tBuild1 - tBuild0,

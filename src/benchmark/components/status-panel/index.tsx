@@ -11,6 +11,13 @@ export type ProgressItem = {
   total: number;
 };
 
+/**
+ * StatusPanel
+ * 展示整体进度与每个测试任务的状态、完成度与当前轮次。
+ *
+ * 输入：进度项数组与当前任务信息；可选紧凑模式与运行序号。
+ * 输出：状态标签、进度条与任务网格。
+ */
 export default function StatusPanel({
   items,
   current,
@@ -22,6 +29,7 @@ export default function StatusPanel({
   compact?: boolean;
   runSeq?: number;
 }) {
+  // 汇总整体完成度：避免超过 total 时溢出
   const totalAll = items.reduce((s, it) => s + it.total, 0);
   const currentAll = items.reduce((s, it) => s + Math.min(it.current, it.total), 0);
   const overallPercent = totalAll ? Math.round((currentAll / totalAll) * 100) : 0;

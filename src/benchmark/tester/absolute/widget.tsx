@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { Container, Positioned, Stack } from '../../../core';
-import '../../../core/registry';
 import { Widget } from '../../../core/base';
+import '../../../core/registry';
 import Editor from '../../../editors/graphics-editor';
 import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
@@ -10,6 +10,13 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
 import type { BoxConstraints, BuildContext } from '../../../core/base';
 import type { RendererOptions } from '../../../renderer/IRenderer';
 
+/**
+ * 构建绝对定位场景的 JSX：在 W×H 区域随机分布 count 个 4×4 容器。
+ * @param count 节点数量
+ * @param W 舞台宽度
+ * @param H 舞台高度
+ * @returns JSX 树
+ */
 function buildAbsoluteJSX(count: number, W: number, H: number) {
   return (
     <Stack key="perf-root">
@@ -26,6 +33,11 @@ function buildAbsoluteJSX(count: number, W: number, H: number) {
   );
 }
 
+/**
+ * 创建编辑器实例并绑定到舞台元素，背景透明以避免额外绘制开销。
+ * @param stageEl 舞台元素
+ * @returns 编辑器实例
+ */
 export async function createAbsoluteWidgetNodes(stageEl: HTMLElement): Promise<{
   editor: Editor;
 }> {
@@ -34,6 +46,13 @@ export async function createAbsoluteWidgetNodes(stageEl: HTMLElement): Promise<{
   return { editor };
 }
 
+/**
+ * 编译 JSX → JSON，构建 Widget 树，布局并初始化渲染器，执行绘制并等待下一次绘制完成。
+ * @param stageEl 舞台元素
+ * @param editor 编辑器实例
+ * @param count 节点数量
+ * @returns Timings（构建/布局/绘制耗时）
+ */
 export async function buildAbsoluteWidgetScene(
   stageEl: HTMLElement,
   editor: Editor,

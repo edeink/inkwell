@@ -20,8 +20,17 @@ import type {
   TestSample,
 } from './index.types';
 
-type LoadedTest = { name: string; create: (stage: HTMLElement) => PerformanceTestInterface };
+/**
+ * 已加载测试描述：名称与工厂方法（基于舞台元素创建具体测试实例）。
+ */
+type LoadedTest = {
+  name: string;
+  create: (stage: HTMLElement) => PerformanceTestInterface
+};
 
+/**
+ * 进度项：用于状态面板与模态框展示测试总体进度。
+ */
 type ProgressItem = {
   key: string;
   name: string;
@@ -30,6 +39,9 @@ type ProgressItem = {
   total: number;
 };
 
+/**
+ * 根据布局类型生成 DOM 与 Widget 两类测试用例集合。
+ */
 function listTests(layout: 'absolute' | 'flex' | 'text'): LoadedTest[] {
   return [
     { name: `${layout}-DOM`, create: (stage) => new DomPerformanceTest(stage, layout) },
@@ -37,6 +49,21 @@ function listTests(layout: 'absolute' | 'flex' | 'text'): LoadedTest[] {
   ];
 }
 
+/**
+ * 执行单个测试（指定节点规模与重复次数），并在每轮结束时回调进度。
+ *
+ * 关键逻辑：
+ * - 使用 PerformanceObserver 监听 Long Task 总时长，估算 CPU 忙碌百分比；
+ * - 每次 createNodes 前后收集统计，得到内存与帧率样本；
+ * - 通过 onProgress(i,total) 对外报告进度。
+ *
+ * @param test 基于接口的性能测试实例
+ * @param label 测试结果名称标识
+ * @param nodes 节点规模
+ * @param repeat 重复次数
+ * @param onProgress 进度回调，参数为当前轮次与总轮次
+ * @returns 测试结果（包含样本列表与平均样本）
+ */
 async function runSingleWithProgress(
   test: PerformanceTestInterface,
   label: string,
@@ -50,6 +77,7 @@ async function runSingleWithProgress(
   const winStart = performance.now();
   let po: PerformanceObserver | null = null;
   try {
+    // 监听 Long Task（>50ms）以累计主线程阻塞总时长
     po = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       for (const e of entries as any) {
@@ -60,6 +88,7 @@ async function runSingleWithProgress(
     po.observe({ entryTypes: ['longtask'] as any });
   } catch { }
   for (let i = 1; i <= total; i++) {
+    // 每轮：采集 → 构建 → 再采集，形成完整样本
     await test.collectStatistics(nodes);
     await test.createNodes(nodes);
     await test.collectStatistics(nodes);
@@ -76,12 +105,19 @@ async function runSingleWithProgress(
       po.disconnect();
     } catch { }
   }
-  const windowMs = Math.max(1, winEnd - winStart);
-  const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100);
+  const windowMs = Math.max(1, winEnd - winStart); // 观测窗口时长
+  const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100); // 估算 CPU 忙碌比例
   avg.metrics.cpuBusyPercent = cpuBusyPercent;
   return { name: label, mode: 'compare' as any, samples, average: avg };
 }
 
+/**
+ * useRunAll
+ * 管理整套基准测试的状态、生命周期与进度，同步外部面板与模态框的进度展示。
+ *
+ * @param stageRef 舞台容器的引用，供测试场景创建与渲染使用
+ * @returns 运行状态、结果与控制方法集合
+ */
 function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
@@ -99,6 +135,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);
   const [thresholdPercent, setThresholdPercent] = useState<number>(0.05);
   const [runSeq, setRunSeq] = useState<number>(0);
+  // 独立的模态框进度：避免重置外部状态面板的历史
   const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
 
@@ -120,6 +157,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       throw new Error('stage ref not ready');
     }
     const tests = listTests(layoutType);
+    // 初始化外部与模态框的进度列表
     setProgressItems(
       tests.map((t) => ({
         key: t.name,
@@ -142,6 +180,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     {
       const warm = tests[0];
       const inst = warm.create(stage);
+      // 预热一轮以降低冷启动对后续统计的干扰
       await runSingleWithProgress(inst, warm.name, 50, 1, () => { });
     }
     for (const t of tests) {
@@ -151,6 +190,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         if (cancelled.current) {
           break;
         }
+        // 标记当前测试为运行中
         setProgressItems((prev) =>
           prev.map((it) => (it.key === t.name ? { ...it, status: 'running' } : it)),
         );
@@ -163,6 +203,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
             round: i,
             total,
           });
+          // 进度按累积轮次计算，确保两处展示一致
           setProgressItems((prev) =>
             prev.map((it) =>
               it.key === t.name
@@ -188,6 +229,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         });
         list.push(res);
         done += repeat;
+        // 单个节点规模完成后更新状态与累积进度
         setProgressItems((prev) =>
           prev.map((it) =>
             it.key === t.name
@@ -223,6 +265,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setLoading(false);
     setShowStage(false);
     setCurrentTask(null);
+    // 重置模态框进度，保留外部状态面板历史
     setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
   };
 
@@ -231,6 +274,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setCurrentTask(null);
     setLoading(false);
     setShowStage(false);
+    // 即刻重置模态框进度（外部面板不重置）
     setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
   };
 
@@ -259,6 +303,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   };
 }
 
+/**
+ * App
+ * 页面主容器：汇总环境、状态、控制、对比视图与运行舞台。
+ */
 function App() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -346,6 +394,9 @@ function App() {
   );
 }
 
+/**
+ * 应用挂载：在 #root 上创建 React 根并渲染。
+ */
 function mount() {
   const rootEl = document.getElementById('root');
   if (!rootEl) {

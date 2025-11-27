@@ -8,6 +8,16 @@ import styles from './index.module.less';
 import type { EChartsOption } from 'echarts';
 import type { TestResult } from '../../index.types';
 
+/**
+ * Charts
+ * 将性能测试结果聚合为多维度图表（总耗时、内存、帧率、卡顿计数、1% Low）。
+ *
+ * @param results 测试结果数组
+ * @param experimentType 展示模式：'dom_vs_widget' | 'history'
+ * @param onToggleMode 切换图表展示模式的回调
+ * @param onUploadBaseline 上传历史基线数据的回调
+ * @returns 图表渲染组件
+ */
 export default function Charts({
   results,
   experimentType,
@@ -19,6 +29,7 @@ export default function Charts({
   onToggleMode?: () => void;
   onUploadBaseline?: (data: TestResult[]) => void;
 }) {
+  // 按测试名称聚合不同节点规模下的指标，便于序列化到折线图
   const byTest = useMemo(() => {
     const map: Record<string, { nodes: number; createMs: number; mem: number; fps: number }[]> = {};
     const median = (arr: number[]) => {
@@ -30,7 +41,7 @@ export default function Charts({
       const nodes = r.average.metrics.nodes;
       const createMs = r.average.metrics.createTimeMs;
       const mem = r.average.metrics.memoryDelta ?? 0;
-      const fps = median(r.average.frames.map((f) => f.fps));
+      const fps = median(r.average.frames.map((f) => f.fps)); // 使用中位数代表帧率稳定性
       const arr = map[r.name] ?? [];
       arr.push({
         nodes,
@@ -40,10 +51,12 @@ export default function Charts({
       });
       map[r.name] = arr;
     }
+    // 统一按节点数升序，确保折线的横轴有序
     Object.keys(map).forEach((k) => map[k].sort((a, b) => a.nodes - b.nodes));
     return map;
   }, [results]);
 
+  // 计算全部测试覆盖的节点数集合，作为横轴刻度基础
   const nodeAxis = useMemo(() => {
     const set = new Set<number>();
     for (const k of Object.keys(byTest)) {
@@ -52,6 +65,7 @@ export default function Charts({
     return Array.from(set).sort((a, b) => a - b);
   }, [byTest]);
 
+  // 根据节点数分布自适应横轴配置：使用间隔的最大公约数稳定刻度密度
   const xCommon = useMemo(() => {
     const min = nodeAxis.length ? nodeAxis[0] : 0;
     const max = nodeAxis.length ? nodeAxis[nodeAxis.length - 1] : 1;
@@ -72,8 +86,10 @@ export default function Charts({
       }
       return x || 1;
     };
+    // 基础步长：差值序列的 GCD；若无差值则回退到区间跨度
     const baseStep = diffs.length ? diffs.reduce((acc, v) => gcd(acc, v)) : Math.max(1, max - min);
     const span = Math.max(1, max - min);
+    // 目标刻度个数约为 5 格，估算每格间距
     const target = Math.max(1, Math.floor(span / 5));
     const k = Math.max(1, Math.round(target / baseStep));
     const interval = Math.max(baseStep, k * baseStep);
@@ -83,7 +99,7 @@ export default function Charts({
       min,
       max,
       interval,
-      boundaryGap: [0, 0],
+      boundaryGap: [0, 0], // 数值轴需使用 [0,0]，避免 boolean 类型不兼容
       axisLabel: {
         formatter: (v: number) => String(Math.round(v)),
         showMinLabel: true,
@@ -109,7 +125,7 @@ export default function Charts({
         trigger: 'axis',
       },
       legend: {},
-      xAxis: xCommon as unknown as EChartsOption['xAxis'],
+      xAxis: xCommon as unknown as EChartsOption['xAxis'], // 类型断言以匹配 ECharts 配置定义
       yAxis: {
         type: 'value',
         name: '总耗时（ms）',
@@ -118,6 +134,7 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, xCommon]);
 
+  // 内存占用图表配置（bytes vs 节点数）
   const memOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
       name,
@@ -142,6 +159,7 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, xCommon]);
 
+  // 帧率图表配置（FPS vs 节点数），含 60FPS 参考线
   const fpsOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
       name,
@@ -179,6 +197,7 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, results, xCommon]);
 
+  // 1% Low 帧率（低于最差 1% 帧的平均 FPS）
   const low1Option = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
       name,
@@ -264,6 +283,10 @@ export default function Charts({
   );
 }
 
+/**
+ * 计算数列范围
+ * 返回最小值、最大值与跨度（max-min）。
+ */
 function rangeOf(nums: number[]) {
   if (!nums.length) {
     return { min: 0, max: 0, span: 0 };
@@ -273,6 +296,11 @@ function rangeOf(nums: number[]) {
   return { min, max, span: max - min };
 }
 
+/**
+ * 计算 1% Low 与 Jank 计数
+ * - 1% Low：排序后最低 1% 帧的平均 FPS；
+ * - Jank：低于 55FPS 的帧数计数（经验阈值）。
+ */
 function r1pLow(results: TestResult[], name: string, nodes: number) {
   const r = results.find((x) => x.name === name && x.average.metrics.nodes === nodes);
   if (!r) {

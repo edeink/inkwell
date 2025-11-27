@@ -1,5 +1,8 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 
+/**
+ * 在文本布局场景下批量创建 count 个绝对定位的文本节点，测量构建、布局与绘制耗时。
+ */
 export function createTextDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
   const el = stage;
   while (el.firstChild) {
@@ -20,7 +23,7 @@ export function createTextDomNodes(stage: HTMLElement, count: number): Promise<T
   const tBuild1 = performance.now();
   stage.appendChild(frag);
   const tLayout0 = performance.now();
-  void stage.offsetHeight;
+  void stage.offsetHeight; // 强制布局计算
   const tLayout1 = performance.now();
   return measureNextPaint().then((paintMs) => ({
     buildMs: tBuild1 - tBuild0,

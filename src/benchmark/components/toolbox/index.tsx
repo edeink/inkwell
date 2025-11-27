@@ -13,14 +13,18 @@ type Props = {
   onUploadBaseline: (data: TestResult[]) => void;
 };
 
+/**
+ * Toolbox
+ * 提供下载当前数据、上传基线数据与切换对比模式的操作栏。
+ */
 export default function Toolbox({
   results,
-  experimentType,
   onToggleMode,
   onUploadBaseline,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  // 导出当前结果为 JSON 文件
   const downloadJSON = () => {
     if (!results.length) {
       return;
@@ -35,10 +39,16 @@ export default function Toolbox({
     URL.revokeObjectURL(url);
   };
 
+  // 触发隐藏的文件选择框
   const triggerUpload = () => {
     inputRef.current?.click();
   };
 
+  // 读取 JSON 文件并解析为基线数据，支持两种顶层结构
+  /**
+   * 文件选择变更处理：读取并解析 JSON，传递给上传回调。
+   * @param e 文件选择事件
+   */
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
@@ -51,7 +61,7 @@ export default function Toolbox({
       if (Array.isArray(arr)) {
         onUploadBaseline(arr);
       }
-    } catch {}
+    } catch { }
     e.target.value = '';
   };
 

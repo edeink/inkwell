@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { Text, Wrap } from '../../../core';
-import '../../../core/registry';
 import { Widget } from '../../../core/base';
+import '../../../core/registry';
 import Editor from '../../../editors/graphics-editor';
 import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
@@ -10,6 +10,11 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
 import type { BoxConstraints, BuildContext } from '../../../core/base';
 import type { RendererOptions } from '../../../renderer/IRenderer';
 
+/**
+ * 构建文本场景的 JSX：Wrap 容器下生成 count 个文本节点。
+ * @param count 节点数量
+ * @returns JSX 树
+ */
 function buildTextJSX(count: number) {
   return (
     <Wrap key="perf-text">
@@ -20,12 +25,23 @@ function buildTextJSX(count: number) {
   );
 }
 
+/** 创建编辑器实例，绑定到舞台元素
+ * @param stageEl 舞台元素
+ * @returns 编辑器实例
+ */
 export async function createTextWidgetNodes(stageEl: HTMLElement): Promise<{ editor: Editor }> {
   const id = stageEl.id || 'stage';
   const editor = await Editor.create(id, { backgroundAlpha: 0 });
   return { editor };
 }
 
+/**
+ * 编译、构建、布局并初始化渲染器，完成绘制后统计耗时。
+ * @param stageEl 舞台元素
+ * @param editor 编辑器实例
+ * @param count 节点数量
+ * @returns Timings（构建/布局/绘制耗时）
+ */
 export async function buildTextWidgetScene(
   stageEl: HTMLElement,
   editor: Editor,
