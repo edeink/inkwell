@@ -41,10 +41,27 @@ export type TestResult = {
   average: TestSample;
 };
 
+export type ExperimentType = 'dom_vs_widget' | 'history';
+
+export type ExportPayload = {
+  results: TestResult[];
+};
+
+export type DiffMetric = {
+  name: string;
+  nodes: number;
+  field: keyof PerformanceMetrics;
+  baseline: number;
+  current: number;
+  delta: number;
+  deltaPercent: number;
+  degraded: boolean;
+};
+
 export abstract class PerformanceTestInterface {
   abstract name: string;
-  // 创建大量节点
-  abstract createMassiveNodes(targetCount: number): Promise<void> | void;
+  abstract createNodes(targetCount: number): Promise<void> | void;
+  abstract collectStatistics(targetCount: number): Promise<void> | void;
   // 获取当前性能指标
   abstract getPerformanceMetrics(): PerformanceMetrics;
   // 获取当前帧速率样本

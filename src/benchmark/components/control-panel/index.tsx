@@ -1,4 +1,4 @@
-import { Button, InputNumber } from 'antd';
+import { Button, InputNumber, Select, Space } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styles from './index.module.less';
@@ -11,7 +11,25 @@ type Props = {
   start: () => void;
   stop: () => void;
   loading: boolean;
+  layoutType: 'absolute' | 'flex' | 'text';
+  setLayoutType: (v: 'absolute' | 'flex' | 'text') => void;
 };
+
+type PresetKey = 'common' | 'small' | 'large';
+
+type Preset = {
+  key: PresetKey;
+  label: string;
+  start: number;
+  end: number;
+  step?: number;
+};
+
+const PRESETS: Preset[] = [
+  { key: 'common', label: '常用', start: 100, end: 10000, step: 100 },
+  { key: 'small', label: '小规模', start: 50, end: 500, step: 50 },
+  { key: 'large', label: '大规模', start: 5000, end: 20000, step: 100 },
+];
 
 export default function ControlPanel({
   nodeCounts,
@@ -21,25 +39,25 @@ export default function ControlPanel({
   start,
   stop,
   loading,
+  layoutType,
+  setLayoutType,
 }: Props) {
   const [rangeStart, setRangeStart] = useState<number>(100);
   const [rangeEnd, setRangeEnd] = useState<number>(10000);
   const [rangeStep, setRangeStep] = useState<number>(100);
-  const [preset, setPreset] = useState<string | null>('常用');
+  type PresetKey = 'common' | 'small' | 'large';
+  const [preset, setPreset] = useState<PresetKey | null>('common');
 
-  const onPresetChange = useCallback((key: string | number) => {
-    const ks = String(key);
-    setPreset(ks);
-    if (ks === '常用') {
-      setRangeStart(100);
-      setRangeEnd(10000);
-    } else if (ks === '小规模') {
-      setRangeStart(50);
-      setRangeStep(50);
-      setRangeEnd(500);
-    } else if (ks === '大规模') {
-      setRangeStart(5000);
-      setRangeEnd(20000);
+  const onPresetChange = useCallback((key: PresetKey) => {
+    const cfg = PRESETS.find((p) => p.key === key);
+    if (!cfg) {
+      return;
+    }
+    setPreset(cfg.key);
+    setRangeStart(cfg.start);
+    setRangeEnd(cfg.end);
+    if (cfg.step) {
+      setRangeStep(cfg.step);
     }
   }, []);
 
@@ -60,9 +78,6 @@ export default function ControlPanel({
       const list: number[] = [];
       for (let v = si; v <= ei; v += st) {
         list.push(v);
-        if (list.length > 50) {
-          break;
-        }
       }
       setNodeCounts(list);
     },
@@ -87,28 +102,42 @@ export default function ControlPanel({
     <div className={styles.panel}>
       <div className={styles.sectionTitle}>配置</div>
       <div className={styles.section}>
+        <div className={styles.fieldRow}>
+          <span className={styles.label}>布局</span>
+          <Select
+            value={layoutType}
+            onChange={(v) => setLayoutType(v as any)}
+            options={[
+              { label: 'Absolute', value: 'absolute' },
+              { label: 'Flex', value: 'flex' },
+              { label: 'Text', value: 'text' },
+            ]}
+            style={{ minWidth: 140 }}
+          />
+        </div>
+        <div className={styles.fieldRow}>
+          <span className={styles.label}>轮次</span>
+          <InputNumber
+            className={styles.input}
+            min={1}
+            max={repeatMax}
+            value={repeat}
+            onChange={(v) => v && setRepeat(Number(v))}
+          />
+        </div>
         <div className={styles.presetBar}>
-          <Button
-            className={styles.presetButton}
-            type={preset === '常用' ? 'primary' : 'default'}
-            onClick={() => onPresetChange('常用')}
-          >
-            常用
-          </Button>
-          <Button
-            className={styles.presetButton}
-            type={preset === '小规模' ? 'primary' : 'default'}
-            onClick={() => onPresetChange('小规模')}
-          >
-            小规模
-          </Button>
-          <Button
-            className={styles.presetButton}
-            type={preset === '大规模' ? 'primary' : 'default'}
-            onClick={() => onPresetChange('大规模')}
-          >
-            大规模
-          </Button>
+          <Space.Compact>
+            {PRESETS.map((p) => (
+              <Button
+                key={p.key}
+                className={styles.presetButton}
+                type={preset === p.key ? 'primary' : 'default'}
+                onClick={() => onPresetChange(p.key)}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </Space.Compact>
         </div>
         <div className={styles.fieldRow}>
           <span className={styles.label}>节点区间</span>
@@ -138,16 +167,6 @@ export default function ControlPanel({
             max={stepMax}
             value={rangeStep}
             onChange={(v) => v && setRangeStep(Number(v))}
-          />
-        </div>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>轮次</span>
-          <InputNumber
-            className={styles.input}
-            min={1}
-            max={repeatMax}
-            value={repeat}
-            onChange={(v) => v && setRepeat(Number(v))}
           />
         </div>
       </div>

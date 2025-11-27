@@ -2,18 +2,23 @@ import { Card, Modal } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import Charts from './components/charts';
+import CompareView from './components/compare-view';
 import ControlPanel from './components/control-panel';
 import EnvPanel from './components/env-panel';
 import StageContainer from './components/stage-container';
 import StatusPanel from './components/status-panel';
 import styles from './index.module.less';
 import { averageSamples } from './index.types';
-import DomPerformanceTest from './tester/dom';
-import WidgetPerformanceTest from './tester/widget';
+import DomPerformanceTest from './metrics/dom';
+import WidgetPerformanceTest from './metrics/widget';
 
-import type { PerformanceTestInterface, TestResult, TestSample } from './index.types';
 import type { RefObject } from 'react';
+import type {
+  ExperimentType,
+  PerformanceTestInterface,
+  TestResult,
+  TestSample,
+} from './index.types';
 
 type LoadedTest = { name: string; create: (stage: HTMLElement) => PerformanceTestInterface };
 
@@ -25,15 +30,16 @@ type ProgressItem = {
   total: number;
 };
 
-function listTests(): LoadedTest[] {
+function listTests(layout: 'absolute' | 'flex' | 'text'): LoadedTest[] {
   return [
-    { name: 'DOM', create: (stage) => new DomPerformanceTest(stage) },
-    { name: 'Widget', create: (stage) => new WidgetPerformanceTest(stage) },
+    { name: `${layout}-DOM`, create: (stage) => new DomPerformanceTest(stage, layout) },
+    { name: `${layout}-Widget`, create: (stage) => new WidgetPerformanceTest(stage, layout) },
   ];
 }
 
 async function runSingleWithProgress(
   test: PerformanceTestInterface,
+  label: string,
   nodes: number,
   repeat: number,
   onProgress: (i: number, total: number) => void,
@@ -52,9 +58,11 @@ async function runSingleWithProgress(
       }
     });
     po.observe({ entryTypes: ['longtask'] as any });
-  } catch {}
+  } catch { }
   for (let i = 1; i <= total; i++) {
-    await test.createMassiveNodes(nodes);
+    await test.collectStatistics(nodes);
+    await test.createNodes(nodes);
+    await test.collectStatistics(nodes);
     const memory = test.getMemoryUsage();
     const metrics = test.getPerformanceMetrics();
     const frames = test.getFrameRate();
@@ -66,12 +74,12 @@ async function runSingleWithProgress(
   if (po) {
     try {
       po.disconnect();
-    } catch {}
+    } catch { }
   }
   const windowMs = Math.max(1, winEnd - winStart);
   const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100);
   avg.metrics.cpuBusyPercent = cpuBusyPercent;
-  return { name: test.name, mode: 'compare' as any, samples, average: avg };
+  return { name: label, mode: 'compare' as any, samples, average: avg };
 }
 
 function useRunAll(stageRef: RefObject<HTMLDivElement>) {
@@ -86,12 +94,19 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [showStage, setShowStage] = useState(false);
   const [nodeCounts, setNodeCounts] = useState<number[]>([100, 500, 1000, 5000, 10000]);
   const [repeat, setRepeat] = useState<number>(3);
+  const [layoutType, setLayoutType] = useState<'absolute' | 'flex' | 'text'>('absolute');
+  const [experimentType, setExperimentType] = useState<ExperimentType>('dom_vs_widget');
+  const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);
+  const [thresholdPercent, setThresholdPercent] = useState<number>(0.05);
+  const [runSeq, setRunSeq] = useState<number>(0);
+  const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
 
   const start = async () => {
     setLoading(true);
     cancelled.current = false;
     setShowStage(true);
+    setRunSeq((x) => x + 1);
     let stage: HTMLDivElement | null = null;
     for (let i = 0; i < 5; i++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -104,8 +119,17 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       setLoading(false);
       throw new Error('stage ref not ready');
     }
-    const tests = listTests();
+    const tests = listTests(layoutType);
     setProgressItems(
+      tests.map((t) => ({
+        key: t.name,
+        name: t.name,
+        status: 'pending',
+        current: 0,
+        total: nodeCounts.length * repeat,
+      })),
+    );
+    setModalProgressItems(
       tests.map((t) => ({
         key: t.name,
         name: t.name,
@@ -116,8 +140,9 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     );
     const list: TestResult[] = [];
     {
-      const inst = tests[0].create(stage);
-      await runSingleWithProgress(inst, 50, 1, () => {});
+      const warm = tests[0];
+      const inst = warm.create(stage);
+      await runSingleWithProgress(inst, warm.name, 50, 1, () => { });
     }
     for (const t of tests) {
       const inst = t.create(stage);
@@ -126,20 +151,37 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         if (cancelled.current) {
           break;
         }
-        const res = await runSingleWithProgress(inst, n, repeat, (i, total) => {
+        setProgressItems((prev) =>
+          prev.map((it) => (it.key === t.name ? { ...it, status: 'running' } : it)),
+        );
+        setModalProgressItems((prev) =>
+          prev.map((it) => (it.key === t.name ? { ...it, status: 'running' } : it)),
+        );
+        const res = await runSingleWithProgress(inst, t.name, n, repeat, (i, total) => {
           setCurrentTask({
-            name: inst.name,
+            name: t.name,
             round: i,
             total,
           });
           setProgressItems((prev) =>
             prev.map((it) =>
-              it.key === inst.name
+              it.key === t.name
                 ? {
-                    ...it,
-                    status: 'running',
-                    current: Math.min(done + i, it.total),
-                  }
+                  ...it,
+                  status: 'running',
+                  current: Math.min(done + i, it.total),
+                }
+                : it,
+            ),
+          );
+          setModalProgressItems((prev) =>
+            prev.map((it) =>
+              it.key === t.name
+                ? {
+                  ...it,
+                  status: 'running',
+                  current: Math.min(done + i, it.total),
+                }
                 : it,
             ),
           );
@@ -148,12 +190,23 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         done += repeat;
         setProgressItems((prev) =>
           prev.map((it) =>
-            it.key === inst.name
+            it.key === t.name
               ? {
-                  ...it,
-                  status: done === it.total ? 'done' : 'running',
-                  current: done,
-                }
+                ...it,
+                status: done === it.total ? 'done' : 'running',
+                current: done,
+              }
+              : it,
+          ),
+        );
+        setModalProgressItems((prev) =>
+          prev.map((it) =>
+            it.key === t.name
+              ? {
+                ...it,
+                status: done === it.total ? 'done' : 'running',
+                current: done,
+              }
               : it,
           ),
         );
@@ -169,12 +222,16 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setResults(list);
     setLoading(false);
     setShowStage(false);
+    setCurrentTask(null);
+    setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
   };
 
   const stop = () => {
     cancelled.current = true;
+    setCurrentTask(null);
     setLoading(false);
     setShowStage(false);
+    setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
   };
 
   return {
@@ -189,6 +246,16 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setNodeCounts,
     repeat,
     setRepeat,
+    layoutType,
+    setLayoutType,
+    experimentType,
+    setExperimentType,
+    baselineResults,
+    setBaselineResults,
+    thresholdPercent,
+    setThresholdPercent,
+    runSeq,
+    modalProgressItems,
   };
 }
 
@@ -204,6 +271,15 @@ function App() {
     showStage,
     nodeCounts,
     setNodeCounts,
+    layoutType,
+    setLayoutType,
+    experimentType,
+    setExperimentType,
+    baselineResults,
+    setBaselineResults,
+    thresholdPercent,
+    runSeq,
+    modalProgressItems,
   } = useRunAll(stageRef as React.RefObject<HTMLDivElement>);
 
   const [repeat, setRepeat] = useState<number>(3);
@@ -226,11 +302,22 @@ function App() {
             start={start}
             stop={stop}
             loading={loading}
+            layoutType={layoutType}
+            setLayoutType={setLayoutType}
           />
         </Card>
       </div>
       <Card size="small" variant="outlined">
-        <Charts results={results} />
+        <CompareView
+          results={results}
+          experimentType={experimentType}
+          baseline={baselineResults}
+          thresholdPercent={thresholdPercent}
+          onToggleMode={() =>
+            setExperimentType((m) => (m === 'dom_vs_widget' ? 'history' : 'dom_vs_widget'))
+          }
+          onUploadBaseline={(data) => setBaselineResults(data)}
+        />
       </Card>
       <Modal
         open={showStage}
@@ -245,14 +332,14 @@ function App() {
         }}
         onCancel={stop}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <StageContainer ref={stageRef} />
+        <div className={styles.modalHeader}>
+          <StatusPanel compact runSeq={runSeq} items={modalProgressItems} current={currentTask} />
+        </div>
+        <StageContainer ref={stageRef} />
+        <div className={styles.modalFooter}>
+          <button className={styles.stopBtn} onClick={stop}>
+            终止
+          </button>
         </div>
       </Modal>
     </div>
@@ -269,3 +356,4 @@ function mount() {
 }
 
 mount();
+export default App;

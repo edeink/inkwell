@@ -5,10 +5,19 @@
   background: #fff;
 }
 
+.panelCompact {
+  padding: 8px;
+}
+
 .title {
   font-weight: 700;
   margin-bottom: 12px;
   font-size: 15px;
+}
+
+.panelCompact .title {
+  margin-bottom: 8px;
+  font-size: 14px;
 }
 
 .currentLine {
@@ -27,10 +36,20 @@
   margin-bottom: 12px;
 }
 
+.panelCompact .currentBlock {
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
 .progressRow {
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-content: center;
+}
+
+.panelCompact .progressRow {
+  gap: 6px;
 }
 
 .progressText {
@@ -50,12 +69,21 @@
   }
 }
 
+.panelCompact .tasksGrid {
+  display: none;
+}
+
 .taskItem {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
   padding: 8px 0;
+}
+
+.panelCompact .taskItem {
+  gap: 4px;
+  padding: 4px 0;
 }
 
 .taskTitle {
@@ -110,4 +138,19 @@
 .badgePending {
   color: #9a3412;
   font-weight: 600;
+}
+
+.fixedCell {
+  display: inline-flex;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.hourglass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }

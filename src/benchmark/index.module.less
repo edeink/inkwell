@@ -25,6 +25,7 @@
   justify-content: center;
   z-index: 1000;
 }
+
 .page {
   max-width: 1200px;
   margin: 0 auto;
@@ -39,4 +40,27 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
   align-items: start;
+}
+
+.modalHeader {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.modalFooter {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stopBtn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #ff4d4f;
+  color: #fff;
+  font-weight: 600;
 }

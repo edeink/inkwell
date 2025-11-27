@@ -1,12 +1,24 @@
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
 
+import Toolbox from '../toolbox';
+
 import styles from './index.module.less';
 
-import type { TestResult } from '../../index.types';
 import type { EChartsOption } from 'echarts';
+import type { TestResult } from '../../index.types';
 
-export default function Charts({ results }: { results: TestResult[] }) {
+export default function Charts({
+  results,
+  experimentType,
+  onToggleMode,
+  onUploadBaseline,
+}: {
+  results: TestResult[];
+  experimentType?: 'dom_vs_widget' | 'history';
+  onToggleMode?: () => void;
+  onUploadBaseline?: (data: TestResult[]) => void;
+}) {
   const byTest = useMemo(() => {
     const map: Record<string, { nodes: number; createMs: number; mem: number; fps: number }[]> = {};
     const median = (arr: number[]) => {
@@ -40,6 +52,48 @@ export default function Charts({ results }: { results: TestResult[] }) {
     return Array.from(set).sort((a, b) => a - b);
   }, [byTest]);
 
+  const xCommon = useMemo(() => {
+    const min = nodeAxis.length ? nodeAxis[0] : 0;
+    const max = nodeAxis.length ? nodeAxis[nodeAxis.length - 1] : 1;
+    const diffs: number[] = [];
+    for (let i = 1; i < nodeAxis.length; i++) {
+      const d = Math.abs(nodeAxis[i] - nodeAxis[i - 1]);
+      if (d > 0) {
+        diffs.push(d);
+      }
+    }
+    const gcd = (a: number, b: number) => {
+      let x = Math.abs(a);
+      let y = Math.abs(b);
+      while (y) {
+        const t = x % y;
+        x = y;
+        y = t;
+      }
+      return x || 1;
+    };
+    const baseStep = diffs.length ? diffs.reduce((acc, v) => gcd(acc, v)) : Math.max(1, max - min);
+    const span = Math.max(1, max - min);
+    const target = Math.max(1, Math.floor(span / 5));
+    const k = Math.max(1, Math.round(target / baseStep));
+    const interval = Math.max(baseStep, k * baseStep);
+    return {
+      type: 'value',
+      name: '节点数',
+      min,
+      max,
+      interval,
+      boundaryGap: [0, 0],
+      axisLabel: {
+        formatter: (v: number) => String(Math.round(v)),
+        showMinLabel: true,
+        showMaxLabel: true,
+      },
+      axisTick: { show: true },
+      splitLine: { show: true },
+    } as const;
+  }, [nodeAxis]);
+
   const timeOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
       name,
@@ -49,24 +103,20 @@ export default function Charts({ results }: { results: TestResult[] }) {
     }));
     return {
       title: {
-        text: '总耗时(ms) vs 节点数',
+        text: '总耗时（ms） vs 节点数',
       },
       tooltip: {
         trigger: 'axis',
       },
       legend: {},
-      xAxis: {
-        type: 'log',
-        name: '节点数',
-        logBase: 10,
-      },
+      xAxis: xCommon as unknown as EChartsOption['xAxis'],
       yAxis: {
         type: 'value',
-        name: 'ms',
+        name: '总耗时（ms）',
       },
       series,
     } as EChartsOption;
-  }, [byTest]);
+  }, [byTest, xCommon]);
 
   const memOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
@@ -77,24 +127,20 @@ export default function Charts({ results }: { results: TestResult[] }) {
     }));
     return {
       title: {
-        text: '内存占用(Δ bytes) vs 节点数',
+        text: '内存占用（bytes） vs 节点数',
       },
       tooltip: {
         trigger: 'axis',
       },
       legend: {},
-      xAxis: {
-        type: 'log',
-        name: '节点数',
-        logBase: 10,
-      },
+      xAxis: xCommon as unknown as EChartsOption['xAxis'],
       yAxis: {
         type: 'value',
-        name: 'bytes',
+        name: '内存占用（bytes）',
       },
       series,
     } as EChartsOption;
-  }, [byTest]);
+  }, [byTest, xCommon]);
 
   const fpsOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
@@ -108,11 +154,11 @@ export default function Charts({ results }: { results: TestResult[] }) {
       title: { text: '帧率（FPS）' },
       tooltip: { trigger: 'axis' },
       legend: {},
-      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      xAxis: xCommon as unknown as EChartsOption['xAxis'],
       yAxis: { type: 'value', name: '帧率（FPS）' },
       series,
     } as EChartsOption;
-  }, [byTest]);
+  }, [byTest, xCommon]);
 
   const jankOption = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
@@ -127,11 +173,11 @@ export default function Charts({ results }: { results: TestResult[] }) {
       title: { text: '卡顿帧（Jank）' },
       tooltip: { trigger: 'axis' },
       legend: {},
-      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      xAxis: xCommon as unknown as EChartsOption['xAxis'],
       yAxis: { type: ySpan > 1000 ? 'log' : 'value', name: '帧数（frames）' },
       series,
     } as EChartsOption;
-  }, [byTest, results]);
+  }, [byTest, results, xCommon]);
 
   const low1Option = useMemo<EChartsOption>(() => {
     const series: any[] = Object.keys(byTest).map((name) => ({
@@ -147,83 +193,72 @@ export default function Charts({ results }: { results: TestResult[] }) {
       title: { text: '1% Low 帧率（FPS）' },
       tooltip: { trigger: 'axis' },
       legend: {},
-      xAxis: { type: 'log', name: '场景（节点数）', logBase: 10 },
+      xAxis: xCommon,
       yAxis: { type: ySpan > 1000 ? 'log' : 'value', name: '帧率（FPS）' },
       series,
-    } as EChartsOption;
-  }, [byTest, results]);
-
-  const handleDownload = () => {
-    if (!results.length) {
-      return;
-    }
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            results,
-          },
-          null,
-          2,
-        ),
-      ],
-      {
-        type: 'application/json',
-      },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'benchmark-results.json';
-    a.click();
-    return () => URL.revokeObjectURL(url);
-  };
+    } as unknown as EChartsOption;
+  }, [byTest, results, xCommon]);
 
   if (!results.length) {
-    return null;
+    return <div style={{ padding: 16 }}>无数据，请运行测试或检查筛选条件</div>;
   }
 
   return (
     <>
-      <div className={styles.grid}>
-        <ReactECharts
-          className={styles.chart}
-          style={{
-            height: 320,
-          }}
-          option={timeOption}
-        />
-        <ReactECharts
-          className={styles.chart}
-          style={{
-            height: 320,
-          }}
-          option={memOption}
-        />
-        <ReactECharts
-          className={styles.chart}
-          style={{
-            height: 320,
-          }}
-          option={fpsOption}
-        />
-        <ReactECharts
-          className={styles.chart}
-          style={{
-            height: 320,
-          }}
-          option={jankOption}
-        />
-        <ReactECharts
-          className={styles.chart}
-          style={{
-            height: 320,
-          }}
-          option={low1Option}
-        />
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={timeOption} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
       </div>
-      <div>
-        <button onClick={handleDownload}>下载测试结果</button>
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={memOption} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
+      </div>
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={fpsOption} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
+      </div>
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={jankOption} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
+      </div>
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={low1Option} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
       </div>
     </>
   );

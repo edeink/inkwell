@@ -14,9 +14,13 @@ export type ProgressItem = {
 export default function StatusPanel({
   items,
   current,
+  compact,
+  runSeq,
 }: {
   items: ProgressItem[];
   current: { name: string; round: number; total: number } | null;
+  compact?: boolean;
+  runSeq?: number;
 }) {
   const totalAll = items.reduce((s, it) => s + it.total, 0);
   const currentAll = items.reduce((s, it) => s + Math.min(it.current, it.total), 0);
@@ -27,22 +31,33 @@ export default function StatusPanel({
   const allDone = items.length > 0 && items.every((it) => it.status === 'done');
 
   return (
-    <div className={styles.panel}>
+    <div className={`${styles.panel} ${compact ? styles.panelCompact : ''}`}>
       <div className={styles.title}>测试状态</div>
       <div className={styles.currentBlock}>
         <Space size={8} wrap>
           {allDone ? (
             <>
-              <Tag color="success">状态: 已完成</Tag>
-              <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              <span className={styles.fixedCell}>
+                <Tag color="success">状态: 已完成</Tag>
+              </span>
+              <span className={styles.fixedCell}>
+                <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              </span>
             </>
           ) : isRunning && current ? (
             <>
-              <Tag color="blue">
-                当前测试: {current.name} ({current.round}/{current.total}轮)
-              </Tag>
-              <Tag color="processing">状态: 运行中</Tag>
-              <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              <span>
+                <Tag color="processing">状态: 运行中</Tag>
+              </span>
+              <span>
+                <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              </span>
+              <span className={styles.fixedCell}>
+                <Tag color="blue">
+                  当前测试: {current.name} (<span className={styles.num}>{current.round}</span>/
+                  <span className={styles.num}>{current.total}</span>轮)
+                </Tag>
+              </span>
               <Tooltip title="展示整体测试完成度">
                 <span className={styles.hourglass} data-testid="hourglass">
                   <HourglassTwoTone twoToneColor="#1677ff" />
@@ -51,9 +66,15 @@ export default function StatusPanel({
             </>
           ) : (
             <>
-              <Tag color="default">当前测试: 待开始</Tag>
-              <Tag color="default">状态: 准备中</Tag>
-              <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              <span className={styles.fixedCell}>
+                <Tag color="default">当前测试: 待开始</Tag>
+              </span>
+              <span className={styles.fixedCell}>
+                <Tag color="default">状态: 准备中</Tag>
+              </span>
+              <span className={styles.fixedCell}>
+                <Tag color="default">测试类型: 多轮性能基准测试</Tag>
+              </span>
             </>
           )}
         </Space>
