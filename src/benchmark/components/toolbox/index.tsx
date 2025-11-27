@@ -17,11 +17,7 @@ type Props = {
  * Toolbox
  * 提供下载当前数据、上传基线数据与切换对比模式的操作栏。
  */
-export default function Toolbox({
-  results,
-  onToggleMode,
-  onUploadBaseline,
-}: Props) {
+export default function Toolbox({ results, onToggleMode, onUploadBaseline }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   // 导出当前结果为 JSON 文件
@@ -61,7 +57,7 @@ export default function Toolbox({
       if (Array.isArray(arr)) {
         onUploadBaseline(arr);
       }
-    } catch { }
+    } catch {}
     e.target.value = '';
   };
 

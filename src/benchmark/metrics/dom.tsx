@@ -1,11 +1,9 @@
-import { PerformanceTestInterface } from '../index.types';
+import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
 import { createAbsoluteDomNodes } from '../tester/absolute/dom';
 import { createFlexDomNodes } from '../tester/flex/dom';
 import { createTextDomNodes } from '../tester/text/dom';
 
 import { FrameSampler, type Timings } from './collector';
-
-import type { PerformanceMetrics } from '../index.types';
 
 /**
  * DOM 测试上下文
@@ -25,15 +23,15 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
   private lastMetrics: PerformanceMetrics = { nodes: 0, createTimeMs: 0, avgPerNodeMs: 0 };
   private frameSampler = new FrameSampler();
   private startMark = 0;
-  private layout: 'absolute' | 'flex' | 'text';
+  private caseType: TestCaseType;
   private lastTimings: Timings | null = null;
   private collecting = false;
   private beforeMem: { heapUsed: number } | null = null;
 
-  constructor(stage: HTMLElement, layout: 'absolute' | 'flex' | 'text' = 'absolute') {
+  constructor(stage: HTMLElement, layout = TestCaseType.Absolute) {
     super();
     this.ctx = { stage };
-    this.layout = layout;
+    this.caseType = layout;
   }
 
   /**
@@ -41,12 +39,20 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
    * @param targetCount 目标节点数量
    */
   async createNodes(targetCount: number): Promise<void> {
-    if (this.layout === 'absolute') {
-      this.lastTimings = await createAbsoluteDomNodes(this.ctx.stage, targetCount);
-    } else if (this.layout === 'flex') {
-      this.lastTimings = await createFlexDomNodes(this.ctx.stage, targetCount);
-    } else {
-      this.lastTimings = await createTextDomNodes(this.ctx.stage, targetCount);
+    switch (this.caseType) {
+      case TestCaseType.Flex: {
+        this.lastTimings = await createFlexDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.Text: {
+        this.lastTimings = await createTextDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.Absolute:
+      default: {
+        this.lastTimings = await createAbsoluteDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
     }
   }
 
@@ -62,7 +68,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch { }
+      } catch {}
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -74,7 +80,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch { }
+    } catch {}
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;

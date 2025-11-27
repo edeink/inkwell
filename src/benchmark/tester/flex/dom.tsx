@@ -19,9 +19,12 @@ export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<T
     container.appendChild(d);
   }
   const tBuild1 = performance.now();
-  stage.appendChild(container);
+  const scrollLayer = document.createElement('div');
+  scrollLayer.style.cssText = 'position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto;';
+  stage.appendChild(scrollLayer);
+  scrollLayer.appendChild(container);
   const tLayout0 = performance.now();
-  void stage.offsetHeight; // 强制布局
+  void stage.offsetHeight;
   const tLayout1 = performance.now();
   return measureNextPaint().then((paintMs) => ({
     buildMs: tBuild1 - tBuild0,

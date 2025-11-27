@@ -1,12 +1,14 @@
 import { CheckCircleTwoTone, ClockCircleTwoTone, HourglassTwoTone } from '@ant-design/icons';
 import { Progress, Space, Tag, Tooltip } from 'antd';
 
+import { TestStatus } from '../../index.types';
+
 import styles from './index.module.less';
 
 export type ProgressItem = {
   key: string;
   name: string;
-  status: 'pending' | 'running' | 'done';
+  status: TestStatus;
   current: number;
   total: number;
 };
@@ -34,9 +36,15 @@ export default function StatusPanel({
   const currentAll = items.reduce((s, it) => s + Math.min(it.current, it.total), 0);
   const overallPercent = totalAll ? Math.round((currentAll / totalAll) * 100) : 0;
   const statusLabel = (s: ProgressItem['status'] | 'error') =>
-    s === 'pending' ? '准备中' : s === 'running' ? '运行中' : s === 'done' ? '已完成' : '错误';
-  const isRunning = items.some((it) => it.status === 'running');
-  const allDone = items.length > 0 && items.every((it) => it.status === 'done');
+    s === TestStatus.Pending
+      ? '准备中'
+      : s === TestStatus.Running
+        ? '运行中'
+        : s === TestStatus.Done
+          ? '已完成'
+          : '错误';
+  const isRunning = items.some((it) => it.status === TestStatus.Running);
+  const allDone = items.length > 0 && items.every((it) => it.status === TestStatus.Done);
 
   return (
     <div className={`${styles.panel} ${compact ? styles.panelCompact : ''}`}>
@@ -96,16 +104,18 @@ export default function StatusPanel({
           <div key={it.key} className={styles.taskItem}>
             <span className={styles.taskTitle}>{it.name}</span>
             <div className={styles.taskRight}>
-              {it.status === 'done' ? (
+              {it.status === TestStatus.Done ? (
                 <CheckCircleTwoTone twoToneColor="#52c41a" />
               ) : (
-                <ClockCircleTwoTone twoToneColor={it.status === 'running' ? '#1677ff' : '#aaa'} />
+                <ClockCircleTwoTone
+                  twoToneColor={it.status === TestStatus.Running ? '#1677ff' : '#aaa'}
+                />
               )}
               <Tag
                 color={
-                  it.status === 'done'
+                  it.status === TestStatus.Done
                     ? 'success'
-                    : it.status === 'running'
+                    : it.status === TestStatus.Running
                       ? 'processing'
                       : 'default'
                 }

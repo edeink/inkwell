@@ -17,22 +17,12 @@ import type { RendererOptions } from '../../../renderer/IRenderer';
  */
 function buildFlexJSX(count: number) {
   return (
-    <Wrap key="perf-flex">
+    <Wrap key="perf-flex" spacing={4} runSpacing={4}>
       {Array.from({ length: count }).map((_, i) => (
-        <Container key={`c-${i}`} width={6} height={6} color="#888" />
+        <Container key={`c-${i}`} width={4} height={4} color="#888" />
       ))}
     </Wrap>
   );
-}
-
-/** 创建编辑器实例，绑定到舞台元素
- * @param stageEl 舞台元素
- * @returns 编辑器实例
- */
-export async function createFlexWidgetNodes(stageEl: HTMLElement): Promise<{ editor: Editor }> {
-  const id = stageEl.id || 'stage';
-  const editor = await Editor.create(id, { backgroundAlpha: 0 });
-  return { editor };
 }
 
 /**
@@ -70,13 +60,16 @@ export async function buildFlexWidgetScene(
 
   const renderer = editor.getRenderer() ?? new Canvas2DRenderer();
   const container = editor.getContainer()!;
+  const scrollLayer = document.createElement('div');
+  scrollLayer.style.cssText = 'position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto;';
+  container.appendChild(scrollLayer);
   const opts: RendererOptions = {
     width: Math.max(stageW, 100),
     height: Math.max(stageH, 100),
     backgroundAlpha: 0,
   } as RendererOptions;
   const tInit0 = performance.now();
-  await renderer.initialize(container, opts);
+  await renderer.initialize(scrollLayer, opts);
   const tInit1 = performance.now();
 
   const context: BuildContext = { renderer };

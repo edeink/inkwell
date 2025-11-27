@@ -5,8 +5,8 @@ import Toolbox from '../toolbox';
 
 import styles from './index.module.less';
 
-import type { EChartsOption } from 'echarts';
 import type { TestResult } from '../../index.types';
+import type { EChartsOption } from 'echarts';
 
 /**
  * Charts

@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { Text, Wrap } from '../../../core';
+import { Positioned, Stack, Text } from '../../../core';
 import { Widget } from '../../../core/base';
 import '../../../core/registry';
 import Editor from '../../../editors/graphics-editor';
@@ -15,24 +15,28 @@ import type { RendererOptions } from '../../../renderer/IRenderer';
  * @param count 节点数量
  * @returns JSX 树
  */
-function buildTextJSX(count: number) {
+function buildTextJSX(count: number, W: number, H: number) {
   return (
-    <Wrap key="perf-text">
-      {Array.from({ length: count }).map((_, i) => (
-        <Text key={`t-${i}`} text={`t${i}`} fontSize={12} />
-      ))}
-    </Wrap>
+    <Stack key="perf-text">
+      {Array.from({ length: count }).map((_, i) => {
+        const x = Math.floor(Math.random() * Math.max(1, W - 100));
+        const y = Math.floor(Math.random() * Math.max(1, H - 20));
+        return (
+          <Positioned key={`p-${i}`} left={x} top={y}>
+            <Text
+              key={`t-${i}`}
+              text={`t-${i}`}
+              fontSize={12}
+              lineHeight={12}
+              fontWeight={'normal'}
+              color={'#111827'}
+              fontFamily={'Arial, sans-serif'}
+            />
+          </Positioned>
+        );
+      })}
+    </Stack>
   );
-}
-
-/** 创建编辑器实例，绑定到舞台元素
- * @param stageEl 舞台元素
- * @returns 编辑器实例
- */
-export async function createTextWidgetNodes(stageEl: HTMLElement): Promise<{ editor: Editor }> {
-  const id = stageEl.id || 'stage';
-  const editor = await Editor.create(id, { backgroundAlpha: 0 });
-  return { editor };
 }
 
 /**
@@ -50,7 +54,7 @@ export async function buildTextWidgetScene(
   const tCompile0 = performance.now();
   const stageW = stageEl.clientWidth || 800;
   const stageH = stageEl.clientHeight || 600;
-  const jsx = buildTextJSX(count);
+  const jsx = buildTextJSX(count, stageW, stageH);
   const json = compileElement(jsx);
   const tCompile1 = performance.now();
 

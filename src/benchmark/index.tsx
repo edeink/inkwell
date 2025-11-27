@@ -8,24 +8,26 @@ import EnvPanel from './components/env-panel';
 import StageContainer from './components/stage-container';
 import StatusPanel from './components/status-panel';
 import styles from './index.module.less';
-import { averageSamples } from './index.types';
+import {
+  averageSamples,
+  TestCaseType,
+  TestStatus,
+  type ExperimentType,
+  type PerformanceTestInterface,
+  type TestResult,
+  type TestSample,
+} from './index.types';
 import DomPerformanceTest from './metrics/dom';
 import WidgetPerformanceTest from './metrics/widget';
 
 import type { RefObject } from 'react';
-import type {
-  ExperimentType,
-  PerformanceTestInterface,
-  TestResult,
-  TestSample,
-} from './index.types';
 
 /**
  * 已加载测试描述：名称与工厂方法（基于舞台元素创建具体测试实例）。
  */
 type LoadedTest = {
   name: string;
-  create: (stage: HTMLElement) => PerformanceTestInterface
+  create: (stage: HTMLElement) => PerformanceTestInterface;
 };
 
 /**
@@ -34,7 +36,7 @@ type LoadedTest = {
 type ProgressItem = {
   key: string;
   name: string;
-  status: 'pending' | 'running' | 'done';
+  status: TestStatus;
   current: number;
   total: number;
 };
@@ -42,10 +44,10 @@ type ProgressItem = {
 /**
  * 根据布局类型生成 DOM 与 Widget 两类测试用例集合。
  */
-function listTests(layout: 'absolute' | 'flex' | 'text'): LoadedTest[] {
+function listTests(caseType: TestCaseType): LoadedTest[] {
   return [
-    { name: `${layout}-DOM`, create: (stage) => new DomPerformanceTest(stage, layout) },
-    { name: `${layout}-Widget`, create: (stage) => new WidgetPerformanceTest(stage, layout) },
+    { name: `${caseType}-DOM`, create: (stage) => new DomPerformanceTest(stage, caseType) },
+    { name: `${caseType}-Widget`, create: (stage) => new WidgetPerformanceTest(stage, caseType) },
   ];
 }
 
@@ -86,7 +88,7 @@ async function runSingleWithProgress(
       }
     });
     po.observe({ entryTypes: ['longtask'] as any });
-  } catch { }
+  } catch {}
   for (let i = 1; i <= total; i++) {
     // 每轮：采集 → 构建 → 再采集，形成完整样本
     await test.collectStatistics(nodes);
@@ -103,7 +105,7 @@ async function runSingleWithProgress(
   if (po) {
     try {
       po.disconnect();
-    } catch { }
+    } catch {}
   }
   const windowMs = Math.max(1, winEnd - winStart); // 观测窗口时长
   const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100); // 估算 CPU 忙碌比例
@@ -130,7 +132,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [showStage, setShowStage] = useState(false);
   const [nodeCounts, setNodeCounts] = useState<number[]>([100, 500, 1000, 5000, 10000]);
   const [repeat, setRepeat] = useState<number>(3);
-  const [layoutType, setLayoutType] = useState<'absolute' | 'flex' | 'text'>('absolute');
+  const [caseType, setCaseType] = useState<TestCaseType>(TestCaseType.Text);
   const [experimentType, setExperimentType] = useState<ExperimentType>('dom_vs_widget');
   const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);
   const [thresholdPercent, setThresholdPercent] = useState<number>(0.05);
@@ -156,13 +158,13 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       setLoading(false);
       throw new Error('stage ref not ready');
     }
-    const tests = listTests(layoutType);
+    const tests = listTests(caseType);
     // 初始化外部与模态框的进度列表
     setProgressItems(
       tests.map((t) => ({
         key: t.name,
         name: t.name,
-        status: 'pending',
+        status: TestStatus.Pending,
         current: 0,
         total: nodeCounts.length * repeat,
       })),
@@ -171,7 +173,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       tests.map((t) => ({
         key: t.name,
         name: t.name,
-        status: 'pending',
+        status: TestStatus.Pending,
         current: 0,
         total: nodeCounts.length * repeat,
       })),
@@ -181,7 +183,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       const warm = tests[0];
       const inst = warm.create(stage);
       // 预热一轮以降低冷启动对后续统计的干扰
-      await runSingleWithProgress(inst, warm.name, 50, 1, () => { });
+      await runSingleWithProgress(inst, warm.name, 50, 1, () => {});
     }
     for (const t of tests) {
       const inst = t.create(stage);
@@ -192,10 +194,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         }
         // 标记当前测试为运行中
         setProgressItems((prev) =>
-          prev.map((it) => (it.key === t.name ? { ...it, status: 'running' } : it)),
+          prev.map((it) => (it.key === t.name ? { ...it, status: TestStatus.Running } : it)),
         );
         setModalProgressItems((prev) =>
-          prev.map((it) => (it.key === t.name ? { ...it, status: 'running' } : it)),
+          prev.map((it) => (it.key === t.name ? { ...it, status: TestStatus.Running } : it)),
         );
         const res = await runSingleWithProgress(inst, t.name, n, repeat, (i, total) => {
           setCurrentTask({
@@ -208,10 +210,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
             prev.map((it) =>
               it.key === t.name
                 ? {
-                  ...it,
-                  status: 'running',
-                  current: Math.min(done + i, it.total),
-                }
+                    ...it,
+                    status: TestStatus.Running,
+                    current: Math.min(done + i, it.total),
+                  }
                 : it,
             ),
           );
@@ -219,10 +221,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
             prev.map((it) =>
               it.key === t.name
                 ? {
-                  ...it,
-                  status: 'running',
-                  current: Math.min(done + i, it.total),
-                }
+                    ...it,
+                    status: TestStatus.Running,
+                    current: Math.min(done + i, it.total),
+                  }
                 : it,
             ),
           );
@@ -234,10 +236,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
           prev.map((it) =>
             it.key === t.name
               ? {
-                ...it,
-                status: done === it.total ? 'done' : 'running',
-                current: done,
-              }
+                  ...it,
+                  status: done === it.total ? TestStatus.Done : TestStatus.Running,
+                  current: done,
+                }
               : it,
           ),
         );
@@ -245,10 +247,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
           prev.map((it) =>
             it.key === t.name
               ? {
-                ...it,
-                status: done === it.total ? 'done' : 'running',
-                current: done,
-              }
+                  ...it,
+                  status: done === it.total ? TestStatus.Done : TestStatus.Running,
+                  current: done,
+                }
               : it,
           ),
         );
@@ -266,7 +268,9 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setShowStage(false);
     setCurrentTask(null);
     // 重置模态框进度，保留外部状态面板历史
-    setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
+    setModalProgressItems((prev) =>
+      prev.map((it) => ({ ...it, status: TestStatus.Pending, current: 0 })),
+    );
   };
 
   const stop = () => {
@@ -275,7 +279,9 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setLoading(false);
     setShowStage(false);
     // 即刻重置模态框进度（外部面板不重置）
-    setModalProgressItems((prev) => prev.map((it) => ({ ...it, status: 'pending', current: 0 })));
+    setModalProgressItems((prev) =>
+      prev.map((it) => ({ ...it, status: TestStatus.Pending, current: 0 })),
+    );
   };
 
   return {
@@ -290,8 +296,8 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setNodeCounts,
     repeat,
     setRepeat,
-    layoutType,
-    setLayoutType,
+    caseType,
+    setCaseType,
     experimentType,
     setExperimentType,
     baselineResults,
@@ -319,8 +325,8 @@ function App() {
     showStage,
     nodeCounts,
     setNodeCounts,
-    layoutType,
-    setLayoutType,
+    caseType,
+    setCaseType,
     experimentType,
     setExperimentType,
     baselineResults,
@@ -343,15 +349,14 @@ function App() {
         </Card>
         <Card size="small" variant="outlined">
           <ControlPanel
-            nodeCounts={nodeCounts}
             setNodeCounts={setNodeCounts}
             repeat={repeat}
             setRepeat={setRepeat}
             start={start}
             stop={stop}
             loading={loading}
-            layoutType={layoutType}
-            setLayoutType={setLayoutType}
+            caseType={caseType}
+            setCaseType={setCaseType}
           />
         </Card>
       </div>

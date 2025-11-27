@@ -134,7 +134,7 @@ export default function EnvPanel() {
           const pct = Math.round((b.level || 0) * 100);
           setBattery(`${pct}% ${b.charging ? '充电中' : ''}`.trim());
         })
-        .catch(() => { });
+        .catch(() => {});
     }
   }, []);
   const withExtra = battery
@@ -152,7 +152,7 @@ export default function EnvPanel() {
             className={styles.copyBtn}
             onClick={() => {
               const text = withExtra.map((it) => `${it.label}: ${it.value}`).join('\n');
-              navigator.clipboard?.writeText(text).catch(() => { });
+              navigator.clipboard?.writeText(text).catch(() => {});
             }}
           >
             复制环境信息

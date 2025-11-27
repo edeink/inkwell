@@ -68,6 +68,24 @@ export type DiffMetric = {
   degraded: boolean;
 };
 
+export enum TestCaseType {
+  Absolute = 'absolute',
+  Flex = 'flex',
+  Text = 'text',
+}
+
+export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
+  { label: 'Absolute', value: TestCaseType.Absolute },
+  { label: 'Flex', value: TestCaseType.Flex },
+  { label: 'Text', value: TestCaseType.Text },
+];
+
+export enum TestStatus {
+  Pending = 'pending',
+  Running = 'running',
+  Done = 'done',
+}
+
 /**
  * 性能测试接口
  * 统一测试生命周期的方法与读取统计信息的约定。

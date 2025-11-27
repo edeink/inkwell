@@ -1,30 +1,37 @@
 import { Button, InputNumber, Select, Space } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { TestCaseOptions } from '../../index.types';
+
 import styles from './index.module.less';
+
+import type { TestCaseType } from '../../index.types';
 
 /**
  * 控制面板参数
  */
 type Props = {
-  nodeCounts: number[];
   setNodeCounts: (v: number[]) => void;
   repeat: number;
   setRepeat: (v: number) => void;
   start: () => void;
   stop: () => void;
   loading: boolean;
-  layoutType: 'absolute' | 'flex' | 'text';
-  setLayoutType: (v: 'absolute' | 'flex' | 'text') => void;
+  caseType: TestCaseType;
+  setCaseType: (v: TestCaseType) => void;
 };
-
-type PresetKey = 'common' | 'small' | 'large';
 
 /**
  * 预设区间配置：用于快速选择测试规模。
  */
+enum PresetType {
+  Common = 'common',
+  Small = 'small',
+  Large = 'large',
+}
+
 type Preset = {
-  key: PresetKey;
+  key: PresetType;
   label: string;
   start: number;
   end: number;
@@ -33,9 +40,9 @@ type Preset = {
 
 // 预设集合：覆盖常用、小规模与大规模三档
 const PRESETS: Preset[] = [
-  { key: 'common', label: '常用', start: 100, end: 10000, step: 100 },
-  { key: 'small', label: '小规模', start: 50, end: 500, step: 50 },
-  { key: 'large', label: '大规模', start: 5000, end: 20000, step: 100 },
+  { key: PresetType.Common, label: '常用', start: 100, end: 10000, step: 100 },
+  { key: PresetType.Small, label: '小规模', start: 50, end: 500, step: 50 },
+  { key: PresetType.Large, label: '大规模', start: 5000, end: 20000, step: 100 },
 ];
 
 /**
@@ -49,17 +56,16 @@ export default function ControlPanel({
   start,
   stop,
   loading,
-  layoutType,
-  setLayoutType,
+  caseType,
+  setCaseType,
 }: Props) {
   const [rangeStart, setRangeStart] = useState<number>(100);
   const [rangeEnd, setRangeEnd] = useState<number>(10000);
   const [rangeStep, setRangeStep] = useState<number>(100);
-  type PresetKey = 'common' | 'small' | 'large';
-  const [preset, setPreset] = useState<PresetKey | null>('small');
+  const [preset, setPreset] = useState<PresetType>(PresetType.Common);
 
   // 切换预设并同步区间与步长
-  const onPresetChange = useCallback((key: PresetKey) => {
+  const onPresetChange = useCallback((key: PresetType) => {
     const cfg = PRESETS.find((p) => p.key === key);
     if (!cfg) {
       return;
@@ -118,20 +124,16 @@ export default function ControlPanel({
       <div className={styles.sectionTitle}>配置</div>
       <div className={styles.section}>
         <div className={styles.fieldRow}>
-          <span className={styles.label}>布局</span>
+          <span className={styles.label}>测试内容</span>
           <Select
-            value={layoutType}
-            onChange={(v) => setLayoutType(v as any)}
-            options={[
-              { label: 'Absolute', value: 'absolute' },
-              { label: 'Flex', value: 'flex' },
-              { label: 'Text', value: 'text' },
-            ]}
+            value={caseType}
+            onChange={(v) => setCaseType(v as TestCaseType)}
+            options={TestCaseOptions}
             style={{ minWidth: 140 }}
           />
         </div>
         <div className={styles.fieldRow}>
-          <span className={styles.label}>轮次</span>
+          <span className={styles.label}>重复次数</span>
           <InputNumber
             className={styles.input}
             min={1}

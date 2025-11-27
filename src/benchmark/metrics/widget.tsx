@@ -1,12 +1,10 @@
 import Editor from '../../editors/graphics-editor';
-import { PerformanceTestInterface } from '../index.types';
-import { buildAbsoluteWidgetScene, createAbsoluteWidgetNodes } from '../tester/absolute/widget';
-import { buildFlexWidgetScene, createFlexWidgetNodes } from '../tester/flex/widget';
-import { buildTextWidgetScene, createTextWidgetNodes } from '../tester/text/widget';
+import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
+import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
+import { buildFlexWidgetScene } from '../tester/flex/widget';
+import { buildTextWidgetScene } from '../tester/text/widget';
 
 import { FrameSampler, type Timings } from './collector';
-
-import type { PerformanceMetrics } from '../index.types';
 
 /**
  * Widget 测试上下文
@@ -23,7 +21,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
   private lastMetrics: PerformanceMetrics = { nodes: 0, createTimeMs: 0, avgPerNodeMs: 0 };
   private frameSampler = new FrameSampler();
   private startMark = 0;
-  private layout: 'absolute' | 'flex' | 'text';
+  private caseType: TestCaseType;
   private lastTimings: Timings | null = null;
   private collecting = false;
   private memoryDebug: { t: number; used: number }[] = [];
@@ -40,10 +38,16 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.ctx.editor = null;
   }
 
-  constructor(stageEl: HTMLElement, layout: 'absolute' | 'flex' | 'text' = 'absolute') {
+  constructor(stageEl: HTMLElement, layout = TestCaseType.Absolute) {
     super();
     this.ctx = { stageEl, editor: null };
-    this.layout = layout;
+    this.caseType = layout;
+  }
+
+  private async createEditorForStage(stageEl: HTMLElement): Promise<Editor> {
+    const id = stageEl.id || 'stage';
+    const editor = await Editor.create(id, { backgroundAlpha: 0 });
+    return editor;
   }
 
   /**
@@ -52,16 +56,18 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
    */
   async createNodes(targetCount: number): Promise<void> {
     this.clearCanvas();
-    let editor: Editor;
-    if (this.layout === 'absolute') {
-      ({ editor } = await createAbsoluteWidgetNodes(this.ctx.stageEl));
-      this.lastTimings = await buildAbsoluteWidgetScene(this.ctx.stageEl, editor, targetCount);
-    } else if (this.layout === 'flex') {
-      ({ editor } = await createFlexWidgetNodes(this.ctx.stageEl));
-      this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, editor, targetCount);
-    } else {
-      ({ editor } = await createTextWidgetNodes(this.ctx.stageEl));
-      this.lastTimings = await buildTextWidgetScene(this.ctx.stageEl, editor, targetCount);
+    const editor = await this.createEditorForStage(this.ctx.stageEl);
+    switch (this.caseType) {
+      case TestCaseType.Flex:
+        this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, editor, targetCount);
+        break;
+      case TestCaseType.Text:
+        this.lastTimings = await buildTextWidgetScene(this.ctx.stageEl, editor, targetCount);
+        break;
+      case TestCaseType.Absolute:
+      default:
+        this.lastTimings = await buildAbsoluteWidgetScene(this.ctx.stageEl, editor, targetCount);
+        break;
     }
     this.ctx.editor = editor;
   }
@@ -78,7 +84,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch { }
+      } catch {}
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -90,7 +96,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch { }
+    } catch {}
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;

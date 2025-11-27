@@ -34,19 +34,6 @@ function buildAbsoluteJSX(count: number, W: number, H: number) {
 }
 
 /**
- * 创建编辑器实例并绑定到舞台元素，背景透明以避免额外绘制开销。
- * @param stageEl 舞台元素
- * @returns 编辑器实例
- */
-export async function createAbsoluteWidgetNodes(stageEl: HTMLElement): Promise<{
-  editor: Editor;
-}> {
-  const id = stageEl.id || 'stage';
-  const editor = await Editor.create(id, { backgroundAlpha: 0 });
-  return { editor };
-}
-
-/**
  * 编译 JSX → JSON，构建 Widget 树，布局并初始化渲染器，执行绘制并等待下一次绘制完成。
  * @param stageEl 舞台元素
  * @param editor 编辑器实例

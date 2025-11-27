@@ -16,8 +16,8 @@ export function createTextDomNodes(stage: HTMLElement, count: number): Promise<T
     const d = document.createElement('div');
     const x = Math.floor(Math.random() * Math.max(1, stageW - 100));
     const y = Math.floor(Math.random() * Math.max(1, stageH - 20));
-    d.style.cssText = `position:absolute;left:${x}px;top:${y}px;font-size:12px;color:#111827;white-space:nowrap;`;
-    d.textContent = `t${i}`;
+    d.style.cssText = `position:absolute;left:${x}px;top:${y}px;font-size:12px;line-height:12px;font-weight:normal;color:#111827;font-family:Arial, sans-serif;white-space:nowrap;`;
+    d.textContent = `t-${i}`;
     frag.appendChild(d);
   }
   const tBuild1 = performance.now();
