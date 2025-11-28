@@ -8,6 +8,9 @@
 @text-default: #111827;
 
 .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   border: 1px solid @color-border;
   border-radius: 12px;
   padding: @space-2;
@@ -23,7 +26,6 @@
 .sectionTitle {
   font-weight: 700;
   font-size: 15px;
-  margin-bottom: 12px;
   color: @text-default;
 }
 
@@ -101,7 +103,7 @@
   transform: translateY(1px);
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .sectionTitle {
     font-size: 14px;
   }

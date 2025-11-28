@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+echo "🔧 Running pre-commit hooks (format + lint on staged files)..."
+
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm exec lint-staged
+else
+  npx --no-install lint-staged
+fi
+
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "❌ Pre-commit failed. Please fix the issues above and re-commit."
+  exit $rc
+fi
+
+echo "✅ Pre-commit checks passed."

@@ -3,7 +3,7 @@
   gap: var(--ink-space-2);
   background: var(--ink-card);
   border-radius: var(--ink-radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 5%);
   position: relative;
 }
 
@@ -21,10 +21,7 @@
 
 .overlayBottom {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 1;
   display: flex;
   align-items: flex-end;
@@ -49,6 +46,7 @@
     transform: translateY(4px);
   }
 }
+
 .copyBtn {
   position: absolute;
   top: 8px;
@@ -64,7 +62,7 @@
   justify-content: center;
   color: var(--ink-text-muted);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 4%);
   transition:
     opacity 0.15s ease,
     transform 0.15s ease,
@@ -83,7 +81,7 @@
 .copyBtn:hover {
   transform: translateY(-1px);
   color: var(--ifm-font-color-base);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
 }
 
 .copyBtn:active {
@@ -107,7 +105,7 @@
   border-radius: var(--ink-radius);
   padding: 6px 10px;
   font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
 }
 
 .copyToastSuccess {
@@ -119,6 +117,7 @@
   color: #c62828;
   border-color: #ef9a9a;
 }
+
 .editorContent {
   position: relative;
 }
@@ -127,10 +126,12 @@
   :global(pre.prism-code) {
     counter-reset: line;
   }
+
   :global(.token-line) {
     position: relative;
     padding-left: 36px;
   }
+
   :global(.token-line::before) {
     counter-increment: line;
     content: counter(line);
@@ -139,6 +140,7 @@
     color: var(--ink-text-muted);
     font-family: var(
       --ifm-font-family-monospace,
+      'Source Code Pro',
       ui-monospace,
       SFMono-Regular,
       Menlo,
@@ -152,4 +154,13 @@
     user-select: none;
     pointer-events: none;
   }
+}
+
+/* Showcase 模式：代码显示更舒适的行距与字体栈 */
+.showcase .prismWithLines :global(pre.prism-code) {
+  font-family:
+    'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace !important;
+  font-size: 13.6px;
+  line-height: 24px;
 }

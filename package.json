@@ -5,13 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "format": "eslint --ext .js,.jsx,.ts,.tsx src/ --fix && prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
+    "format": "stylelint --fix \"src/**/*.{css,less}\" && eslint --ext .js,.jsx,.ts,.tsx src/ --fix && prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
     "preview": "vite preview",
     "test": "vitest",
     "benchmark": "vite --open /src/benchmark/index.html",
     "doc": "docusaurus start",
     "doc:build": "docusaurus build",
-    "doc:serve": "docusaurus serve"
+    "doc:serve": "docusaurus serve",
+    "precommit": "lint-staged"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
@@ -44,13 +45,18 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "eslint-plugin-unused-imports": "^3.2.0",
     "globals": "^16.3.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.2.0",
     "less": "^4.4.1",
     "less-loader": "^11.1.0",
+    "lint-staged": "^16.2.7",
+    "postcss-less": "^6.0.0",
     "prettier": "^3.3.3",
     "prism-react-renderer": "^2.4.0",
     "react-live": "^4.1.8",
     "style-loader": "^3.3.4",
+    "stylelint": "^16.26.0",
+    "stylelint-config-standard": "^39.0.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^5.4.10",
@@ -58,5 +64,17 @@
   },
   "volta": {
     "node": "22.19.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{css,less}": [
+      "stylelint --fix",
+      "prettier --write",
+      "git add"
+    ]
   }
 }

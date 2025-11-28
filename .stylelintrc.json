@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "stylelint-config-standard"
+  ],
+  "rules": {
+    "selector-class-pattern": null,
+    "selector-pseudo-class-no-unknown": null,
+    "no-descending-specificity": null,
+    "declaration-property-value-no-unknown": null,
+    "keyframes-name-pattern": null,
+    "block-no-empty": null,
+    "declaration-property-value-keyword-no-deprecated": null,
+    "no-duplicate-selectors": null
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.less"
+      ],
+      "customSyntax": "postcss-less"
+    }
+  ]
+}
