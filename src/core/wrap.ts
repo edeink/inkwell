@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -31,7 +32,7 @@ export class Wrap extends Widget<WrapData> {
   }
 
   static {
-    Widget.registerType('Wrap', Wrap);
+    Widget.registerType(ComponentType.Wrap, Wrap);
   }
 
   protected createChildWidget(childData: WidgetData): Widget | null {

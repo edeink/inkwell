@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -105,7 +106,7 @@ export class Image extends Widget<ImageData> {
 
   // 注册 Image 组件类型
   static {
-    Widget.registerType('Image', Image);
+    Widget.registerType(ComponentType.Image, Image);
   }
 
   /**

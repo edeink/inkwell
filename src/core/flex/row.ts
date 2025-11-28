@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from '../base';
+import { ComponentType } from '../type';
 
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from './type';
 
@@ -71,7 +72,7 @@ export class Row extends Widget<RowData> {
    */
   // 注册 Row 组件类型
   static {
-    Widget.registerType('Row', Row);
+    Widget.registerType(ComponentType.Row, Row);
   }
 
   /**

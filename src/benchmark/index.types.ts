@@ -75,9 +75,9 @@ export enum TestCaseType {
 }
 
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
-  { label: 'Absolute', value: TestCaseType.Absolute },
-  { label: 'Flex', value: TestCaseType.Flex },
-  { label: 'Text', value: TestCaseType.Text },
+  { label: '（盒子渲染）Container Vs Div', value: TestCaseType.Absolute },
+  { label: '（文字渲染）Text Vs Div', value: TestCaseType.Text },
+  { label: '（流式布局）Wrap Vs css-flex', value: TestCaseType.Flex },
 ];
 
 export enum TestStatus {

@@ -1,0 +1,15 @@
+export const enum ComponentType {
+  Column = 'Column',
+  Text = 'Text',
+  NextText = 'NextText',
+  Row = 'Row',
+  Expanded = 'Expanded',
+  Image = 'Image',
+  SizedBox = 'SizedBox',
+  Container = 'Container',
+  Padding = 'Padding',
+  Center = 'Center',
+  Stack = 'Stack',
+  Positioned = 'Positioned',
+  Wrap = 'Wrap',
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -34,7 +35,7 @@ export class Positioned extends Widget<PositionedData> {
 
   // 注册 Positioned 组件类型
   static {
-    Widget.registerType('Positioned', Positioned);
+    Widget.registerType(ComponentType.Positioned, Positioned);
   }
 
   constructor(data: PositionedData) {

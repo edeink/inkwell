@@ -4,10 +4,12 @@ import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
 import type { BoxConstraints, BuildContext } from '../core/base';
 import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
+
+// 导入注册表以确保所有组件类型都已注册
+import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
 import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
-// 导入注册表以确保所有组件类型都已注册
 import '../core/registry';
 
 /**
@@ -23,22 +25,6 @@ export interface RuntimeOptions {
   background?: string;
   /** 背景透明度 */
   backgroundAlpha?: number;
-}
-
-export const enum ComponentType {
-  Column = 'Column',
-  Text = 'Text',
-  NextText = 'NextText',
-  Row = 'Row',
-  Expanded = 'Expanded',
-  Image = 'Image',
-  SizedBox = 'SizedBox',
-  Container = 'Container',
-  Padding = 'Padding',
-  Center = 'Center',
-  Stack = 'Stack',
-  Positioned = 'Positioned',
-  Wrap = 'Wrap',
 }
 
 /**

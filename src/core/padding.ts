@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -25,7 +26,7 @@ export class Padding extends Widget<PaddingData> {
 
   // 注册 Padding 组件类型
   static {
-    Widget.registerType('Padding', Padding);
+    Widget.registerType(ComponentType.Padding, Padding);
   }
 
   constructor(data: PaddingData) {

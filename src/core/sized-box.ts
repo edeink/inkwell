@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -31,7 +32,7 @@ export class SizedBox extends Widget<SizedBoxData> {
 
   // 注册 SizedBox 组件类型
   static {
-    Widget.registerType('SizedBox', SizedBox);
+    Widget.registerType(ComponentType.SizedBox, SizedBox);
   }
 
   constructor(data: SizedBoxData) {

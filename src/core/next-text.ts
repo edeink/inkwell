@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -86,7 +87,7 @@ export class NextText extends Widget<TextData> {
   private static measureCtx: CanvasRenderingContext2D = NextText.measureCanvas.getContext('2d')!;
 
   static {
-    Widget.registerType('NextText', NextText);
+    Widget.registerType(ComponentType.NextText, NextText);
   }
 
   protected createChildWidget(_childData: WidgetData): Widget | null {

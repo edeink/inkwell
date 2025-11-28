@@ -11,7 +11,7 @@ import type {
 import type { AlignmentGeometry } from '@/core/stack';
 import type { ComponentData } from '@/runtime';
 
-import { ComponentType } from '@/runtime';
+import { ComponentType } from '@/core/type';
 
 /**
  * JSX 编译器：将自定义 JSX 运行时元素转换为 ComponentData JSON

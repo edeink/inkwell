@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from '../base';
+import { ComponentType } from '../type';
 
 import { createRenderFlexUnboundedError } from './errors';
 import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from './type';
@@ -69,7 +70,7 @@ export class Column extends Widget<ColumnData> {
 
   // 注册 Column 组件类型
   static {
-    Widget.registerType('Column', Column);
+    Widget.registerType(ComponentType.Column, Column);
   }
 
   /**

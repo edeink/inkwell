@@ -1,6 +1,7 @@
 import { type IRenderer } from '../renderer/IRenderer';
 
 import type { FlexProperties } from './flex/type';
+import type { ComponentType } from './type';
 
 export interface JSXComponentProps {
   key?: string;
@@ -106,7 +107,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
   // 注册组件类型
   public static registerType<T extends WidgetData>(
-    type: string,
+    type: ComponentType,
     constructor: new (data: T) => Widget<T>,
   ): void {
     Widget.registry.set(type, constructor);

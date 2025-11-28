@@ -1,4 +1,5 @@
 import { Widget } from '../base';
+import { ComponentType } from '../type';
 
 import { FlexFit } from './type';
 
@@ -55,7 +56,7 @@ export class Expanded extends Widget<ExpandedData> {
 
   // 注册 Column 组件类型
   static {
-    Widget.registerType('Expanded', Expanded);
+    Widget.registerType(ComponentType.Expanded, Expanded);
   }
 
   protected paintSelf(context: BuildContext): void {

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Widget } from './base';
+import { ComponentType } from './type';
 
 import type {
   BoxConstraints,
@@ -21,7 +22,7 @@ export interface CenterData extends WidgetData {
 export class Center extends Widget<CenterData> {
   // 注册 Center 组件类型
   static {
-    Widget.registerType('Center', Center);
+    Widget.registerType(ComponentType.Center, Center);
   }
 
   constructor(data: CenterData) {
