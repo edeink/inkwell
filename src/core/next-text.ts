@@ -69,7 +69,7 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical.Center,
 };
 
-export class Text extends Widget<TextData> {
+export class NextText extends Widget<TextData> {
   text: string = '';
   fontSize: number = 16;
   fontFamily: string = DefaultStyle.fontFamily;
@@ -83,10 +83,10 @@ export class Text extends Widget<TextData> {
   overflow?: Overflow;
 
   private static measureCanvas: HTMLCanvasElement = document.createElement('canvas');
-  private static measureCtx: CanvasRenderingContext2D = Text.measureCanvas.getContext('2d')!;
+  private static measureCtx: CanvasRenderingContext2D = NextText.measureCanvas.getContext('2d')!;
 
   static {
-    Widget.registerType('Text', Text);
+    Widget.registerType('NextText', NextText);
   }
 
   protected createChildWidget(_childData: WidgetData): Widget | null {
@@ -140,7 +140,7 @@ export class Text extends Widget<TextData> {
     const lineHeightPx = Math.max(fontSize, rawLineHeight);
     const lines: string[] = [];
     const maxWidth = constraints.maxWidth;
-    const ctx = Text.measureCtx;
+    const ctx = NextText.measureCtx;
     if (!ctx) {
       this.calculateTextMetricsEstimate(constraints);
       return;
@@ -323,5 +323,5 @@ export class Text extends Widget<TextData> {
   }
 }
 
-export type TextProps = Omit<TextData, 'type' | 'children'> & JSXComponentProps;
-export const TextElement: React.FC<TextProps> = () => null;
+export type NextTextProps = Omit<TextData, 'type' | 'children'> & JSXComponentProps;
+export const NextTextElement: React.FC<NextTextProps> = () => null;

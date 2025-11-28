@@ -1,3 +1,4 @@
+import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, InputNumber, Select, Space } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -15,8 +16,11 @@ type Props = {
   repeat: number;
   setRepeat: (v: number) => void;
   start: () => void;
+  pause: () => void;
+  resume: () => void;
   stop: () => void;
   loading: boolean;
+  paused?: boolean;
   caseType: TestCaseType;
   setCaseType: (v: TestCaseType) => void;
 };
@@ -54,8 +58,11 @@ export default function ControlPanel({
   repeat,
   setRepeat,
   start,
+  pause,
+  resume,
   stop,
   loading,
+  paused = false,
   caseType,
   setCaseType,
 }: Props) {
@@ -189,12 +196,38 @@ export default function ControlPanel({
       </div>
       <div className={styles.section}>
         <div className={styles.actions}>
-          <Button className={styles.actionButton} danger onClick={stop} disabled={!loading}>
-            停止
+          <Button
+            className={styles.actionButton}
+            danger
+            onClick={stop}
+            disabled={!loading}
+            icon={<StopOutlined />}
+          >
+            终止
           </Button>
-          <Button className={styles.actionButton} type="primary" onClick={start} disabled={loading}>
-            运行测试
-          </Button>
+          {!loading ? (
+            <Button
+              className={styles.actionButton}
+              type="primary"
+              onClick={start}
+              icon={<PlayCircleOutlined />}
+            >
+              开始
+            </Button>
+          ) : paused ? (
+            <Button
+              className={styles.actionButton}
+              type="primary"
+              onClick={resume}
+              icon={<PlayCircleOutlined />}
+            >
+              继续
+            </Button>
+          ) : (
+            <Button className={styles.actionButton} onClick={pause} icon={<PauseCircleOutlined />}>
+              暂停
+            </Button>
+          )}
         </div>
       </div>
     </div>

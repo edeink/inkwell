@@ -1,17 +1,18 @@
 import { Widget } from './base';
 
 // 导入所有组件以确保它们被注册
-import '../core/center';
-import '../core/container';
-import '../core/flex/column';
-import '../core/flex/expanded';
-import '../core/flex/row';
-import '../core/image';
-import '../core/padding';
-import '../core/positioned';
-import '../core/stack';
-import '../core/text';
+import './center';
+import './container';
+import './flex/column';
+import './flex/expanded';
+import './flex/row';
+import './image';
+import './next-text';
+import './padding';
+import './positioned';
 import './sized-box';
+import './stack';
+import './text';
 
 export class WidgetRegistry {
   private widgets: Map<string, new (data: any) => Widget> = new Map();

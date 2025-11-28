@@ -1,11 +1,11 @@
-import { DownOutlined, CopyOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownOutlined } from '@ant-design/icons';
 import React from 'react';
 import { LiveEditor, LiveProvider } from 'react-live';
 
 import styles from './index.module.less';
 
 import * as Core from '@/core';
-import Editor from '@/editors/graphics-editor';
+import Runtime from '@/runtime';
 
 export interface EditorPaneProps {
   value: string;
@@ -14,7 +14,7 @@ export interface EditorPaneProps {
 }
 
 export default function EditorPane({ value, onChange, collapsedHeight = 260 }: EditorPaneProps) {
-  const scope = React.useMemo(() => ({ React, Editor, ...Core }), []);
+  const scope = React.useMemo(() => ({ React, Editor: Runtime, ...Core }), []);
   const [expanded, setExpanded] = React.useState(false);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const [overflowing, setOverflowing] = React.useState(false);

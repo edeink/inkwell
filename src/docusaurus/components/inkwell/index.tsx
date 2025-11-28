@@ -6,7 +6,7 @@ import styles from './index.module.less';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import * as Core from '@/core';
-import Editor from '@/editors/graphics-editor';
+import Runtime from '@/runtime';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
 
 export interface InkwellProps {
@@ -27,7 +27,7 @@ export default function Inkwell({
   readonly = false,
 }: InkwellProps) {
   const canvasId = React.useMemo(() => `ink-canvas-${Math.random().toString(36).slice(2)}`, []);
-  const editorRef = React.useRef<Editor | null>(null);
+  const editorRef = React.useRef<Runtime | null>(null);
   const previewRef = React.useRef<HTMLDivElement | null>(null);
   const debounceTimerRef = React.useRef<number | null>(null);
   const lastSizeRef = React.useRef<{ w: number; h: number } | null>(null);
@@ -74,7 +74,7 @@ export default function Inkwell({
         if (!src || !src.trim()) {
           return;
         }
-        const editor = await Editor.create(canvasId, { backgroundAlpha: 0 });
+        const editor = await Runtime.create(canvasId, { backgroundAlpha: 0 });
         editorRef.current = editor;
         const compiled = compile(src);
         const fn = new Function(
@@ -84,7 +84,7 @@ export default function Inkwell({
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
-        const tplFn = fn(createElement, Fragment, Editor, ...Object.values(Core));
+        const tplFn = fn(createElement, Fragment, Runtime, ...Object.values(Core));
         await editor.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
       } catch (e: any) {

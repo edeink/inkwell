@@ -1,15 +1,16 @@
-import Editor from '../../editors/graphics-editor';
+import Runtime from '../../runtime';
 import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
 import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
 import { buildFlexWidgetScene } from '../tester/flex/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
+import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
 
 import { FrameSampler, type Timings } from './collector';
 
 /**
  * Widget 测试上下文
  */
-type Ctx = { stageEl: HTMLElement; editor: Editor | null };
+type Ctx = { stageEl: HTMLElement; runtime: Runtime | null };
 
 /**
  * WidgetPerformanceTest
@@ -26,6 +27,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
   private collecting = false;
   private memoryDebug: { t: number; used: number }[] = [];
   private beforeMem: { heapUsed: number } | null = null;
+  private variant: 'v1' | 'v2' = 'v2';
 
   /**
    * 清空画布容器，释放上一次绘制的内容与编辑器引用。
@@ -35,19 +37,21 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     while (el.firstChild) {
       el.removeChild(el.firstChild);
     }
-    this.ctx.editor = null;
+    this.ctx.runtime = null;
   }
 
-  constructor(stageEl: HTMLElement, layout = TestCaseType.Absolute) {
+  constructor(stageEl: HTMLElement, layout = TestCaseType.Absolute, variant?: 'v1' | 'v2') {
     super();
-    this.ctx = { stageEl, editor: null };
+    this.ctx = { stageEl, runtime: null };
     this.caseType = layout;
+    const envVar = (import.meta as any)?.env?.VITE_TEXT_VERSION as 'v1' | 'v2' | undefined;
+    this.variant = variant ?? envVar ?? 'v2';
   }
 
-  private async createEditorForStage(stageEl: HTMLElement): Promise<Editor> {
+  private async createRuntimeForStage(stageEl: HTMLElement): Promise<Runtime> {
     const id = stageEl.id || 'stage';
-    const editor = await Editor.create(id, { backgroundAlpha: 0 });
-    return editor;
+    const runtime = await Runtime.create(id, { backgroundAlpha: 0 });
+    return runtime;
   }
 
   /**
@@ -56,20 +60,24 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
    */
   async createNodes(targetCount: number): Promise<void> {
     this.clearCanvas();
-    const editor = await this.createEditorForStage(this.ctx.stageEl);
+    const runtime = await this.createRuntimeForStage(this.ctx.stageEl);
     switch (this.caseType) {
       case TestCaseType.Flex:
-        this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, editor, targetCount);
+        this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;
       case TestCaseType.Text:
-        this.lastTimings = await buildTextWidgetScene(this.ctx.stageEl, editor, targetCount);
+        if (this.variant === 'v1') {
+          this.lastTimings = await buildTextWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        } else {
+          this.lastTimings = await buildTextWidgetSceneV2(this.ctx.stageEl, runtime, targetCount);
+        }
         break;
       case TestCaseType.Absolute:
       default:
-        this.lastTimings = await buildAbsoluteWidgetScene(this.ctx.stageEl, editor, targetCount);
+        this.lastTimings = await buildAbsoluteWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;
     }
-    this.ctx.editor = editor;
+    this.ctx.runtime = runtime;
   }
 
   /**

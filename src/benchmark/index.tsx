@@ -1,4 +1,5 @@
-import { Card, Modal } from 'antd';
+import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { Button, Card, Modal, Space } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -45,6 +46,19 @@ type ProgressItem = {
  * 根据布局类型生成 DOM 与 Widget 两类测试用例集合。
  */
 function listTests(caseType: TestCaseType): LoadedTest[] {
+  if (caseType === TestCaseType.Text) {
+    return [
+      { name: 'text-DOM', create: (stage) => new DomPerformanceTest(stage, caseType) },
+      {
+        name: 'text-Widget-v1',
+        create: (stage) => new WidgetPerformanceTest(stage, caseType, 'v1'),
+      },
+      // {
+      //   name: 'text-Widget-v2',
+      //   create: (stage) => new WidgetPerformanceTest(stage, caseType, 'v2'),
+      // },
+    ];
+  }
   return [
     { name: `${caseType}-DOM`, create: (stage) => new DomPerformanceTest(stage, caseType) },
     { name: `${caseType}-Widget`, create: (stage) => new WidgetPerformanceTest(stage, caseType) },
@@ -72,6 +86,7 @@ async function runSingleWithProgress(
   nodes: number,
   repeat: number,
   onProgress: (i: number, total: number) => void,
+  waitIfPaused?: () => Promise<void>,
 ): Promise<TestResult> {
   const samples: TestSample[] = [];
   const total = repeat;
@@ -91,8 +106,17 @@ async function runSingleWithProgress(
   } catch {}
   for (let i = 1; i <= total; i++) {
     // 每轮：采集 → 构建 → 再采集，形成完整样本
+    if (waitIfPaused) {
+      await waitIfPaused();
+    }
     await test.collectStatistics(nodes);
+    if (waitIfPaused) {
+      await waitIfPaused();
+    }
     await test.createNodes(nodes);
+    if (waitIfPaused) {
+      await waitIfPaused();
+    }
     await test.collectStatistics(nodes);
     const memory = test.getMemoryUsage();
     const metrics = test.getPerformanceMetrics();
@@ -122,6 +146,8 @@ async function runSingleWithProgress(
  */
 function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [loading, setLoading] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
   const [results, setResults] = useState<TestResult[]>([]);
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
   const [currentTask, setCurrentTask] = useState<{
@@ -141,8 +167,17 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
 
+  const waitIfPaused = async () => {
+    // 简单等待机制：暂停时阻塞流程直到恢复
+    while (pausedRef.current) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 60));
+    }
+  };
+
   const start = async () => {
     setLoading(true);
+    setPaused(false);
+    pausedRef.current = false;
     cancelled.current = false;
     setShowStage(true);
     setRunSeq((x) => x + 1);
@@ -199,36 +234,43 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         setModalProgressItems((prev) =>
           prev.map((it) => (it.key === t.name ? { ...it, status: TestStatus.Running } : it)),
         );
-        const res = await runSingleWithProgress(inst, t.name, n, repeat, (i, total) => {
-          setCurrentTask({
-            name: t.name,
-            round: i,
-            total,
-          });
-          // 进度按累积轮次计算，确保两处展示一致
-          setProgressItems((prev) =>
-            prev.map((it) =>
-              it.key === t.name
-                ? {
-                    ...it,
-                    status: TestStatus.Running,
-                    current: Math.min(done + i, it.total),
-                  }
-                : it,
-            ),
-          );
-          setModalProgressItems((prev) =>
-            prev.map((it) =>
-              it.key === t.name
-                ? {
-                    ...it,
-                    status: TestStatus.Running,
-                    current: Math.min(done + i, it.total),
-                  }
-                : it,
-            ),
-          );
-        });
+        const res = await runSingleWithProgress(
+          inst,
+          t.name,
+          n,
+          repeat,
+          (i, total) => {
+            setCurrentTask({
+              name: t.name,
+              round: i,
+              total,
+            });
+            // 进度按累积轮次计算，确保两处展示一致
+            setProgressItems((prev) =>
+              prev.map((it) =>
+                it.key === t.name
+                  ? {
+                      ...it,
+                      status: TestStatus.Running,
+                      current: Math.min(done + i, it.total),
+                    }
+                  : it,
+              ),
+            );
+            setModalProgressItems((prev) =>
+              prev.map((it) =>
+                it.key === t.name
+                  ? {
+                      ...it,
+                      status: TestStatus.Running,
+                      current: Math.min(done + i, it.total),
+                    }
+                  : it,
+              ),
+            );
+          },
+          waitIfPaused,
+        );
         list.push(res);
         done += repeat;
         // 单个节点规模完成后更新状态与累积进度
@@ -273,10 +315,22 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     );
   };
 
+  const pause = () => {
+    setPaused(true);
+    pausedRef.current = true;
+  };
+
+  const resume = () => {
+    setPaused(false);
+    pausedRef.current = false;
+  };
+
   const stop = () => {
     cancelled.current = true;
     setCurrentTask(null);
     setLoading(false);
+    setPaused(false);
+    pausedRef.current = false;
     setShowStage(false);
     // 即刻重置模态框进度（外部面板不重置）
     setModalProgressItems((prev) =>
@@ -286,8 +340,11 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
 
   return {
     loading,
+    paused,
     results,
     start,
+    pause,
+    resume,
     stop,
     progressItems,
     currentTask,
@@ -317,8 +374,11 @@ function App() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const {
     loading,
+    paused,
     results,
     start,
+    pause,
+    resume,
     stop,
     progressItems,
     currentTask,
@@ -353,8 +413,11 @@ function App() {
             repeat={repeat}
             setRepeat={setRepeat}
             start={start}
+            pause={pause}
+            resume={resume}
             stop={stop}
             loading={loading}
+            paused={paused}
             caseType={caseType}
             setCaseType={setCaseType}
           />
@@ -388,11 +451,24 @@ function App() {
         <div className={styles.modalHeader}>
           <StatusPanel compact runSeq={runSeq} items={modalProgressItems} current={currentTask} />
         </div>
-        <StageContainer ref={stageRef} />
-        <div className={styles.modalFooter}>
-          <button className={styles.stopBtn} onClick={stop}>
-            终止
-          </button>
+        <div className={styles.modalBodyWrap}>
+          <StageContainer ref={stageRef} />
+          <div className={styles.modalFooter}>
+            <Space>
+              <Button danger onClick={stop} icon={<StopOutlined />}>
+                终止
+              </Button>
+              {!paused ? (
+                <Button onClick={pause} type="primary" icon={<PauseCircleOutlined />}>
+                  暂停
+                </Button>
+              ) : (
+                <Button onClick={resume} type="primary" icon={<PlayCircleOutlined />}>
+                  继续
+                </Button>
+              )}
+            </Space>
+          </div>
         </div>
       </Modal>
     </div>

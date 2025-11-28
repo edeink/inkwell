@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { DevTools } from '../devtools/index';
-import Editor from '../editors/graphics-editor';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
+import Runtime from '../runtime';
 
 import { getTestTemplate } from './data';
 import styles from './index.module.less';
@@ -129,8 +129,8 @@ class RendererTest {
       this.container.id = 'temp-editor-container-' + Math.random().toString(36).substr(2, 9);
     }
 
-    // 创建编辑器实例并渲染
-    const editor = await Editor.create(this.container.id, {
+    // 创建运行时实例并渲染
+    const editor = await Runtime.create(this.container.id, {
       renderer: this.rendererType,
       background: this.theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,
@@ -149,7 +149,7 @@ const TestPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('complete');
   const [rendererType] = useState<'canvas2d'>('canvas2d');
   const [theme, setTheme] = useState<Theme>('light');
-  const [editorForDevtools, setEditorForDevtools] = useState<Editor | null>(null);
+  const [editorForDevtools, setEditorForDevtools] = useState<Runtime | null>(null);
   const [showDevtools, setShowDevtools] = useState(
     () => localStorage.getItem('INKWELL_DEVTOOLS_VISIBLE') === 'true',
   );
@@ -193,12 +193,12 @@ const TestPage: React.FC = () => {
     }
 
     const testInstance = new RendererTest(containerRef.current, rendererType, theme);
-    // 直接创建编辑器并保存引用以用于 DevTools
+    // 直接创建运行时并保存引用以用于 DevTools
     const container = containerRef.current;
     if (!container.id) {
       container.id = 'temp-editor-container-' + Math.random().toString(36).substr(2, 9);
     }
-    const editor = await Editor.create(container.id, {
+    const editor = await Runtime.create(container.id, {
       renderer: rendererType,
       background: theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,

@@ -9,9 +9,9 @@ import type {
   MainAxisSize,
 } from '@/core/flex/type';
 import type { AlignmentGeometry } from '@/core/stack';
-import type { ComponentData } from '@/editors/graphics-editor';
+import type { ComponentData } from '@/runtime';
 
-import { ComponentType } from '@/editors/graphics-editor';
+import { ComponentType } from '@/runtime';
 
 /**
  * JSX 编译器：将自定义 JSX 运行时元素转换为 ComponentData JSON
@@ -35,10 +35,12 @@ function isValidType(t: string): t is ComponentType {
   return (
     t === ComponentType.Column ||
     t === ComponentType.Text ||
+    t === ComponentType.NextText ||
     t === ComponentType.Row ||
     t === ComponentType.Expanded ||
     t === ComponentType.Image ||
     t === ComponentType.SizedBox ||
+    t === ComponentType.Container ||
     t === ComponentType.Container ||
     t === ComponentType.Padding ||
     t === ComponentType.Center ||
@@ -125,8 +127,73 @@ export function compileElement(element: AnyElement): ComponentData {
       }
       break;
     case ComponentType.Text:
+    case ComponentType.NextText:
       data.text = p.text as string;
       // 一级映射
+      if (p.fontSize !== undefined) {
+        data.fontSize = p.fontSize as number;
+      }
+      if (p.fontFamily !== undefined) {
+        data.fontFamily = p.fontFamily as string;
+      }
+      if (p.fontWeight !== undefined) {
+        data.fontWeight = p.fontWeight as string | number;
+      }
+      if (p.color !== undefined) {
+        data.color = p.color as string;
+      }
+      if (p.height !== undefined) {
+        data.height = p.height as number;
+      }
+      if (p.lineHeight !== undefined) {
+        data.lineHeight = p.lineHeight as number;
+      }
+      if (p.textAlign !== undefined) {
+        data.textAlign = p.textAlign as 'left' | 'center' | 'right';
+      }
+      if (p.textAlignVertical !== undefined) {
+        data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
+      }
+      if (p.maxLines !== undefined) {
+        data.maxLines = p.maxLines as number;
+      }
+      if (p.overflow !== undefined) {
+        data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
+      }
+      break;
+      data.text = p.text as string;
+      if (p.fontSize !== undefined) {
+        data.fontSize = p.fontSize as number;
+      }
+      if (p.fontFamily !== undefined) {
+        data.fontFamily = p.fontFamily as string;
+      }
+      if (p.fontWeight !== undefined) {
+        data.fontWeight = p.fontWeight as string | number;
+      }
+      if (p.color !== undefined) {
+        data.color = p.color as string;
+      }
+      if (p.height !== undefined) {
+        data.height = p.height as number;
+      }
+      if (p.lineHeight !== undefined) {
+        data.lineHeight = p.lineHeight as number;
+      }
+      if (p.textAlign !== undefined) {
+        data.textAlign = p.textAlign as 'left' | 'center' | 'right';
+      }
+      if (p.textAlignVertical !== undefined) {
+        data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
+      }
+      if (p.maxLines !== undefined) {
+        data.maxLines = p.maxLines as number;
+      }
+      if (p.overflow !== undefined) {
+        data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
+      }
+      break;
+      data.text = p.text as string;
       if (p.fontSize !== undefined) {
         data.fontSize = p.fontSize as number;
       }

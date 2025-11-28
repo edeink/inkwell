@@ -43,17 +43,20 @@
 }
 
 .modalHeader {
-  padding: 12px;
+  padding: 16px 16px 8px 16px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .modalFooter {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
   padding: 12px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .stopBtn {
@@ -63,4 +66,8 @@
   background: #ff4d4f;
   color: #fff;
   font-weight: 600;
+}
+
+.modalBodyWrap {
+  position: relative;
 }

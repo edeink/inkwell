@@ -1,7 +1,7 @@
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
-import type Editor from '../../../editors/graphics-editor';
+import type Runtime from '../../../runtime';
 
 /**
  * Overlay 高亮框
@@ -9,13 +9,13 @@ import type Editor from '../../../editors/graphics-editor';
  * 参数：editor - 编辑器实例，用于获取容器与渲染器
  * 返回：类实例，提供 mount/unmount/setActive/highlight 方法
  */
-export class Overlay {
-  private editor: Editor;
+export default class Overlay {
+  private editor: Runtime;
   private box: HTMLDivElement | null = null;
   private info: HTMLDivElement | null = null;
   private active = false;
 
-  constructor(editor: Editor) {
+  constructor(editor: Runtime) {
     this.editor = editor;
   }
 

@@ -1,8 +1,7 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 
-/**
- * 在文本布局场景下批量创建 count 个绝对定位的文本节点，测量构建、布局与绘制耗时。
- */
+import { detPos } from './helper';
+
 export function createTextDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
   const el = stage;
   while (el.firstChild) {
@@ -14,8 +13,7 @@ export function createTextDomNodes(stage: HTMLElement, count: number): Promise<T
   const stageH = stage.clientHeight || 600;
   for (let i = 0; i < count; i++) {
     const d = document.createElement('div');
-    const x = Math.floor(Math.random() * Math.max(1, stageW - 100));
-    const y = Math.floor(Math.random() * Math.max(1, stageH - 20));
+    const { x, y } = detPos(i, stageW, stageH);
     d.style.cssText = `position:absolute;left:${x}px;top:${y}px;font-size:12px;line-height:12px;font-weight:normal;color:#111827;font-family:Arial, sans-serif;white-space:nowrap;`;
     d.textContent = `t-${i}`;
     frag.appendChild(d);

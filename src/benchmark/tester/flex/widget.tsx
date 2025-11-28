@@ -2,8 +2,8 @@
 import { Container, Wrap } from '../../../core';
 import { Widget } from '../../../core/base';
 import '../../../core/registry';
-import Editor from '../../../editors/graphics-editor';
 import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
+import Runtime from '../../../runtime';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 
@@ -34,7 +34,7 @@ function buildFlexJSX(count: number) {
  */
 export async function buildFlexWidgetScene(
   stageEl: HTMLElement,
-  editor: Editor,
+  editor: Runtime,
   count: number,
 ): Promise<Timings> {
   const tCompile0 = performance.now();

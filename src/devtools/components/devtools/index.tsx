@@ -11,13 +11,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { clamp } from '../../helper/math';
 import { findByKey, getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
-import { Overlay, hitTest } from '../overlay';
+import Overlay, { hitTest } from '../overlay';
 import { PropsEditor } from '../props-editor';
 
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
-import type Editor from '../../../editors/graphics-editor';
+import type Runtime from '../../../runtime';
 
 /**
  * DevTools
@@ -25,7 +25,7 @@ import type Editor from '../../../editors/graphics-editor';
  * 参数：editor - 编辑器实例；onClose - 关闭回调（可选）
  * 返回：DevTools 组件
  */
-export function DevTools({ editor, onClose }: { editor: Editor; onClose?: () => void }) {
+export function DevTools({ editor, onClose }: { editor: Runtime; onClose?: () => void }) {
   const [selected, setSelected] = useState<Widget | null>(null);
   const hoverRef = useRef<Widget | null>(null);
   const tree = useMemo(() => toTree(editor.getRootWidget()), [editor]);

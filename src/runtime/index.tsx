@@ -11,9 +11,9 @@ import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
 import '../core/registry';
 
 /**
- * 编辑器配置接口
+ * 运行时配置接口
  */
-export interface EditorOptions {
+export interface RuntimeOptions {
   renderer?: 'canvas2d' | string;
   /** 是否开启抗锯齿 */
   antialias?: boolean;
@@ -28,6 +28,7 @@ export interface EditorOptions {
 export const enum ComponentType {
   Column = 'Column',
   Text = 'Text',
+  NextText = 'NextText',
   Row = 'Row',
   Expanded = 'Expanded',
   Image = 'Image',
@@ -50,29 +51,31 @@ export interface ComponentData {
 }
 
 /**
- * 编辑器类
+ * 运行时类
  */
-export default class Editor {
+export default class Runtime {
   private renderer: IRenderer | null = null;
   private container: HTMLElement | null = null;
   private rootWidget: Widget | null = null;
+  private oomErrorCount: number = 0;
+  private lastOomToastAt: number = 0;
 
   /**
-   * 创建编辑器实例
+   * 创建运行时实例
    * @param containerId 容器元素ID
-   * @param options 编辑器配置
+   * @param options 运行时配置
    */
-  static async create(containerId: string, options: EditorOptions = {}): Promise<Editor> {
-    const editor = new Editor();
-    await editor.init(containerId, options);
-    return editor;
+  static async create(containerId: string, options: RuntimeOptions = {}): Promise<Runtime> {
+    const runtime = new Runtime();
+    await runtime.init(containerId, options);
+    return runtime;
   }
 
   private constructor() {
     // 私有构造函数，强制使用 create 方法
   }
 
-  private async init(containerId: string, options: EditorOptions): Promise<void> {
+  private async init(containerId: string, options: RuntimeOptions): Promise<void> {
     this.container = this.initContainer(containerId);
     this.renderer = this.createRenderer(options.renderer || 'canvas2d');
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
@@ -112,11 +115,11 @@ export default class Editor {
 
   /**
    * 初始化渲染器
-   * @param options 编辑器配置选项
+   * @param options 运行时配置选项
    * @param size 可选的尺寸参数，如果不提供则使用容器尺寸
    */
   private async initRenderer(
-    options: EditorOptions = {},
+    options: RuntimeOptions = {},
     size?: { width: number; height: number },
   ): Promise<void> {
     if (!this.renderer || !this.container) {
@@ -133,6 +136,11 @@ export default class Editor {
     };
 
     await this.renderer.initialize(this.container, rendererOptions);
+    const px = (rendererOptions.width ?? 0) * (rendererOptions.height ?? 0);
+    const tooLargePx = 64 * 1024 * 1024; // 64M 像素阈值（约 256MB 内存，依赖实现）
+    if (px > tooLargePx) {
+      this.notifyOomRisk('渲染尺寸过大，可能导致内存溢出');
+    }
   }
 
   /**
@@ -156,7 +164,7 @@ export default class Editor {
    * @param rendererType 渲染器类型
    * @param options 编辑器配置
    */
-  switchRenderer(rendererType: string, options: EditorOptions = {}): void {
+  switchRenderer(rendererType: string, options: RuntimeOptions = {}): void {
     if (!this.container) {
       return;
     }
@@ -193,7 +201,7 @@ export default class Editor {
    */
   async renderFromJSON(jsonData: ComponentData): Promise<void> {
     if (!this.renderer || !this.container) {
-      console.warn('Editor not initialized');
+      console.warn('Runtime not initialized');
       return;
     }
 
@@ -325,8 +333,18 @@ export default class Editor {
     };
 
     // 执行绘制
-    this.rootWidget.paint(context);
-    this.renderer.render();
+    try {
+      this.rootWidget.paint(context);
+      this.renderer.render();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (this.isCanvasOomErrorMessage(msg)) {
+        this.oomErrorCount++;
+        this.notifyOomRisk('检测到 Canvas 渲染异常，可能是内存溢出');
+      }
+      throw e;
+    }
+    this.monitorMemory();
   }
 
   rebuild(): void {
@@ -349,14 +367,83 @@ export default class Editor {
     }
     const raw = this.renderer.getRawInstance();
     if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === 'function') {
-      const ctx = raw as CanvasRenderingContext2D;
-      const canvas = ctx.canvas;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      try {
+        const ctx = raw as CanvasRenderingContext2D;
+        const canvas = ctx.canvas;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (this.isCanvasOomErrorMessage(msg)) {
+          this.oomErrorCount++;
+          this.notifyOomRisk('清空画布时出现异常，可能是内存溢出');
+        }
+        throw e;
+      }
     }
   }
 
+  private isCanvasOomErrorMessage(msg: string): boolean {
+    const m = msg.toLowerCase();
+    return (
+      m.includes('out of memory') ||
+      m.includes('ns_error_not_available') ||
+      m.includes('context lost') ||
+      m.includes('gl_out_of_memory') ||
+      m.includes('cannot draw image')
+    );
+  }
+
+  private monitorMemory(): void {
+    const anyPerf = performance as any;
+    if (anyPerf && anyPerf.memory) {
+      const mem = anyPerf.memory;
+      const used = Number(mem.usedJSHeapSize || 0);
+      const limit = Number(mem.jsHeapSizeLimit || 0);
+      if (limit > 0) {
+        const ratio = used / limit;
+        if (ratio > 0.92) {
+          this.notifyOomRisk('内存使用接近上限，可能导致页面空白');
+        }
+      }
+    }
+    if (this.oomErrorCount >= 2) {
+      this.notifyOomRisk('连续渲染异常，可能是内存溢出');
+      this.oomErrorCount = 0;
+    }
+  }
+
+  private notifyOomRisk(reason: string): void {
+    const now = Date.now();
+    if (now - this.lastOomToastAt < 8000) {
+      return;
+    }
+    this.lastOomToastAt = now;
+    const host = this.container ?? document.body;
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 99999;
+      background: rgba(255, 77, 79, 0.95);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 360px;
+      backdrop-filter: saturate(180%) blur(4px);
+    `;
+    toast.innerText = `${reason}，建议保存数据并重启电脑以恢复。`;
+    host.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 8000);
+  }
+
   /**
-   * 销毁编辑器实例
+   * 销毁运行时实例
    */
   destroy(): void {
     if (this.renderer) {

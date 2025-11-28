@@ -1,25 +1,23 @@
 /** @jsxImportSource @/utils/compiler */
-import { Positioned, Stack, Text } from '../../../core';
-import { Widget } from '../../../core/base';
-import '../../../core/registry';
-import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
-import Runtime from '../../../runtime';
-import { compileElement } from '../../../utils/compiler/jsx-compiler';
-import { measureNextPaint, type Timings } from '../../metrics/collector';
 
 import { detPos } from './helper';
 
-import type { BoxConstraints, BuildContext } from '../../../core/base';
-import type { RendererOptions } from '../../../renderer/IRenderer';
+import type { Timings } from '@/benchmark/metrics/collector';
+
+import { measureNextPaint } from '@/benchmark/metrics/collector';
+import { NextText, Positioned, Stack, Widget } from '@/core';
+import { Canvas2DRenderer } from '@/renderer/canvas2d/canvas-2d-renderer';
+import Runtime from '@/runtime';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 function buildTextJSX(count: number, W: number, H: number) {
   return (
-    <Stack key="perf-text">
+    <Stack key="perf-text-v2">
       {Array.from({ length: count }).map((_, i) => {
         const { x, y } = detPos(i, W, H);
         return (
           <Positioned key={`p-${i}`} left={x} top={y}>
-            <Text
+            <NextText
               key={`t-${i}`}
               text={`t-${i}`}
               fontSize={12}
@@ -35,14 +33,7 @@ function buildTextJSX(count: number, W: number, H: number) {
   );
 }
 
-/**
- * 编译、构建、布局并初始化渲染器，完成绘制后统计耗时。
- * @param stageEl 舞台元素
- * @param editor 编辑器实例
- * @param count 节点数量
- * @returns Timings（构建/布局/绘制耗时）
- */
-export async function buildTextWidgetScene(
+export async function buildTextWidgetSceneV2(
   stageEl: HTMLElement,
   runtime: Runtime,
   count: number,
@@ -55,31 +46,31 @@ export async function buildTextWidgetScene(
   const tCompile1 = performance.now();
 
   const tBuild0 = performance.now();
-  const root = Widget.createWidget(json)!;
+  const root = (await Widget.createWidget(json))!; // use same path as prev for fairness
   const tBuild1 = performance.now();
 
-  const constraints: BoxConstraints = {
+  const constraints = {
     minWidth: 0,
     maxWidth: stageW,
     minHeight: 0,
     maxHeight: stageH,
-  };
+  } as const;
   const tLayout0 = performance.now();
-  root.layout(constraints);
+  root.layout(constraints as any);
   const tLayout1 = performance.now();
 
   const renderer = runtime.getRenderer() ?? new Canvas2DRenderer();
   const container = runtime.getContainer()!;
-  const opts: RendererOptions = {
+  const opts = {
     width: Math.max(stageW, 100),
     height: Math.max(stageH, 100),
     backgroundAlpha: 0,
-  } as RendererOptions;
+  } as any;
   const tInit0 = performance.now();
-  await renderer.initialize(container, opts);
+  await renderer.initialize(container, opts as any);
   const tInit1 = performance.now();
 
-  const context: BuildContext = { renderer };
+  const context: any = { renderer };
   root.paint(context);
   renderer.render();
   const paintWait = await measureNextPaint();
