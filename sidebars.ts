@@ -27,6 +27,7 @@ export default {
         'advanced/lifecycle',
         'advanced/custom-widget',
         'advanced/devtools',
+        'advanced/benchmark',
       ],
     },
   ],

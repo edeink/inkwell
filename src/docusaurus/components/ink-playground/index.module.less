@@ -11,6 +11,41 @@
   position: relative;
 }
 
+.rootLR {
+  display: grid;
+  grid-template-columns: 2fr 1fr; // 50%-50%
+  gap: var(--ink-space-3);
+  padding: var(--ink-space-3);
+  margin: 16px 0;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.leftPane,
+.rightPane {
+  min-height: 260px;
+}
+
+.errorPane {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #ff7875;
+  border-radius: var(--ink-radius);
+  background: #fff1f0;
+  color: #d4380d;
+  padding: var(--ink-space-3);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  overflow: auto;
+}
+
+@media (width <= 996px) {
+  .rootLR {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 在容器文件中仅保留根布局样式，其余样式已拆分到各组件 */
 .copyBtn {
   position: absolute;
@@ -34,7 +69,7 @@
 
 .copyBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
 }
 
 .readOnly {

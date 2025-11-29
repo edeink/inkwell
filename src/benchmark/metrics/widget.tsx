@@ -44,7 +44,10 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     super();
     this.ctx = { stageEl, runtime: null };
     this.caseType = layout;
-    const envVar = (import.meta as any)?.env?.VITE_TEXT_VERSION as 'v1' | 'v2' | undefined;
+    const envVar =
+      typeof process !== 'undefined' && process.env?.VITE_TEXT_VERSION
+        ? (process.env.VITE_TEXT_VERSION as 'v1' | 'v2')
+        : undefined;
     this.variant = variant ?? envVar ?? 'v2';
   }
 
@@ -92,7 +95,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch {}
+      } catch {
+        // do nothing
+      }
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -104,7 +109,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch {}
+    } catch {
+      // do nothing
+    }
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;

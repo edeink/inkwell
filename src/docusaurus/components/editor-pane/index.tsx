@@ -11,9 +11,15 @@ export interface EditorPaneProps {
   value: string;
   onChange: (next: string) => void;
   collapsedHeight?: number;
+  showcase?: boolean;
 }
 
-export default function EditorPane({ value, onChange, collapsedHeight = 260 }: EditorPaneProps) {
+export default function EditorPane({
+  value,
+  onChange,
+  collapsedHeight = 260,
+  showcase = false,
+}: EditorPaneProps) {
   const scope = React.useMemo(() => ({ React, Editor: Runtime, ...Core }), []);
   const [expanded, setExpanded] = React.useState(false);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
@@ -82,7 +88,7 @@ export default function EditorPane({ value, onChange, collapsedHeight = 260 }: E
   }, []);
   return (
     <div
-      className={`${styles.editorPane} ${expanded ? styles.editorPaneExpanded : styles.editorPaneCollapsed}`}
+      className={`${styles.editorPane} ${expanded ? styles.editorPaneExpanded : styles.editorPaneCollapsed} ${showcase ? styles.showcase : ''}`}
       style={{ ['--collapsed-h' as any]: `${collapsedHeight}px` }}
     >
       <button

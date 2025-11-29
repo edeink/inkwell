@@ -219,7 +219,7 @@ export default function Charts({
   }, [byTest, results, xCommon]);
 
   if (!results.length) {
-    return <div style={{ padding: 16 }}>无数据，请运行测试或检查筛选条件</div>;
+    return <div style={{ padding: 16 }}>无数据，请点击「开始」进行测试</div>;
   }
 
   return (

@@ -12,6 +12,7 @@ interface InkPlaygroundProps {
   width?: number;
   height?: number;
   readonly?: boolean;
+  showcase?: boolean;
 }
 
 function stripJsxImportSource(src: string) {
@@ -26,6 +27,7 @@ export default function InkPlayground({
   width = 600,
   height = 300,
   readonly = false,
+  showcase = false,
 }: InkPlaygroundProps) {
   const initial = React.useMemo(() => stripJsxImportSource(code), [code]);
   const [localCode, setLocalCode] = React.useState(initial);
@@ -60,6 +62,38 @@ export default function InkPlayground({
             setRunning(false);
           }}
         />
+      </div>
+    );
+  }
+
+  if (showcase) {
+    return (
+      <div className={styles.rootLR}>
+        <div className={styles.leftPane}>
+          <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={9999} showcase />
+        </div>
+        <div className={styles.rightPane}>
+          {error ? (
+            <div className={styles.errorPane} role="alert">
+              <pre>{error}</pre>
+            </div>
+          ) : (
+            <Inkwell
+              data={committedCode}
+              width={width}
+              height={height}
+              readonly={false}
+              onError={(e) => {
+                setError(e);
+                setRunning(false);
+              }}
+              onSuccess={() => {
+                setError(null);
+                setRunning(false);
+              }}
+            />
+          )}
+        </div>
       </div>
     );
   }

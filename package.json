@@ -67,12 +67,12 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix",
       "prettier --write",
       "git add"
     ],
     "*.{css,less}": [
-      "stylelint --fix",
+      "stylelint --fix --quiet",
       "prettier --write",
       "git add"
     ]

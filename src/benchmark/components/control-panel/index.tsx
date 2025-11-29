@@ -164,7 +164,7 @@ export default function ControlPanel({
           </Space.Compact>
         </div>
         <div className={styles.fieldRow}>
-          <span className={styles.label}>节点区间</span>
+          <span className={styles.label}>范围</span>
           <div className={styles.control}>
             <div className={styles.range}>
               <InputNumber

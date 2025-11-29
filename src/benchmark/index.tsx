@@ -1,5 +1,5 @@
 import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { Button, Card, Modal, Space } from 'antd';
+import { Button, Modal, Space } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -401,40 +401,32 @@ function App() {
   return (
     <div className={styles.page}>
       <div className={styles.toolbar}>
-        <Card size="small" variant="outlined">
-          <EnvPanel />
-        </Card>
-        <Card size="small" variant="outlined">
-          <StatusPanel items={progressItems} current={currentTask} />
-        </Card>
-        <Card size="small" variant="outlined">
-          <ControlPanel
-            setNodeCounts={setNodeCounts}
-            repeat={repeat}
-            setRepeat={setRepeat}
-            start={start}
-            pause={pause}
-            resume={resume}
-            stop={stop}
-            loading={loading}
-            paused={paused}
-            caseType={caseType}
-            setCaseType={setCaseType}
-          />
-        </Card>
-      </div>
-      <Card size="small" variant="outlined">
-        <CompareView
-          results={results}
-          experimentType={experimentType}
-          baseline={baselineResults}
-          thresholdPercent={thresholdPercent}
-          onToggleMode={() =>
-            setExperimentType((m) => (m === 'dom_vs_widget' ? 'history' : 'dom_vs_widget'))
-          }
-          onUploadBaseline={(data) => setBaselineResults(data)}
+        <EnvPanel />
+        <StatusPanel items={progressItems} current={currentTask} />
+        <ControlPanel
+          setNodeCounts={setNodeCounts}
+          repeat={repeat}
+          setRepeat={setRepeat}
+          start={start}
+          pause={pause}
+          resume={resume}
+          stop={stop}
+          loading={loading}
+          paused={paused}
+          caseType={caseType}
+          setCaseType={setCaseType}
         />
-      </Card>
+      </div>
+      <CompareView
+        results={results}
+        experimentType={experimentType}
+        baseline={baselineResults}
+        thresholdPercent={thresholdPercent}
+        onToggleMode={() =>
+          setExperimentType((m) => (m === 'dom_vs_widget' ? 'history' : 'dom_vs_widget'))
+        }
+        onUploadBaseline={(data) => setBaselineResults(data)}
+      />
       <Modal
         open={showStage}
         footer={null}
@@ -487,5 +479,8 @@ function mount() {
   root.render(<App />);
 }
 
-mount();
+if (typeof document !== 'undefined' && document.getElementById('root')) {
+  mount();
+}
 export default App;
+export { App as BenchmarkApp };

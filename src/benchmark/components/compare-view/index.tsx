@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 
 import Charts from '../charts';
-import styles from '../charts/index.module.less';
 import ReportDisplay from '../report-display';
+
+import styles from './index.module.less';
 
 import type { DiffMetric, ExperimentType, PerformanceMetrics, TestResult } from '../../index.types';
 

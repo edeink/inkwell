@@ -1,0 +1,30 @@
+---
+id: benchmark
+slug: /benchmark
+title: 性能基准测试
+description: InkWell 与 DOM 的性能对比与基准方法说明
+sidebar_label: 性能基准测试
+---
+
+import { BenchmarkApp } from '@/benchmark/index.tsx'
+import BrowserOnly from '@docusaurus/BrowserOnly'
+import ErrorBoundary from '@docusaurus/ErrorBoundary'
+
+<div>
+  <p>本页提供 InkWell 与 DOM 的交互式性能基准对比，支持不同节点规模与场景（文本、Flex、绝对定位）。</p>
+  <details>
+    <summary>基准方法说明</summary>
+    <ul>
+      <li>统计指标：帧率（FPS）、主线程 Long Task 时长、内存占用。</li>
+      <li>流程：每轮执行采集 → 构建 → 再采集，重复多次取平均。</li>
+      <li>环境因素：浏览器优化与设备性能可能影响绝对数值，建议关注相对趋势。</li>
+    </ul>
+  </details>
+  <BrowserOnly>
+    {() => (
+      <ErrorBoundary>
+        <BenchmarkApp />
+      </ErrorBoundary>
+    )}
+  </BrowserOnly>
+</div>
