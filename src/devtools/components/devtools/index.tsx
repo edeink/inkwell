@@ -55,7 +55,7 @@ export function DevTools(props: DevToolsProps) {
     [activeInspect, visible],
   );
 
-  const { isMultiRuntime, overlapWarning } = useMouseInteraction({
+  const { isMultiRuntime } = useMouseInteraction({
     runtime,
     overlay,
     active: activeInspect,
@@ -144,10 +144,12 @@ export function DevTools(props: DevToolsProps) {
       renderTree={(info: LayoutInfo) => (
         <>
           {isMultiRuntime && (
-            <SimpleTip message="检测到当前页面存在多个 runtime。激活 inspect 模式后，将鼠标移动到目标 canvas 上可切换对应的 runtime。" />
-          )}
-          {activeInspect && overlapWarning && (
-            <SimpleTip message="当前 canvas 与其他元素存在重叠区域" />
+            <SimpleTip
+              message={
+                '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
+                '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
+              }
+            />
           )}
           {/* 初始化逻辑会自动选择第一个 runtime，此处无需额外警告 */}
           <div style={{ marginBottom: 8 }}>

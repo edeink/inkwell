@@ -9,11 +9,27 @@ import BrowserOnly from '@docusaurus/BrowserOnly';
 
 # DevTools 使用指南
 
-让 Canvas 像 DOM 一样好调试。DevTools 提供节点树检视、属性编辑、画布 Overlay 与交互式 Inspect，帮助你快速定位布局与绘制问题，并在不改动业务代码的情况下迭代与验证。
+在 React 中使用组件：
+
+```tsx
+import { DevTools } from '@/devtools/index';
+
+<DevTools/>
+```
+
+通过快捷键 Command（For MacPs） Or Ctrl（For Windows） + Shift + D 唤起 DevTools。
+
+点击左侧 Inspect 按钮，移动到对应的 Canvas 上，即可查看元素的属性和位置信息。
 
 ## 在线试用
 
-```tsx
+<BrowserOnly>
+  {() => (
+    <DevTools/>
+  )}
+</BrowserOnly>
+
+```tsx mode:render
 /** @jsxImportSource @/utils/compiler */
 <Container color="#f6ffed" borderRadius={12} padding={16}>
   <Column spacing={12}>
@@ -34,7 +50,7 @@ import BrowserOnly from '@docusaurus/BrowserOnly';
 </Container>
 ```
 
-```tsx
+```tsx mode:render
 /** @jsxImportSource @/utils/compiler */
 <Container color="#f6ffed" borderRadius={12} padding={16}>
   <Column spacing={12}>
@@ -62,56 +78,3 @@ import BrowserOnly from '@docusaurus/BrowserOnly';
 - Overlay：在画布上叠加边界与对齐参考线
 - 属性编辑：直接修改选中元素的属性并实时刷新
 - 可停靠面板：支持左/右/上/下停靠与尺寸调整
-
-## 快速开始
-
-<BrowserOnly>
-  {() => (
-    <DevTools shortcut="CmdOrCtrl+F"/>
-  )}
-</BrowserOnly>
-
-
-## 高级能力
-
-- 树视图交互：搜索、选中、高亮关联 Overlay
-- 属性编辑器：修改属性后自动调用 `editor.rebuild()` 刷新
-- 面板布局持久化：Dock/尺寸分布保存在 `localStorage`
-- 多 Canvas 支持：自动识别并绑定最近的画布实例，并在存在多个 runtime 时给出提示与指引
-- 快捷键唤起：通过组合键快速显示/隐藏 DevTools 面板
-
-## 快捷键操作
-
-- 默认快捷键：`Ctrl+Shift+D`（Windows/Linux），`Cmd+Shift+D`（macOS）用于显示/隐藏面板
-- 自定义方式：通过 `shortcut` 属性提供字符串或对象配置：
-
-- 兼容性说明：
-  - macOS 将 `Ctrl` 自动映射为 `Cmd`/`Meta`
-  - 快捷键匹配不区分大小写，支持自定义最后一个字符键位
-  - 冲突检测：遇到常见系统/浏览器组合键（如 `Cmd+Q`、`Alt+F4`、`Ctrl+Shift+Esc`）会提示冲突
-
-## 常见问题
-
-- Inspect 无法选中元素？
-  - 确认画布在可见区域；缩放或滚动后 Overlay 会自动适配。
-- 属性修改后无效？
-  - 检查父容器约束是否正确（例如 `flex` 与尺寸）。
-- 性能异常？
-  - 使用基准页对比；避免超大画布分辨率与过多重绘。
-
-## 调试建议
-
-- 遇到布局错误时，优先检查父容器是否提供有界尺寸与正确的 `flex` 语义
-- 使用 Overlay 辅助确认对齐、间距与裁剪情况
-- 配合 Playground「运行/清空」与错误面板进行迭代
-- 多 Canvas 场景与智能匹配
-
-  - 当页面存在多个 runtime 时，DevTools 会在面板顶部显示提示：
-    - 提示文案：“当前页面发现多个 runtime，请 inspect 到具体 canvas 上以激活”
-    - 指引说明：将鼠标移动到目标画布区域，面板将自动切换至对应 runtime
-  - 初始匹配逻辑：
-    - 若仅有一个 canvas，直接绑定该 runtime
-    - 若存在多个 canvas，将以视口中心点进行 inside 检测，并结合 `elementFromPoint` 精确匹配顶层 canvas
-  - 重叠警示：
-    - 当检测到多个 canvas 布局上发生重叠时，面板会显示“检测到多个 canvas 重叠，可能导致定位不准确”的警告
-    - 建议在重叠区域外进行 Inspect，或调整画布布局以避免命中误差

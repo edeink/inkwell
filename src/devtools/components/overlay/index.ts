@@ -41,7 +41,9 @@ export default class Overlay {
     const info = document.createElement('div');
     info.className = styles.overlayInfo;
     box.appendChild(info);
-    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
+    const isDev =
+      typeof window !== 'undefined' &&
+      /localhost|127\.0\.0\.1/.test(window.location?.hostname ?? '');
     if (isDev) {
       const guideH = document.createElement('div');
       guideH.className = styles.guideH;
@@ -110,7 +112,9 @@ export default class Overlay {
         this.box.style.transform = 'none';
       }
 
-      this.info.textContent = `${widget.type} · x:${Math.round(pos.dx)} y:${Math.round(pos.dy)} · w:${Math.round(width)} h:${Math.round(height)}`;
+      this.info.textContent =
+        `${widget.type} · x:${Math.round(pos.dx)} y:${Math.round(pos.dy)} ` +
+        `· w:${Math.round(width)} h:${Math.round(height)}`;
     } catch (err) {
       console.warn('DevTools overlay highlight failed:', err);
     }

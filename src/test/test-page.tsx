@@ -266,14 +266,10 @@ const TestPage: React.FC = () => {
               运行完整流程测试
             </button>
           </div>
-          <div className={styles.buttonGroup}>
-            <button onClick={() => setShowDevtools((v) => !v)} className={`${styles.button}`}>
-              {showDevtools ? '关闭 DevTools' : '开启 DevTools'}
-            </button>
-          </div>
+          {/* DevTools 显隐由内部热键控制，移除外部开关按钮 */}
           {showDevtools && editorForDevtools && (
             <div style={{ marginTop: 12 }}>
-              <DevTools onClose={() => setShowDevtools(false)} />
+              <DevTools />
             </div>
           )}
           <div ref={containerRef} className={styles.canvasContainer} />
