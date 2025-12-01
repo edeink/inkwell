@@ -1,14 +1,15 @@
-import { AimOutlined, CloseOutlined } from '@ant-design/icons';
-import { Alert, Button, Input, Tooltip, Tree } from 'antd';
+import { AimOutlined, CloseOutlined, SettingOutlined } from '@ant-design/icons';
+import { Button, Input, Popover, Tooltip, Tree, message } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 
 import Runtime from '../../../runtime';
-import { computePromptInfo } from '../../helper/prompt';
 import { findByKey, getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
+import { useDevtoolsHotkeys } from '../../hooks/useDevtoolsHotkeys';
 import { useMouseInteraction } from '../../hooks/useMouseInteraction';
 import LayoutPanel, { type LayoutInfo } from '../layout';
 import Overlay from '../overlay';
 import { PropsEditor } from '../props-editor';
+import SimpleTip from '../simple-tip';
 
 import type { Widget } from '../../../core/base';
 import type { DataNode } from 'antd/es/tree';
@@ -34,12 +35,30 @@ export function DevTools(props: DevToolsProps) {
   const overlay = useMemo(() => (runtime ? new Overlay(runtime) : null), [runtime]);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState<string>('');
-  const [active, setActive] = useState<boolean>(false);
+  // 是否开启 Inspect
+  const [activeInspect, setActiveInspect] = useState<boolean>(false);
+  // 面板显隐状态：默认隐藏，热键/按钮控制
+  const [visible, setVisible] = useState<boolean>(false);
+  const { combo, setCombo } = useDevtoolsHotkeys(
+    {
+      combo:
+        typeof props.shortcut === 'string'
+          ? props.shortcut
+          : props.shortcut?.combo || 'CmdOrCtrl+Shift+D',
+      action:
+        typeof props.shortcut === 'object' && props.shortcut?.action
+          ? props.shortcut.action
+          : 'toggle',
+      onToggle: () => setVisible((v) => !v),
+      onInspectToggle: () => setActiveInspect((v) => !v),
+    },
+    [activeInspect, visible],
+  );
 
-  useMouseInteraction({
+  const { isMultiRuntime, overlapWarning } = useMouseInteraction({
     runtime,
     overlay,
-    active,
+    active: activeInspect,
     getHoverRef: () => hoverRef.current,
     setHoverRef: (w) => {
       hoverRef.current = w;
@@ -49,7 +68,7 @@ export function DevTools(props: DevToolsProps) {
       setSelected(current);
       const path = getPathKeys(runtime?.getRootWidget?.() ?? null, current.key);
       setExpandedKeys(new Set(path));
-      setActive(false);
+      setActiveInspect(false);
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-key="${current.key}"]`);
         (el as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
@@ -57,82 +76,80 @@ export function DevTools(props: DevToolsProps) {
     },
   });
 
-  const runtimeReady = !!runtime && !!runtime.getContainer?.() && !!runtime.getRootWidget?.();
-
   return (
     <LayoutPanel
+      visible={visible}
       headerLeft={
-        <Tooltip title={active ? 'Inspect 开启' : 'Inspect 关闭'} placement="bottom">
+        <Tooltip title={activeInspect ? 'Inspect 开启' : 'Inspect 关闭'} placement="bottom">
           <Button
             type="text"
-            aria-pressed={active}
-            style={{ color: active ? '#1677ff' : undefined }}
+            aria-pressed={activeInspect}
+            style={{ color: activeInspect ? '#1677ff' : undefined }}
             icon={<AimOutlined />}
-            onClick={() => setActive((v) => !v)}
+            onClick={() => setActiveInspect((v) => !v)}
           />
         </Tooltip>
       }
       headerRightExtra={(requestClose) => (
-        <Tooltip title="关闭" placement="bottom">
-          <Button type="text" icon={<CloseOutlined />} onClick={() => requestClose()} />
-        </Tooltip>
+        <>
+          <Popover
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div style={{ width: 260 }}>
+                <div style={{ marginBottom: 8 }}>当前快捷键：{combo}</div>
+                <Input
+                  placeholder="按下组合键以设置"
+                  onKeyDown={(e) => {
+                    e.preventDefault();
+                    const parts: string[] = [];
+                    if (e.metaKey || e.ctrlKey) {
+                      parts.push('CmdOrCtrl');
+                    }
+                    if (e.shiftKey) {
+                      parts.push('Shift');
+                    }
+                    if (e.altKey) {
+                      parts.push('Alt');
+                    }
+                    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+                    if (/^[A-Z]$/.test(key)) {
+                      parts.push(key);
+                    }
+                    const next = parts.join('+');
+                    const invalid = ['Cmd+Q', 'Command+Q', 'Alt+F4', 'Ctrl+Shift+Esc'];
+                    if (invalid.includes(next)) {
+                      message.warning('该组合与系统/浏览器快捷键冲突');
+                      return;
+                    }
+                    setCombo(next);
+                  }}
+                />
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+                  建议使用 Cmd/Ctrl + Shift + 字母 的组合
+                </div>
+              </div>
+            }
+          >
+            <Tooltip title="设置快捷键" placement="bottom">
+              <Button type="text" icon={<SettingOutlined />} />
+            </Tooltip>
+          </Popover>
+          <Tooltip title="关闭" placement="bottom">
+            <Button type="text" icon={<CloseOutlined />} onClick={() => requestClose()} />
+          </Tooltip>
+        </>
       )}
-      onClose={() => props.onClose?.()}
+      onVisibleChange={setVisible}
       renderTree={(info: LayoutInfo) => (
         <>
-          {(() => {
-            const { multi, overlapCount } = computePromptInfo(Runtime.listCanvas());
-            return (
-              <>
-                {multi && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    message="当前页面发现多个 runtime，请 inspect 到具体 canvas 上以激活"
-                    description={
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span
-                          style={{ width: 12, height: 12, background: '#1677ff', borderRadius: 2 }}
-                        />
-                        <span>将鼠标移动到目标画布区域以激活对应 runtime</span>
-                      </div>
-                    }
-                    style={{ marginBottom: 8 }}
-                  />
-                )}
-                {overlapCount > 0 && (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    message="检测到多个 canvas 重叠，可能导致定位不准确"
-                    description={
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span
-                          style={{
-                            width: 12,
-                            height: 12,
-                            background: 'rgba(255,85,85,0.6)',
-                            borderRadius: 2,
-                          }}
-                        />
-                        <span>请在重叠区域外进行 Inspect，或调整画布布局</span>
-                      </div>
-                    }
-                    style={{ marginBottom: 8 }}
-                  />
-                )}
-              </>
-            );
-          })()}
-          {!runtimeReady && (
-            <Alert
-              type="warning"
-              showIcon
-              message="未找到 Runtime 或画布"
-              description="请先运行示例代码，或等待画布初始化完成。"
-              style={{ marginBottom: 8 }}
-            />
+          {isMultiRuntime && (
+            <SimpleTip message="检测到当前页面存在多个 runtime。激活 inspect 模式后，将鼠标移动到目标 canvas 上可切换对应的 runtime。" />
           )}
+          {activeInspect && overlapWarning && (
+            <SimpleTip message="当前 canvas 与其他元素存在重叠区域" />
+          )}
+          {/* 初始化逻辑会自动选择第一个 runtime，此处无需额外警告 */}
           <div style={{ marginBottom: 8 }}>
             <Input.Search
               value={search}

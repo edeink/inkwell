@@ -23,13 +23,13 @@ export default function CodeBlock(props: Props) {
   const { children, className, metastring } = props;
   const code = typeof children === 'string' ? children : String(children?.props?.children ?? '');
   const lang = (className || '').replace(/^language-/, '');
-  const isTSX = lang === 'tsx' || lang === 'jsx';
+  const isESX = lang === 'esx';
   const isMermaid = lang === 'mermaid';
   const isFlow = lang === 'flow';
   const isSeq = lang === 'seq';
   const forceStatic = typeof metastring === 'string' && metastring.includes('static');
   const readOnly = typeof metastring === 'string' && metastring.includes('readonly');
-  if (isTSX && !forceStatic) {
+  if (isESX && !forceStatic) {
     return <InkPlayground code={code} readonly={readOnly} />;
   }
   if (isMermaid) {
@@ -53,7 +53,12 @@ export default function CodeBlock(props: Props) {
       >
         <CopyOutlined /> 复制
       </button>
-      <OriginalCodeBlock {...props} children={cleaned} />
+      <OriginalCodeBlock
+        {...props}
+        // 将 esx 作为 tsx 高亮，以保持完全一致的语法高亮
+        className={isESX ? 'language-tsx' : props.className}
+        children={cleaned}
+      />
     </div>
   );
 }

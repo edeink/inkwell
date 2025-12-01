@@ -1,9 +1,3 @@
-import {
-  AlignLeftOutlined,
-  AlignRightOutlined,
-  VerticalAlignBottomOutlined,
-  VerticalAlignTopOutlined,
-} from '@ant-design/icons';
 import { Button, Space, Tooltip } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -36,17 +30,19 @@ export type LayoutInfo = {
  * 通过 renderTree/renderProps 插槽接入具体内容
  */
 export function LayoutPanel({
+  visible,
   headerLeft,
   headerRightExtra,
   renderTree,
   renderProps,
-  onClose,
+  onVisibleChange,
 }: {
+  visible: boolean;
   headerLeft?: React.ReactNode;
   headerRightExtra?: (requestClose: () => void) => React.ReactNode;
   renderTree: (info: LayoutInfo) => React.ReactNode;
   renderProps: (info: LayoutInfo) => React.ReactNode;
-  onClose?: () => void;
+  onVisibleChange?: (next: boolean) => void;
 }) {
   const storageKey = 'INKWELL_DEVTOOLS_LAYOUT';
   const initialLayout = (() => {
@@ -65,8 +61,7 @@ export function LayoutPanel({
   const [dock, setDock] = useState<Dock>(initialLayout.dock);
   const [width, setWidth] = useState<number>(initialLayout.width);
   const [height, setHeight] = useState<number>(initialLayout.height);
-  // resizing state removed (visual feedback not needed)
-  const [closing, setClosing] = useState<boolean>(false);
+  // visible is controlled by parent; remove internal closing state
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   const splitStorageKey = 'INKWELL_DEVTOOLS_SPLIT';
@@ -174,7 +169,7 @@ export function LayoutPanel({
   const panelClass = [
     styles.layoutPanel,
     styles[`dock-${dock}`],
-    closing ? styles.closing : '',
+    !visible ? styles.closing : '',
   ].join(' ');
   const handleClass = [styles.resizeHandle, styles[`handle-${dock}`]].join(' ');
   const gridClass = [styles.layoutContentGrid, isNarrow ? styles.narrow : ''].join(' ');
@@ -186,6 +181,7 @@ export function LayoutPanel({
       ref={panelRef}
       className={panelClass}
       style={dock === 'top' || dock === 'bottom' ? { height } : { width }}
+      data-visible={visible ? '1' : '0'}
     >
       <div className={styles.layoutHeader}>
         <div className={styles.left}>{headerLeft}</div>
@@ -197,7 +193,7 @@ export function LayoutPanel({
                 className={dock === 'left' ? styles.btnTextPrimary : styles.btnText}
                 aria-label="dock-left"
                 aria-pressed={dock === 'left'}
-                icon={<AlignLeftOutlined />}
+                icon={<DockIcon side="left" active={dock === 'left'} />}
                 onClick={() => {
                   if (dock !== 'left') {
                     setDock('left');
@@ -211,7 +207,7 @@ export function LayoutPanel({
                 className={dock === 'right' ? styles.btnTextPrimary : styles.btnText}
                 aria-label="dock-right"
                 aria-pressed={dock === 'right'}
-                icon={<AlignRightOutlined />}
+                icon={<DockIcon side="right" active={dock === 'right'} />}
                 onClick={() => {
                   if (dock !== 'right') {
                     setDock('right');
@@ -225,7 +221,7 @@ export function LayoutPanel({
                 className={dock === 'top' ? styles.btnTextPrimary : styles.btnText}
                 aria-label="dock-top"
                 aria-pressed={dock === 'top'}
-                icon={<VerticalAlignTopOutlined />}
+                icon={<DockIcon side="top" active={dock === 'top'} />}
                 onClick={() => {
                   if (dock !== 'top') {
                     setDock('top');
@@ -239,7 +235,7 @@ export function LayoutPanel({
                 className={dock === 'bottom' ? styles.btnTextPrimary : styles.btnText}
                 aria-label="dock-bottom"
                 aria-pressed={dock === 'bottom'}
-                icon={<VerticalAlignBottomOutlined />}
+                icon={<DockIcon side="bottom" active={dock === 'bottom'} />}
                 onClick={() => {
                   if (dock !== 'bottom') {
                     setDock('bottom');
@@ -249,8 +245,7 @@ export function LayoutPanel({
             </Tooltip>
           </Space.Compact>
           {headerRightExtra?.(() => {
-            setClosing(true);
-            setTimeout(() => onClose?.(), 180);
+            onVisibleChange?.(false);
           })}
         </div>
       </div>
@@ -294,3 +289,15 @@ export function LayoutPanel({
 }
 
 export default LayoutPanel;
+function DockIcon({ side, active }: { side: Dock; active?: boolean }) {
+  const c = active ? '#1677ff' : '#6b7280';
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+      <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke={c} />
+      {side === 'left' && <rect x="2" y="2" width="4" height="12" rx="2" fill={c} />}
+      {side === 'right' && <rect x="10" y="2" width="4" height="12" rx="2" fill={c} />}
+      {side === 'top' && <rect x="2" y="2" width="12" height="4" rx="2" fill={c} />}
+      {side === 'bottom' && <rect x="2" y="10" width="12" height="4" rx="2" fill={c} />}
+    </svg>
+  );
+}

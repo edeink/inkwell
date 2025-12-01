@@ -1,0 +1,61 @@
+.simpleTip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #faad14;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.icon:hover {
+  transform: scale(1.06);
+  filter: saturate(120%);
+}
+
+.tipOverlay :global(.ant-tooltip) {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tipOverlay :global(.ant-tooltip-inner) {
+  background: #1f2328;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+
+@media (width <=600px) {
+  .simpleTip {
+    padding: 8px;
+    border-radius: 6px;
+  }
+}
