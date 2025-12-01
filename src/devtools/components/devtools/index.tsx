@@ -1,23 +1,18 @@
-import {
-  AimOutlined,
-  AlignLeftOutlined,
-  AlignRightOutlined,
-  CloseOutlined,
-  VerticalAlignBottomOutlined,
-  VerticalAlignTopOutlined,
-} from '@ant-design/icons';
-import { Button, Input, Tooltip, Tree } from 'antd';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AimOutlined, CloseOutlined } from '@ant-design/icons';
+import { Alert, Button, Input, Tooltip, Tree } from 'antd';
+import { useMemo, useRef, useState } from 'react';
 
-import { clamp } from '../../helper/math';
+import Runtime from '../../../runtime';
+import { computePromptInfo } from '../../helper/prompt';
 import { findByKey, getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
-import Overlay, { hitTest } from '../overlay';
+import { useMouseInteraction } from '../../hooks/useMouseInteraction';
+import LayoutPanel, { type LayoutInfo } from '../layout';
+import Overlay from '../overlay';
 import { PropsEditor } from '../props-editor';
 
-import styles from './index.module.less';
-
 import type { Widget } from '../../../core/base';
-import type Runtime from '../../../runtime';
+import type { DataNode } from 'antd/es/tree';
+import type { Key } from 'react';
 
 /**
  * DevTools
@@ -25,334 +20,119 @@ import type Runtime from '../../../runtime';
  * 参数：editor - 编辑器实例；onClose - 关闭回调（可选）
  * 返回：DevTools 组件
  */
-export function DevTools({ editor, onClose }: { editor: Runtime; onClose?: () => void }) {
+export interface DevToolsProps {
+  onClose?: () => void;
+  /** 快捷键配置：字符串或对象（默认 Ctrl/Cmd+Shift+D 切换面板显示） */
+  shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
+}
+
+export function DevTools(props: DevToolsProps) {
   const [selected, setSelected] = useState<Widget | null>(null);
+  const [runtime, setRuntime] = useState<Runtime | null>(null);
   const hoverRef = useRef<Widget | null>(null);
-  const tree = useMemo(() => toTree(editor.getRootWidget()), [editor]);
-  const overlay = useMemo(() => new Overlay(editor), [editor]);
+  const tree = useMemo(() => toTree(runtime?.getRootWidget?.() ?? null), [runtime]);
+  const overlay = useMemo(() => (runtime ? new Overlay(runtime) : null), [runtime]);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState<string>('');
-
-  const storageKey = 'INKWELL_DEVTOOLS_LAYOUT';
-  const initialLayout = (() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {
-      void 0;
-    }
-    return { dock: 'right', width: 380, height: Math.min(window.innerHeight, 420) } as {
-      dock: Dock;
-      width: number;
-      height: number;
-    };
-  })();
-  const [dock, setDock] = useState<Dock>(initialLayout.dock);
-  const [width, setWidth] = useState<number>(initialLayout.width);
-  const [height, setHeight] = useState<number>(initialLayout.height);
-  const [resizing, setResizing] = useState<boolean>(false);
   const [active, setActive] = useState<boolean>(false);
-  const [closing, setClosing] = useState<boolean>(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const splitStorageKey = 'INKWELL_DEVTOOLS_SPLIT';
-  const initialSplit = (() => {
-    try {
-      const raw = localStorage.getItem(splitStorageKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {
-      void 0;
-    }
-    return { treeWidth: 300, treeHeight: 240 } as { treeWidth: number; treeHeight: number };
-  })();
-  const [treeWidth, setTreeWidth] = useState<number>(initialSplit.treeWidth);
-  const [treeHeight, setTreeHeight] = useState<number>(initialSplit.treeHeight);
-  const [splitDragging, setSplitDragging] = useState<boolean>(false);
-  const [isNarrow, setIsNarrow] = useState<boolean>(false);
 
-  useEffect(() => {
-    overlay.mount();
-    overlay.setActive(active);
-    const renderer = editor.getRenderer();
-    const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-    const canvas = raw?.canvas ?? editor.getContainer()?.querySelector('canvas');
-    let lastEvent: MouseEvent | null = null;
-    let raf = 0;
-    const onWindowResize = () => overlay.highlight(hoverRef.current);
-    const onWindowScroll = () => overlay.highlight(hoverRef.current);
-    let mo: MutationObserver | null = null;
-    function schedule() {
-      if (raf) {
-        return;
-      }
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        if (!lastEvent || !active) {
-          return;
-        }
-        const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
-        const x = lastEvent.clientX - rect.left;
-        const y = lastEvent.clientY - rect.top;
-        const target = hitTest(editor.getRootWidget(), x, y);
-        hoverRef.current = target;
-        overlay.highlight(target);
+  useMouseInteraction({
+    runtime,
+    overlay,
+    active,
+    getHoverRef: () => hoverRef.current,
+    setHoverRef: (w) => {
+      hoverRef.current = w;
+    },
+    setRuntime: (rt) => setRuntime(rt),
+    onPick: (current) => {
+      setSelected(current);
+      const path = getPathKeys(runtime?.getRootWidget?.() ?? null, current.key);
+      setExpandedKeys(new Set(path));
+      setActive(false);
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-key="${current.key}"]`);
+        (el as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
       });
-    }
-    function onMove(e: MouseEvent) {
-      lastEvent = e;
-      schedule();
-    }
-    function onClick() {
-      const current = hoverRef.current;
-      if (active && current) {
-        setSelected(current);
-        const path = getPathKeys(editor.getRootWidget(), current.key);
-        setExpandedKeys(new Set(path));
-        setActive(false);
-        overlay.setActive(false);
-        overlay.highlight(null);
-        requestAnimationFrame(() => {
-          const el = document.querySelector(`[data-key="${current.key}"]`);
-          (el as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
-        });
-      }
-    }
-    if (active) {
-      canvas?.addEventListener('mousemove', onMove);
-      canvas?.addEventListener('click', onClick);
-      window.addEventListener('resize', onWindowResize);
-      window.addEventListener('scroll', onWindowScroll, { passive: true });
-      if (canvas) {
-        mo = new MutationObserver(() => overlay.highlight(hoverRef.current));
-        mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
-      }
-    }
-    return () => {
-      canvas?.removeEventListener('mousemove', onMove);
-      canvas?.removeEventListener('click', onClick);
-      window.removeEventListener('resize', onWindowResize);
-      window.removeEventListener('scroll', onWindowScroll);
-      try {
-        (mo as MutationObserver | null)?.disconnect?.();
-      } catch {
-        void 0;
-      }
-      overlay.unmount();
-      if (raf) {
-        cancelAnimationFrame(raf);
-      }
-    };
-  }, [editor, overlay, active]);
+    },
+  });
 
-  useEffect(() => {
-    const updateNarrow = () => {
-      const w =
-        panelRef.current?.clientWidth ??
-        (dock === 'left' || dock === 'right' ? width : window.innerWidth);
-      setIsNarrow(w < 600);
-    };
-    updateNarrow();
-    window.addEventListener('resize', updateNarrow);
-    return () => window.removeEventListener('resize', updateNarrow);
-  }, [dock, width]);
-
-  useEffect(() => {
-    window.__INKWELL_DEVTOOLS = {
-      getTree: () => tree,
-      selectByKey: (k: string) => {
-        const w = findByKey(editor.getRootWidget(), k);
-        setSelected(w);
-        overlay.highlight(w);
-        const path = getPathKeys(editor.getRootWidget(), k);
-        setExpandedKeys(new Set(path));
-      },
-      setDock: (d: Dock) => setDock(d),
-      setSize: (w: number, h: number) => {
-        setWidth(w);
-        setHeight(h);
-      },
-      setActive: (v: boolean) => setActive(v),
-    };
-  }, [tree, editor, overlay]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ dock, width, height }));
-    } catch {
-      void 0;
-    }
-  }, [dock, width, height]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(splitStorageKey, JSON.stringify({ treeWidth, treeHeight }));
-    } catch {
-      void 0;
-    }
-  }, [treeWidth, treeHeight]);
-
-  function onResizeMouseDown(e: React.MouseEvent) {
-    e.preventDefault();
-    setResizing(true);
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startW = width;
-    const startH = height;
-    function onMove(ev: MouseEvent) {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (dock === 'right') {
-        setWidth(clamp(startW - dx, 260, Math.min(window.innerWidth - 80, 900)));
-      }
-      if (dock === 'left') {
-        setWidth(clamp(startW + dx, 260, Math.min(window.innerWidth - 80, 900)));
-      }
-      if (dock === 'top') {
-        setHeight(clamp(startH + dy, 200, Math.min(window.innerHeight - 80, 800)));
-      }
-      if (dock === 'bottom') {
-        setHeight(clamp(startH - dy, 200, Math.min(window.innerHeight - 80, 800)));
-      }
-    }
-    function onUp() {
-      setResizing(false);
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }
-
-  function onSplitMouseDown(e: React.MouseEvent) {
-    e.preventDefault();
-    setSplitDragging(true);
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startW = treeWidth;
-    const startH = treeHeight;
-    function onMove(ev: MouseEvent) {
-      if (isNarrow) {
-        const dy = ev.clientY - startY;
-        const maxH = Math.max(
-          160,
-          dock === 'top' || dock === 'bottom' ? height - 160 : window.innerHeight - 200,
-        );
-        const nextH = clamp(startH + dy, 140, maxH);
-        setTreeHeight(nextH);
-      } else {
-        const dx = ev.clientX - startX;
-        const next = clamp(
-          startW + dx,
-          200,
-          Math.min((dock === 'left' || dock === 'right' ? width : window.innerWidth) - 240, 800),
-        );
-        setTreeWidth(next);
-      }
-    }
-    function onUp() {
-      setSplitDragging(false);
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }
-
-  const cursor = dock === 'top' || dock === 'bottom' ? 'ns-resize' : 'ew-resize';
-  const panelClass = [styles.panel, styles[`dock-${dock}`]].join(' ');
-  const handleClass = [
-    styles.resizeHandle,
-    styles[`handle-${dock}`],
-    resizing ? styles.handleActive : styles.handleIdle,
-  ].join(' ');
+  const runtimeReady = !!runtime && !!runtime.getContainer?.() && !!runtime.getRootWidget?.();
 
   return (
-    <div
-      ref={panelRef}
-      className={[panelClass, closing ? styles.closing : ''].join(' ')}
-      style={dock === 'top' || dock === 'bottom' ? { height } : { width }}
-    >
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <Tooltip title={active ? 'Inspect 开启' : 'Inspect 关闭'} placement="bottom">
-            <Button
-              type="text"
-              className={active ? styles.btnTextPrimary : styles.btnText}
-              icon={<AimOutlined />}
-              onClick={() => setActive((v) => !v)}
+    <LayoutPanel
+      headerLeft={
+        <Tooltip title={active ? 'Inspect 开启' : 'Inspect 关闭'} placement="bottom">
+          <Button
+            type="text"
+            aria-pressed={active}
+            style={{ color: active ? '#1677ff' : undefined }}
+            icon={<AimOutlined />}
+            onClick={() => setActive((v) => !v)}
+          />
+        </Tooltip>
+      }
+      headerRightExtra={(requestClose) => (
+        <Tooltip title="关闭" placement="bottom">
+          <Button type="text" icon={<CloseOutlined />} onClick={() => requestClose()} />
+        </Tooltip>
+      )}
+      onClose={() => props.onClose?.()}
+      renderTree={(info: LayoutInfo) => (
+        <>
+          {(() => {
+            const { multi, overlapCount } = computePromptInfo(Runtime.listCanvas());
+            return (
+              <>
+                {multi && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message="当前页面发现多个 runtime，请 inspect 到具体 canvas 上以激活"
+                    description={
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span
+                          style={{ width: 12, height: 12, background: '#1677ff', borderRadius: 2 }}
+                        />
+                        <span>将鼠标移动到目标画布区域以激活对应 runtime</span>
+                      </div>
+                    }
+                    style={{ marginBottom: 8 }}
+                  />
+                )}
+                {overlapCount > 0 && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="检测到多个 canvas 重叠，可能导致定位不准确"
+                    description={
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            background: 'rgba(255,85,85,0.6)',
+                            borderRadius: 2,
+                          }}
+                        />
+                        <span>请在重叠区域外进行 Inspect，或调整画布布局</span>
+                      </div>
+                    }
+                    style={{ marginBottom: 8 }}
+                  />
+                )}
+              </>
+            );
+          })()}
+          {!runtimeReady && (
+            <Alert
+              type="warning"
+              showIcon
+              message="未找到 Runtime 或画布"
+              description="请先运行示例代码，或等待画布初始化完成。"
+              style={{ marginBottom: 8 }}
             />
-          </Tooltip>
-        </div>
-        <div className={styles.headerRight}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <Tooltip title="靠左" placement="bottom">
-              <Button
-                type="text"
-                className={styles.btnText}
-                icon={<AlignLeftOutlined />}
-                onClick={() => setDock('left')}
-              />
-            </Tooltip>
-            <Tooltip title="靠右" placement="bottom">
-              <Button
-                type="text"
-                className={styles.btnText}
-                icon={<AlignRightOutlined />}
-                onClick={() => setDock('right')}
-              />
-            </Tooltip>
-            <Tooltip title="靠上" placement="bottom">
-              <Button
-                type="text"
-                className={styles.btnText}
-                icon={<VerticalAlignTopOutlined />}
-                onClick={() => setDock('top')}
-              />
-            </Tooltip>
-            <Tooltip title="靠下" placement="bottom">
-              <Button
-                type="text"
-                className={styles.btnText}
-                icon={<VerticalAlignBottomOutlined />}
-                onClick={() => setDock('bottom')}
-              />
-            </Tooltip>
-          </div>
-          <Tooltip title="关闭" placement="bottom">
-            <Button
-              type="text"
-              className={styles.btnText}
-              icon={<CloseOutlined />}
-              onClick={() => {
-                setClosing(true);
-                setTimeout(() => onClose?.(), 180);
-              }}
-            />
-          </Tooltip>
-        </div>
-      </div>
-      <div
-        className={[styles.contentGrid, isNarrow ? styles.narrow : ''].join(' ')}
-        style={
-          isNarrow
-            ? {
-                gridTemplateRows: `${treeHeight}px 8px 1fr`,
-                ...(dock === 'top' || dock === 'bottom'
-                  ? { height: `calc(${height}px - 42px)` }
-                  : { height: 'calc(100vh - 42px)' }),
-              }
-            : {
-                gridTemplateColumns: `${treeWidth}px 8px 1fr`,
-                ...(dock === 'top' || dock === 'bottom'
-                  ? { height: `calc(${height}px - 42px)` }
-                  : { height: 'calc(100vh - 42px)' }),
-              }
-        }
-      >
-        <div className={styles.treePane} style={isNarrow ? { gridRow: '1 / 2' } : undefined}>
+          )}
           <div style={{ marginBottom: 8 }}>
             <Input.Search
               value={search}
@@ -364,70 +144,49 @@ export function DevTools({ editor, onClose }: { editor: Runtime; onClose?: () =>
           <Tree
             showLine
             height={
-              isNarrow
-                ? Math.max(120, treeHeight - 60)
-                : dock === 'top' || dock === 'bottom'
-                  ? Math.max(120, height - 100)
+              info.isNarrow
+                ? Math.max(120, info.treeHeight - 60)
+                : info.dock === 'top' || info.dock === 'bottom'
+                  ? Math.max(120, info.height - 100)
                   : undefined
             }
-            treeData={toAntTreeData(tree)}
-            titleRender={(node: any) => (
+            treeData={toAntTreeData(tree) as DataNode[]}
+            titleRender={(node) => (
               <span
                 data-key={String(node.key)}
                 onMouseEnter={() => {
-                  const w = findByKey(editor.getRootWidget(), String(node.key));
+                  const w = findByKey(runtime?.getRootWidget?.() ?? null, String(node.key));
                   hoverRef.current = w;
-                  overlay.setActive(true);
-                  overlay.highlight(w);
+                  overlay?.setActive(true);
+                  overlay?.highlight(w);
                 }}
                 onMouseLeave={() => {
-                  overlay.setActive(false);
-                  overlay.highlight(null);
+                  overlay?.setActive(false);
+                  overlay?.highlight(null);
                 }}
               >
                 {String(node.title)}
               </span>
             )}
             expandedKeys={Array.from(expandedKeys)}
-            onExpand={(keys) => setExpandedKeys(new Set(keys as string[]))}
+            onExpand={(keys: Key[]) => setExpandedKeys(new Set(keys as string[]))}
             selectedKeys={selected ? [selected.key] : []}
-            onSelect={(keys) => window.__INKWELL_DEVTOOLS.selectByKey(String(keys[0]))}
+            onSelect={(keys: Key[]) => {
+              const k = String(keys[0]);
+              const w = findByKey(runtime?.getRootWidget?.() ?? null, k);
+              setSelected(w);
+              if (w) {
+                const path = getPathKeys(runtime?.getRootWidget?.() ?? null, k);
+                setExpandedKeys(new Set(path));
+              }
+            }}
             filterTreeNode={(node) =>
               !!search && String(node.title).toLowerCase().includes(search.toLowerCase())
             }
           />
-        </div>
-        <div
-          className={[
-            styles.splitHandle,
-            splitDragging ? styles.splitActive : styles.splitIdle,
-          ].join(' ')}
-          onMouseDown={onSplitMouseDown}
-          style={
-            isNarrow
-              ? { gridRow: '2 / 3', cursor: 'row-resize' }
-              : { gridColumn: '2 / 3', cursor: 'col-resize' }
-          }
-        />
-        <div className={styles.propsPane} style={isNarrow ? { gridRow: '3 / 4' } : undefined}>
-          <PropsEditor widget={selected} onChange={() => editor.rebuild()} />
-        </div>
-      </div>
-      <div onMouseDown={onResizeMouseDown} className={handleClass} style={{ cursor }} />
-    </div>
+        </>
+      )}
+      renderProps={() => <PropsEditor widget={selected} onChange={() => runtime?.rebuild()} />}
+    />
   );
-}
-
-type Dock = 'left' | 'right' | 'top' | 'bottom';
-
-declare global {
-  interface Window {
-    __INKWELL_DEVTOOLS: {
-      getTree: () => ReturnType<typeof toTree>;
-      selectByKey: (k: string) => void;
-      setDock: (d: Dock) => void;
-      setSize: (w: number, h: number) => void;
-      setActive: (v: boolean) => void;
-    };
-  }
 }

@@ -34,6 +34,7 @@ export default function InkPlayground({
   const [committedCode, setCommittedCode] = React.useState(initial);
   const [error, setError] = React.useState<string | null>(null);
   const [running, setRunning] = React.useState(false);
+  const autoRunTimerRef = React.useRef<number | null>(null);
 
   const onRun = React.useCallback(() => {
     setRunning(true);
@@ -44,6 +45,26 @@ export default function InkPlayground({
     setCommittedCode('');
     setError(null);
   }, []);
+
+  React.useEffect(() => {
+    if (!showcase) {
+      return;
+    }
+    if (autoRunTimerRef.current) {
+      window.clearTimeout(autoRunTimerRef.current);
+      autoRunTimerRef.current = null;
+    }
+    autoRunTimerRef.current = window.setTimeout(() => {
+      setRunning(true);
+      setCommittedCode(localCode);
+    }, 500);
+    return () => {
+      if (autoRunTimerRef.current) {
+        window.clearTimeout(autoRunTimerRef.current);
+        autoRunTimerRef.current = null;
+      }
+    };
+  }, [localCode, showcase]);
 
   if (readonly) {
     return (

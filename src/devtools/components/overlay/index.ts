@@ -14,6 +14,10 @@ export default class Overlay {
   private box: HTMLDivElement | null = null;
   private info: HTMLDivElement | null = null;
   private active = false;
+  private mo: MutationObserver | null = null;
+  private getCurrent: (() => Widget | null) | null = null;
+  private onWindowResize = () => this.highlight(this.getCurrent?.() ?? null);
+  private onWindowScroll = () => this.highlight(this.getCurrent?.() ?? null);
 
   constructor(editor: Runtime) {
     this.editor = editor;
@@ -37,7 +41,8 @@ export default class Overlay {
     const info = document.createElement('div');
     info.className = styles.overlayInfo;
     box.appendChild(info);
-    if (import.meta.env?.DEV) {
+    const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
+    if (isDev) {
       const guideH = document.createElement('div');
       guideH.className = styles.guideH;
       const guideV = document.createElement('div');
@@ -59,6 +64,7 @@ export default class Overlay {
     this.box = null;
     this.info = null;
     this.active = false;
+    this.stopAutoUpdate();
   }
 
   setActive(v: boolean): void {
@@ -108,6 +114,42 @@ export default class Overlay {
     } catch (err) {
       console.warn('DevTools overlay highlight failed:', err);
     }
+  }
+
+  /**
+   * 开启自动刷新：在窗口 resize/scroll 或画布属性变化时刷新高亮
+   * @param provider 返回当前命中的 Widget（由 DevTools 提供）
+   */
+  startAutoUpdate(provider: () => Widget | null): void {
+    this.getCurrent = provider;
+    try {
+      window.addEventListener('resize', this.onWindowResize);
+      window.addEventListener('scroll', this.onWindowScroll, { passive: true });
+    } catch {}
+    try {
+      const renderer = this.editor.getRenderer();
+      const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+      const canvas = raw?.canvas ?? this.editor.getContainer()?.querySelector('canvas') ?? null;
+      if (canvas) {
+        this.mo = new MutationObserver(() => this.highlight(this.getCurrent?.() ?? null));
+        this.mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+    } catch {}
+  }
+
+  /**
+   * 关闭自动刷新并清理所有监听
+   */
+  stopAutoUpdate(): void {
+    try {
+      window.removeEventListener('resize', this.onWindowResize);
+      window.removeEventListener('scroll', this.onWindowScroll);
+    } catch {}
+    try {
+      this.mo?.disconnect?.();
+    } catch {}
+    this.mo = null;
+    this.getCurrent = null;
   }
 }
 

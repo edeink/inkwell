@@ -10,6 +10,7 @@ import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
 import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
+
 import '../core/registry';
 
 /**
@@ -45,6 +46,11 @@ export default class Runtime {
   private rootWidget: Widget | null = null;
   private oomErrorCount: number = 0;
   private lastOomToastAt: number = 0;
+  private canvasId: string | null = null;
+  static canvasRegistry: Map<
+    string,
+    { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
+  > = new Map();
 
   /**
    * 创建运行时实例
@@ -122,6 +128,19 @@ export default class Runtime {
     };
 
     await this.renderer.initialize(this.container, rendererOptions);
+    const raw = this.renderer.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? null;
+    if (canvas && this.container) {
+      if (!this.canvasId) {
+        this.canvasId = Runtime.generateUUID();
+      }
+      canvas.dataset.inkwellId = this.canvasId;
+      Runtime.canvasRegistry.set(this.canvasId, {
+        canvas,
+        runtime: this,
+        container: this.container,
+      });
+    }
     const px = (rendererOptions.width ?? 0) * (rendererOptions.height ?? 0);
     const tooLargePx = 64 * 1024 * 1024; // 64M 像素阈值（约 256MB 内存，依赖实现）
     if (px > tooLargePx) {
@@ -143,6 +162,33 @@ export default class Runtime {
 
   getRootWidget(): Widget | null {
     return this.rootWidget;
+  }
+
+  getCanvasId(): string | null {
+    return this.canvasId;
+  }
+
+  static getByCanvasId(id: string): Runtime | null {
+    const rec = Runtime.canvasRegistry.get(id);
+    return rec ? rec.runtime : null;
+  }
+
+  static listCanvas(): Array<{
+    id: string;
+    canvas: HTMLCanvasElement;
+    runtime: Runtime;
+    container: HTMLElement;
+  }> {
+    const out: Array<{
+      id: string;
+      canvas: HTMLCanvasElement;
+      runtime: Runtime;
+      container: HTMLElement;
+    }> = [];
+    for (const [id, rec] of Runtime.canvasRegistry) {
+      out.push({ id, canvas: rec.canvas, runtime: rec.runtime, container: rec.container });
+    }
+    return out;
   }
 
   /**
@@ -197,7 +243,7 @@ export default class Runtime {
 
       if (this.rootWidget) {
         // 先进行布局计算获得总尺寸
-        const totalSize = this.calculateLayout();
+        const totalSize = this.calculateLayout(this.rootWidget);
 
         // 根据布局尺寸初始化渲染器
         await this.initRenderer({}, totalSize);
@@ -277,21 +323,24 @@ export default class Runtime {
   /**
    * 计算布局获得总尺寸
    */
-  private calculateLayout(): { width: number; height: number } {
-    if (!this.rootWidget || !this.container) {
+  private calculateLayout(widget: Widget & { width?: number; height?: number }): {
+    width: number;
+    height: number;
+  } {
+    if (!widget) {
       return { width: 800, height: 600 }; // 默认尺寸
     }
 
     // 创建约束条件
     const constraints: BoxConstraints = {
       minWidth: 0,
-      maxWidth: Infinity,
+      maxWidth: widget.width ?? Infinity,
       minHeight: 0,
-      maxHeight: Infinity,
+      maxHeight: widget.height ?? Infinity,
     };
 
     // 执行布局计算
-    const size = this.rootWidget.layout(constraints);
+    const size = widget.layout(constraints);
 
     const finalSize = {
       width: Math.max(size.width, 100), // 最小宽度
@@ -337,7 +386,7 @@ export default class Runtime {
     if (!this.rootWidget || !this.renderer || !this.container) {
       return;
     }
-    const totalSize = this.calculateLayout();
+    const totalSize = this.calculateLayout(this.rootWidget);
     void this.initRenderer({}, totalSize).then(() => {
       this.clearCanvas();
       this.performRender();
@@ -438,5 +487,33 @@ export default class Runtime {
     }
     this.container = null;
     this.rootWidget = null;
+    if (this.canvasId) {
+      Runtime.canvasRegistry.delete(this.canvasId);
+      this.canvasId = null;
+    }
+  }
+
+  private static generateUUID(): string {
+    try {
+      const buf = new Uint8Array(16);
+      crypto.getRandomValues(buf);
+      buf[6] = (buf[6] & 0x0f) | 0x40;
+      buf[8] = (buf[8] & 0x3f) | 0x80;
+      const hex = Array.from(buf).map((b) => b.toString(16).padStart(2, '0'));
+      return (
+        hex.slice(0, 4).join('') +
+        '-' +
+        hex.slice(4, 6).join('') +
+        '-' +
+        hex.slice(6, 8).join('') +
+        '-' +
+        hex.slice(8, 10).join('') +
+        '-' +
+        hex.slice(10, 16).join('')
+      );
+    } catch {
+      const s = Math.random().toString(36).slice(2);
+      return `rnd-${Date.now()}-${s}`;
+    }
   }
 }

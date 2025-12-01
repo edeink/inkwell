@@ -6,6 +6,7 @@ import styles from './index.module.less';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import * as Core from '@/core';
+import { DevTools, AutoDevTools } from '@/devtools';
 import Runtime from '@/runtime';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
 
@@ -81,10 +82,19 @@ export default function Inkwell({
           'createElement',
           'Fragment',
           'Editor',
+          'DevTools',
+          'AutoDevTools',
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
-        const tplFn = fn(createElement, Fragment, Runtime, ...Object.values(Core));
+        const tplFn = fn(
+          createElement,
+          Fragment,
+          Runtime,
+          DevTools,
+          AutoDevTools,
+          ...Object.values(Core),
+        );
         await editor.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
       } catch (e: any) {

@@ -1,0 +1,146 @@
+@breakpoint: 600px;
+
+.layoutPanel {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+  z-index: 1000;
+  border-radius: 8px;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+
+  &.dock-left {
+    left: 0;
+    top: 0;
+    height: 100vh;
+  }
+
+  &.dock-right {
+    right: 0;
+    top: 0;
+    height: 100vh;
+  }
+
+  &.dock-top {
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+
+  &.dock-bottom {
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  &.closing {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.layoutHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+
+  .left,
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.layoutContentGrid {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  overflow: auto;
+
+  &.narrow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.treePane {
+  border: 1px solid #ddd;
+  padding: 8px;
+  overflow: auto;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.propsPane {
+  border: 1px solid #ddd;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.splitHandle {
+  position: relative;
+  background: transparent;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-1px);
+    background: #ddd;
+  }
+}
+
+.splitActive::before {
+  background: #4ea3ff;
+}
+
+.resizeHandle {
+  position: absolute;
+
+  &.handle-left {
+    right: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+  }
+
+  &.handle-right {
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+  }
+
+  &.handle-top {
+    left: 0;
+    bottom: 0;
+    height: 6px;
+    width: 100%;
+  }
+
+  &.handle-bottom {
+    left: 0;
+    top: 0;
+    height: 6px;
+    width: 100%;
+  }
+}
+
+.btnText {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.btnTextPrimary {
+  color: #1677ff;
+}

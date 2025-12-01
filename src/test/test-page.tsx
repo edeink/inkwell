@@ -273,7 +273,7 @@ const TestPage: React.FC = () => {
           </div>
           {showDevtools && editorForDevtools && (
             <div style={{ marginTop: 12 }}>
-              <DevTools editor={editorForDevtools} onClose={() => setShowDevtools(false)} />
+              <DevTools onClose={() => setShowDevtools(false)} />
             </div>
           )}
           <div ref={containerRef} className={styles.canvasContainer} />
