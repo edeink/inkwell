@@ -37,3 +37,16 @@ function Badge({ label, color = '#1677ff' }: BadgeProps) {
 - 明确组件的布局语义：固定尺寸、随内容收缩或可伸缩（flex）
 - 尽量复用现有 `Container/Row/Column/Text` 等以减少重复绘制逻辑
 - 为性能敏感组件设计增量更新与重绘边界
+
+## 布局约定：使用 positionChild 返回偏移
+
+自定义布局容器应在 `performLayout` 中计算自身尺寸与各子元素的相对位置，但不要直接写入 `child.renderObject.offset`。正确做法是：
+
+- 在 `performLayout` 中基于 `childrenSizes` 计算每个子元素的期望偏移并保存到内部结构；
+- 在 `positionChild(childIndex, childSize)` 中返回对应的偏移，框架会在统一的定位阶段应用到子元素；
+
+例如 MindMapLayout：
+
+- 先依据布局模式（树形/辐射）计算节点的相对坐标；
+- 统计内容包围盒并计算居中平移量，将其叠加到节点坐标；
+- `Connector` 等绘制型子组件保持 `(0,0)`，以避免重复平移影响其内部基于绝对坐标的绘制；

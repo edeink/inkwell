@@ -1,16 +1,8 @@
 import type { JSXElement } from './jsx-runtime';
-import type { EdgeInsets } from '@/core/base';
-import type { Border, BorderRadius } from '@/core/container';
-import type {
-  CrossAxisAlignment,
-  FlexFit,
-  FlexProperties,
-  MainAxisAlignment,
-  MainAxisSize,
-} from '@/core/flex/type';
-import type { AlignmentGeometry } from '@/core/stack';
 import type { ComponentData } from '@/runtime';
 
+import { Widget } from '@/core/base';
+import { widgetRegistry } from '@/core/registry';
 import { ComponentType } from '@/core/type';
 
 /**
@@ -31,23 +23,8 @@ function resolveTypeName(type: unknown): string {
   return name;
 }
 
-function isValidType(t: string): t is ComponentType {
-  return (
-    t === ComponentType.Column ||
-    t === ComponentType.Text ||
-    t === ComponentType.NextText ||
-    t === ComponentType.Row ||
-    t === ComponentType.Expanded ||
-    t === ComponentType.Image ||
-    t === ComponentType.SizedBox ||
-    t === ComponentType.Container ||
-    t === ComponentType.Container ||
-    t === ComponentType.Padding ||
-    t === ComponentType.Center ||
-    t === ComponentType.Stack ||
-    t === ComponentType.Positioned ||
-    t === ComponentType.Wrap
-  );
+function isValidType(t: string): boolean {
+  return Widget.hasRegisteredType(t) || widgetRegistry.getRegisteredTypes().includes(t);
 }
 
 function toArrayChildren(children: unknown): AnyElement[] {
@@ -80,7 +57,7 @@ export function compileElement(element: AnyElement): ComponentData {
   const typeName = resolveTypeName(type);
   const componentType: ComponentType = isValidType(typeName)
     ? (typeName as ComponentType)
-    : ComponentType.Text;
+    : (typeName as unknown as ComponentType);
 
   const data: ComponentData = {
     type: componentType,
@@ -88,235 +65,19 @@ export function compileElement(element: AnyElement): ComponentData {
   } as ComponentData;
 
   const p = (props ?? {}) as Record<string, unknown>;
+  const target = data as unknown as Record<string, unknown>;
 
-  switch (componentType) {
-    case ComponentType.Column:
-      if (p.mainAxisAlignment) {
-        data.mainAxisAlignment = p.mainAxisAlignment as MainAxisAlignment;
-      }
-      if (p.crossAxisAlignment) {
-        data.crossAxisAlignment = p.crossAxisAlignment as CrossAxisAlignment;
-      }
-      if (p.spacing !== undefined) {
-        data.spacing = p.spacing as number;
-      }
-      if (p.mainAxisSize) {
-        data.mainAxisSize = p.mainAxisSize as MainAxisSize;
-      }
-      break;
-    case ComponentType.Row:
-      if (p.mainAxisAlignment) {
-        data.mainAxisAlignment = p.mainAxisAlignment as MainAxisAlignment;
-      }
-      if (p.crossAxisAlignment) {
-        data.crossAxisAlignment = p.crossAxisAlignment as CrossAxisAlignment;
-      }
-      if (p.spacing !== undefined) {
-        data.spacing = p.spacing as number;
-      }
-      if (p.mainAxisSize) {
-        data.mainAxisSize = p.mainAxisSize as MainAxisSize;
-      }
-      break;
-    case ComponentType.Expanded:
-      if (p.flex !== undefined) {
-        data.flex = p.flex as FlexProperties;
-      }
-      if (p.fit) {
-        data.fit = p.fit as FlexFit;
-      }
-      break;
-    case ComponentType.Text:
-    case ComponentType.NextText:
-      data.text = p.text as string;
-      // 一级映射
-      if (p.fontSize !== undefined) {
-        data.fontSize = p.fontSize as number;
-      }
-      if (p.fontFamily !== undefined) {
-        data.fontFamily = p.fontFamily as string;
-      }
-      if (p.fontWeight !== undefined) {
-        data.fontWeight = p.fontWeight as string | number;
-      }
-      if (p.color !== undefined) {
-        data.color = p.color as string;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      if (p.lineHeight !== undefined) {
-        data.lineHeight = p.lineHeight as number;
-      }
-      if (p.textAlign !== undefined) {
-        data.textAlign = p.textAlign as 'left' | 'center' | 'right';
-      }
-      if (p.textAlignVertical !== undefined) {
-        data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
-      }
-      if (p.maxLines !== undefined) {
-        data.maxLines = p.maxLines as number;
-      }
-      if (p.overflow !== undefined) {
-        data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
-      }
-      break;
-      data.text = p.text as string;
-      if (p.fontSize !== undefined) {
-        data.fontSize = p.fontSize as number;
-      }
-      if (p.fontFamily !== undefined) {
-        data.fontFamily = p.fontFamily as string;
-      }
-      if (p.fontWeight !== undefined) {
-        data.fontWeight = p.fontWeight as string | number;
-      }
-      if (p.color !== undefined) {
-        data.color = p.color as string;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      if (p.lineHeight !== undefined) {
-        data.lineHeight = p.lineHeight as number;
-      }
-      if (p.textAlign !== undefined) {
-        data.textAlign = p.textAlign as 'left' | 'center' | 'right';
-      }
-      if (p.textAlignVertical !== undefined) {
-        data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
-      }
-      if (p.maxLines !== undefined) {
-        data.maxLines = p.maxLines as number;
-      }
-      if (p.overflow !== undefined) {
-        data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
-      }
-      break;
-      data.text = p.text as string;
-      if (p.fontSize !== undefined) {
-        data.fontSize = p.fontSize as number;
-      }
-      if (p.fontFamily !== undefined) {
-        data.fontFamily = p.fontFamily as string;
-      }
-      if (p.fontWeight !== undefined) {
-        data.fontWeight = p.fontWeight as string | number;
-      }
-      if (p.color !== undefined) {
-        data.color = p.color as string;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      if (p.lineHeight !== undefined) {
-        data.lineHeight = p.lineHeight as number;
-      }
-      if (p.textAlign !== undefined) {
-        data.textAlign = p.textAlign as 'left' | 'center' | 'right';
-      }
-      if (p.textAlignVertical !== undefined) {
-        data.textAlignVertical = p.textAlignVertical as 'top' | 'center' | 'bottom';
-      }
-      if (p.maxLines !== undefined) {
-        data.maxLines = p.maxLines as number;
-      }
-      if (p.overflow !== undefined) {
-        data.overflow = p.overflow as 'clip' | 'ellipsis' | 'fade';
-      }
-      break;
-    case ComponentType.Image:
-      data.src = p.src as string;
-      if (p.width !== undefined) {
-        data.width = p.width as number;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      if (p.fit) {
-        data.fit = p.fit as FlexFit;
-      }
-      if (p.alignment) {
-        data.alignment = p.alignment as AlignmentGeometry;
-      }
-      break;
-    case ComponentType.SizedBox:
-      if (p.width !== undefined) {
-        data.width = p.width as number;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      break;
-    case ComponentType.Container:
-      if (p.width !== undefined) {
-        data.width = p.width as number;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      if (p.padding !== undefined) {
-        data.padding = p.padding as EdgeInsets | number;
-      }
-      if (p.margin !== undefined) {
-        data.margin = p.margin as EdgeInsets | number;
-      }
-      if (p.color) {
-        data.color = p.color as string;
-      }
-      if (p.backgroundColor) {
-        data.color = p.backgroundColor as string;
-      }
-      if (p.borderRadius !== undefined) {
-        data.borderRadius = p.borderRadius as BorderRadius | number;
-      }
-      if (p.border) {
-        data.border = p.border as Border;
-      }
-      break;
-    case ComponentType.Padding:
-      if (p.padding !== undefined) {
-        data.padding = p.padding as EdgeInsets | number;
-      }
-      break;
-    case ComponentType.Center:
-      break;
-    case ComponentType.Stack:
-      if (p.fit) {
-        data.fit = p.fit as FlexFit;
-      }
-      if (p.alignment) {
-        data.alignment = p.alignment as AlignmentGeometry;
-      }
-      break;
-    case ComponentType.Positioned:
-      if (p.left !== undefined) {
-        data.left = p.left as number;
-      }
-      if (p.top !== undefined) {
-        data.top = p.top as number;
-      }
-      if (p.right !== undefined) {
-        data.right = p.right as number;
-      }
-      if (p.bottom !== undefined) {
-        data.bottom = p.bottom as number;
-      }
-      if (p.width !== undefined) {
-        data.width = p.width as number;
-      }
-      if (p.height !== undefined) {
-        data.height = p.height as number;
-      }
-      break;
-    case ComponentType.Wrap:
-      if (p.spacing !== undefined) {
-        data.spacing = p.spacing as number;
-      }
-      if (p.runSpacing !== undefined) {
-        data.runSpacing = p.runSpacing as number;
-      }
-      break;
+  for (const [k, v] of Object.entries(p)) {
+    if (k === 'children' || k === 'key' || k === 'type') {
+      continue;
+    }
+    if (v === undefined) {
+      continue;
+    }
+    if (typeof v === 'function') {
+      continue;
+    }
+    target[k] = v as unknown;
   }
 
   const children = toArrayChildren(p.children);

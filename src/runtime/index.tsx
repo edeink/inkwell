@@ -9,6 +9,7 @@ import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
 import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
+import { createWidget as createExternalWidget } from '@/core/registry';
 import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
 
 import '../core/registry';
@@ -313,7 +314,12 @@ export default class Runtime {
 
     // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
     try {
-      return Widget.createWidget(data);
+      const w = Widget.createWidget(data);
+      if (w) {
+        return w;
+      }
+      const ext = createExternalWidget(data.type, data);
+      return ext;
     } catch (error) {
       console.error('Failed to create widget:', error, data);
       return null;
@@ -329,6 +335,10 @@ export default class Runtime {
   } {
     if (!widget) {
       return { width: 800, height: 600 }; // 默认尺寸
+    }
+    if (typeof widget.layout !== 'function') {
+      console.warn('Invalid widget: missing layout function', widget);
+      return { width: 800, height: 600 };
     }
 
     // 创建约束条件
@@ -429,9 +439,11 @@ export default class Runtime {
   }
 
   private monitorMemory(): void {
-    const anyPerf = performance as any;
-    if (anyPerf && anyPerf.memory) {
-      const mem = anyPerf.memory;
+    const perfWithMemory = performance as {
+      memory?: { usedJSHeapSize?: number; jsHeapSizeLimit?: number };
+    };
+    if (perfWithMemory && perfWithMemory.memory) {
+      const mem = perfWithMemory.memory;
       const used = Number(mem.usedJSHeapSize || 0);
       const limit = Number(mem.jsHeapSizeLimit || 0);
       if (limit > 0) {

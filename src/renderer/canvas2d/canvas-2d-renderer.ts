@@ -163,6 +163,20 @@ export class Canvas2DRenderer implements IRenderer {
     this.ctx.translate(x, y);
   }
 
+  scale(sx: number, sy: number): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.scale(sx, sy);
+  }
+
+  rotate(rad: number): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.rotate(rad);
+  }
+
   /**
    * 清除背景
    */
@@ -351,6 +365,62 @@ export class Canvas2DRenderer implements IRenderer {
       console.warn('Failed to draw image:', error);
     }
 
+    this.ctx.restore();
+  }
+
+  drawLine(options: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    stroke?: string;
+    strokeWidth?: number;
+  }): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.moveTo(options.x1, options.y1);
+    this.ctx.lineTo(options.x2, options.y2);
+    this.ctx.strokeStyle = options.stroke || '#000';
+    this.ctx.lineWidth = options.strokeWidth || 1;
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
+  drawPath(options: {
+    points: Array<{ x: number; y: number }>;
+    close?: boolean;
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
+  }): void {
+    if (!this.ctx) {
+      return;
+    }
+    const pts = options.points || [];
+    if (pts.length === 0) {
+      return;
+    }
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      this.ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    if (options.close) {
+      this.ctx.closePath();
+    }
+    if (options.fill) {
+      this.ctx.fillStyle = options.fill;
+      this.ctx.fill();
+    }
+    if (options.stroke || options.strokeWidth) {
+      this.ctx.strokeStyle = options.stroke || '#000';
+      this.ctx.lineWidth = options.strokeWidth || 1;
+      this.ctx.stroke();
+    }
     this.ctx.restore();
   }
 }

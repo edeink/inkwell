@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "benchmark": "vite --open /src/benchmark/index.html",
+    "dev:mindmap": "vite --open /src/demo/mindmap/index.html",
     "doc": "docusaurus start",
     "doc:build": "docusaurus build",
     "doc:serve": "docusaurus serve",

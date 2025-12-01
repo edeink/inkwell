@@ -36,6 +36,10 @@ export class Column extends Widget<ColumnData> {
   mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
+  static {
+    Widget.registerType(ComponentType.Column, Column);
+  }
+
   constructor(data: ColumnData) {
     super(data);
     this.initColumnProperties(data);
@@ -66,11 +70,6 @@ export class Column extends Widget<ColumnData> {
   protected createChildWidget(childData: WidgetData): Widget | null {
     // 使用 Widget 静态方法动态创建组件
     return Widget.createWidget(childData);
-  }
-
-  // 注册 Column 组件类型
-  static {
-    Widget.registerType(ComponentType.Column, Column);
   }
 
   /**

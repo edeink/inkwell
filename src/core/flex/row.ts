@@ -35,6 +35,10 @@ export class Row extends Widget<RowData> {
   mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
+  static {
+    Widget.registerType(ComponentType.Row, Row);
+  }
+
   constructor(data: RowData) {
     super(data);
     this.initRowProperties(data);
@@ -65,14 +69,6 @@ export class Row extends Widget<RowData> {
   protected createChildWidget(childData: WidgetData): Widget | null {
     // 使用 Widget 静态方法动态创建组件
     return Widget.createWidget(childData);
-  }
-
-  /**
-   * 注册组件类型
-   */
-  // 注册 Row 组件类型
-  static {
-    Widget.registerType(ComponentType.Row, Row);
   }
 
   /**

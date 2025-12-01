@@ -27,6 +27,10 @@ export class Expanded extends Widget<ExpandedData> {
   flexFit: FlexFit = FlexFit.Tight;
   child: Widget | null = null;
 
+  static {
+    Widget.registerType(ComponentType.Expanded, Expanded);
+  }
+
   constructor(data: ExpandedData) {
     super(data);
     this.initExpandedProperties(data);
@@ -52,11 +56,6 @@ export class Expanded extends Widget<ExpandedData> {
   protected createChildWidget(childData: WidgetData): Widget | null {
     // 使用 Widget 静态方法动态创建组件
     return Widget.createWidget(childData);
-  }
-
-  // 注册 Column 组件类型
-  static {
-    Widget.registerType(ComponentType.Expanded, Expanded);
   }
 
   protected paintSelf(context: BuildContext): void {

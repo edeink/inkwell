@@ -71,6 +71,10 @@ export interface IRenderer {
    */
   translate(x: number, y: number): void;
 
+  scale(sx: number, sy: number): void;
+
+  rotate(rad: number): void;
+
   /**
    * 绘制文本
    * @param options 文本绘制选项
@@ -111,6 +115,23 @@ export interface IRenderer {
           bottomLeft: number;
           bottomRight: number;
         };
+  }): void;
+
+  drawLine(options: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    stroke?: string;
+    strokeWidth?: number;
+  }): void;
+
+  drawPath(options: {
+    points: Array<{ x: number; y: number }>;
+    close?: boolean;
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
   }): void;
 
   /**

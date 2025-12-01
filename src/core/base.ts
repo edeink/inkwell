@@ -1,7 +1,6 @@
 import { type IRenderer } from '../renderer/IRenderer';
 
 import type { FlexProperties } from './flex/type';
-import type { ComponentType } from './type';
 
 export interface JSXComponentProps {
   key?: string;
@@ -103,14 +102,15 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   };
 
   // 组件注册表 - 使用协变的构造函数类型
-  private static registry: Map<string, new (data: any) => Widget> = new Map();
+  private static registry: Map<string, new (data: WidgetData) => Widget<any>> = new Map();
 
   // 注册组件类型
   public static registerType<T extends WidgetData>(
-    type: ComponentType,
+    type: string,
     constructor: new (data: T) => Widget<T>,
   ): void {
-    Widget.registry.set(type, constructor);
+    // 将具体构造函数安全提升为通用构造函数
+    Widget.registry.set(type, constructor as unknown as new (data: WidgetData) => Widget<any>);
   }
 
   // 创建组件实例
@@ -135,6 +135,11 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     }
     console.warn(`Unknown widget type: ${data.type}`);
     return null;
+  }
+
+  // 动态注册类型查询
+  public static hasRegisteredType(type: string): boolean {
+    return Widget.registry.has(type);
   }
 
   constructor(data: TData) {
@@ -245,7 +250,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     // 默认实现，可由子类覆盖
     return constraints;
@@ -254,7 +259,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   /**
    * 定位子组件
    */
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(_childIndex: number, _childSize: Size): Offset {
     // 默认实现，可由子类覆盖
     // 默认将子组件放在 (0,0) 位置
     return { dx: 0, dy: 0 };
@@ -299,7 +304,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 构建方法，类似于 Flutter 的 build 方法
    * 用于创建组件树
    */
-  build(context: BuildContext): Widget {
+  build(_context: BuildContext): Widget {
     // 默认返回自身，子类可以覆盖此方法返回其他组件
     return this;
   }
