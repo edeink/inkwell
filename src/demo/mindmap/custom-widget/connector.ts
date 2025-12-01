@@ -90,6 +90,42 @@ export class Connector extends Widget<ConnectorData> {
     }
   }
 
+  public getBounds(): { x: number; y: number; width: number; height: number } | null {
+    const root = this.getRoot();
+    const a = root ? this.getRectByKey(root, this.fromKey) : null;
+    const b = root ? this.getRectByKey(root, this.toKey) : null;
+    if (!a || !b) {
+      return null;
+    }
+    if (this.style === 'straight') {
+      const sx = a.x + a.width;
+      const sy = a.y + a.height / 2;
+      const tx = b.x;
+      const ty = b.y + b.height / 2;
+      const minX = Math.min(sx, tx);
+      const minY = Math.min(sy, ty);
+      const maxX = Math.max(sx, tx);
+      const maxY = Math.max(sy, ty);
+      const w = Math.max(maxX - minX, this.strokeWidth);
+      const h = Math.max(maxY - minY, this.strokeWidth);
+      return { x: minX, y: minY, width: w, height: h };
+    }
+    const pts = elbowRoute(a, b);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of pts) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+    const w = Math.max(maxX - minX, this.strokeWidth);
+    const h = Math.max(maxY - minY, this.strokeWidth);
+    return { x: minX, y: minY, width: w, height: h };
+  }
+
   private getRoot(): Widget | null {
     let p: Widget | null = this.parent;
     while (p && p.parent) {
@@ -125,12 +161,9 @@ export class Connector extends Widget<ConnectorData> {
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     void childrenSizes;
-    const w = Math.max(constraints.minWidth, Math.min(constraints.maxWidth, constraints.maxWidth));
-    const h = Math.max(
-      constraints.minHeight,
-      Math.min(constraints.maxHeight, constraints.maxHeight),
-    );
-    return { width: w, height: h };
+    // 默认情况下，连接线不占用布局空间，仅用于绘制
+    // 具体边界在 DevTools/命中测试中基于节点绝对位置动态计算
+    return { width: 0, height: 0 };
   }
 
   protected getConstraintsForChild(

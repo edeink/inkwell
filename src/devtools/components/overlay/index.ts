@@ -96,12 +96,36 @@ export default class Overlay {
       const offsetX = canvasRect.left - containerRect.left;
       const offsetY = canvasRect.top - containerRect.top;
 
-      const pos = widget.getAbsolutePosition();
-      const { width, height } = widget.renderObject.size;
+      let posX: number;
+      let posY: number;
+      let width: number;
+      let height: number;
+
+      if ((widget as any).type === 'Connector' && (widget as any).getBounds) {
+        const bounds = (widget as any).getBounds();
+        if (bounds) {
+          posX = bounds.x + offsetX;
+          posY = bounds.y + offsetY;
+          width = bounds.width;
+          height = bounds.height;
+        } else {
+          const pos = widget.getAbsolutePosition();
+          width = widget.renderObject.size.width;
+          height = widget.renderObject.size.height;
+          posX = pos.dx + offsetX;
+          posY = pos.dy + offsetY;
+        }
+      } else {
+        const pos = widget.getAbsolutePosition();
+        width = widget.renderObject.size.width;
+        height = widget.renderObject.size.height;
+        posX = pos.dx + offsetX;
+        posY = pos.dy + offsetY;
+      }
 
       this.box.style.display = 'block';
-      this.box.style.left = `${pos.dx + offsetX}px`;
-      this.box.style.top = `${pos.dy + offsetY}px`;
+      this.box.style.left = `${posX}px`;
+      this.box.style.top = `${posY}px`;
       this.box.style.width = `${width}px`;
       this.box.style.height = `${height}px`;
 
@@ -112,9 +136,7 @@ export default class Overlay {
         this.box.style.transform = 'none';
       }
 
-      this.info.textContent =
-        `${widget.type} · x:${Math.round(pos.dx)} y:${Math.round(pos.dy)} ` +
-        `· w:${Math.round(width)} h:${Math.round(height)}`;
+      this.info.textContent = `${widget.type} · w:${Math.round(width)} h:${Math.round(height)}`;
     } catch (err) {
       console.warn('DevTools overlay highlight failed:', err);
     }
@@ -169,9 +191,32 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   }
   let found: Widget | null = null;
   function dfs(node: Widget): void {
-    const pos = node.getAbsolutePosition();
-    const { width, height } = node.renderObject.size;
-    if (x >= pos.dx && x <= pos.dx + width && y >= pos.dy && y <= pos.dy + height) {
+    let left: number;
+    let top: number;
+    let width: number;
+    let height: number;
+    if ((node as any).type === 'Connector' && (node as any).getBounds) {
+      const bounds = (node as any).getBounds();
+      if (bounds) {
+        left = bounds.x;
+        top = bounds.y;
+        width = bounds.width;
+        height = bounds.height;
+      } else {
+        const pos = node.getAbsolutePosition();
+        left = pos.dx;
+        top = pos.dy;
+        width = node.renderObject.size.width;
+        height = node.renderObject.size.height;
+      }
+    } else {
+      const pos = node.getAbsolutePosition();
+      left = pos.dx;
+      top = pos.dy;
+      width = node.renderObject.size.width;
+      height = node.renderObject.size.height;
+    }
+    if (x >= left && x <= left + width && y >= top && y <= top + height) {
       found = node;
       for (const child of node.children) {
         dfs(child);
