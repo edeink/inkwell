@@ -30,5 +30,10 @@ export default {
         'advanced/benchmark',
       ],
     },
+    {
+      type: 'category',
+      label: '测试',
+      items: ['test/overview', 'test/doc-component'],
+    },
   ],
 };

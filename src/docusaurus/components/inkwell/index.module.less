@@ -2,31 +2,20 @@
   position: relative;
   background: var(--ink-card);
   border-radius: var(--ink-radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 5%);
   padding: var(--ink-space-3);
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   min-height: 260px;
-}
 
-.canvas {
-  width: 100%;
-  height: 100%;
-}
+  .canvasWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
 
-.readonlyDisplay {
-  position: relative;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 0;
-  display: block;
-  min-height: 0;
-}
-
-.canvasBare {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 0;
+    &.readonly {
+      box-shadow: none;
+    }
+  }
 }

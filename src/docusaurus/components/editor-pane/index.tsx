@@ -1,4 +1,5 @@
 import { CopyOutlined, DownOutlined } from '@ant-design/icons';
+import classNames from 'classnames';
 import React from 'react';
 import { LiveEditor, LiveProvider } from 'react-live';
 
@@ -9,19 +10,19 @@ import Runtime from '@/runtime';
 
 export interface EditorPaneProps {
   value: string;
-  onChange: (next: string) => void;
+  onChange?: (next: string) => void;
   collapsedHeight?: number;
-  showcase?: boolean;
+  readOnly?: boolean;
 }
 
 export default function EditorPane({
   value,
   onChange,
   collapsedHeight = 260,
-  showcase = false,
+  readOnly = false,
 }: EditorPaneProps) {
   const scope = React.useMemo(() => ({ React, Editor: Runtime, ...Core }), []);
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(readOnly);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const [overflowing, setOverflowing] = React.useState(false);
   const [copying, setCopying] = React.useState(false);
@@ -86,10 +87,16 @@ export default function EditorPane({
       }
     };
   }, []);
+  const rootClass = classNames(
+    styles.editorPane,
+    expanded ? styles.editorPaneExpanded : styles.editorPaneCollapsed,
+    { [styles.showcase]: readOnly },
+  );
+
   return (
     <div
-      className={`${styles.editorPane} ${expanded ? styles.editorPaneExpanded : styles.editorPaneCollapsed} ${showcase ? styles.showcase : ''}`}
-      style={{ ['--collapsed-h' as any]: `${collapsedHeight}px` }}
+      className={rootClass}
+      style={{ '--collapsed-h': `${collapsedHeight}px` } as React.CSSProperties}
     >
       <button
         type="button"
@@ -105,7 +112,10 @@ export default function EditorPane({
         <div
           role="status"
           aria-live="polite"
-          className={`${styles.copyToast} ${copyResult === 'success' ? styles.copyToastSuccess : styles.copyToastError}`}
+          className={classNames(styles.copyToast, {
+            [styles.copyToastSuccess]: copyResult === 'success',
+            [styles.copyToastError]: copyResult === 'error',
+          })}
         >
           {copyResult === 'success' ? '复制成功' : '复制失败，请重试'}
         </div>
@@ -122,7 +132,11 @@ export default function EditorPane({
         aria-live="off"
       >
         <LiveProvider code={value} scope={scope} noInline>
-          <LiveEditor onChange={onChange} className={styles.prismWithLines} />
+          <LiveEditor
+            onChange={readOnly ? () => {} : onChange}
+            className={styles.prismWithLines}
+            disabled={readOnly}
+          />
         </LiveProvider>
       </div>
       {!expanded && overflowing && (

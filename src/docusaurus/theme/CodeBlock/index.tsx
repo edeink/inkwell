@@ -1,10 +1,7 @@
-import { CopyOutlined } from '@ant-design/icons';
 import Mermaid from '@theme/Mermaid';
-import OriginalCodeBlock from '@theme-original/CodeBlock';
-
-import styles from './index.module.less';
 
 import InkPlayground from '@/docusaurus/components/ink-playground';
+import { stripJsxImportSource } from '@/docusaurus/utils/strip-jsx';
 
 type Props = {
   children: string | { props?: { children?: string } };
@@ -12,56 +9,6 @@ type Props = {
   metastring?: string;
 };
 
-function stripJsxImportSource(src: string) {
-  return src
-    .replace(/\/\*+\s*@jsxImportSource[\s\S]*?\*\//g, '')
-    .replace(/\/\/\s*@jsxImportSource[^\n]*/g, '')
-    .trim();
-}
-
-export default function CodeBlock(props: Props) {
-  const { children, className, metastring } = props;
-  const code = typeof children === 'string' ? children : String(children?.props?.children ?? '');
-  const lang = (className || '').replace(/^language-/, '');
-  const isESX = lang === 'esx';
-  const isMermaid = lang === 'mermaid';
-  const isFlow = lang === 'flow';
-  const isSeq = lang === 'seq';
-  const forceStatic = typeof metastring === 'string' && metastring.includes('static');
-  const readOnly = typeof metastring === 'string' && metastring.includes('readonly');
-  if (isESX && !forceStatic) {
-    return <InkPlayground code={code} readonly={readOnly} />;
-  }
-  if (isMermaid) {
-    return <Mermaid value={code} />;
-  }
-  if (isFlow) {
-    return <Mermaid value={transformFlowToMermaid(code)} />;
-  }
-  if (isSeq) {
-    return <Mermaid value={transformSeqToMermaid(code)} />;
-  }
-  const cleaned = stripJsxImportSource(code);
-  return (
-    <div className={styles.codeContainer}>
-      <button
-        className={styles.copyBtn}
-        onClick={() => {
-          navigator.clipboard.writeText(cleaned).catch(() => {});
-        }}
-        aria-label="复制代码"
-      >
-        <CopyOutlined /> 复制
-      </button>
-      <OriginalCodeBlock
-        {...props}
-        // 将 esx 作为 tsx 高亮，以保持完全一致的语法高亮
-        className={isESX ? 'language-tsx' : props.className}
-        children={cleaned}
-      />
-    </div>
-  );
-}
 function transformFlowToMermaid(src: string) {
   const lines = src
     .split('\n')
@@ -107,4 +54,28 @@ function transformFlowToMermaid(src: string) {
 function transformSeqToMermaid(src: string) {
   const body = src.trim();
   return `sequenceDiagram\n${body}`;
+}
+
+export default function CodeBlock(props: Props) {
+  const { children, className, metastring } = props;
+  const code = typeof children === 'string' ? children : String(children?.props?.children ?? '');
+  const lang = (className || '').replace(/^language-/, '');
+  const isMermaid = lang === 'mermaid';
+  const isFlow = lang === 'flow';
+  const isSeq = lang === 'seq';
+  const modeMatch = typeof metastring === 'string' ? metastring.match(/mode:(\w+)/) : null;
+  const mode = (modeMatch?.[1] as 'render' | 'edit' | 'code' | undefined) || undefined;
+  // Mermaid 系列按原有规则渲染
+  if (isMermaid) {
+    return <Mermaid value={code} />;
+  }
+  if (isFlow) {
+    return <Mermaid value={transformFlowToMermaid(code)} />;
+  }
+  if (isSeq) {
+    return <Mermaid value={transformSeqToMermaid(code)} />;
+  }
+  // 未明确定义的语言类型（包括 tsx/jsx/其他）统一路由到 InkPlayground
+  const cleaned = stripJsxImportSource(code);
+  return <InkPlayground code={cleaned} mode={mode} />;
 }

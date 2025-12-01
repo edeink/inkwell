@@ -1,4 +1,5 @@
 import * as Babel from '@babel/standalone';
+import classnames from 'classnames';
 import React from 'react';
 
 import styles from './index.module.less';
@@ -138,8 +139,11 @@ export default function Inkwell({
   }, [cleanup]);
 
   return (
-    <div className={readonly ? styles.readonlyDisplay : styles.display} ref={previewRef}>
-      <div id={canvasId} className={readonly ? styles.canvasBare : styles.canvas} />
+    <div className={classnames(styles.display)} ref={previewRef}>
+      <div
+        id={canvasId}
+        className={classnames(styles.canvasWrapper, { [styles.readonly]: readonly })}
+      />
     </div>
   );
 }

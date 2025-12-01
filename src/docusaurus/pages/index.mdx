@@ -91,7 +91,7 @@ export const showcaseCode = `
     <h2 className={styles.sectionTitle}>JSX 即写即得</h2>
     <BrowserOnly>
       {() => (
-        <InkPlayground showcase code={showcaseCode} />
+        <InkPlayground mode="readonly" code={showcaseCode} />
       )}
     </BrowserOnly>
   </section>
@@ -144,7 +144,7 @@ export const showcaseCode = `
           </div>
         </div>
       </div>
-      <p className={styles.toolDesc}>像调试 DOM 一样调试 Canvas。Inkwell DevTools 提供完整的节点树视图和属性检查器。</p>
+      <p className={styles.toolDesc}>完整的节点树视图和属性检查器，像 DOM 一样调试 Canvas</p>
       <a className={styles.learnMoreBtn} href="/docs/advanced/devtools">
         了解更多 →
       </a>

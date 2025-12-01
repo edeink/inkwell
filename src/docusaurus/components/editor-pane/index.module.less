@@ -1,5 +1,6 @@
 .editorPane {
   display: grid;
+  width: 100%;
   gap: var(--ink-space-2);
   background: var(--ink-card);
   border-radius: var(--ink-radius);
@@ -120,11 +121,19 @@
 
 .editorContent {
   position: relative;
+  width: 100%;
+  max-width: 100%;
 }
 
 .prismWithLines {
   :global(pre.prism-code) {
     counter-reset: line;
+    font-family:
+      'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace !important;
+    font-size: 13.6px;
+    line-height: 24px;
+    max-width: 100%;
   }
 
   :global(.token-line) {
@@ -132,6 +141,7 @@
     padding-left: 36px;
   }
 
+  // 显示行数
   :global(.token-line::before) {
     counter-increment: line;
     content: counter(line);
@@ -156,11 +166,11 @@
   }
 }
 
-/* Showcase 模式：代码显示更舒适的行距与字体栈 */
-.showcase .prismWithLines :global(pre.prism-code) {
-  font-family:
-    'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace !important;
-  font-size: 13.6px;
-  line-height: 24px;
+.showcase .prismWithLines {
+  :global(pre.prism-code) {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
 }

@@ -1,6 +1,9 @@
+import path from 'path';
+
 import type { ThemeConfig } from '@docusaurus/preset-classic';
 import type { Config } from '@docusaurus/types';
 
+const isProd = process.env.NODE_ENV === 'production';
 const config: Config = {
   title: 'Inkwell 文档',
   tagline: '基于 Canvas 的高性能 UI 系统，友好的 JSX 体验',
@@ -24,6 +27,8 @@ const config: Config = {
           routeBasePath: 'docs',
           sidebarPath: require.resolve('./sidebars.ts'),
           includeCurrentVersion: true,
+          // 在生产环境中排除本地调试文档，仅本地构建可见
+          include: isProd ? ['**/*.{md,mdx}', '!test/*.mdx'] : ['**/*.{md,mdx}'],
           versions: {
             current: {
               label: '当前',
@@ -46,8 +51,8 @@ const config: Config = {
             devtool: 'source-map',
             resolve: {
               alias: {
-                '@': require('path').resolve(__dirname, './src'),
-                '@site/src': require('path').resolve(__dirname, './src/docusaurus'),
+                '@': path.resolve(__dirname, './src'),
+                '@site/src': path.resolve(__dirname, './src/docusaurus'),
               },
             },
             module: {
@@ -90,7 +95,6 @@ const config: Config = {
       },
     ],
     function localThemePlugin() {
-      const path = require('path');
       return {
         name: 'inkwell-local-theme',
         getThemePath() {
@@ -108,9 +112,24 @@ const config: Config = {
       items: [
         { type: 'doc', docId: 'intro', position: 'left', label: '指引' },
         // { type: 'doc', docId: 'widgets/overview', position: 'left', label: 'Widgets' },
-        { href: 'https://github.com/edeink/inkwell', position: 'right', label: 'GitHub', className: 'header-github-link header-icon' },
-        { href: 'https://stackblitz.com/github/edeink/inkwell', position: 'right', label: 'Playground', className: 'header-playground-link header-icon' },
-        { href: 'https://github.com/edeink/inkwell/discussions', position: 'right', label: '社区', className: 'header-community-link header-icon' },
+        {
+          href: 'https://github.com/edeink/inkwell',
+          position: 'right',
+          label: 'GitHub',
+          className: 'header-github-link header-icon',
+        },
+        {
+          href: 'https://stackblitz.com/github/edeink/inkwell',
+          position: 'right',
+          label: 'Playground',
+          className: 'header-playground-link header-icon',
+        },
+        {
+          href: 'https://github.com/edeink/inkwell/discussions',
+          position: 'right',
+          label: '社区',
+          className: 'header-community-link header-icon',
+        },
       ],
     },
     footer: {

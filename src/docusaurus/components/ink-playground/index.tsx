@@ -1,5 +1,5 @@
 import { CopyOutlined } from '@ant-design/icons';
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 
 import ControlPanel from '../control-panel';
 import EditorPane from '../editor-pane';
@@ -7,27 +7,27 @@ import Inkwell from '../inkwell';
 
 import styles from './index.module.less';
 
-interface InkPlaygroundProps {
-  code: string;
-  width?: number;
-  height?: number;
-  readonly?: boolean;
-  showcase?: boolean;
-}
+import type { InkPlaygroundProps } from './types';
 
-function stripJsxImportSource(src: string) {
-  return src
-    .replace(/\/\*+\s*@jsxImportSource[\s\S]*?\*\//g, '')
-    .replace(/\/\/\s*@jsxImportSource[^\n]*/g, '')
-    .trim();
-}
+import { stripJsxImportSource } from '@/docusaurus/utils/strip-jsx';
 
+/**
+ * InkPlayground 组件，用于展示和编辑代码
+ *
+ * @property code 传入的源代码字符串（ESX/TSX/JSX）
+ * @property width 画布宽度，默认 600
+ * @property height 画布高度，默认 300
+ * @property mode 渲染模式：
+ *   - edit：完整交互模式（默认），包含编辑器、预览与运行按钮
+ *   - readonly: 包含编辑器、预览，左右布局
+ *   - render：仅渲染画布，不显示编辑器
+ *   - code：纯代码展示模式，显示可复制的代码，不渲染画布
+ */
 export default function InkPlayground({
   code,
   width = 600,
   height = 300,
-  readonly = false,
-  showcase = false,
+  mode = 'code',
 }: InkPlaygroundProps) {
   const initial = React.useMemo(() => stripJsxImportSource(code), [code]);
   const [localCode, setLocalCode] = React.useState(initial);
@@ -35,21 +35,19 @@ export default function InkPlayground({
   const [error, setError] = React.useState<string | null>(null);
   const [running, setRunning] = React.useState(false);
   const autoRunTimerRef = React.useRef<number | null>(null);
+  const effectiveMode = mode;
 
-  const onRun = React.useCallback(() => {
+  const onRun = useCallback(() => {
     setRunning(true);
     setCommittedCode(localCode);
   }, [localCode]);
 
-  const onClear = React.useCallback(() => {
+  const onClear = useCallback(() => {
     setCommittedCode('');
     setError(null);
   }, []);
 
-  React.useEffect(() => {
-    if (!showcase) {
-      return;
-    }
+  useEffect(() => {
     if (autoRunTimerRef.current) {
       window.clearTimeout(autoRunTimerRef.current);
       autoRunTimerRef.current = null;
@@ -64,11 +62,11 @@ export default function InkPlayground({
         autoRunTimerRef.current = null;
       }
     };
-  }, [localCode, showcase]);
+  }, [localCode]);
 
-  if (readonly) {
+  if (effectiveMode === 'render') {
     return (
-      <div className={styles.readOnly}>
+      <div className={styles.readOnly} data-mode="render">
         <Inkwell
           data={initial}
           width={width}
@@ -87,33 +85,44 @@ export default function InkPlayground({
     );
   }
 
-  if (showcase) {
+  if (effectiveMode === 'code') {
     return (
-      <div className={styles.rootLR}>
-        <div className={styles.leftPane}>
-          <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={9999} showcase />
+      <div className={styles.readOnly} data-mode="code">
+        <button
+          className={styles.copyBtn}
+          onClick={() => {
+            navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => {});
+          }}
+          aria-label="复制代码"
+        >
+          <CopyOutlined /> 复制
+        </button>
+        <EditorPane readOnly value={localCode} />
+      </div>
+    );
+  }
+
+  if (effectiveMode === 'readonly') {
+    return (
+      <div className={styles.rootHorital}>
+        <div className={styles.codePane}>
+          <EditorPane readOnly value={localCode} collapsedHeight={280} />
         </div>
-        <div className={styles.rightPane}>
-          {error ? (
-            <div className={styles.errorPane} role="alert">
-              <pre>{error}</pre>
-            </div>
-          ) : (
-            <Inkwell
-              data={committedCode}
-              width={width}
-              height={height}
-              readonly={false}
-              onError={(e) => {
-                setError(e);
-                setRunning(false);
-              }}
-              onSuccess={() => {
-                setError(null);
-                setRunning(false);
-              }}
-            />
-          )}
+        <div className={styles.previewPane}>
+          <Inkwell
+            data={committedCode}
+            width={width}
+            height={height}
+            readonly={true}
+            onError={(e) => {
+              setError(e);
+              setRunning(false);
+            }}
+            onSuccess={() => {
+              setError(null);
+              setRunning(false);
+            }}
+          />
         </div>
       </div>
     );
@@ -121,15 +130,6 @@ export default function InkPlayground({
 
   return (
     <div className={styles.rootVertical}>
-      <button
-        className={styles.copyBtn}
-        onClick={() => {
-          navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => {});
-        }}
-        aria-label="复制代码"
-      >
-        <CopyOutlined /> 复制
-      </button>
       <Inkwell
         data={committedCode}
         width={width}
