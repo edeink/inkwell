@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { CustomComponentType } from './type';
+import { Viewport } from './viewport';
 
 import type {
   BoxConstraints,
@@ -93,6 +94,17 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       fontSize: 14,
       color: '#333333',
     });
+    const vp = this.findViewport();
+    if (vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key)) {
+      renderer.drawRect({
+        x: -2,
+        y: -2,
+        width: size.width + 4,
+        height: size.height + 4,
+        stroke: '#fa8c16',
+        strokeWidth: 2,
+      });
+    }
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -124,6 +136,17 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     void childIndex;
     void childSize;
     return { dx: 0, dy: 0 };
+  }
+
+  private findViewport(): Viewport | null {
+    let p = this.parent;
+    while (p) {
+      if (p instanceof Viewport) {
+        return p as Viewport;
+      }
+      p = p.parent;
+    }
+    return null;
   }
 }
 

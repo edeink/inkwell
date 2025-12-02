@@ -4,8 +4,6 @@ import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
 import type { BoxConstraints, BuildContext } from '../core/base';
 import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
-
-// 导入注册表以确保所有组件类型都已注册
 import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
@@ -35,7 +33,7 @@ export interface RuntimeOptions {
 export interface ComponentData {
   type: ComponentType;
   children?: ComponentData[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -401,6 +399,14 @@ export default class Runtime {
       this.clearCanvas();
       this.performRender();
     });
+  }
+
+  rerender(): void {
+    if (!this.rootWidget || !this.renderer) {
+      return;
+    }
+    this.clearCanvas();
+    this.performRender();
   }
 
   /**

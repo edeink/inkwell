@@ -63,3 +63,31 @@
     line-height: var(--line-height);
   }
 }
+
+.readonlyGroup {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.readonlyItem {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgb(245 245 245);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 14px;
+
+  .readonlyLabel {
+    color: #6b7280;
+    margin-right: 4px;
+  }
+
+  .readonlyValue {
+    color: #111827;
+    text-align: right;
+  }
+}

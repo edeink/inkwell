@@ -66,17 +66,24 @@ export class Viewport extends Widget<ViewportData> {
     return Widget.createWidget(childData);
   }
 
-  paint(context: BuildContext): void {
+  protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    renderer.save();
     renderer.translate(this.tx, this.ty);
     renderer.scale(this.scale, this.scale);
-    super.paint(context);
-    this.paintOverlay(context);
-    renderer.restore();
+    const rect = this.selectionRect;
+    if (rect) {
+      const r = this.normalizeRect(rect);
+      renderer.drawRect({
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        fill: 'rgba(24,144,255,0.12)',
+        stroke: '#1890ff',
+        strokeWidth: 1,
+      });
+    }
   }
-
-  protected paintSelf(_context: BuildContext): void {}
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const childMaxW = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.width)) : 0;
@@ -105,46 +112,6 @@ export class Viewport extends Widget<ViewportData> {
     void childIndex;
     void childSize;
     return { dx: 0, dy: 0 };
-  }
-
-  private paintOverlay(context: BuildContext): void {
-    const { renderer } = context;
-    const rect = this.selectionRect;
-    if (rect) {
-      const r = this.normalizeRect(rect);
-      renderer.drawRect({
-        x: r.x,
-        y: r.y,
-        width: r.width,
-        height: r.height,
-        fill: 'rgba(24,144,255,0.12)',
-        stroke: '#1890ff',
-        strokeWidth: 1,
-      });
-    }
-    if (this.selectedKeys && this.selectedKeys.length > 0) {
-      const set = new Set(this.selectedKeys);
-      const draw = (w: Widget) => {
-        if (set.has(w.key)) {
-          const p = w.getAbsolutePosition();
-          const s = w.renderObject.size;
-          renderer.drawRect({
-            x: p.dx - 2,
-            y: p.dy - 2,
-            width: s.width + 4,
-            height: s.height + 4,
-            stroke: '#fa8c16',
-            strokeWidth: 2,
-          });
-        }
-        for (const c of w.children) {
-          draw(c);
-        }
-      };
-      for (const c of this.children) {
-        draw(c);
-      }
-    }
   }
 
   private normalizeRect(r: { x: number; y: number; width: number; height: number }) {

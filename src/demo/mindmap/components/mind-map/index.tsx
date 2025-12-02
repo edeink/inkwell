@@ -1,14 +1,18 @@
-import { DevTools } from '@/devtools/components/devtools';
-import Runtime from '@/runtime';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { MindmapController } from '../../controller';
 import { Viewport } from '../../custom-widget/viewport';
 import ErrorBoundary from '../error-boundary';
+import ZoomBar from '../zoom-bar';
+
+import { createScene } from './scene';
+
+import type { Widget } from '@/core/base';
+
+import { DevTools } from '@/devtools/components/devtools';
+import Runtime from '@/runtime';
 
 import './index.modules.less';
-import { createScene } from './scene';
 
 type Size = { width: number; height: number };
 
@@ -48,6 +52,35 @@ export default function MindmapComponent({
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   const runtimeRef = useRef<Runtime | null>(null);
   const controllerRef = useRef<MindmapController | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const viewportCacheRef = useRef<WeakMap<Widget, Viewport>>(new WeakMap());
+
+  const findViewport = (widget: Widget | null): Viewport | null => {
+    if (!widget) {
+      return null;
+    }
+    const cached = viewportCacheRef.current.get(widget as Widget);
+    if (cached) {
+      return cached;
+    }
+    const dfs = (w: Widget): Viewport | null => {
+      if (w instanceof Viewport) {
+        return w as Viewport;
+      }
+      for (const c of w.children) {
+        const r = dfs(c);
+        if (r) {
+          return r;
+        }
+      }
+      return null;
+    };
+    const v = dfs(widget as Widget);
+    if (v) {
+      viewportCacheRef.current.set(widget as Widget, v);
+    }
+    return v;
+  };
 
   useEffect(() => {
     // 初始化并监听容器尺寸变化，确保 canvas 非零尺寸
@@ -87,9 +120,10 @@ export default function MindmapComponent({
       const scene = createScene(size.width, size.height);
       await runtime.renderFromJSX(scene);
       const root = runtime.getRootWidget();
-      const candidate = root?.children?.find((w) => w.key === 'v');
-      if (candidate && candidate instanceof Viewport) {
-        controllerRef.current = new MindmapController(runtime, candidate);
+      const vp = findViewport(root);
+      if (vp) {
+        controllerRef.current = new MindmapController(runtime, vp, (s) => setZoom(s));
+        setZoom(vp.scale);
       }
     })().catch((e) => console.error('Render mindmap failed:', e));
 
@@ -97,6 +131,22 @@ export default function MindmapComponent({
       controllerRef.current = null;
     };
   }, [canvasContainerId, size.width, size.height, background, backgroundAlpha]);
+
+  useEffect(() => {
+    const el = document.getElementById(canvasContainerId);
+    if (!el) {
+      return;
+    }
+    const onViewChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ scale: number; tx: number; ty: number }>).detail;
+      const s = detail?.scale;
+      if (typeof s === 'number') {
+        setZoom(s);
+      }
+    };
+    el.addEventListener('inkwell:viewchange', onViewChange as EventListener);
+    return () => el.removeEventListener('inkwell:viewchange', onViewChange as EventListener);
+  }, [canvasContainerId]);
 
   useEffect(() => {
     // 组件卸载时销毁 Runtime，释放资源
@@ -114,6 +164,16 @@ export default function MindmapComponent({
     <ErrorBoundary>
       <div ref={hostRef} className={`mindmapHost ${className ?? ''}`} style={style}>
         <div id={canvasContainerId} className="canvasContainer" />
+        <ZoomBar
+          value={zoom}
+          min={0.1}
+          max={10}
+          step={0.01}
+          onChange={(s) => {
+            setZoom(s);
+            controllerRef.current?.zoomAt(s, size.width / 2, size.height / 2);
+          }}
+        />
         <DevTools />
       </div>
     </ErrorBoundary>

@@ -55,6 +55,34 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
     <div
       className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(' ')}
     >
+      {(() => {
+        const p = widget.getAbsolutePosition();
+        const s = widget.renderObject.size;
+        return (
+          <>
+            <div className={styles.readonlyGroup}>
+              <div className={styles.readonlyItem}>
+                <span className={styles.readonlyLabel}>x</span>
+                <span className={styles.readonlyValue}>{Math.round(p.dx)}</span>
+              </div>
+              <div className={styles.readonlyItem}>
+                <span className={styles.readonlyLabel}>y</span>
+                <span className={styles.readonlyValue}>{Math.round(p.dy)}</span>
+              </div>
+            </div>
+            <div className={styles.readonlyGroup}>
+              <div className={styles.readonlyItem}>
+                <span className={styles.readonlyLabel}>w</span>
+                <span className={styles.readonlyValue}>{Math.round(s.width)}</span>
+              </div>
+              <div className={styles.readonlyItem}>
+                <span className={styles.readonlyLabel}>h</span>
+                <span className={styles.readonlyValue}>{Math.round(s.height)}</span>
+              </div>
+            </div>
+          </>
+        );
+      })()}
       {entries.map(([k, v]) => (
         <div key={k} className={styles.formRow}>
           <div className={styles.formLeft}>

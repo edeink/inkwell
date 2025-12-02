@@ -26,13 +26,31 @@ export class MindmapController {
   viewTy: number;
   history: Array<Record<string, { dx: number; dy: number }>> = [];
   future: Array<Record<string, { dx: number; dy: number }>> = [];
+  private panState: { startX: number; startY: number; origTx: number; origTy: number } | null =
+    null;
+  private pinchState: {
+    id1: number;
+    id2: number;
+    startD: number;
+    startScale: number;
+    cx: number;
+    cy: number;
+  } | null = null;
+  private pointers: Map<number, { x: number; y: number }> = new Map();
+  private renderScheduled: boolean = false;
+  private onViewChange: ((scale: number, tx: number, ty: number) => void) | null = null;
 
-  constructor(runtime: Runtime, viewport: Viewport) {
+  constructor(
+    runtime: Runtime,
+    viewport: Viewport,
+    onViewChange?: (scale: number, tx: number, ty: number) => void,
+  ) {
     this.runtime = runtime;
     this.viewport = viewport;
     this.viewScale = viewport.scale;
     this.viewTx = viewport.tx;
     this.viewTy = viewport.ty;
+    this.onViewChange = onViewChange ?? null;
     this.attach();
   }
 
@@ -49,39 +67,102 @@ export class MindmapController {
     if (!target) {
       return;
     }
-    const onDown = (e: PointerEvent) => {
+    const getWorldXY = (e: PointerEvent) => {
       const rect = target.getBoundingClientRect();
       const x = (e.clientX - rect.left - this.viewTx) / this.viewScale;
       const y = (e.clientY - rect.top - this.viewTy) / this.viewScale;
+      return { x, y };
+    };
+    const onDown = (e: PointerEvent) => {
+      const rect = target.getBoundingClientRect();
+      const { x, y } = getWorldXY(e);
+      this.pointers.set(e.pointerId, { x, y });
+      if (this.pointers.size === 2) {
+        const [aId, bId] = Array.from(this.pointers.keys());
+        const a = this.pointers.get(aId)!;
+        const b = this.pointers.get(bId)!;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.hypot(dx, dy);
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        this.pinchState = { id1: aId, id2: bId, startD: d, startScale: this.viewScale, cx, cy };
+        this.dragging = null;
+        this.panState = null;
+        this.selectionRect = null;
+        return;
+      }
+      if (e.shiftKey) {
+        this.selectionRect = { x, y, width: 0, height: 0 };
+        this.viewport.selectionRect = this.selectionRect;
+        this.scheduleRender();
+        return;
+      }
       const hit = this.findNodeAtPoint(this.runtime.getRootWidget(), x, y);
       if (hit) {
         const pos = hit.getAbsolutePosition();
         this.dragging = { widget: hit, startX: x, startY: y, origDx: pos.dx, origDy: pos.dy };
+        this.panState = null;
       } else {
-        this.selectionRect = { x, y, width: 0, height: 0 };
+        this.dragging = null;
+        this.panState = { startX: x, startY: y, origTx: this.viewTx, origTy: this.viewTy };
       }
     };
     const onMove = (e: PointerEvent) => {
       const rect = target.getBoundingClientRect();
-      const x = (e.clientX - rect.left - this.viewTx) / this.viewScale;
-      const y = (e.clientY - rect.top - this.viewTy) / this.viewScale;
+      const { x, y } = getWorldXY(e);
+      if (this.pinchState) {
+        this.pointers.set(e.pointerId, { x, y });
+        const a = this.pointers.get(this.pinchState.id1);
+        const b = this.pointers.get(this.pinchState.id2);
+        if (a && b) {
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dNow = Math.hypot(dx, dy);
+          const s = this.clampScale(this.pinchState.startScale * (dNow / this.pinchState.startD));
+          const cx = e.clientX - rect.left;
+          const cy = e.clientY - rect.top;
+          this.zoomAt(s, cx, cy);
+        }
+        return;
+      }
       if (this.dragging) {
         const dx = x - this.dragging.startX;
         const dy = y - this.dragging.startY;
         const offset = { dx: this.dragging.origDx + dx, dy: this.dragging.origDy + dy };
         this.dragging.widget.renderObject.offset = offset;
-        this.runtime.rebuild();
-      } else if (this.selectionRect) {
+        this.scheduleRender();
+        return;
+      }
+      if (this.panState) {
+        const dx = (x - this.panState.startX) * this.viewScale;
+        const dy = (y - this.panState.startY) * this.viewScale;
+        this.viewTx = this.panState.origTx + dx;
+        this.viewTy = this.panState.origTy + dy;
+        this.applyView();
+        return;
+      }
+      if (this.selectionRect) {
         this.selectionRect.width = x - this.selectionRect.x;
         this.selectionRect.height = y - this.selectionRect.y;
         this.viewport.selectionRect = this.selectionRect;
-        this.runtime.rebuild();
+        this.scheduleRender();
       }
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      this.pointers.delete(e.pointerId);
+      if (
+        this.pinchState &&
+        (e.pointerId === this.pinchState.id1 || e.pointerId === this.pinchState.id2)
+      ) {
+        this.pinchState = null;
+      }
       if (this.dragging) {
         this.pushHistorySnapshot();
         this.dragging = null;
+      }
+      if (this.panState) {
+        this.panState = null;
       }
       if (this.selectionRect) {
         const r = this.normalizeRect(this.selectionRect);
@@ -89,21 +170,16 @@ export class MindmapController {
         this.selectionRect = null;
         this.viewport.selectionRect = null;
         this.viewport.selectedKeys = Array.from(this.selectedKeys);
-        this.runtime.rebuild();
+        this.scheduleRender();
       }
     };
     const onWheel = (e: WheelEvent) => {
-      const scaleDelta = e.deltaY < 0 ? 1.05 : 0.95;
+      const scaleDelta = e.deltaY < 0 ? 1.06 : 0.94;
       const rect = target.getBoundingClientRect();
-      const cx = (e.clientX - rect.left - this.viewTx) / this.viewScale;
-      const cy = (e.clientY - rect.top - this.viewTy) / this.viewScale;
-      this.viewScale *= scaleDelta;
-      this.viewTx = e.clientX - rect.left - cx * this.viewScale;
-      this.viewTy = e.clientY - rect.top - cy * this.viewScale;
-      this.viewport.scale = this.viewScale;
-      this.viewport.tx = this.viewTx;
-      this.viewport.ty = this.viewTy;
-      this.runtime.rebuild();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const s = this.clampScale(this.viewScale * scaleDelta);
+      this.zoomAt(s, cx, cy);
     };
     const onKey = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
@@ -117,19 +193,19 @@ export class MindmapController {
       } else if (e.key === 'ArrowLeft') {
         this.viewTx += 20;
         this.viewport.tx = this.viewTx;
-        this.runtime.rebuild();
+        this.scheduleRender();
       } else if (e.key === 'ArrowRight') {
         this.viewTx -= 20;
         this.viewport.tx = this.viewTx;
-        this.runtime.rebuild();
+        this.scheduleRender();
       } else if (e.key === 'ArrowUp') {
         this.viewTy += 20;
         this.viewport.ty = this.viewTy;
-        this.runtime.rebuild();
+        this.scheduleRender();
       } else if (e.key === 'ArrowDown') {
         this.viewTy -= 20;
         this.viewport.ty = this.viewTy;
-        this.runtime.rebuild();
+        this.scheduleRender();
       }
     };
     target.addEventListener('pointerdown', onDown);
@@ -259,7 +335,7 @@ export class MindmapController {
     const last = this.history.pop()!;
     this.future.push(this.snapshotPositions());
     this.applyPositions(last);
-    this.runtime.rebuild();
+    this.runtime.rerender();
   }
 
   /** 重做一次位置变更 */
@@ -270,6 +346,124 @@ export class MindmapController {
     const next = this.future.pop()!;
     this.history.push(this.snapshotPositions());
     this.applyPositions(next);
-    this.runtime.rebuild();
+    this.runtime.rerender();
+  }
+
+  private clampScale(s: number): number {
+    return Math.max(0.1, Math.min(10, s));
+  }
+
+  zoomAt(newScale: number, cx: number, cy: number): void {
+    const x = (cx - this.viewTx) / this.viewScale;
+    const y = (cy - this.viewTy) / this.viewScale;
+    this.viewScale = newScale;
+    this.viewTx = cx - x * this.viewScale;
+    this.viewTy = cy - y * this.viewScale;
+    this.applyView();
+  }
+
+  private applyView(): void {
+    this.clampPan();
+    this.viewport.scale = this.viewScale;
+    this.viewport.tx = this.viewTx;
+    this.viewport.ty = this.viewTy;
+    this.resetCanvasTransform();
+    this.onViewChange?.(this.viewScale, this.viewTx, this.viewTy);
+    this.dispatchViewChangeEvent();
+    this.scheduleRender();
+  }
+
+  private clampPan(): void {
+    const root = this.runtime.getRootWidget();
+    if (!root) {
+      return;
+    }
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const walk = (w: Widget) => {
+      if (w.type === 'MindMapNode') {
+        const p = w.getAbsolutePosition();
+        const s = w.renderObject.size;
+        minX = Math.min(minX, p.dx);
+        minY = Math.min(minY, p.dy);
+        maxX = Math.max(maxX, p.dx + s.width);
+        maxY = Math.max(maxY, p.dy + s.height);
+      }
+      for (const c of w.children) {
+        walk(c);
+      }
+    };
+    walk(root);
+    if (
+      !Number.isFinite(minX) ||
+      !Number.isFinite(minY) ||
+      !Number.isFinite(maxX) ||
+      !Number.isFinite(maxY)
+    ) {
+      return;
+    }
+    const vpW = this.viewport.renderObject.size.width;
+    const vpH = this.viewport.renderObject.size.height;
+    const left = this.viewTx + minX * this.viewScale;
+    const right = this.viewTx + maxX * this.viewScale;
+    const top = this.viewTy + minY * this.viewScale;
+    const bottom = this.viewTy + maxY * this.viewScale;
+    const minTx = vpW - right;
+    const maxTx = -left;
+    const minTy = vpH - bottom;
+    const maxTy = -top;
+    const contentW = (maxX - minX) * this.viewScale;
+    const contentH = (maxY - minY) * this.viewScale;
+    if (contentW <= vpW) {
+      const cx = (vpW - contentW) / 2 - minX * this.viewScale;
+      this.viewTx = cx;
+    } else {
+      this.viewTx = Math.max(minTx, Math.min(maxTx, this.viewTx));
+    }
+    if (contentH <= vpH) {
+      const cy = (vpH - contentH) / 2 - minY * this.viewScale;
+      this.viewTy = cy;
+    } else {
+      this.viewTy = Math.max(minTy, Math.min(maxTy, this.viewTy));
+    }
+  }
+
+  private scheduleRender(): void {
+    if (this.renderScheduled) {
+      return;
+    }
+    this.renderScheduled = true;
+    requestAnimationFrame(() => {
+      this.runtime.rerender();
+      this.renderScheduled = false;
+    });
+  }
+
+  private resetCanvasTransform(): void {
+    const raw = this.runtime.getRenderer()?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? null;
+    if (!raw || !canvas) {
+      return;
+    }
+    const styleW = parseFloat(canvas.style.width || '0') || canvas.width;
+    const resolution = styleW > 0 ? canvas.width / styleW : 1;
+    raw.setTransform(resolution, 0, 0, resolution, 0, 0);
+  }
+
+  private dispatchViewChangeEvent(): void {
+    const raw = this.runtime.getRenderer()?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? null;
+    const target: EventTarget | null = canvas ?? this.runtime.getContainer();
+    try {
+      target?.dispatchEvent(
+        new CustomEvent('inkwell:viewchange', {
+          detail: { scale: this.viewScale, tx: this.viewTx, ty: this.viewTy },
+        }),
+      );
+    } catch {
+      void 0;
+    }
   }
 }
