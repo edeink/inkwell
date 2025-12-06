@@ -2,6 +2,7 @@ import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { InputNumber, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { quantize } from './helper';
 import styles from './index.module.less';
 
 interface ZoomBarProps {
@@ -10,13 +11,6 @@ interface ZoomBarProps {
   max?: number;
   step?: number;
   onChange: (value: number) => void;
-}
-
-function quantize(value: number, min: number, max: number, step: number): number {
-  const clamped = Math.max(min, Math.min(max, value));
-  const steps = Math.round((clamped - min) / step);
-  const out = min + steps * step;
-  return Number(out.toFixed(4));
 }
 
 export default function ZoomBar({

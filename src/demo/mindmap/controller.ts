@@ -94,7 +94,7 @@ export class MindmapController {
       }
       if (e.shiftKey) {
         this.selectionRect = { x, y, width: 0, height: 0 };
-        this.viewport.selectionRect = this.selectionRect;
+        this.viewport.setSelectionRect(this.selectionRect);
         this.scheduleRender();
         return;
       }
@@ -145,7 +145,7 @@ export class MindmapController {
       if (this.selectionRect) {
         this.selectionRect.width = x - this.selectionRect.x;
         this.selectionRect.height = y - this.selectionRect.y;
-        this.viewport.selectionRect = this.selectionRect;
+        this.viewport.setSelectionRect(this.selectionRect);
         this.scheduleRender();
       }
     };
@@ -168,8 +168,8 @@ export class MindmapController {
         const r = this.normalizeRect(this.selectionRect);
         this.selectedKeys = new Set(this.collectKeysInRect(r));
         this.selectionRect = null;
-        this.viewport.selectionRect = null;
-        this.viewport.selectedKeys = Array.from(this.selectedKeys);
+        this.viewport.setSelectionRect(null);
+        this.viewport.setSelectedKeys(Array.from(this.selectedKeys));
         this.scheduleRender();
       }
     };
@@ -192,19 +192,19 @@ export class MindmapController {
         this.redo();
       } else if (e.key === 'ArrowLeft') {
         this.viewTx += 20;
-        this.viewport.tx = this.viewTx;
+        this.viewport.setPosition(this.viewTx, this.viewTy);
         this.scheduleRender();
       } else if (e.key === 'ArrowRight') {
         this.viewTx -= 20;
-        this.viewport.tx = this.viewTx;
+        this.viewport.setPosition(this.viewTx, this.viewTy);
         this.scheduleRender();
       } else if (e.key === 'ArrowUp') {
         this.viewTy += 20;
-        this.viewport.ty = this.viewTy;
+        this.viewport.setPosition(this.viewTx, this.viewTy);
         this.scheduleRender();
       } else if (e.key === 'ArrowDown') {
         this.viewTy -= 20;
-        this.viewport.ty = this.viewTy;
+        this.viewport.setPosition(this.viewTx, this.viewTy);
         this.scheduleRender();
       }
     };
@@ -363,71 +363,11 @@ export class MindmapController {
   }
 
   private applyView(): void {
-    this.clampPan();
-    this.viewport.scale = this.viewScale;
-    this.viewport.tx = this.viewTx;
-    this.viewport.ty = this.viewTy;
+    this.viewport.setTransform(this.viewScale, this.viewTx, this.viewTy);
     this.resetCanvasTransform();
     this.onViewChange?.(this.viewScale, this.viewTx, this.viewTy);
     this.dispatchViewChangeEvent();
     this.scheduleRender();
-  }
-
-  private clampPan(): void {
-    const root = this.runtime.getRootWidget();
-    if (!root) {
-      return;
-    }
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    const walk = (w: Widget) => {
-      if (w.type === 'MindMapNode') {
-        const p = w.getAbsolutePosition();
-        const s = w.renderObject.size;
-        minX = Math.min(minX, p.dx);
-        minY = Math.min(minY, p.dy);
-        maxX = Math.max(maxX, p.dx + s.width);
-        maxY = Math.max(maxY, p.dy + s.height);
-      }
-      for (const c of w.children) {
-        walk(c);
-      }
-    };
-    walk(root);
-    if (
-      !Number.isFinite(minX) ||
-      !Number.isFinite(minY) ||
-      !Number.isFinite(maxX) ||
-      !Number.isFinite(maxY)
-    ) {
-      return;
-    }
-    const vpW = this.viewport.renderObject.size.width;
-    const vpH = this.viewport.renderObject.size.height;
-    const left = this.viewTx + minX * this.viewScale;
-    const right = this.viewTx + maxX * this.viewScale;
-    const top = this.viewTy + minY * this.viewScale;
-    const bottom = this.viewTy + maxY * this.viewScale;
-    const minTx = vpW - right;
-    const maxTx = -left;
-    const minTy = vpH - bottom;
-    const maxTy = -top;
-    const contentW = (maxX - minX) * this.viewScale;
-    const contentH = (maxY - minY) * this.viewScale;
-    if (contentW <= vpW) {
-      const cx = (vpW - contentW) / 2 - minX * this.viewScale;
-      this.viewTx = cx;
-    } else {
-      this.viewTx = Math.max(minTx, Math.min(maxTx, this.viewTx));
-    }
-    if (contentH <= vpH) {
-      const cy = (vpH - contentH) / 2 - minY * this.viewScale;
-      this.viewTy = cy;
-    } else {
-      this.viewTy = Math.max(minTy, Math.min(maxTy, this.viewTy));
-    }
   }
 
   private scheduleRender(): void {

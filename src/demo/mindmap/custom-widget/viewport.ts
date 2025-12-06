@@ -24,11 +24,11 @@ export interface ViewportData extends WidgetData {
 }
 
 export class Viewport extends Widget<ViewportData> {
-  scale: number = 1;
-  tx: number = 0;
-  ty: number = 0;
-  selectedKeys: string[] = [];
-  selectionRect: { x: number; y: number; width: number; height: number } | null = null;
+  private _scale: number = 1;
+  private _tx: number = 0;
+  private _ty: number = 0;
+  private _selectedKeys: string[] = [];
+  private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
   width?: number;
   height?: number;
 
@@ -42,11 +42,11 @@ export class Viewport extends Widget<ViewportData> {
   }
 
   private init(data: ViewportData): void {
-    this.scale = (data.scale ?? this.scale) as number;
-    this.tx = (data.tx ?? this.tx) as number;
-    this.ty = (data.ty ?? this.ty) as number;
-    this.selectedKeys = (data.selectedKeys ?? this.selectedKeys) as string[];
-    this.selectionRect = (data.selectionRect ?? this.selectionRect) as {
+    this._scale = (data.scale ?? this._scale) as number;
+    this._tx = (data.tx ?? this._tx) as number;
+    this._ty = (data.ty ?? this._ty) as number;
+    this._selectedKeys = (data.selectedKeys ?? this._selectedKeys) as string[];
+    this._selectionRect = (data.selectionRect ?? this._selectionRect) as {
       x: number;
       y: number;
       width: number;
@@ -120,6 +120,45 @@ export class Viewport extends Widget<ViewportData> {
     const w = Math.abs(r.width);
     const h = Math.abs(r.height);
     return { x, y, width: w, height: h };
+  }
+
+  get scale(): number {
+    return this._scale;
+  }
+  get tx(): number {
+    return this._tx;
+  }
+  get ty(): number {
+    return this._ty;
+  }
+  get selectedKeys(): string[] {
+    return this._selectedKeys;
+  }
+  get selectionRect(): { x: number; y: number; width: number; height: number } | null {
+    return this._selectionRect;
+  }
+
+  setTransform(scale: number, tx: number, ty: number): void {
+    this._scale = scale;
+    this._tx = tx;
+    this._ty = ty;
+  }
+
+  setPosition(tx: number, ty: number): void {
+    this._tx = tx;
+    this._ty = ty;
+  }
+
+  setScale(scale: number): void {
+    this._scale = scale;
+  }
+
+  setSelectedKeys(keys: string[]): void {
+    this._selectedKeys = Array.from(keys);
+  }
+
+  setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
+    this._selectionRect = rect ? { ...rect } : null;
   }
 }
 
