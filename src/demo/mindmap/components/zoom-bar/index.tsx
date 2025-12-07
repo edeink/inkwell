@@ -2,6 +2,8 @@ import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { InputNumber, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { SCALE_CONFIG } from '../../config/constants';
+
 import { quantize } from './helper';
 import styles from './index.module.less';
 
@@ -15,8 +17,8 @@ interface ZoomBarProps {
 
 export default function ZoomBar({
   value,
-  min = 0.1,
-  max = 10,
+  min = SCALE_CONFIG.MIN_SCALE,
+  max = SCALE_CONFIG.MAX_SCALE,
   step = 0.01,
   onChange,
 }: ZoomBarProps) {
@@ -91,7 +93,9 @@ export default function ZoomBar({
   // 百分比输入（整数，10%~800%），实时同步缩放值
   const onPercentChange = useCallback(
     (v: number | null) => {
-      const n = Math.max(10, Math.min(800, Math.round(Number(v ?? percent))));
+      const minPct = Math.round(min * 100);
+      const maxPct = Math.round(max * 100);
+      const n = Math.max(minPct, Math.min(maxPct, Math.round(Number(v ?? percent))));
       const s = quantize(n / 100, min, max, step);
       onChange(s);
     },
@@ -112,8 +116,8 @@ export default function ZoomBar({
         </Tooltip>
         <InputNumber
           className={styles.percentInput}
-          min={10}
-          max={800}
+          min={Math.round(min * 100)}
+          max={Math.round(max * 100)}
           step={10}
           value={percent}
           precision={0}

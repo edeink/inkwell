@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 
-import MindmapComponent from './components/mind-map';
+import MindmapComponent from './components';
 
 const stage = document.getElementById('stage');
 if (stage) {

@@ -1,8 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
-import { ConnectorElement as Connector } from '../../custom-widget/connector';
-import { MindMapLayoutElement as MindMapLayout } from '../../custom-widget/mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '../../custom-widget/mindmap-node';
-import { ViewportElement as Viewport } from '../../custom-widget/viewport';
+import { ConnectorElement as Connector } from './custom-widget/connector';
+import { MindMapLayoutElement as MindMapLayout } from './custom-widget/mindmap-layout';
+import { MindMapNodeElement as MindMapNode } from './custom-widget/mindmap-node';
+import { ViewportElement as Viewport } from './custom-widget/viewport';
 
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 

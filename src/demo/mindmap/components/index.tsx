@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { MindmapController } from '../../controller';
-import { Viewport } from '../../custom-widget/viewport';
-import ErrorBoundary from '../error-boundary';
-import ZoomBar from '../zoom-bar';
+import { SCALE_CONFIG } from '../config/constants';
+import { MindmapController } from '../controller';
+import { Viewport } from '../custom-widget/viewport';
+import { createScene } from '../scene';
 
-import { createScene } from './scene';
+import ErrorBoundary from './error-boundary';
+import Minimap from './minimap';
+import ZoomBar from './zoom-bar';
 
 import type { Widget } from '@/core/base';
 
@@ -51,7 +53,7 @@ export default function MindmapComponent({
   );
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   const runtimeRef = useRef<Runtime | null>(null);
-  const controllerRef = useRef<MindmapController | null>(null);
+  const [controller, setController] = useState<MindmapController | null>(null);
   const [zoom, setZoom] = useState(1);
   const viewportCacheRef = useRef<WeakMap<Widget, Viewport>>(new WeakMap());
 
@@ -122,13 +124,14 @@ export default function MindmapComponent({
       const root = runtime.getRootWidget();
       const vp = findViewport(root);
       if (vp) {
-        controllerRef.current = new MindmapController(runtime, vp, (s) => setZoom(s));
+        const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
+        setController(ctrl);
         setZoom(vp.scale);
       }
     })().catch((e) => console.error('Render mindmap failed:', e));
 
     return () => {
-      controllerRef.current = null;
+      setController(null);
     };
   }, [canvasContainerId, size.width, size.height, background, backgroundAlpha]);
 
@@ -164,14 +167,21 @@ export default function MindmapComponent({
     <ErrorBoundary>
       <div ref={hostRef} className={`mindmapHost ${className ?? ''}`} style={style}>
         <div id={canvasContainerId} className="canvasContainer" />
+        {runtimeRef.current && controller && (
+          <Minimap
+            runtime={runtimeRef.current}
+            viewport={controller.viewport}
+            controller={controller}
+          />
+        )}
         <ZoomBar
           value={zoom}
-          min={0.1}
-          max={10}
+          min={SCALE_CONFIG.MIN_SCALE}
+          max={SCALE_CONFIG.MAX_SCALE}
           step={0.01}
           onChange={(s) => {
             setZoom(s);
-            controllerRef.current?.zoomAt(s, size.width / 2, size.height / 2);
+            controller?.zoomAt(s, size.width / 2, size.height / 2);
           }}
         />
         <DevTools />

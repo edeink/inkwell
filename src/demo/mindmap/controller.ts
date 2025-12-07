@@ -1,3 +1,4 @@
+import { SCALE_CONFIG } from './config/constants';
 import { Viewport } from './custom-widget/viewport';
 
 import type { Widget } from '@/core/base';
@@ -39,6 +40,12 @@ export class MindmapController {
   private pointers: Map<number, { x: number; y: number }> = new Map();
   private renderScheduled: boolean = false;
   private onViewChange: ((scale: number, tx: number, ty: number) => void) | null = null;
+  private viewChangeListeners: Set<(scale: number, tx: number, ty: number) => void> = new Set();
+  private zoomRafScheduled: boolean = false;
+  private pendingZoom: { scale: number; cx: number; cy: number } | null = null;
+  private lastPanTs: number = 0;
+  private lastPanX: number = 0;
+  private lastPanY: number = 0;
 
   constructor(
     runtime: Runtime,
@@ -52,6 +59,32 @@ export class MindmapController {
     this.viewTy = viewport.ty;
     this.onViewChange = onViewChange ?? null;
     this.attach();
+  }
+
+  /**
+   * 设置视图平移位置（不改变缩放），并应用到 Viewport
+   */
+  setViewPosition(tx: number, ty: number): void {
+    this.viewTx = tx;
+    this.viewTy = ty;
+    this.applyView();
+  }
+
+  /**
+   * 注册视图变更回调，返回取消订阅函数
+   */
+  addViewChangeListener(fn: (scale: number, tx: number, ty: number) => void): () => void {
+    this.viewChangeListeners.add(fn);
+    return () => {
+      this.viewChangeListeners.delete(fn);
+    };
+  }
+
+  /**
+   * 取消注册视图变更回调
+   */
+  removeViewChangeListener(fn: (scale: number, tx: number, ty: number) => void): void {
+    this.viewChangeListeners.delete(fn);
   }
 
   /**
@@ -139,6 +172,10 @@ export class MindmapController {
         const dy = (y - this.panState.startY) * this.viewScale;
         this.viewTx = this.panState.origTx + dx;
         this.viewTy = this.panState.origTy + dy;
+        // 记录最近一次平移用于惯性计算
+        this.lastPanTs = performance.now();
+        this.lastPanX = this.viewTx;
+        this.lastPanY = this.viewTy;
         this.applyView();
         return;
       }
@@ -162,7 +199,31 @@ export class MindmapController {
         this.dragging = null;
       }
       if (this.panState) {
+        // 惯性滑动（可选）：根据最近的速度收敛到停止
+        const endTs = performance.now();
+        const dt = Math.max(1, endTs - this.lastPanTs);
+        const vx = (this.viewTx - this.lastPanX) / dt; // px/ms
+        const vy = (this.viewTy - this.lastPanY) / dt;
         this.panState = null;
+        const speed = Math.hypot(vx, vy);
+        if (speed > 0.05) {
+          let curVx = vx;
+          let curVy = vy;
+          const decay = 0.92; // 每帧速度衰减
+          const step = () => {
+            // 以当前速度推进位置
+            this.viewTx += curVx * 16; // 约每帧 16ms
+            this.viewTy += curVy * 16;
+            this.applyView();
+            // 衰减速度
+            curVx *= decay;
+            curVy *= decay;
+            if (Math.hypot(curVx, curVy) > 0.01) {
+              requestAnimationFrame(step);
+            }
+          };
+          requestAnimationFrame(step);
+        }
       }
       if (this.selectionRect) {
         const r = this.normalizeRect(this.selectionRect);
@@ -174,12 +235,28 @@ export class MindmapController {
       }
     };
     const onWheel = (e: WheelEvent) => {
+      // 禁用浏览器默认缩放（包括触控板 pinch 会触发 ctrlKey）
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
       const scaleDelta = e.deltaY < 0 ? 1.06 : 0.94;
       const rect = target.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
       const s = this.clampScale(this.viewScale * scaleDelta);
-      this.zoomAt(s, cx, cy);
+      // 使用 rAF 合并高频 wheel 事件，保证 60fps 平滑
+      this.pendingZoom = { scale: s, cx, cy };
+      if (!this.zoomRafScheduled) {
+        this.zoomRafScheduled = true;
+        requestAnimationFrame(() => {
+          const pz = this.pendingZoom;
+          if (pz) {
+            this.zoomAt(pz.scale, pz.cx, pz.cy);
+          }
+          this.pendingZoom = null;
+          this.zoomRafScheduled = false;
+        });
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
@@ -190,28 +267,26 @@ export class MindmapController {
         (ctrl && e.shiftKey && e.key.toLowerCase() === 'z')
       ) {
         this.redo();
+      } else if (
+        // 禁用浏览器默认缩放快捷键（Ctrl/Cmd + '+', '-', '=' 或 '0'）
+        ctrl &&
+        (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')
+      ) {
+        e.preventDefault();
       } else if (e.key === 'ArrowLeft') {
-        this.viewTx += 20;
-        this.viewport.setPosition(this.viewTx, this.viewTy);
-        this.scheduleRender();
+        this.setViewPosition(this.viewTx + 20, this.viewTy);
       } else if (e.key === 'ArrowRight') {
-        this.viewTx -= 20;
-        this.viewport.setPosition(this.viewTx, this.viewTy);
-        this.scheduleRender();
+        this.setViewPosition(this.viewTx - 20, this.viewTy);
       } else if (e.key === 'ArrowUp') {
-        this.viewTy += 20;
-        this.viewport.setPosition(this.viewTx, this.viewTy);
-        this.scheduleRender();
+        this.setViewPosition(this.viewTx, this.viewTy + 20);
       } else if (e.key === 'ArrowDown') {
-        this.viewTy -= 20;
-        this.viewport.setPosition(this.viewTx, this.viewTy);
-        this.scheduleRender();
+        this.setViewPosition(this.viewTx, this.viewTy - 20);
       }
     };
     target.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    target.addEventListener('wheel', onWheel, { passive: true });
+    target.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKey);
   }
 
@@ -350,7 +425,7 @@ export class MindmapController {
   }
 
   private clampScale(s: number): number {
-    return Math.max(0.1, Math.min(10, s));
+    return Math.max(SCALE_CONFIG.MIN_SCALE, Math.min(SCALE_CONFIG.MAX_SCALE, s));
   }
 
   zoomAt(newScale: number, cx: number, cy: number): void {
@@ -363,9 +438,17 @@ export class MindmapController {
   }
 
   private applyView(): void {
+    // 移除 clampPan 的限制效果，允许视图自由缩放/平移
     this.viewport.setTransform(this.viewScale, this.viewTx, this.viewTy);
     this.resetCanvasTransform();
     this.onViewChange?.(this.viewScale, this.viewTx, this.viewTy);
+    for (const fn of this.viewChangeListeners) {
+      try {
+        fn(this.viewScale, this.viewTx, this.viewTy);
+      } catch {
+        void 0;
+      }
+    }
     this.dispatchViewChangeEvent();
     this.scheduleRender();
   }
