@@ -28,6 +28,7 @@ export default {
         'advanced/custom-widget',
         'advanced/devtools',
         'advanced/benchmark',
+        'advanced/core-events',
       ],
     },
     {

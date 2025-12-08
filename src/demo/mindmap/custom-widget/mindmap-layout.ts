@@ -5,7 +5,7 @@ import { CustomComponentType } from './type';
 import type {
   BoxConstraints,
   BuildContext,
-  JSXComponentProps,
+  WidgetProps,
   Offset,
   Size,
   WidgetData,
@@ -210,5 +210,5 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
   }
 }
 
-export type MindMapLayoutProps = Omit<MindMapLayoutData, 'type' | 'children'> & JSXComponentProps;
+export type MindMapLayoutProps = Omit<MindMapLayoutData, 'type' | 'children'> & WidgetProps;
 export const MindMapLayoutElement: React.FC<MindMapLayoutProps> = () => null;

@@ -6,14 +6,7 @@ import { ComponentType } from '../type';
 import { createRenderFlexUnboundedError } from './errors';
 import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  JSXComponentProps,
-  Offset,
-  Size,
-  WidgetData,
-} from '../base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from '../base';
 
 /**
  * Column布局组件的数据接口
@@ -325,5 +318,5 @@ export class Column extends Widget<ColumnData> {
   }
 }
 
-export type ColumnProps = Omit<ColumnData, 'type' | 'children'> & JSXComponentProps;
+export type ColumnProps = Omit<ColumnData, 'type' | 'children'> & WidgetProps;
 export const ColumnElement: React.FC<ColumnProps> = () => null;

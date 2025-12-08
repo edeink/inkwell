@@ -3,14 +3,7 @@ import React from 'react';
 import { Widget } from './base';
 import { ComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  JSXComponentProps,
-  Offset,
-  Size,
-  WidgetData,
-} from './base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
 
 export interface CenterData extends WidgetData {
   child?: WidgetData;
@@ -80,5 +73,5 @@ export class Center extends Widget<CenterData> {
   }
 }
 
-export type CenterProps = Omit<CenterData, 'type' | 'child' | 'children'> & JSXComponentProps;
+export type CenterProps = Omit<CenterData, 'type' | 'child' | 'children'> & WidgetProps;
 export const CenterElement: React.FC<CenterProps> = () => null;

@@ -3,14 +3,7 @@ import React from 'react';
 import { Widget } from './base';
 import { ComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  JSXComponentProps,
-  Offset,
-  Size,
-  WidgetData,
-} from './base';
+import type { BoxConstraints, BuildContext, WidgetProps, Offset, Size, WidgetData } from './base';
 
 export interface WrapData extends WidgetData {
   spacing?: number; // 同一行子元素之间的水平间距
@@ -126,5 +119,5 @@ export class Wrap extends Widget<WrapData> {
   }
 }
 
-export type WrapProps = Omit<WrapData, 'type' | 'children'> & JSXComponentProps;
+export type WrapProps = Omit<WrapData, 'type' | 'children'> & WidgetProps;
 export const WrapElement: React.FC<WrapProps> = () => null;

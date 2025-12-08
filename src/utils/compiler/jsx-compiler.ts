@@ -1,7 +1,9 @@
 import type { JSXElement } from './jsx-runtime';
+import type { EventType } from '@/core/events/types';
 import type { ComponentData } from '@/runtime';
 
 import { Widget } from '@/core/base';
+import { EventRegistry } from '@/core/events/registry';
 import { widgetRegistry } from '@/core/registry';
 import { ComponentType } from '@/core/type';
 
@@ -66,6 +68,12 @@ export function compileElement(element: AnyElement): ComponentData {
 
   const p = (props ?? {}) as Record<string, unknown>;
   const target = data as unknown as Record<string, unknown>;
+  const keyStr = String(data.key ?? '');
+  try {
+    if (keyStr) {
+      EventRegistry.clearKey(keyStr);
+    }
+  } catch {}
 
   for (const [k, v] of Object.entries(p)) {
     if (k === 'children' || k === 'key' || k === 'type') {
@@ -75,6 +83,15 @@ export function compileElement(element: AnyElement): ComponentData {
       continue;
     }
     if (typeof v === 'function') {
+      const isCapture = /Capture$/.test(k);
+      const base = k.replace(/^on/, '').replace(/Capture$/, '');
+      const evt = toEventType(base);
+      if (evt) {
+        EventRegistry.register(keyStr, evt, v as unknown as (e: any) => boolean | void, {
+          capture: isCapture,
+        });
+        continue;
+      }
       continue;
     }
     target[k] = v as unknown;
@@ -91,4 +108,35 @@ export function compileElement(element: AnyElement): ComponentData {
 export function compileTemplate(template: () => AnyElement): ComponentData {
   const el = template();
   return compileElement(el);
+}
+
+function toEventType(base: string): EventType | null {
+  const lower = base.toLowerCase();
+  const map: Record<string, EventType> = {
+    click: 'click',
+    mousedown: 'mousedown',
+    mouseup: 'mouseup',
+    mousemove: 'mousemove',
+    mouseover: 'mouseover',
+    mouseout: 'mouseout',
+    wheel: 'wheel',
+    dblclick: 'dblclick',
+    doubleclick: 'dblclick',
+    contextmenu: 'contextmenu',
+    pointerdown: 'pointerdown',
+    pointerup: 'pointerup',
+    pointermove: 'pointermove',
+    pointerover: 'pointerover',
+    pointerout: 'pointerout',
+    pointerenter: 'pointerenter',
+    pointerleave: 'pointerleave',
+    touchstart: 'touchstart',
+    touchmove: 'touchmove',
+    touchend: 'touchend',
+    touchcancel: 'touchcancel',
+    keydown: 'keydown',
+    keyup: 'keyup',
+    keypress: 'keypress',
+  };
+  return map[lower] ?? null;
 }

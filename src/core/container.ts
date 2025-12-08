@@ -7,10 +7,10 @@ import type {
   BoxConstraints,
   BuildContext,
   EdgeInsets,
-  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from './base';
 
 export interface BorderRadius {
@@ -241,5 +241,5 @@ export class Container extends Widget<ContainerData> {
   }
 }
 
-export type ContainerProps = Omit<ContainerData, 'type' | 'child' | 'children'> & JSXComponentProps;
+export type ContainerProps = Omit<ContainerData, 'type' | 'child' | 'children'> & WidgetProps;
 export const ContainerElement: React.FC<ContainerProps> = () => null;

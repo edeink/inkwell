@@ -1,4 +1,6 @@
 import { Widget } from '../core/base';
+import { EventManager } from '../core/events/manager';
+import { EventRegistry } from '../core/events/registry';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
@@ -139,6 +141,7 @@ export default class Runtime {
         runtime: this,
         container: this.container,
       });
+      EventManager.bind(this);
     }
     const px = (rendererOptions.width ?? 0) * (rendererOptions.height ?? 0);
     const tooLargePx = 64 * 1024 * 1024; // 64M 像素阈值（约 256MB 内存，依赖实现）
@@ -214,7 +217,9 @@ export default class Runtime {
    * 从 JSX 元素渲染
    */
   async renderFromJSX(element: AnyElement): Promise<void> {
+    EventRegistry.setCurrentRuntime(this);
     const json = compileElement(element);
+    EventRegistry.setCurrentRuntime(null);
     await this.renderFromJSON(json);
   }
 
@@ -222,7 +227,9 @@ export default class Runtime {
    * 从模板函数渲染（返回 JSX 元素）
    */
   async renderTemplate(template: () => AnyElement): Promise<void> {
+    EventRegistry.setCurrentRuntime(this);
     const json = compileTemplate(template);
+    EventRegistry.setCurrentRuntime(null);
     await this.renderFromJSON(json);
   }
 
@@ -506,9 +513,11 @@ export default class Runtime {
     this.container = null;
     this.rootWidget = null;
     if (this.canvasId) {
+      EventManager.unbind(this);
       Runtime.canvasRegistry.delete(this.canvasId);
       this.canvasId = null;
     }
+    EventRegistry.clearRuntime(this);
   }
 
   private static generateUUID(): string {

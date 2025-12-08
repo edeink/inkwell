@@ -1,0 +1,137 @@
+---
+id: core-events
+title: 事件系统
+description: Inkwell 核心事件系统概述与使用
+---
+
+## 模块功能概述
+- 提供统一的事件类型与事件对象结构，支持鼠标、指针、触摸与键盘事件。
+- 实现 DOM 风格的事件传播：捕获阶段 → 目标阶段（捕获与冒泡）→ 冒泡阶段。
+- 通过注册表与分发器，将 JSX 中的事件处理器与组件 key 关联并按序调用。
+
+## 核心 API 说明
+- `EventRegistry`：注册/查询/清理事件处理器。
+- `EventManager`：在运行时绑定/解绑原生事件监听。
+- `dispatchAt(runtime, type, native)`：将原生事件转为 Inkwell 事件并分发。
+- `dispatchToTree(root, target, type, x, y, native?)`：按传播规则分发到指定树。
+- `hitTest(root, x, y)`：在树中查找最深层命中的组件作为事件目标。
+- 类型：`EventType`、`EventPhase`、`InkwellEvent`、`EventHandler`。
+
+## 使用注意事项
+- 处理器返回 `false` 将终止后续传播；`e.stopPropagation()` 也可显式阻止。
+- 键盘事件以根节点为目标进行分发；为接收键盘事件，Canvas 会设置 `tabIndex=0`。
+- JSX 中的 `onXxxCapture` 会注册为捕获阶段处理器；`onXxx` 为冒泡阶段。
+
+## 使用示例
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={240} height={120} onClick={() => console.log('root click')}>
+  <Container key="inner" width={200} height={80} onClickCapture={() => console.log('inner capture')}>
+    <Text key="leaf" text="Hello Events" fontSize={16} onClick={() => console.log('leaf click')} />
+  </Container>
+</Container>)
+````
+
+上述示例在预览中可直接交互：
+- 点击文字区域将触发 `leaf` 的冒泡处理与父级的捕获/冒泡处理；
+- 控制台可查看事件传播顺序日志。
+
+### 示例：完整的捕获→目标→冒泡顺序
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={260} height={140}
+  onClickCapture={() => console.log('capture:root')}
+  onClick={() => console.log('bubble:root')}
+>
+  <Container key="inner" width={220} height={100}
+    onClickCapture={() => console.log('capture:inner')}
+    onClick={() => console.log('bubble:inner')}
+  >
+    <Text key="leaf" text="Click me" fontSize={16}
+      onClickCapture={() => console.log('target-capture:leaf')}
+      onClick={() => console.log('target-bubble:leaf')}
+    />
+  </Container>
+</Container>)
+````
+
+点击文字时的顺序为：`capture:root → capture:inner → target-capture:leaf → target-bubble:leaf → bubble:inner → bubble:root`。
+
+### 示例：在捕获阶段 return false 终止传播
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={260} height={140}
+  onClickCapture={() => { console.log('capture:root'); return false; }}
+>
+  <Container key="inner" width={220} height={100}
+    onClickCapture={() => console.log('capture:inner')}
+    onClick={() => console.log('bubble:inner')}
+  >
+    <Text key="leaf" text="Click me" fontSize={16}
+      onClickCapture={() => console.log('target-capture:leaf')}
+      onClick={() => console.log('target-bubble:leaf')}
+    />
+  </Container>
+</Container>)
+````
+
+点击后仅输出 `capture:root`，因为在根的捕获阶段返回 `false` 终止了后续阶段。
+
+### 示例：在冒泡阶段 return false 阻止继续向上
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={260} height={140}
+  onClick={() => console.log('bubble:root')}
+>
+  <Container key="inner" width={220} height={100}
+    onClick={(/* e */) => { console.log('bubble:inner'); return false; }}
+  >
+    <Text key="leaf" text="Click me" fontSize={16}
+      onClick={() => console.log('target-bubble:leaf')}
+    />
+  </Container>
+</Container>)
+````
+
+点击后输出 `target-bubble:leaf → bubble:inner`，不会继续到 `bubble:root`。
+
+### 示例：使用 e.stopPropagation() 显式阻止冒泡
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={260} height={140}
+  onClick={() => console.log('bubble:root')}
+>
+  <Container key="inner" width={220} height={100}
+    onClick={(e) => { console.log('bubble:inner'); e.stopPropagation(); }}
+  >
+    <Text key="leaf" text="Click me" fontSize={16}
+      onClick={() => console.log('target-bubble:leaf')}
+    />
+  </Container>
+</Container>)
+````
+
+点击后输出 `target-bubble:leaf → bubble:inner`，`e.stopPropagation()` 阻止了继续向祖先冒泡。
+
+### 示例：MouseOver 捕获与冒泡
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={260} height={140}
+  onMouseOverCapture={() => console.log('capture:root')}
+  onMouseOver={() => console.log('bubble:root')}
+>
+  <Container key="inner" width={220} height={100}>
+    <Text key="leaf" text="Hover me" fontSize={16}
+      onMouseOver={() => console.log('leaf')}
+    />
+  </Container>
+</Container>)
+````
+
+将鼠标移入文字时输出 `capture:root → leaf → bubble:root`，体现捕获在先、随后目标与冒泡顺序。

@@ -6,10 +6,10 @@ import { Viewport } from './viewport';
 import type {
   BoxConstraints,
   BuildContext,
-  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -222,5 +222,5 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   }
 }
 
-export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> & JSXComponentProps;
+export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> & WidgetProps;
 export const MindMapNodeElement: React.FC<MindMapNodeProps> = () => null;

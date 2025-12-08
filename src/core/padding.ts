@@ -7,10 +7,10 @@ import type {
   BoxConstraints,
   BuildContext,
   EdgeInsets,
-  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from './base';
 
 export interface PaddingData extends WidgetData {
@@ -137,5 +137,5 @@ export function all(value: number): EdgeInsets {
   };
 }
 
-export type PaddingProps = Omit<PaddingData, 'type' | 'child' | 'children'> & JSXComponentProps;
+export type PaddingProps = Omit<PaddingData, 'type' | 'child' | 'children'> & WidgetProps;
 export const PaddingElement: React.FC<PaddingProps> = () => null;

@@ -5,14 +5,7 @@ import { ComponentType } from '../type';
 
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  JSXComponentProps,
-  Offset,
-  Size,
-  WidgetData,
-} from '../base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from '../base';
 
 /**
  * Row布局组件的数据接口
@@ -247,5 +240,5 @@ export class Row extends Widget<RowData> {
   }
 }
 
-export type ExpandedProps = Omit<RowData, 'type' | 'children'> & JSXComponentProps;
+export type ExpandedProps = Omit<RowData, 'type' | 'children'> & WidgetProps;
 export const RowElement: React.FC<ExpandedProps> = () => null;

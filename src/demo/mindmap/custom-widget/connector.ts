@@ -5,10 +5,10 @@ import { CustomComponentType } from './type';
 import type {
   BoxConstraints,
   BuildContext,
-  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -183,5 +183,5 @@ export class Connector extends Widget<ConnectorData> {
   }
 }
 
-export type ConnectorProps = Omit<ConnectorData, 'type' | 'children'> & JSXComponentProps;
+export type ConnectorProps = Omit<ConnectorData, 'type' | 'children'> & WidgetProps;
 export const ConnectorElement: React.FC<ConnectorProps> = () => null;

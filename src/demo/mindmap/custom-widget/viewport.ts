@@ -5,10 +5,10 @@ import { CustomComponentType } from './type';
 import type {
   BoxConstraints,
   BuildContext,
-  JSXComponentProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -212,5 +212,5 @@ export class Viewport extends Widget<ViewportData> {
   }
 }
 
-export type ViewportProps = Omit<ViewportData, 'type' | 'children'> & JSXComponentProps;
+export type ViewportProps = Omit<ViewportData, 'type' | 'children'> & WidgetProps;
 export const ViewportElement: React.FC<ViewportProps> = () => null;

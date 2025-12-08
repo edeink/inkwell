@@ -3,14 +3,7 @@ import React from 'react';
 import { Widget } from './base';
 import { ComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  JSXComponentProps,
-  Offset,
-  Size,
-  WidgetData,
-} from './base';
+import type { BoxConstraints, BuildContext, WidgetProps, Offset, Size, WidgetData } from './base';
 
 export enum TextAlign {
   Left = 'left',
@@ -324,5 +317,5 @@ export class Text extends Widget<TextData> {
   }
 }
 
-export type TextProps = Omit<TextData, 'type' | 'children'> & JSXComponentProps;
+export type TextProps = Omit<TextData, 'type' | 'children'> & WidgetProps;
 export const TextElement: React.FC<TextProps> = () => null;

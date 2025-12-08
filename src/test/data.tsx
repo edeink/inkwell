@@ -29,6 +29,25 @@ export const getTestTemplate = () => (
       fontWeight="bold"
     />
 
+    <Column key="container-section" spacing={15} mainAxisSize="min">
+      <Text key="container-title" text="事件" fontSize={24} color="#3498db" fontWeight="bold" />
+      <Container key="root" width={240} height={120} onClick={() => console.log('root click')}>
+        <Container
+          key="inner"
+          width={200}
+          height={80}
+          onClickCapture={() => console.log('inner capture')}
+        >
+          <Text
+            key="leaf"
+            text="Hello Events"
+            fontSize={16}
+            onClick={() => console.log('leaf click')}
+          />
+        </Container>
+      </Container>
+    </Column>
+
     {/* Row中的Expanded测试：居中修复并增加调试边框 */}
     <Row
       key="row-expanded-section"

@@ -1,8 +1,60 @@
 import { type IRenderer } from '../renderer/IRenderer';
 
+import type { EventHandler } from './events/types';
 import type { FlexProperties } from './flex/type';
 
-export interface JSXComponentProps {
+export interface WidgetEventHandler {
+  onClick?: EventHandler;
+  onClickCapture?: EventHandler;
+  onDblClick?: EventHandler;
+  onDblClickCapture?: EventHandler;
+  onDoubleClick?: EventHandler;
+  onDoubleClickCapture?: EventHandler;
+  onContextMenu?: EventHandler;
+  onContextMenuCapture?: EventHandler;
+  onMouseDown?: EventHandler;
+  onMouseDownCapture?: EventHandler;
+  onMouseUp?: EventHandler;
+  onMouseUpCapture?: EventHandler;
+  onMouseMove?: EventHandler;
+  onMouseMoveCapture?: EventHandler;
+  onMouseOver?: EventHandler;
+  onMouseOverCapture?: EventHandler;
+  onMouseOut?: EventHandler;
+  onMouseOutCapture?: EventHandler;
+  onWheel?: EventHandler;
+  onWheelCapture?: EventHandler;
+  onTouchStart?: EventHandler;
+  onTouchStartCapture?: EventHandler;
+  onTouchMove?: EventHandler;
+  onTouchMoveCapture?: EventHandler;
+  onTouchEnd?: EventHandler;
+  onTouchEndCapture?: EventHandler;
+  onTouchCancel?: EventHandler;
+  onTouchCancelCapture?: EventHandler;
+  onPointerDown?: EventHandler;
+  onPointerDownCapture?: EventHandler;
+  onPointerUp?: EventHandler;
+  onPointerUpCapture?: EventHandler;
+  onPointerMove?: EventHandler;
+  onPointerMoveCapture?: EventHandler;
+  onPointerOver?: EventHandler;
+  onPointerOverCapture?: EventHandler;
+  onPointerOut?: EventHandler;
+  onPointerOutCapture?: EventHandler;
+  onPointerEnter?: EventHandler;
+  onPointerEnterCapture?: EventHandler;
+  onPointerLeave?: EventHandler;
+  onPointerLeaveCapture?: EventHandler;
+  onKeyDown?: EventHandler;
+  onKeyDownCapture?: EventHandler;
+  onKeyUp?: EventHandler;
+  onKeyUpCapture?: EventHandler;
+  onKeyPress?: EventHandler;
+  onKeyPressCapture?: EventHandler;
+}
+
+export interface WidgetProps extends WidgetEventHandler {
   key?: string;
   children?: React.ReactNode;
 }
