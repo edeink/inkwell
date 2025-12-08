@@ -29,6 +29,7 @@ export default function InkPlayground({
   height = 300,
   mode = 'code',
 }: InkPlaygroundProps) {
+  const uniqId = React.useMemo(() => `${Math.random().toString(36).slice(2)}`, []);
   const initial = React.useMemo(() => stripJsxImportSource(code), [code]);
   const [localCode, setLocalCode] = React.useState(initial);
   const [committedCode, setCommittedCode] = React.useState(initial);
@@ -68,6 +69,7 @@ export default function InkPlayground({
     return (
       <div className={styles.readOnly} data-mode="render">
         <Inkwell
+          instanceId={uniqId}
           data={initial}
           width={width}
           height={height}
@@ -110,6 +112,7 @@ export default function InkPlayground({
         </div>
         <div className={styles.previewPane}>
           <Inkwell
+            instanceId={uniqId}
             data={committedCode}
             width={width}
             height={height}
@@ -131,6 +134,7 @@ export default function InkPlayground({
   return (
     <div className={styles.rootVertical}>
       <Inkwell
+        instanceId={uniqId}
         data={committedCode}
         width={width}
         height={height}
@@ -145,7 +149,13 @@ export default function InkPlayground({
         }}
       />
       <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
-      <ControlPanel running={running} error={error} onRun={onRun} onClear={onClear} />
+      <ControlPanel
+        instanceId={uniqId}
+        running={running}
+        error={error}
+        onRun={onRun}
+        onClear={onClear}
+      />
     </div>
   );
 }

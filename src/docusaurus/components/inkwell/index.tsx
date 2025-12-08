@@ -11,6 +11,26 @@ import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
 
+/**
+ * Inkwell 组件：在画布上渲染 TSX/JSX 示例，并将示例中的日志输出收敛到组件实例范围。
+ *
+ * 使用说明：
+ * - 不拦截全局 `window.console`；仅将示例中的 `console.*` 与 `window.InkConsole` 调用在编译期替换为局部 `InkConsole`。
+ * - 每个组件实例拥有独立的日志通道，互不干扰，可通过控制台统一查看。
+ *
+ * Props：
+ * - `data` 示例源码字符串（支持 TSX/JSX）
+ * - `width` 画布宽度，默认 600
+ * - `height` 画布高度，默认 300
+ * - `onError` 编译或运行错误回调，参数为错误信息字符串
+ * - `onSuccess` 渲染成功回调
+ * - `readonly` 是否以只读方式渲染（禁用交互编辑）
+ *
+ * 用法示例：
+ * ```tsx
+ * <Inkwell data={code} width={600} height={300} onSuccess={() => {}} onError={(e) => {}} />
+ * ```
+ */
 export interface InkwellProps {
   data: string;
   width?: number;
@@ -18,8 +38,12 @@ export interface InkwellProps {
   onError?: (err: string) => void;
   onSuccess?: () => void;
   readonly?: boolean;
+  instanceId?: string;
 }
 
+/**
+ * 渲染 Inkwell 组件实例：创建运行时、编译示例代码并注入实例级 `InkConsole`。
+ */
 export default function Inkwell({
   data,
   width = 600,
@@ -27,8 +51,12 @@ export default function Inkwell({
   onError,
   onSuccess,
   readonly = false,
+  instanceId,
 }: InkwellProps) {
-  const canvasId = React.useMemo(() => `ink-canvas-${Math.random().toString(36).slice(2)}`, []);
+  const canvasId = React.useMemo(
+    () => instanceId ?? `ink-canvas-${Math.random().toString(36).slice(2)}`,
+    [instanceId],
+  );
   const editorRef = React.useRef<Runtime | null>(null);
   const previewRef = React.useRef<HTMLDivElement | null>(null);
   const debounceTimerRef = React.useRef<number | null>(null);
@@ -56,7 +84,21 @@ export default function Inkwell({
       .replace(/\/\*+\s*@jsxImportSource[\s\S]*?\*\//g, '')
       .replace(/\/\/\s*@jsxImportSource[^\n]*/g, '')
       .trim();
-    const wrapped = `const Template = () => (${cleaned});`;
+    const replaced = cleaned
+      .replace(/\bconsole\.log\s*\(/g, 'InkConsole.log(canvasId,')
+      .replace(/\bconsole\.info\s*\(/g, 'InkConsole.info(canvasId,')
+      .replace(/\bconsole\.warn\s*\(/g, 'InkConsole.warn(canvasId,')
+      .replace(/\bconsole\.error\s*\(/g, 'InkConsole.error(canvasId,')
+      .replace(/\bwindow\.InkConsole\b/g, 'InkConsole')
+      .replace(/\bInkConsole\.log\s*\(/g, 'InkConsole.log(canvasId,')
+      .replace(/\bInkConsole\.info\s*\(/g, 'InkConsole.info(canvasId,')
+      .replace(/\bInkConsole\.warn\s*\(/g, 'InkConsole.warn(canvasId,')
+      .replace(/\bInkConsole\.error\s*\(/g, 'InkConsole.error(canvasId,')
+      .replace(/InkConsole\?\.log\?\.\(/g, 'InkConsole.log(canvasId,')
+      .replace(/InkConsole\?\.info\?\.\(/g, 'InkConsole.info(canvasId,')
+      .replace(/InkConsole\?\.warn\?\.\(/g, 'InkConsole.warn(canvasId,')
+      .replace(/InkConsole\?\.error\?\.\(/g, 'InkConsole.error(canvasId,');
+    const wrapped = `const Template = () => (${replaced});`;
     const out = Babel.transform(wrapped, {
       plugins: [
         ['transform-typescript', { isTSX: true, allExtensions: true }],
@@ -84,10 +126,21 @@ export default function Inkwell({
           'Fragment',
           'Editor',
           'DevTools',
+          'InkConsole',
+          'canvasId',
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
-        const tplFn = fn(createElement, Fragment, Runtime, DevTools, ...Object.values(Core));
+        const ink = window.InkConsole;
+        const tplFn = fn(
+          createElement,
+          Fragment,
+          Runtime,
+          DevTools,
+          ink,
+          canvasId,
+          ...Object.values(Core),
+        );
         await editor.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
       } catch (e: any) {
