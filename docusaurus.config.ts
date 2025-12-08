@@ -25,7 +25,7 @@ const config: Config = {
       {
         docs: {
           routeBasePath: 'docs',
-          sidebarPath: require.resolve('./sidebars.ts'),
+          sidebarPath: path.resolve(__dirname, './sidebars.ts'),
           includeCurrentVersion: true,
           // 在生产环境中排除本地调试文档，仅本地构建可见
           include: isProd ? ['**/*.{md,mdx}', '!test/*.mdx'] : ['**/*.{md,mdx}'],
@@ -36,13 +36,13 @@ const config: Config = {
           },
         },
         theme: {
-          customCss: require.resolve('./src/docusaurus/css/custom.css'),
+          customCss: path.resolve(__dirname, './src/docusaurus/css/custom.css'),
         },
       },
     ],
   ],
   plugins: [
-    require.resolve('docusaurus-plugin-search-local'),
+    'docusaurus-plugin-search-local',
     function myLessPlugin() {
       return {
         name: 'inkwell-less-modules',
@@ -58,11 +58,16 @@ const config: Config = {
             module: {
               rules: [
                 {
+                  test: /\.js$/,
+                  include: [path.resolve(__dirname, '.docusaurus')],
+                  type: 'javascript/auto',
+                },
+                {
                   test: /\.module\.less$/,
                   use: [
-                    require.resolve('style-loader'),
+                    'style-loader',
                     {
-                      loader: require.resolve('css-loader'),
+                      loader: 'css-loader',
                       options: {
                         modules: {
                           localIdentName: 'ink_[local]_[hash:base64:5]',
@@ -70,16 +75,12 @@ const config: Config = {
                         importLoaders: 1,
                       },
                     },
-                    require.resolve('less-loader'),
+                    'less-loader',
                   ],
                 },
                 {
                   test: /(?<!module)\.less$/,
-                  use: [
-                    require.resolve('style-loader'),
-                    require.resolve('css-loader'),
-                    require.resolve('less-loader'),
-                  ],
+                  use: ['style-loader', 'css-loader', 'less-loader'],
                 },
               ],
             },
