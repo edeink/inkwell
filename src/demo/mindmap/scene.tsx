@@ -20,12 +20,18 @@ export type SceneElement = JSXElement;
 export function createScene(width: number, height: number): SceneElement {
   return (
     <Viewport key="v" scale={1} tx={0} ty={0} width={width} height={height}>
-      <MindMapLayout key="layout-root" layout="tree" spacingX={60} spacingY={28}>
-        <MindMapNode key="root" title="主题" color="#fff" borderColor="#1677ff" />
+      <MindMapLayout key="layout-root" layout="tree" spacingX={28} spacingY={28}>
+        <MindMapNode key="root" title="主题" />
         <MindMapNode key="n1" title="分支 1" />
+        <MindMapNode key="n1-1" title="分支 1.1" />
+        <MindMapNode key="n1-2" title="分支 1.2" />
         <MindMapNode key="n2" title="分支 2" />
-        <Connector key="e1" fromKey="root" toKey="n1" style="elbow" color="#8c8c8c" />
-        <Connector key="e2" fromKey="root" toKey="n2" style="elbow" color="#8c8c8c" />
+        <MindMapNode key="n2-1" title="分支 2.1" />
+        <Connector key="e-root-n1" fromKey="root" toKey="n1" />
+        <Connector key="e-root-n2" fromKey="root" toKey="n2" />
+        <Connector key="e-n1-n1-1" fromKey="n1" toKey="n1-1" />
+        <Connector key="e-n1-n1-2" fromKey="n1" toKey="n1-2" />
+        <Connector key="e-n2-n2-1" fromKey="n2" toKey="n2-1" />
       </MindMapLayout>
     </Viewport>
   ) as JSXElement;

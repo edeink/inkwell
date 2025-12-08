@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { SCALE_CONFIG } from '../config/constants';
-import { MindmapController } from '../controller';
+import { MindmapController } from '../controller/index';
 import { Viewport } from '../custom-widget/viewport';
 import { createScene } from '../scene';
 

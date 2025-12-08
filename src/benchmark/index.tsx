@@ -383,7 +383,6 @@ function App() {
     progressItems,
     currentTask,
     showStage,
-    nodeCounts,
     setNodeCounts,
     caseType,
     setCaseType,

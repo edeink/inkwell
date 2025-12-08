@@ -39,6 +39,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   borderWidth: number = 1.2;
   borderRadius: number = 10;
   padding: number = 12;
+  private childOffsets: Offset[] = [];
 
   static {
     Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
@@ -73,12 +74,15 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const { size } = this.renderObject as { size: Size };
+    const vp = this.findViewport();
+    const editing = vp?.editingKey === this.key;
+    const baseFill = editing ? 'rgba(22,119,255,0.08)' : this.color;
     renderer.drawRect({
       x: 0,
       y: 0,
       width: size.width,
       height: size.height,
-      fill: this.color,
+      fill: baseFill,
       stroke: this.borderColor,
       strokeWidth: this.borderWidth,
       borderRadius: this.borderRadius,
@@ -94,7 +98,6 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       fontSize: 14,
       color: '#333333',
     });
-    const vp = this.findViewport();
     if (vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key)) {
       renderer.drawRect({
         x: -2,
@@ -104,6 +107,75 @@ export class MindMapNode extends Widget<MindMapNodeData> {
         stroke: '#fa8c16',
         strokeWidth: 2,
       });
+    }
+
+    const hoverP = vp?.hoverAnim?.[this.key] ?? (vp?.hoveredKey === this.key ? 1 : 0);
+    if (hoverP > 0) {
+      const padW = Math.max(0, Math.round(2 * hoverP));
+      renderer.drawRect({
+        x: -padW,
+        y: -padW,
+        width: size.width + padW * 2,
+        height: size.height + padW * 2,
+        stroke: '#1677ff',
+        strokeWidth: Math.max(1, Math.round(2 * hoverP)),
+        borderRadius: this.borderRadius + padW,
+      });
+    }
+
+    const isActive = vp?.activeKey === this.key;
+    const btnSize = 20;
+    const btnR = 8;
+    const half = btnSize / 2;
+    const blue = '#1677ff';
+    const white = '#ffffff';
+    const drawPlus = (cx: number, cy: number) => {
+      renderer.drawRect({
+        x: cx - half,
+        y: cy - half,
+        width: btnSize,
+        height: btnSize,
+        fill: white,
+        stroke: blue,
+        strokeWidth: 1,
+        borderRadius: btnR,
+      });
+      renderer.drawLine({ x1: cx - 5, y1: cy, x2: cx + 5, y2: cy, stroke: blue, strokeWidth: 2 });
+      renderer.drawLine({ x1: cx, y1: cy - 5, x2: cx, y2: cy + 5, stroke: blue, strokeWidth: 2 });
+    };
+    if (isActive) {
+      drawPlus(size.width / 2, -24 + half);
+      drawPlus(size.width / 2, size.height + 4 + half);
+      drawPlus(size.width + 6 + half, size.height / 2);
+    }
+
+    const vpCollapsed = Array.isArray((vp as any)?.collapsedKeys)
+      ? ((vp as any).collapsedKeys as string[])
+      : [];
+    const isCollapsed = vpCollapsed.includes(this.key);
+
+    const children = this.children.filter((c) => c.type === CustomComponentType.MindMapNode);
+    if (!isCollapsed && children.length > 0) {
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        const childSize = child.renderObject.size;
+        const off = this.childOffsets[i] || { dx: 0, dy: 0 };
+        const sx = size.width;
+        const sy = size.height / 2;
+        const tx = off.dx;
+        const ty = off.dy + childSize.height / 2;
+        const mx = (sx + tx) / 2;
+        renderer.drawPath({
+          points: [
+            { x: sx, y: sy },
+            { x: mx, y: sy },
+            { x: mx, y: ty },
+            { x: tx, y: ty },
+          ],
+          stroke: '#8c8c8c',
+          strokeWidth: 1.5,
+        });
+      }
     }
   }
 

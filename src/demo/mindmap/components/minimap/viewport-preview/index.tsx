@@ -7,7 +7,7 @@ import type { Point } from '@/demo/mindmap/lib/route';
 import type Runtime from '@/runtime';
 
 import { useThemePalette } from '@/demo/mindmap/config/theme';
-import { MindmapController } from '@/demo/mindmap/controller';
+import { MindmapController } from '@/demo/mindmap/controller/index';
 import { Viewport } from '@/demo/mindmap/custom-widget/viewport';
 import { elbowRoute } from '@/demo/mindmap/lib/route';
 

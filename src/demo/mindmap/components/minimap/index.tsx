@@ -6,7 +6,7 @@ import ViewportPreview from './viewport-preview';
 
 import type Runtime from '@/runtime';
 
-import { MindmapController } from '@/demo/mindmap/controller';
+import { MindmapController } from '@/demo/mindmap/controller/index';
 import { Viewport } from '@/demo/mindmap/custom-widget/viewport';
 
 /**

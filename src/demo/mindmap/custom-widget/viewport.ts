@@ -21,6 +21,11 @@ export interface ViewportData extends WidgetData {
   selectionRect?: { x: number; y: number; width: number; height: number } | null;
   width?: number;
   height?: number;
+  hoveredKey?: string | null;
+  activeKey?: string | null;
+  editingKey?: string | null;
+  hoverAnim?: Record<string, number>;
+  collapsedKeys?: string[];
 }
 
 export class Viewport extends Widget<ViewportData> {
@@ -31,6 +36,11 @@ export class Viewport extends Widget<ViewportData> {
   private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
   width?: number;
   height?: number;
+  private _hoveredKey: string | null = null;
+  private _activeKey: string | null = null;
+  private _editingKey: string | null = null;
+  private _hoverAnim: Record<string, number> = {};
+  private _collapsedKeys: string[] = [];
 
   static {
     Widget.registerType(CustomComponentType.Viewport, Viewport);
@@ -54,6 +64,11 @@ export class Viewport extends Widget<ViewportData> {
     } | null;
     this.width = data.width;
     this.height = data.height;
+    this._hoveredKey = (data.hoveredKey ?? this._hoveredKey) as string | null;
+    this._activeKey = (data.activeKey ?? this._activeKey) as string | null;
+    this._editingKey = (data.editingKey ?? this._editingKey) as string | null;
+    this._hoverAnim = (data.hoverAnim ?? this._hoverAnim) as Record<string, number>;
+    this._collapsedKeys = (data.collapsedKeys ?? this._collapsedKeys) as string[];
   }
 
   createElement(data: ViewportData): Widget<ViewportData> {
@@ -137,6 +152,21 @@ export class Viewport extends Widget<ViewportData> {
   get selectionRect(): { x: number; y: number; width: number; height: number } | null {
     return this._selectionRect;
   }
+  get hoveredKey(): string | null {
+    return this._hoveredKey;
+  }
+  get activeKey(): string | null {
+    return this._activeKey;
+  }
+  get editingKey(): string | null {
+    return this._editingKey;
+  }
+  get hoverAnim(): Record<string, number> {
+    return this._hoverAnim;
+  }
+  get collapsedKeys(): string[] {
+    return this._collapsedKeys;
+  }
 
   setTransform(scale: number, tx: number, ty: number): void {
     this._scale = scale;
@@ -159,6 +189,26 @@ export class Viewport extends Widget<ViewportData> {
 
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
+  }
+
+  setHoveredKey(key: string | null): void {
+    this._hoveredKey = key ?? null;
+  }
+
+  setActiveKey(key: string | null): void {
+    this._activeKey = key ?? null;
+  }
+
+  setEditingKey(key: string | null): void {
+    this._editingKey = key ?? null;
+  }
+
+  setHoverAnimProgress(map: Record<string, number>): void {
+    this._hoverAnim = { ...map };
+  }
+
+  setCollapsedKeys(keys: string[]): void {
+    this._collapsedKeys = Array.from(keys);
   }
 }
 

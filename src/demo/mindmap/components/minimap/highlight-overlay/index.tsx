@@ -5,7 +5,7 @@ import styles from './index.module.less';
 import type Runtime from '@/runtime';
 
 import { useThemePalette } from '@/demo/mindmap/config/theme';
-import { MindmapController } from '@/demo/mindmap/controller';
+import { MindmapController } from '@/demo/mindmap/controller/index';
 
 export type Fit = { s: number; ox: number; oy: number };
 
