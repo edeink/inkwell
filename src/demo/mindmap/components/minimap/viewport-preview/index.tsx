@@ -3,13 +3,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './index.module.less';
 
 import type { Widget } from '@/core/base';
-import type { Point } from '@/demo/mindmap/lib/route';
 import type Runtime from '@/runtime';
 
 import { useThemePalette } from '@/demo/mindmap/config/theme';
 import { MindmapController } from '@/demo/mindmap/controller/index';
 import { Viewport } from '@/demo/mindmap/custom-widget/viewport';
-import { elbowRoute } from '@/demo/mindmap/lib/route';
+import { ConnectorStyle, type Point } from '@/demo/mindmap/helpers/connection-drawer';
+import {
+  connectorPathFromRects,
+  DEFAULT_CONNECTOR_OPTIONS,
+} from '@/demo/mindmap/helpers/connection-drawer';
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -97,12 +100,25 @@ export default function ViewportPreview({
     const paths: Point[][] = [];
     const walk = (w: Widget) => {
       if (w.type === 'Connector') {
-        type ConnectorDataLike = { fromKey: string; toKey: string };
-        const { fromKey, toKey } = w as unknown as ConnectorDataLike;
+        type ConnectorDataLike = { fromKey: string; toKey: string; style?: ConnectorStyle };
+        const { fromKey, toKey, style } = w as unknown as ConnectorDataLike;
         const a = rectByKey.get(fromKey);
         const b = rectByKey.get(toKey);
         if (a && b) {
-          paths.push(elbowRoute(a, b));
+          const aCenterX = a.x + a.width / 2;
+          const bCenterX = b.x + b.width / 2;
+          const leftRect = aCenterX <= bCenterX ? a : b;
+          const rightRect = leftRect === a ? b : a;
+          const pts = connectorPathFromRects({
+            left: leftRect,
+            right: rightRect,
+            style: style ?? ConnectorStyle.Bezier,
+            samples: DEFAULT_CONNECTOR_OPTIONS.samples,
+            margin: DEFAULT_CONNECTOR_OPTIONS.margin,
+            elbowRadius: DEFAULT_CONNECTOR_OPTIONS.elbowRadius,
+            arcSegments: DEFAULT_CONNECTOR_OPTIONS.arcSegments,
+          });
+          paths.push(pts);
         }
       }
       for (const c of w.children) {

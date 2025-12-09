@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { CustomComponentType } from './type';
+import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
 
 import type {
@@ -24,6 +24,7 @@ export interface MindMapNodeData extends WidgetData {
   borderWidth?: number;
   borderRadius?: number;
   padding?: number;
+  prefSide?: Side;
 }
 
 /**
@@ -39,6 +40,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   borderWidth: number = 1.2;
   borderRadius: number = 10;
   padding: number = 12;
+  prefSide: Side | undefined = undefined;
   private childOffsets: Offset[] = [];
 
   static {
@@ -59,6 +61,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     this.borderWidth = (data.borderWidth ?? this.borderWidth) as number;
     this.borderRadius = (data.borderRadius ?? this.borderRadius) as number;
     this.padding = (data.padding ?? this.padding) as number;
+    this.prefSide = data.prefSide;
   }
 
   createElement(data: MindMapNodeData): Widget<MindMapNodeData> {
@@ -146,7 +149,55 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     if (isActive) {
       drawPlus(size.width / 2, -24 + half);
       drawPlus(size.width / 2, size.height + 4 + half);
-      drawPlus(size.width + 6 + half, size.height / 2);
+      const parentContainer = this.parent;
+      let hasIncoming = false;
+      let parentKey: string | null = null;
+      if (parentContainer) {
+        for (const c of parentContainer.children) {
+          if (c.type === CustomComponentType.Connector) {
+            const to = (c as any).toKey as string;
+            const from = (c as any).fromKey as string;
+            if (to === this.key) {
+              hasIncoming = true;
+              parentKey = from;
+              break;
+            }
+          }
+        }
+      }
+      const isRoot = !hasIncoming;
+      let parentNode: MindMapNode | null = null;
+      if (hasIncoming && parentContainer) {
+        for (const c of parentContainer.children) {
+          if (c.type === CustomComponentType.MindMapNode && c.key === parentKey) {
+            parentNode = c as MindMapNode;
+            break;
+          }
+        }
+      }
+      if (!parentNode && parentContainer instanceof MindMapNode) {
+        parentNode = parentContainer as MindMapNode;
+      }
+      let showLeft = false;
+      let showRight = false;
+      if (isRoot) {
+        showLeft = true;
+        showRight = true;
+      } else if (parentNode) {
+        const ppos = parentNode.getAbsolutePosition();
+        const pos = this.getAbsolutePosition();
+        if (pos.dx < ppos.dx) {
+          showLeft = true;
+        } else {
+          showRight = true;
+        }
+      }
+      if (showLeft) {
+        drawPlus(-6 - half, size.height / 2);
+      }
+      if (showRight) {
+        drawPlus(size.width + 6 + half, size.height / 2);
+      }
     }
 
     const vpCollapsed = Array.isArray((vp as any)?.collapsedKeys)

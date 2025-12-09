@@ -13,4 +13,10 @@ export const enum CustomComponentType {
   MindMapNode = 'MindMapNode',
   MindMapLayout = 'MindMapLayout',
   Connector = 'Connector',
+  ConnectorStyleProvider = 'ConnectorStyleProvider',
+}
+
+export const enum Side {
+  Left = 'left',
+  Right = 'right',
 }

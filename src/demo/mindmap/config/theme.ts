@@ -48,7 +48,7 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     textColor: '#1f1f1f',
     highlightColor: 'rgba(64,158,255,0.95)',
     highlightFillColor: 'rgba(64,158,255,0.18)',
-    minimapBackgroundColor: 'rgba(0,0,0,0.35)',
+    minimapBackgroundColor: 'rgba(0,0,0,0.08)',
     nodeFillColor: 'rgba(255,255,255,0.9)',
     connectorColor: 'rgba(140,140,140,0.9)',
   },

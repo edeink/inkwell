@@ -375,6 +375,7 @@ export class Canvas2DRenderer implements IRenderer {
     y2: number;
     stroke?: string;
     strokeWidth?: number;
+    dash?: number[];
   }): void {
     if (!this.ctx) {
       return;
@@ -385,6 +386,9 @@ export class Canvas2DRenderer implements IRenderer {
     this.ctx.lineTo(options.x2, options.y2);
     this.ctx.strokeStyle = options.stroke || '#000';
     this.ctx.lineWidth = options.strokeWidth || 1;
+    if (options.dash && options.dash.length) {
+      this.ctx.setLineDash(options.dash);
+    }
     this.ctx.stroke();
     this.ctx.restore();
   }
@@ -395,6 +399,7 @@ export class Canvas2DRenderer implements IRenderer {
     stroke?: string;
     strokeWidth?: number;
     fill?: string;
+    dash?: number[];
   }): void {
     if (!this.ctx) {
       return;
@@ -419,6 +424,9 @@ export class Canvas2DRenderer implements IRenderer {
     if (options.stroke || options.strokeWidth) {
       this.ctx.strokeStyle = options.stroke || '#000';
       this.ctx.lineWidth = options.strokeWidth || 1;
+      if (options.dash && options.dash.length) {
+        this.ctx.setLineDash(options.dash);
+      }
       this.ctx.stroke();
     }
     this.ctx.restore();

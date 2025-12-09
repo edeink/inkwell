@@ -124,6 +124,7 @@ export interface IRenderer {
     y2: number;
     stroke?: string;
     strokeWidth?: number;
+    dash?: number[];
   }): void;
 
   drawPath(options: {
@@ -132,6 +133,7 @@ export interface IRenderer {
     stroke?: string;
     strokeWidth?: number;
     fill?: string;
+    dash?: number[];
   }): void;
 
   /**

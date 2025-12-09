@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { elbowRoute } from './route';
+import { elbowRoute } from './connection-drawer';
 
 describe('elbowRoute', () => {
   it('generates orthogonal path between rect centers', () => {

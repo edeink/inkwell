@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "format": "stylelint --fix \"src/**/*.{css,less}\" && eslint --ext .js,.jsx,.ts,.tsx src/ --fix && prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest run",
     "benchmark": "vite --open /src/benchmark/index.html",
     "dev:mindmap": "vite --open /src/demo/mindmap/index.html",
     "doc": "docusaurus start",

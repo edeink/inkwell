@@ -1,4 +1,4 @@
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType, Side } from '../../custom-widget/type';
 
 import { HistoryModule } from './history';
 import { LayoutModule } from './layout';
@@ -88,6 +88,7 @@ export class CrudModule {
       this.layout.markAffected([parentKey]);
     }
     this.controller.runtime.rerender();
+    this.controller.runtime.rebuild();
   }
 
   addChild(key: string): void {
@@ -126,7 +127,49 @@ export class CrudModule {
       }
       this.layout.markAffected([key]);
     }
-    this.controller.runtime.rerender();
+    this.controller.runtime.rebuild();
+  }
+
+  addChildSide(key: string, side: Side): void {
+    const layout = this.getLayout();
+    if (!layout) {
+      return;
+    }
+    const newKey = this.generateKey('n');
+    const data = {
+      type: CustomComponentType.MindMapNode,
+      key: newKey,
+      title: '新节点',
+      prefSide: side,
+    } as any;
+    const node = WidgetCtor.createWidget(data);
+    if (!node) {
+      return;
+    }
+    const inConnectorMode = layout.children.some((c) => c.type === CustomComponentType.Connector);
+    if (!inConnectorMode) {
+      const parentNode = this.findByKey(this.controller.runtime.getRootWidget(), key);
+      if (!parentNode) {
+        return;
+      }
+      node.parent = parentNode;
+      parentNode.children.push(node);
+    } else {
+      node.parent = layout;
+      layout.children.splice(layout.children.length, 0, node);
+      const conn = WidgetCtor.createWidget({
+        type: CustomComponentType.Connector,
+        key: this.generateKey('e'),
+        fromKey: key,
+        toKey: newKey,
+      } as any);
+      if (conn) {
+        conn.parent = layout;
+        layout.children.push(conn);
+      }
+      this.layout.markAffected([key]);
+    }
+    this.controller.runtime.rebuild();
   }
 
   deleteSelectionWithUndo(): void {
@@ -180,9 +223,14 @@ export class CrudModule {
     if (!root) {
       return null;
     }
-    for (const c of root.children) {
-      if (c.type === CustomComponentType.MindMapLayout) {
-        return c;
+    const stack: Widget[] = [...root.children];
+    while (stack.length) {
+      const cur = stack.shift()!;
+      if (cur.type === CustomComponentType.MindMapLayout) {
+        return cur;
+      }
+      for (const ch of cur.children) {
+        stack.push(ch);
       }
     }
     return null;

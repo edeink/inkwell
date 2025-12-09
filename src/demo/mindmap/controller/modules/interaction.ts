@@ -1,6 +1,16 @@
+import { Side } from '../../custom-widget/type';
+
 import type { MindmapController } from '../index';
 import type { ViewModule } from './view';
 import type { Widget } from '@/core/base';
+
+export const enum ToolbarAction {
+  AddAbove = 'addAbove',
+  AddBelow = 'addBelow',
+  AddChild = 'addChild',
+  AddChildLeft = 'addChildLeft',
+  AddChildRight = 'addChildRight',
+}
 
 export class InteractionModule {
   private controller: MindmapController;
@@ -59,16 +69,16 @@ export class InteractionModule {
       const rect = target.getBoundingClientRect();
       const { x, y } = getWorldXY(e);
       this.pointers.set(e.pointerId, { x, y });
+      const toolbarHit = this.hitToolbar(x, y);
+      if (toolbarHit) {
+        this.handleToolbarAction(toolbarHit);
+        return;
+      }
       {
         const ctx = this.controller.getPluginContext();
         if (this.controller['eventsModule'].dispatchPointerDown(e, ctx, { x, y })) {
           return;
         }
-      }
-      const toolbarHit = this.hitToolbar(x, y);
-      if (toolbarHit) {
-        this.handleToolbarAction(toolbarHit);
-        return;
       }
       if (this.pointers.size === 2) {
         const [aId, bId] = Array.from(this.pointers.keys());
@@ -353,7 +363,10 @@ export class InteractionModule {
   private hitToolbar(
     x: number,
     y: number,
-  ): { type: 'addAbove' | 'addBelow' | 'addChild'; key: string } | null {
+  ): {
+    type: ToolbarAction;
+    key: string;
+  } | null {
     const key = this.controller.viewport.activeKey;
     if (!key) {
       return null;
@@ -364,33 +377,83 @@ export class InteractionModule {
     }
     const p = node.getAbsolutePosition();
     const s = node.renderObject.size;
-    const inside = (rx: number, ry: number, rw: number, rh: number) =>
-      x >= rx && y >= ry && x <= rx + rw && y <= ry + rh;
+    const inside = (rx: number, ry: number, rw: number, rh: number) => {
+      const M = 2;
+      return x >= rx - M && y >= ry - M && x <= rx + rw + M && y <= ry + rh + M;
+    };
     const top = { x: p.dx + s.width / 2 - 10, y: p.dy - 24, w: 20, h: 20 };
     const bottom = { x: p.dx + s.width / 2 - 10, y: p.dy + s.height + 4, w: 20, h: 20 };
     const right = { x: p.dx + s.width + 6, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
+    const left = { x: p.dx - 26, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
+    let showLeft = false;
+    let showRight = false;
+    const parentContainer = node.parent;
+    let hasIncoming = false;
+    let parentKey: string | null = null;
+    if (parentContainer) {
+      for (const c of parentContainer.children) {
+        if ((c as any).type === 'Connector') {
+          const to = (c as any).toKey as string;
+          const from = (c as any).fromKey as string;
+          if (to === key) {
+            hasIncoming = true;
+            parentKey = from;
+            break;
+          }
+        }
+      }
+    }
+    const isRoot = !hasIncoming;
+    let parentNode: Widget | null = null;
+    if (hasIncoming && parentContainer) {
+      for (const c of parentContainer.children) {
+        if ((c as any).type === 'MindMapNode' && (c as any).key === parentKey) {
+          parentNode = c as Widget;
+          break;
+        }
+      }
+    }
+    if (!parentNode && parentContainer && (parentContainer as any).type === 'MindMapNode') {
+      parentNode = parentContainer as Widget;
+    }
+    if (isRoot) {
+      showLeft = true;
+      showRight = true;
+    } else if (parentNode) {
+      const ppos = parentNode.getAbsolutePosition();
+      const pos = node.getAbsolutePosition();
+      if (pos.dx < ppos.dx) {
+        showLeft = true;
+      } else {
+        showRight = true;
+      }
+    }
     if (inside(top.x, top.y, top.w, top.h)) {
-      return { type: 'addAbove', key };
+      return { type: ToolbarAction.AddAbove, key };
     }
     if (inside(bottom.x, bottom.y, bottom.w, bottom.h)) {
-      return { type: 'addBelow', key };
+      return { type: ToolbarAction.AddBelow, key };
     }
-    if (inside(right.x, right.y, right.w, right.h)) {
-      return { type: 'addChild', key };
+    if (showRight && inside(right.x, right.y, right.w, right.h)) {
+      return { type: ToolbarAction.AddChildRight, key };
+    }
+    if (showLeft && inside(left.x, left.y, left.w, left.h)) {
+      return { type: ToolbarAction.AddChildLeft, key };
     }
     return null;
   }
 
-  private handleToolbarAction(hit: {
-    type: 'addAbove' | 'addBelow' | 'addChild';
-    key: string;
-  }): void {
-    if (hit.type === 'addAbove') {
+  private handleToolbarAction(hit: { type: ToolbarAction; key: string }): void {
+    if (hit.type === ToolbarAction.AddAbove) {
       this.controller['crudModule'].addSibling(hit.key, -1);
-    } else if (hit.type === 'addBelow') {
+    } else if (hit.type === ToolbarAction.AddBelow) {
       this.controller['crudModule'].addSibling(hit.key, 1);
-    } else if (hit.type === 'addChild') {
+    } else if (hit.type === ToolbarAction.AddChild) {
       this.controller['crudModule'].addChild(hit.key);
+    } else if (hit.type === ToolbarAction.AddChildLeft) {
+      this.controller['crudModule'].addChildSide(hit.key, Side.Left);
+    } else if (hit.type === ToolbarAction.AddChildRight) {
+      this.controller['crudModule'].addChildSide(hit.key, Side.Right);
     }
   }
 

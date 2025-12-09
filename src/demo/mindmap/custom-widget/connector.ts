@@ -2,6 +2,7 @@ import React from 'react';
 
 import { CustomComponentType } from './type';
 
+import type { ConnectorStyleProviderData } from './connector-style-provider';
 import type {
   BoxConstraints,
   BuildContext,
@@ -12,9 +13,11 @@ import type {
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
-import { elbowRoute } from '@/demo/mindmap/lib/route';
-
-export type ConnectorStyle = 'straight' | 'elbow';
+import {
+  connectorPathFromRects,
+  ConnectorStyle,
+  DEFAULT_CONNECTOR_OPTIONS,
+} from '@/demo/mindmap/helpers/connection-drawer';
 
 export interface ConnectorData extends WidgetData {
   fromKey: string;
@@ -34,7 +37,7 @@ export class Connector extends Widget<ConnectorData> {
   toKey: string = '';
   color: string = '#8c8c8c';
   strokeWidth: number = 1.5;
-  style: ConnectorStyle = 'elbow';
+  style: ConnectorStyle = ConnectorStyle.Bezier;
 
   static {
     Widget.registerType(CustomComponentType.Connector, Connector);
@@ -71,23 +74,28 @@ export class Connector extends Widget<ConnectorData> {
     if (!a || !b) {
       return;
     }
-    const sx = a.x + a.width;
-    const sy = a.y + a.height / 2;
-    const tx = b.x;
-    const ty = b.y + b.height / 2;
-    if (this.style === 'straight') {
-      renderer.drawLine({
-        x1: sx,
-        y1: sy,
-        x2: tx,
-        y2: ty,
-        stroke: this.color,
-        strokeWidth: this.strokeWidth,
-      });
-    } else {
-      const pts = elbowRoute(a, b);
-      renderer.drawPath({ points: pts, stroke: this.color, strokeWidth: this.strokeWidth });
-    }
+    const prov = this.findStyleProvider();
+    const dashStr = prov?.dashArray || '';
+    const dash = dashStr
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const stroke = prov?.strokeColor ?? this.color;
+    const sw = prov?.strokeWidth ?? this.strokeWidth;
+    const aCenterX = a.x + a.width / 2;
+    const bCenterX = b.x + b.width / 2;
+    const left = aCenterX <= bCenterX ? a : b;
+    const right = left === a ? b : a;
+    const pts = connectorPathFromRects({
+      left,
+      right,
+      style: this.style,
+      samples: DEFAULT_CONNECTOR_OPTIONS.samples,
+      margin: DEFAULT_CONNECTOR_OPTIONS.margin,
+      elbowRadius: DEFAULT_CONNECTOR_OPTIONS.elbowRadius,
+      arcSegments: DEFAULT_CONNECTOR_OPTIONS.arcSegments,
+    });
+    renderer.drawPath({ points: pts, stroke, strokeWidth: sw, dash });
   }
 
   public getBounds(): { x: number; y: number; width: number; height: number } | null {
@@ -97,20 +105,19 @@ export class Connector extends Widget<ConnectorData> {
     if (!a || !b) {
       return null;
     }
-    if (this.style === 'straight') {
-      const sx = a.x + a.width;
-      const sy = a.y + a.height / 2;
-      const tx = b.x;
-      const ty = b.y + b.height / 2;
-      const minX = Math.min(sx, tx);
-      const minY = Math.min(sy, ty);
-      const maxX = Math.max(sx, tx);
-      const maxY = Math.max(sy, ty);
-      const w = Math.max(maxX - minX, this.strokeWidth);
-      const h = Math.max(maxY - minY, this.strokeWidth);
-      return { x: minX, y: minY, width: w, height: h };
-    }
-    const pts = elbowRoute(a, b);
+    const aCenterX = a.x + a.width / 2;
+    const bCenterX = b.x + b.width / 2;
+    const left = aCenterX <= bCenterX ? a : b;
+    const right = left === a ? b : a;
+    const pts = connectorPathFromRects({
+      left,
+      right,
+      style: this.style,
+      samples: DEFAULT_CONNECTOR_OPTIONS.samples,
+      margin: DEFAULT_CONNECTOR_OPTIONS.margin,
+      elbowRadius: DEFAULT_CONNECTOR_OPTIONS.elbowRadius,
+      arcSegments: DEFAULT_CONNECTOR_OPTIONS.arcSegments,
+    });
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -132,6 +139,17 @@ export class Connector extends Widget<ConnectorData> {
       p = p.parent;
     }
     return p ?? this;
+  }
+
+  private findStyleProvider(): ConnectorStyleProviderData | null {
+    let p: Widget | null = this.parent;
+    while (p) {
+      if (p.type === CustomComponentType.ConnectorStyleProvider) {
+        return p as unknown as ConnectorStyleProviderData;
+      }
+      p = p.parent;
+    }
+    return null;
   }
 
   private getRectByKey(
