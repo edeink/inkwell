@@ -1,4 +1,6 @@
 .propsEditor {
+  --font-size: 14px;
+
   &.equalGrid {
     .formRow {
       display: grid;
@@ -54,7 +56,9 @@
   }
 
   .formActions {
-    margin-top: 10px;
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
   }
 
   .emptyHint {
@@ -62,6 +66,22 @@
     font-size: var(--font-size);
     line-height: var(--line-height);
   }
+}
+
+.callbackGroup {
+  margin-bottom: 10px;
+}
+
+.callbackBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #1677ff;
+  background: rgb(22 119 255 / 10%);
+  border: 1px solid rgb(22 119 255 / 20%);
+  border-radius: 6px;
 }
 
 .readonlyGroup {

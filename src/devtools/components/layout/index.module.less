@@ -60,13 +60,16 @@
 
 .layoutContentGrid {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   padding: 10px;
   overflow: auto;
+  grid-template-columns: var(--tree-width, 260px) 8px 1fr;
+  height: var(--grid-height, calc(100vh - 53px));
+}
 
-  &.narrow {
-    grid-template-columns: 1fr;
-  }
+.layoutPanel.isNarrow .layoutContentGrid {
+  grid-template-columns: 1fr;
+  grid-template-rows: var(--tree-height, 200px) 8px 1fr;
 }
 
 .treePane {
@@ -75,6 +78,12 @@
   overflow: auto;
   background: #fff;
   border-radius: 8px;
+  grid-column: 1 / 2;
+}
+
+.layoutPanel.isNarrow .treePane {
+  grid-column: auto;
+  grid-row: 1 / 2;
 }
 
 .propsPane {
@@ -82,11 +91,20 @@
   padding: 16px;
   background: #fff;
   border-radius: 12px;
+  position: relative;
+  padding-bottom: 60px;
+  grid-column: 3 / 4;
+}
+
+.layoutPanel.isNarrow .propsPane {
+  grid-column: auto;
+  grid-row: 3 / 4;
 }
 
 .splitHandle {
   position: relative;
   background: transparent;
+  grid-column: 2 / 3;
 
   &::before {
     content: '';
@@ -102,6 +120,16 @@
 
 .splitActive::before {
   background: #4ea3ff;
+}
+
+.layoutPanel.isNarrow .splitHandle {
+  grid-column: auto;
+  grid-row: 2 / 3;
+  cursor: row-resize;
+}
+
+.layoutPanel:not(.isNarrow) .splitHandle {
+  cursor: col-resize;
 }
 
 .resizeHandle {

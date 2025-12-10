@@ -1,5 +1,5 @@
 import { LockOutlined } from '@ant-design/icons';
-import { Button, ColorPicker, Input, InputNumber, Space, Tooltip } from 'antd';
+import { Button, ColorPicker, Divider, Input, InputNumber, Space, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 
 import { isProtectedKey } from '../../helper/config';
@@ -48,7 +48,10 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
   if (!widget) {
     return <div className={styles.emptyHint}>未选择节点</div>;
   }
-  const entries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
+  const allEntries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
+  const isCallbackKey = (k: string) => /^on[A-Z]/.test(k);
+  const callbackEntries = allEntries.filter(([k]) => isCallbackKey(k));
+  const entries = allEntries.filter(([k]) => !isCallbackKey(k));
 
   const hasNested = entries.some(([, v]) => v && typeof v === 'object' && !Array.isArray(v));
   return (
@@ -83,6 +86,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
           </>
         );
       })()}
+      {entries.length && <Divider />}
       {entries.map(([k, v]) => (
         <div key={k} className={styles.formRow}>
           <div className={styles.formLeft}>
@@ -141,8 +145,36 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
           </div>
         </div>
       ))}
+      {callbackEntries.length > 0 && <Divider />}
+      {callbackEntries.length > 0 && (
+        <div className={styles.callbackGroup}>
+          {callbackEntries.map(([k, v]) => (
+            <div key={k} className={styles.formRow}>
+              <div className={styles.formLeft}>
+                <label className={styles.formLabel}>{k}</label>
+              </div>
+              <div className={styles.formRight}>
+                <Input
+                  className={styles.formInput}
+                  suffix={<span className={styles.callbackBadge}>[回调]</span>}
+                  value={typeof v === 'function' ? '[Function]' : String(v ?? '')}
+                  disabled
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className={styles.formActions}>
-        <Button type="primary" onClick={apply}>
+        <Button
+          type="primary"
+          onClick={(e) => {
+            try {
+              e.stopPropagation();
+            } catch {}
+            apply();
+          }}
+        >
           应用
         </Button>
       </div>

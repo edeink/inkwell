@@ -1,4 +1,5 @@
 import { Button, Space, Tooltip } from 'antd';
+import classnames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { clamp } from '../../helper/math';
@@ -166,13 +167,12 @@ export function LayoutPanel({
   }
 
   const cursor = dock === 'top' || dock === 'bottom' ? 'ns-resize' : 'ew-resize';
-  const panelClass = [
-    styles.layoutPanel,
-    styles[`dock-${dock}`],
-    !visible ? styles.closing : '',
-  ].join(' ');
-  const handleClass = [styles.resizeHandle, styles[`handle-${dock}`]].join(' ');
-  const gridClass = [styles.layoutContentGrid, isNarrow ? styles.narrow : ''].join(' ');
+  const panelClass = classnames(styles.layoutPanel, styles[`dock-${dock}`], {
+    [styles.closing]: !visible,
+    [styles.isNarrow]: isNarrow,
+  });
+  const handleClass = classnames(styles.resizeHandle, styles[`handle-${dock}`]);
+  const gridClass = classnames(styles.layoutContentGrid);
 
   const info: LayoutInfo = { dock, width, height, treeWidth, treeHeight, isNarrow };
 
@@ -180,8 +180,23 @@ export function LayoutPanel({
     <div
       ref={panelRef}
       className={panelClass}
-      style={dock === 'top' || dock === 'bottom' ? { height } : { width }}
+      style={
+        dock === 'top' || dock === 'bottom'
+          ? ({
+              height,
+              ['--tree-width' as any]: `${treeWidth}px`,
+              ['--tree-height' as any]: `${treeHeight}px`,
+              ['--grid-height' as any]: `calc(${height}px - 53px)`,
+            } as React.CSSProperties)
+          : ({
+              width,
+              ['--tree-width' as any]: `${treeWidth}px`,
+              ['--tree-height' as any]: `${treeHeight}px`,
+              ['--grid-height' as any]: 'calc(100vh - 53px)',
+            } as React.CSSProperties)
+      }
       data-visible={visible ? '1' : '0'}
+      onWheel={(e) => e.stopPropagation()}
     >
       <div className={styles.layoutHeader}>
         <div className={styles.left}>{headerLeft}</div>
@@ -249,41 +264,29 @@ export function LayoutPanel({
           })}
         </div>
       </div>
-      <div
-        className={gridClass}
-        style={
-          isNarrow
-            ? {
-                gridTemplateRows: `${treeHeight}px 8px 1fr`,
-                ...(dock === 'top' || dock === 'bottom'
-                  ? { height: `calc(${height}px - 42px)` }
-                  : { height: 'calc(100vh - 42px)' }),
-              }
-            : {
-                gridTemplateColumns: `${treeWidth}px 8px 1fr`,
-                ...(dock === 'top' || dock === 'bottom'
-                  ? { height: `calc(${height}px - 42px)` }
-                  : { height: 'calc(100vh - 42px)' }),
-              }
-        }
-      >
-        <div className={styles.treePane} style={isNarrow ? { gridRow: '1 / 2' } : undefined}>
-          {renderTree(info)}
-        </div>
+      <div className={gridClass}>
+        <div className={styles.treePane}>{renderTree(info)}</div>
         <div
           className={styles.splitHandle}
-          style={
-            isNarrow
-              ? { gridRow: '2 / 3', cursor: 'row-resize' }
-              : { gridColumn: '2 / 3', cursor: 'col-resize' }
-          }
-          onMouseDown={onSplitMouseDown}
+          onMouseDown={(e) => {
+            try {
+              e.stopPropagation();
+            } catch {}
+            onSplitMouseDown(e as unknown as React.MouseEvent);
+          }}
         />
-        <div className={styles.propsPane} style={isNarrow ? { gridRow: '3 / 4' } : undefined}>
-          {renderProps(info)}
-        </div>
+        <div className={styles.propsPane}>{renderProps(info)}</div>
       </div>
-      <div onMouseDown={onResizeMouseDown} className={handleClass} style={{ cursor }} />
+      <div
+        onMouseDown={(e) => {
+          try {
+            e.stopPropagation();
+          } catch {}
+          onResizeMouseDown(e as unknown as React.MouseEvent);
+        }}
+        className={handleClass}
+        style={{ cursor }}
+      />
     </div>
   );
 }
