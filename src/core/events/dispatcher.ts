@@ -22,6 +22,67 @@ import type Runtime from '@/runtime';
 
 let currentRuntime: Runtime | null = null;
 
+/**
+ * 类方法解析：为给定事件类型与阶段生成可能的类方法名称列表
+ * 设计说明：
+ * - 优先支持类方法事件处理（例如 onClick / onClickCapture），并在同类型处理器中先于 JSX 属性触发。
+ * - 采用最小映射策略：通用规则为 `on${PascalCase(type)}` 与 `on${PascalCase(type)}Capture`；
+ *   同时为双击事件兼容 `onDblClick*` 与 `onDoubleClick*` 两种命名。
+ */
+function resolveMethodNames(type: EventType, phase: 'capture' | 'bubble'): string[] {
+  const capSuffix = phase === 'capture' ? 'Capture' : '';
+  switch (type) {
+    case 'click':
+      return [`onClick${capSuffix}`];
+    case 'mousedown':
+      return [`onMouseDown${capSuffix}`, `onPointerDown${capSuffix}`];
+    case 'mouseup':
+      return [`onMouseUp${capSuffix}`, `onPointerUp${capSuffix}`];
+    case 'mousemove':
+      return [`onMouseMove${capSuffix}`, `onPointerMove${capSuffix}`];
+    case 'mouseover':
+      return [`onMouseOver${capSuffix}`];
+    case 'mouseout':
+      return [`onMouseOut${capSuffix}`];
+    case 'wheel':
+      return [`onWheel${capSuffix}`];
+    case 'dblclick':
+      return [`onDblClick${capSuffix}`, `onDoubleClick${capSuffix}`];
+    case 'contextmenu':
+      return [`onContextMenu${capSuffix}`];
+    case 'pointerdown':
+      return [`onPointerDown${capSuffix}`];
+    case 'pointerup':
+      return [`onPointerUp${capSuffix}`];
+    case 'pointermove':
+      return [`onPointerMove${capSuffix}`];
+    case 'pointerover':
+      return [`onPointerOver${capSuffix}`];
+    case 'pointerout':
+      return [`onPointerOut${capSuffix}`];
+    case 'pointerenter':
+      return [`onPointerEnter${capSuffix}`];
+    case 'pointerleave':
+      return [`onPointerLeave${capSuffix}`];
+    case 'touchstart':
+      return [`onTouchStart${capSuffix}`, `onPointerDown${capSuffix}`, `onMouseDown${capSuffix}`];
+    case 'touchmove':
+      return [`onTouchMove${capSuffix}`, `onPointerMove${capSuffix}`, `onMouseMove${capSuffix}`];
+    case 'touchend':
+      return [`onTouchEnd${capSuffix}`, `onPointerUp${capSuffix}`, `onMouseUp${capSuffix}`];
+    case 'touchcancel':
+      return [`onTouchCancel${capSuffix}`, `onPointerUp${capSuffix}`, `onMouseUp${capSuffix}`];
+    case 'keydown':
+      return [`onKeyDown${capSuffix}`];
+    case 'keyup':
+      return [`onKeyUp${capSuffix}`];
+    case 'keypress':
+      return [`onKeyPress${capSuffix}`];
+    default:
+      return [`on${type}${capSuffix}`];
+  }
+}
+
 function buildPath(target: Widget | null): Widget[] {
   const path: Widget[] = [];
   let cur = target;
@@ -62,12 +123,30 @@ function createEvent(
 }
 
 function invokeHandlers(
-  key: string,
+  node: Widget,
   type: EventType,
   event: InkwellEvent,
   phase: 'capture' | 'bubble',
 ): boolean {
-  const list = EventRegistry.getHandlers(key, type, currentRuntime);
+  // 1) 类方法优先调用：按解析出的候选方法顺序调用
+  const methods = resolveMethodNames(type, phase);
+  for (const name of methods) {
+    const fn = (node as unknown as Record<string, unknown>)[name] as
+      | ((e: InkwellEvent) => boolean | void)
+      | undefined;
+    if (typeof fn === 'function') {
+      const ret = fn.call(node, event);
+      if (event.propagationStopped === true) {
+        return false;
+      }
+      if (ret === false) {
+        return false;
+      }
+    }
+  }
+
+  // 2) JSX 属性注册的处理器：保持现有注册表行为与顺序
+  const list = EventRegistry.getHandlers(node.key, type, currentRuntime);
   const ordered =
     phase === 'capture' ? list.filter((h) => h.capture) : list.filter((h) => !h.capture);
   for (const it of ordered) {
@@ -119,6 +198,11 @@ export function dispatchAt(
     currentRuntime = null;
     return;
   }
+  if (type === 'wheel') {
+    try {
+      console.debug('Dispatcher dispatch wheel', { key: (target as any).key, x, y });
+    } catch {}
+  }
   dispatchToTree(root, target, type, x, y, native);
   currentRuntime = null;
 }
@@ -135,21 +219,21 @@ export function dispatchToTree(
   const ancestors = path.slice(0, Math.max(0, path.length - 1));
   for (const node of ancestors) {
     const ev = createEvent(type, target, node, EventPhase.Capture, x, y, native);
-    const ok = invokeHandlers(node.key, type, ev, 'capture');
+    const ok = invokeHandlers(node, type, ev, 'capture');
     if (!ok) {
       return;
     }
   }
   {
     const evCap = createEvent(type, target, target, EventPhase.Target, x, y, native);
-    const okCap = invokeHandlers(target.key, type, evCap, 'capture');
+    const okCap = invokeHandlers(target, type, evCap, 'capture');
     if (!okCap) {
       return;
     }
   }
   {
     const evTar = createEvent(type, target, target, EventPhase.Target, x, y, native);
-    const okTar = invokeHandlers(target.key, type, evTar, 'bubble');
+    const okTar = invokeHandlers(target, type, evTar, 'bubble');
     if (!okTar) {
       return;
     }
@@ -157,7 +241,7 @@ export function dispatchToTree(
   for (let i = ancestors.length - 1; i >= 0; i--) {
     const node = ancestors[i];
     const ev = createEvent(type, target, node, EventPhase.Bubble, x, y, native);
-    const ok = invokeHandlers(node.key, type, ev, 'bubble');
+    const ok = invokeHandlers(node, type, ev, 'bubble');
     if (!ok) {
       return;
     }

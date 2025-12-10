@@ -94,7 +94,8 @@ class EventManagerImpl {
         }
       };
       this.globalHandlers.set(type, fn);
-      document.addEventListener(type, fn as EventListener, { passive: true });
+      const passive = type === 'wheel' ? false : true;
+      document.addEventListener(type, fn as EventListener, { passive });
     }
     this.delegatedAttached = true;
   }
@@ -164,6 +165,11 @@ class EventManagerImpl {
     const runtime = this.getTargetRuntime(native);
     if (!runtime) {
       return;
+    }
+    if (type === 'wheel') {
+      try {
+        console.debug('EventManager route wheel', runtime.getCanvasId?.());
+      } catch {}
     }
     dispatchAt(runtime, type, native);
   }

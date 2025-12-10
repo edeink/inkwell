@@ -11,10 +11,6 @@ export class ViewModule {
   private _ty: number;
   private onViewChange: ((scale: number, tx: number, ty: number) => void) | null = null;
   private listeners: Set<(scale: number, tx: number, ty: number) => void> = new Set();
-  private renderScheduled = false;
-  private hoveredKey: string | null = null;
-  private hoverAnim: Map<string, number> = new Map();
-  private hoverAnimRaf: number | null = null;
 
   constructor(
     controller: MindmapController,
@@ -79,7 +75,9 @@ export class ViewModule {
       } catch {}
     }
     this.dispatchViewChangeEvent();
-    this.scheduleRender();
+    try {
+      (vp as any).requestRender?.();
+    } catch {}
     try {
       const ctx = this.controller.getPluginContext();
       for (const p of this.controller.getPlugins()) {
@@ -88,78 +86,14 @@ export class ViewModule {
     } catch {}
   }
 
-  scheduleRender(): void {
-    if (this.renderScheduled) {
-      return;
-    }
-    this.renderScheduled = true;
-    requestAnimationFrame(() => {
-      this.controller.runtime.rerender();
-      this.renderScheduled = false;
-    });
-  }
-
-  updateHover(x: number, y: number): void {
-    const hit = this.findNodeAtPoint(this.controller.runtime.getRootWidget(), x, y);
-    const key = hit?.key ?? null;
-    if (key !== this.hoveredKey) {
-      const prev = this.hoveredKey;
-      this.hoveredKey = key;
-      this.controller.viewport.setHoveredKey(key);
-      const now = performance.now();
-      const duration = 300;
-      const start = now;
-      const anim = this.hoverAnim;
-      if (prev) {
-        anim.set(prev, anim.get(prev) ?? 1);
-      }
-      if (key) {
-        anim.set(key, anim.get(key) ?? 0);
-      }
-      const step = () => {
-        const t = performance.now() - start;
-        const p = Math.max(0, Math.min(1, t / duration));
-        if (prev) {
-          const pv = anim.get(prev) ?? 1;
-          anim.set(prev, Math.max(0, pv - p));
-        }
-        if (key) {
-          const kv = anim.get(key) ?? 0;
-          anim.set(key, Math.min(1, kv + p));
-        }
-        const m: Record<string, number> = {};
-        for (const [k, v] of anim) {
-          if (v > 0 && v < 1) {
-            m[k] = v;
-          } else if (v >= 1 && key === k) {
-            m[k] = 1;
-          }
-        }
-        this.controller.viewport.setHoverAnimProgress(m);
-        this.controller.runtime.rerender();
-        if (t < duration) {
-          this.hoverAnimRaf = requestAnimationFrame(step);
-        } else {
-          this.hoverAnimRaf = null;
-          if (prev) {
-            anim.delete(prev);
-          }
-          if (key) {
-            anim.set(key, 1);
-          }
-        }
-      };
-      if (this.hoverAnimRaf) {
-        cancelAnimationFrame(this.hoverAnimRaf);
-        this.hoverAnimRaf = null;
-      }
-      this.hoverAnimRaf = requestAnimationFrame(step);
-    }
-  }
+  scheduleRender(): void {}
 
   setActiveKey(key: string | null): void {
     this.controller.viewport.setActiveKey(key);
-    this.controller.runtime.rerender();
+    try {
+      (this.controller.viewport as any).requestRender?.();
+    } catch {}
+    this.dispatchActiveChangeEvent(key);
   }
 
   findByKey(widget: Widget | null, key: string): Widget | null {
@@ -221,6 +155,21 @@ export class ViewModule {
       target?.dispatchEvent(
         new CustomEvent('inkwell:viewchange', {
           detail: { scale: this._scale, tx: this._tx, ty: this._ty },
+        }),
+      );
+    } catch {}
+  }
+
+  private dispatchActiveChangeEvent(key: string | null): void {
+    const raw = this.controller.runtime
+      .getRenderer()
+      ?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? null;
+    const target: EventTarget | null = canvas ?? this.controller.runtime.getContainer();
+    try {
+      target?.dispatchEvent(
+        new CustomEvent('inkwell:activechange', {
+          detail: { activeKey: key },
         }),
       );
     } catch {}

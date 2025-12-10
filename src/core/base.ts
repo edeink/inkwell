@@ -111,6 +111,7 @@ export interface RenderObject {
 
 export interface BuildContext {
   renderer: IRenderer; // 渲染器实例
+  worldMatrix?: [number, number, number, number, number, number];
   [key: string]: unknown;
 }
 
@@ -152,6 +153,8 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     offset: { dx: 0, dy: 0 },
     size: { width: 0, height: 0 },
   };
+
+  private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
   // 组件注册表 - 使用协变的构造函数类型
   private static registry: Map<string, new (data: WidgetData) => Widget<any>> = new Map();
@@ -328,23 +331,22 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 类似于 Flutter 的 paint 方法
    */
   paint(context: BuildContext): void {
-    // 绘制自身
-    this.paintSelf(context);
+    const steps = this.getSelfTransformSteps();
+    const local = composeSteps(steps);
+    const prev = context.worldMatrix ?? IDENTITY_MATRIX;
+    const next = multiply(prev, local);
+    this._worldMatrix = next;
 
-    // 递归绘制子组件
+    context.renderer?.save?.();
+    applySteps(context.renderer, steps);
+
+    this.paintSelf({ ...context, worldMatrix: next });
+
     for (const child of this.children) {
-      // 保存当前上下文状态
-      context.renderer?.save?.();
-
-      // 应用子组件的偏移
-      context.renderer?.translate?.(child.renderObject.offset.dx, child.renderObject.offset.dy);
-
-      // 绘制子组件
-      child.paint(context);
-
-      // 恢复上下文状态
-      context.renderer?.restore?.();
+      child.paint({ ...context, worldMatrix: next });
     }
+
+    context.renderer?.restore?.();
   }
 
   /**
@@ -378,18 +380,82 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   getAbsolutePosition(): Offset {
     let absoluteX = this.renderObject.offset.dx;
     let absoluteY = this.renderObject.offset.dy;
-
-    // 遍历父组件链，累加所有父组件的偏移量
     let currentParent = this.parent;
     while (currentParent) {
       absoluteX += currentParent.renderObject.offset.dx;
       absoluteY += currentParent.renderObject.offset.dy;
       currentParent = currentParent.parent;
     }
+    return { dx: absoluteX, dy: absoluteY };
+  }
 
-    return {
-      dx: absoluteX,
-      dy: absoluteY,
-    };
+  getWorldMatrix(): [number, number, number, number, number, number] {
+    return this._worldMatrix;
+  }
+
+  protected getSelfTransformSteps(): TransformStep[] {
+    const o = this.renderObject.offset;
+    return [{ t: 'translate', x: o.dx, y: o.dy }];
+  }
+}
+
+type TransformStep =
+  | { t: 'translate'; x: number; y: number }
+  | { t: 'scale'; sx: number; sy: number }
+  | { t: 'rotate'; rad: number };
+
+const IDENTITY_MATRIX: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
+
+function composeSteps(steps: TransformStep[]): [number, number, number, number, number, number] {
+  let m = IDENTITY_MATRIX;
+  for (const s of steps) {
+    if (s.t === 'translate') {
+      m = multiply(m, [1, 0, 0, 1, s.x, s.y]);
+    } else if (s.t === 'scale') {
+      m = multiply(m, [s.sx, 0, 0, s.sy, 0, 0]);
+    } else if (s.t === 'rotate') {
+      const c = Math.cos(s.rad);
+      const g = Math.sin(s.rad);
+      m = multiply(m, [c, g, -g, c, 0, 0]);
+    }
+  }
+  return m;
+}
+
+function multiply(
+  a: [number, number, number, number, number, number],
+  b: [number, number, number, number, number, number],
+): [number, number, number, number, number, number] {
+  const a0 = a[0],
+    a1 = a[1],
+    a2 = a[2],
+    a3 = a[3],
+    a4 = a[4],
+    a5 = a[5];
+  const b0 = b[0],
+    b1 = b[1],
+    b2 = b[2],
+    b3 = b[3],
+    b4 = b[4],
+    b5 = b[5];
+  return [
+    a0 * b0 + a2 * b1,
+    a1 * b0 + a3 * b1,
+    a0 * b2 + a2 * b3,
+    a1 * b2 + a3 * b3,
+    a0 * b4 + a2 * b5 + a4,
+    a1 * b4 + a3 * b5 + a5,
+  ];
+}
+
+function applySteps(renderer: IRenderer, steps: TransformStep[]): void {
+  for (const s of steps) {
+    if (s.t === 'translate') {
+      renderer.translate(s.x, s.y);
+    } else if (s.t === 'scale') {
+      renderer.scale(s.sx, s.sy);
+    } else if (s.t === 'rotate') {
+      renderer.rotate(s.rad);
+    }
   }
 }

@@ -22,6 +22,45 @@ description: Inkwell 核心事件系统概述与使用
 - 键盘事件以根节点为目标进行分发；为接收键盘事件，Canvas 会设置 `tabIndex=0`。
 - JSX 中的 `onXxxCapture` 会注册为捕获阶段处理器；`onXxx` 为冒泡阶段。
 
+## 类方法注册（等效方式）
+
+从 vNext 起，事件处理支持两种等效绑定：
+- JSX 属性：`<Text onClick={handler} onClickCapture={capHandler} />`
+- 类方法：在组件类上定义同名方法，如 `onClick()`、`onClickCapture()`
+
+一致性保证：
+- 触发顺序完全一致：捕获 → 目标（捕获）→ 目标（冒泡）→ 冒泡
+- 事件对象 `InkwellEvent` 属性与方法一致（`type/currentTarget/eventPhase/x/y/stopPropagation()`）
+- 阻止传播效果一致：返回 `false` 或调用 `e.stopPropagation()` 均生效
+- 共存时优先级：类方法优先于同一节点上的 JSX 属性处理器
+
+示例：类方法绑定
+
+````ts
+import { Widget } from '@/core/base';
+
+class CustomWidget extends Widget {
+  onClick(e) {
+    // 处理逻辑
+  }
+  onClickCapture(e) {
+    // 捕获阶段处理
+  }
+}
+````
+
+示例：两种方式共存且顺序一致
+
+````tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+(<Container key="root" width={240} height={120}>
+  {/* 假设 CustomWidget 已注册为组件类型 */}
+  <CustomWidgetElement key="leaf" width={80} height={40} onClick={() => console.log('attr:leaf')} />
+</Container>)
+````
+
+当 `CustomWidget` 同时实现 `onClick()` 方法时，点击顺序为：`method:leaf → attr:leaf`。
+
 ## 使用示例
 
 ````tsx mode:edit
@@ -135,3 +174,8 @@ description: Inkwell 核心事件系统概述与使用
 ````
 
 将鼠标移入文字时输出 `capture:root → leaf → bubble:root`，体现捕获在先、随后目标与冒泡顺序。
+
+### 最佳实践
+- 简单场景优先使用 JSX 属性，直观且与渲染结构贴近
+- 组件内需要复用/覆写时使用类方法，保证封装性与可维护性
+- 同一节点避免同时定义过多处理器，确保性能与可读性

@@ -95,52 +95,28 @@ export default class Overlay {
       const offsetX = canvasRect.left - containerRect.left;
       const offsetY = canvasRect.top - containerRect.top;
 
-      let posX: number;
-      let posY: number;
-      let width: number;
-      let height: number;
-
-      if (isConnectorLike(widget)) {
-        const bounds = widget.getBounds();
-        if (bounds) {
-          posX = bounds.x;
-          posY = bounds.y;
-          width = bounds.width;
-          height = bounds.height;
-        } else {
-          const pos = widget.getAbsolutePosition();
-          width = widget.renderObject.size.width;
-          height = widget.renderObject.size.height;
-          posX = pos.dx;
-          posY = pos.dy;
-        }
-      } else {
-        const pos = widget.getAbsolutePosition();
-        width = widget.renderObject.size.width;
-        height = widget.renderObject.size.height;
-        posX = pos.dx;
-        posY = pos.dy;
-      }
-
-      const vp =
-        findViewportAncestor(widget) ?? findViewportInTree(this.editor.getRootWidget?.() ?? null);
-      let scaleX = 1;
-      let scaleY = 1;
-      let transX = 0;
-      let transY = 0;
-      if (isViewportLike(vp)) {
-        scaleX = vp.scale || 1;
-        scaleY = vp.scale || 1;
-        transX = vp.tx || 0;
-        transY = vp.ty || 0;
-      } else if (cssTransform && cssTransform !== 'none') {
-        const s = parseCssScale(cssTransform);
-        scaleX = s.sx;
-        scaleY = s.sy;
-      }
-
-      const screenLeft = offsetX + transX + posX * scaleX;
-      const screenTop = offsetY + transY + posY * scaleY;
+      const wm = (widget as any).getWorldMatrix?.() as
+        | [number, number, number, number, number, number]
+        | undefined;
+      const bounds = isConnectorLike(widget) ? widget.getBounds() : null;
+      const localX = bounds ? bounds.x : 0;
+      const localY = bounds ? bounds.y : 0;
+      const width = bounds ? bounds.width : widget.renderObject.size.width;
+      const height = bounds ? bounds.height : widget.renderObject.size.height;
+      const x0 = wm
+        ? wm[4] + (wm[0] * localX + wm[2] * localY)
+        : widget.getAbsolutePosition().dx + localX;
+      const y0 = wm
+        ? wm[5] + (wm[1] * localX + wm[3] * localY)
+        : widget.getAbsolutePosition().dy + localY;
+      const sx0 = wm ? Math.sqrt(wm[0] * wm[0] + wm[1] * wm[1]) : 1;
+      const sy0 = wm ? Math.sqrt(wm[2] * wm[2] + wm[3] * wm[3]) : 1;
+      const cssS =
+        cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
+      const scaleX = sx0 * cssS.sx;
+      const scaleY = sy0 * cssS.sy;
+      const screenLeft = offsetX + x0 * cssS.sx;
+      const screenTop = offsetY + y0 * cssS.sy;
       const screenWidth = width * scaleX;
       const screenHeight = height * scaleY;
 
@@ -235,41 +211,28 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   if (!root) {
     return null;
   }
-  const vp = findViewportInTree(root);
-  if (vp) {
-    const s = isViewportLike(vp) ? vp.scale || 1 : 1;
-    const tx = isViewportLike(vp) ? vp.tx || 0 : 0;
-    const ty = isViewportLike(vp) ? vp.ty || 0 : 0;
-    x = (x - tx) / s;
-    y = (y - ty) / s;
-  }
   let found: Widget | null = null;
   function dfs(node: Widget): void {
-    let left: number;
-    let top: number;
-    let width: number;
-    let height: number;
-    if (isConnectorLike(node)) {
-      const bounds = node.getBounds();
-      if (bounds) {
-        left = bounds.x;
-        top = bounds.y;
-        width = bounds.width;
-        height = bounds.height;
-      } else {
-        const pos = node.getAbsolutePosition();
-        left = pos.dx;
-        top = pos.dy;
-        width = node.renderObject.size.width;
-        height = node.renderObject.size.height;
-      }
-    } else {
-      const pos = node.getAbsolutePosition();
-      left = pos.dx;
-      top = pos.dy;
-      width = node.renderObject.size.width;
-      height = node.renderObject.size.height;
-    }
+    const wm = (node as any).getWorldMatrix?.() as
+      | [number, number, number, number, number, number]
+      | undefined;
+    const bounds = isConnectorLike(node) ? node.getBounds() : null;
+    const localX = bounds ? bounds.x : 0;
+    const localY = bounds ? bounds.y : 0;
+    const widthLocal = bounds ? bounds.width : node.renderObject.size.width;
+    const heightLocal = bounds ? bounds.height : node.renderObject.size.height;
+    const x0 = wm
+      ? wm[4] + (wm[0] * localX + wm[2] * localY)
+      : node.getAbsolutePosition().dx + localX;
+    const y0 = wm
+      ? wm[5] + (wm[1] * localX + wm[3] * localY)
+      : node.getAbsolutePosition().dy + localY;
+    const sx0 = wm ? Math.sqrt(wm[0] * wm[0] + wm[1] * wm[1]) : 1;
+    const sy0 = wm ? Math.sqrt(wm[2] * wm[2] + wm[3] * wm[3]) : 1;
+    const left = x0;
+    const top = y0;
+    const width = widthLocal * sx0;
+    const height = heightLocal * sy0;
     if (x >= left && x <= left + width && y >= top && y <= top + height) {
       found = node;
       for (const child of node.children) {
@@ -279,33 +242,6 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   }
   dfs(root);
   return found;
-}
-
-function findViewportAncestor(node: Widget | null): Widget | null {
-  let cur: Widget | null = node;
-  while (cur) {
-    if (cur.type === 'Viewport') {
-      return cur;
-    }
-    cur = cur.parent;
-  }
-  return null;
-}
-
-function findViewportInTree(root: Widget | null): Widget | null {
-  if (!root) {
-    return null;
-  }
-  if (root.type === 'Viewport') {
-    return root;
-  }
-  for (const c of root.children) {
-    const r = findViewportInTree(c);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
 }
 
 function parseCssScale(transform: string): { sx: number; sy: number } {
@@ -326,25 +262,9 @@ function parseCssScale(transform: string): { sx: number; sy: number } {
   }
   return { sx: 1, sy: 1 };
 }
-
 type ConnectorBounds = { x: number; y: number; width: number; height: number };
 type ConnectorLike = Widget & { type: string; getBounds: () => ConnectorBounds | null };
-type ViewportLike = Widget & { type: string; scale: number; tx: number; ty: number };
-
 function isConnectorLike(w: Widget): w is ConnectorLike {
   const maybe = w as unknown as { getBounds?: unknown };
   return w.type === 'Connector' && typeof maybe.getBounds === 'function';
-}
-
-function isViewportLike(w: Widget | null): w is ViewportLike {
-  if (!w) {
-    return false;
-  }
-  const obj = w as unknown as { scale?: unknown; tx?: unknown; ty?: unknown };
-  return (
-    w.type === 'Viewport' &&
-    typeof obj.scale === 'number' &&
-    typeof obj.tx === 'number' &&
-    typeof obj.ty === 'number'
-  );
 }

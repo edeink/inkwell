@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { SCALE_CONFIG } from '../config/constants';
+
 import { CustomComponentType } from './type';
 
 import type {
@@ -21,13 +23,48 @@ export interface ViewportData extends WidgetData {
   selectionRect?: { x: number; y: number; width: number; height: number } | null;
   width?: number;
   height?: number;
-  hoveredKey?: string | null;
   activeKey?: string | null;
   editingKey?: string | null;
-  hoverAnim?: Record<string, number>;
   collapsedKeys?: string[];
+  onSetViewPosition?: (tx: number, ty: number) => void;
+  onZoomAt?: (scale: number, cx: number, cy: number) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onDeleteSelection?: () => void;
+  onSetSelectedKeys?: (keys: string[]) => void;
+  onRenderComplete?: () => void;
 }
 
+function pointerIdOf(native?: Event): number {
+  const p = native as PointerEvent | undefined;
+  if (p && typeof p.pointerId === 'number') {
+    return p.pointerId;
+  }
+  const t = native as TouchEvent | undefined;
+  if (t && t.changedTouches && t.changedTouches.length > 0) {
+    return t.changedTouches[0].identifier;
+  }
+  return -1;
+}
+
+function isShift(native?: Event): boolean {
+  const m = native as MouseEvent | PointerEvent | KeyboardEvent | undefined;
+  return !!m && !!(m as any).shiftKey;
+}
+
+function clampScale(s: number): number {
+  const min = SCALE_CONFIG.MIN_SCALE;
+  const max = SCALE_CONFIG.MAX_SCALE;
+  return Math.max(min, Math.min(max, s));
+}
+
+/**
+ * 视口（Viewport）
+ * 模块功能说明：
+ * - 提供思维导图画布的平移与缩放（含双指捏合）交互
+ * - 管理选中、悬停、编辑状态并通过回调与外部控制器通信
+ * - 统一将屏幕坐标转换为世界坐标以便命中测试与框选
+ */
 export class Viewport extends Widget<ViewportData> {
   private _scale: number = 1;
   private _tx: number = 0;
@@ -36,11 +73,29 @@ export class Viewport extends Widget<ViewportData> {
   private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
   width?: number;
   height?: number;
-  private _hoveredKey: string | null = null;
   private _activeKey: string | null = null;
   private _editingKey: string | null = null;
-  private _hoverAnim: Record<string, number> = {};
   private _collapsedKeys: string[] = [];
+  private pinchState: {
+    id1: number;
+    id2: number;
+    startD: number;
+    startScale: number;
+    cx: number;
+    cy: number;
+  } | null = null;
+  private pointers: Map<number, { x: number; y: number }> = new Map();
+  private _onSetViewPosition?: (tx: number, ty: number) => void;
+  private _onZoomAt?: (scale: number, cx: number, cy: number) => void;
+  private _onUndo?: () => void;
+  private _onRedo?: () => void;
+  private _onDeleteSelection?: () => void;
+  private _onSetSelectedKeys?: (keys: string[]) => void;
+  private _onRenderComplete?: () => void;
+  private renderScheduled = false;
+  private selectAllActive: boolean = false;
+  private wheelPending: { dx: number; dy: number } | null = null;
+  private wheelRaf: number | null = null;
 
   static {
     Widget.registerType(CustomComponentType.Viewport, Viewport);
@@ -64,11 +119,16 @@ export class Viewport extends Widget<ViewportData> {
     } | null;
     this.width = data.width;
     this.height = data.height;
-    this._hoveredKey = (data.hoveredKey ?? this._hoveredKey) as string | null;
     this._activeKey = (data.activeKey ?? this._activeKey) as string | null;
     this._editingKey = (data.editingKey ?? this._editingKey) as string | null;
-    this._hoverAnim = (data.hoverAnim ?? this._hoverAnim) as Record<string, number>;
     this._collapsedKeys = (data.collapsedKeys ?? this._collapsedKeys) as string[];
+    this._onSetViewPosition = data.onSetViewPosition;
+    this._onZoomAt = data.onZoomAt;
+    this._onUndo = data.onUndo;
+    this._onRedo = data.onRedo;
+    this._onDeleteSelection = data.onDeleteSelection;
+    this._onSetSelectedKeys = data.onSetSelectedKeys;
+    this._onRenderComplete = data.onRenderComplete;
   }
 
   createElement(data: ViewportData): Widget<ViewportData> {
@@ -83,8 +143,6 @@ export class Viewport extends Widget<ViewportData> {
 
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    renderer.translate(this.tx, this.ty);
-    renderer.scale(this.scale, this.scale);
     const rect = this.selectionRect;
     if (rect) {
       const r = this.normalizeRect(rect);
@@ -98,6 +156,23 @@ export class Viewport extends Widget<ViewportData> {
         strokeWidth: 1,
       });
     }
+  }
+
+  requestRender(): void {
+    if (this.renderScheduled) {
+      return;
+    }
+    this.renderScheduled = true;
+    requestAnimationFrame(() => {
+      try {
+        this._onRenderComplete?.();
+      } finally {
+        // reset in microtask to coalesce rapid calls within same tick
+        Promise.resolve().then(() => {
+          this.renderScheduled = false;
+        });
+      }
+    });
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -152,35 +227,35 @@ export class Viewport extends Widget<ViewportData> {
   get selectionRect(): { x: number; y: number; width: number; height: number } | null {
     return this._selectionRect;
   }
-  get hoveredKey(): string | null {
-    return this._hoveredKey;
-  }
   get activeKey(): string | null {
     return this._activeKey;
   }
   get editingKey(): string | null {
     return this._editingKey;
   }
-  get hoverAnim(): Record<string, number> {
-    return this._hoverAnim;
-  }
   get collapsedKeys(): string[] {
     return this._collapsedKeys;
   }
 
   setTransform(scale: number, tx: number, ty: number): void {
-    this._scale = scale;
-    this._tx = tx;
-    this._ty = ty;
+    const s = clampScale(scale);
+    const nx = Number.isFinite(tx) ? tx : this._tx;
+    const ny = Number.isFinite(ty) ? ty : this._ty;
+    this._scale = s;
+    this._tx = nx;
+    this._ty = ny;
+    this.requestRender();
   }
 
   setPosition(tx: number, ty: number): void {
-    this._tx = tx;
-    this._ty = ty;
+    const nx = Number.isFinite(tx) ? tx : this._tx;
+    const ny = Number.isFinite(ty) ? ty : this._ty;
+    this._tx = nx;
+    this._ty = ny;
   }
 
   setScale(scale: number): void {
-    this._scale = scale;
+    this._scale = clampScale(scale);
   }
 
   setSelectedKeys(keys: string[]): void {
@@ -191,10 +266,6 @@ export class Viewport extends Widget<ViewportData> {
     this._selectionRect = rect ? { ...rect } : null;
   }
 
-  setHoveredKey(key: string | null): void {
-    this._hoveredKey = key ?? null;
-  }
-
   setActiveKey(key: string | null): void {
     this._activeKey = key ?? null;
   }
@@ -203,12 +274,322 @@ export class Viewport extends Widget<ViewportData> {
     this._editingKey = key ?? null;
   }
 
-  setHoverAnimProgress(map: Record<string, number>): void {
-    this._hoverAnim = { ...map };
-  }
-
   setCollapsedKeys(keys: string[]): void {
     this._collapsedKeys = Array.from(keys);
+  }
+
+  onPointerDown(e: any): boolean | void {
+    const world = this.getWorldXY(e);
+    const pid = pointerIdOf(e?.nativeEvent);
+    this.pointers.set(pid, world);
+    // 按住 Shift 进入框选模式
+    if (e?.nativeEvent && isShift(e.nativeEvent)) {
+      this._selectionRect = { x: world.x, y: world.y, width: 0, height: 0 };
+      return false;
+    }
+    // Ctrl/Meta + 左键：进入全选模式（不触发平移/滚动）
+    const pe = e?.nativeEvent as PointerEvent | undefined;
+    const ctrlLike = !!(pe && ((pe as any).ctrlKey || (pe as any).metaKey));
+    const leftBtn = !!(pe && pe.buttons & 1);
+    if (ctrlLike && leftBtn) {
+      this.selectAllActive = true;
+      const keys = this.collectAllNodeKeys();
+      this.setSelectedKeys(keys);
+      this.requestRender();
+      return false;
+    }
+    // 若满足双指捏合（pinch）启动条件，优先开始缩放交互
+    if (this.tryStartPinch(e?.nativeEvent)) {
+      return false;
+    }
+    // 禁用单指拖动视口平移：保留为纯 pointer move（不设置 panState）
+    return false;
+  }
+
+  onPointerMove(e: any): boolean | void {
+    const world = this.getWorldXY(e);
+    const pid = pointerIdOf(e?.nativeEvent);
+    // 在捏合缩放期间更新两指位置并计算缩放比例
+    if (this.updatePinchZoom(pid, world, e?.nativeEvent)) {
+      return false;
+    }
+    // 全选模式下保持选择，不触发平移/滚动
+    if (this.selectAllActive) {
+      return false;
+    }
+    if (this._selectionRect) {
+      this._selectionRect.width = world.x - this._selectionRect.x;
+      this._selectionRect.height = world.y - this._selectionRect.y;
+      this.requestRender();
+      return false;
+    }
+  }
+
+  onPointerUp(e: any): boolean | void {
+    const pid = pointerIdOf(e?.nativeEvent);
+    if (pid !== -1) {
+      this.pointers.delete(pid);
+    }
+    // 当捏合参与指针抬起时，结束捏合缩放状态
+    if (this.stopPinchIfPointer(pid)) {
+      // 结束捏合后直接返回，避免误触发后续逻辑
+      return false;
+    }
+    // 退出全选模式
+    if (this.selectAllActive) {
+      this.selectAllActive = false;
+      return false;
+    }
+    if (this._selectionRect) {
+      const r = this.normalizeRect(this._selectionRect);
+      this._selectionRect = null;
+      this.setSelectionRect(null);
+      const selected = new Set(this.collectKeysInRect(r));
+      this.setSelectedKeys(Array.from(selected));
+      this._onSetSelectedKeys?.(this._selectedKeys);
+      this.requestRender();
+      return false;
+    }
+  }
+
+  onWheel(e: any): boolean | void {
+    const we = e?.nativeEvent as WheelEvent | undefined;
+    if (we && (we.ctrlKey || we.metaKey)) {
+      try {
+        we.preventDefault();
+      } catch {}
+    }
+    // 触控板双指滚动：当未按下 Ctrl/Meta 时，按 wheel delta 平滑平移视口
+    if (we && !(we.ctrlKey || we.metaKey)) {
+      const dx = we.deltaX || 0;
+      const dy = we.deltaY || 0;
+      try {
+        console.debug('[Viewport] wheel', { dx, dy, tx: this.tx, ty: this.ty, scale: this.scale });
+      } catch {}
+      // 合并多次 wheel 事件到一帧
+      const pending = this.wheelPending ?? { dx: 0, dy: 0 };
+      pending.dx = dx;
+      pending.dy = dy;
+      this.wheelPending = pending;
+      if (this.wheelRaf == null) {
+        this.wheelRaf = requestAnimationFrame(() => {
+          const p = this.wheelPending ?? { dx: 0, dy: 0 };
+          this.wheelPending = null;
+          this.wheelRaf = null;
+          // 同时处理 x/y，实现对角线滚动
+          const tx = this.tx - p.dx;
+          const ty = this.ty - p.dy;
+          this.setPosition(tx, ty);
+          this._onSetViewPosition?.(this.tx, this.ty);
+          try {
+            console.debug('[Viewport] pan', { tx: this.tx, ty: this.ty });
+          } catch {}
+          this.requestRender();
+        });
+      }
+      return false;
+    }
+    // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）：延迟到 rAF 中统一处理
+    const scaleDelta = we && we.deltaY < 0 ? 1.06 : 0.94;
+    const m = we as MouseEvent | undefined;
+    const cx = m?.clientX ?? 0;
+    const cy = m?.clientY ?? 0;
+    const s = clampScale(this.scale * scaleDelta);
+    const pendingZoom = { scale: s, cx, cy };
+    requestAnimationFrame(() => {
+      this._onZoomAt?.(pendingZoom.scale, pendingZoom.cx, pendingZoom.cy);
+    });
+    return false;
+  }
+
+  onKeyDown(e: any): boolean | void {
+    const ke = e?.nativeEvent as KeyboardEvent | undefined;
+    if (!ke) {
+      return;
+    }
+    const ctrlKey = ke.ctrlKey || ke.metaKey;
+    if (ctrlKey && ke.key.toLowerCase() === 'z' && !ke.shiftKey) {
+      this._onUndo?.();
+    } else if (
+      (ctrlKey && ke.key.toLowerCase() === 'y') ||
+      (ctrlKey && ke.shiftKey && ke.key.toLowerCase() === 'z')
+    ) {
+      this._onRedo?.();
+    } else if (ctrlKey && (ke.key === '+' || ke.key === '-' || ke.key === '=' || ke.key === '0')) {
+      try {
+        ke.preventDefault();
+      } catch {}
+    } else if (ke.key === 'Delete' || ke.key === 'Backspace') {
+      const editing = this.editingKey;
+      if (editing) {
+        return false;
+      }
+      this._onDeleteSelection?.();
+    } else if (ke.key === 'ArrowLeft') {
+      const tx = this.tx + 20;
+      const ty = this.ty;
+      this.setPosition(tx, ty);
+      this._onSetViewPosition?.(this.tx, this.ty);
+    } else if (ke.key === 'ArrowRight') {
+      const tx = this.tx - 20;
+      const ty = this.ty;
+      this.setPosition(tx, ty);
+      this._onSetViewPosition?.(this.tx, this.ty);
+    } else if (ke.key === 'ArrowUp') {
+      const tx = this.tx;
+      const ty = this.ty + 20;
+      this.setPosition(tx, ty);
+      this._onSetViewPosition?.(this.tx, this.ty);
+    } else if (ke.key === 'ArrowDown') {
+      const tx = this.tx;
+      const ty = this.ty - 20;
+      this.setPosition(tx, ty);
+      this._onSetViewPosition?.(this.tx, this.ty);
+    }
+    return false;
+  }
+
+  private getWorldXY(e: any): { x: number; y: number } {
+    const x = (e.x - this.tx) / this.scale;
+    const y = (e.y - this.ty) / this.scale;
+    return { x, y };
+  }
+
+  zoomAt(newScale: number, cx: number, cy: number): void {
+    const x = (cx - this.tx) / this.scale;
+    const y = (cy - this.ty) / this.scale;
+    const s = clampScale(newScale);
+    const tx = cx - x * s;
+    const ty = cy - y * s;
+    this.setTransform(s, tx, ty);
+  }
+
+  /**
+   * 根据当前指针集合尝试启动捏合缩放
+   * @param native 原生事件（用于读取 clientX/clientY）
+   * @returns 是否成功启动捏合
+   */
+  private tryStartPinch(native?: Event): boolean {
+    if (this.pointers.size === 2 && native) {
+      const ids = Array.from(this.pointers.keys());
+      const a = this.pointers.get(ids[0]);
+      const b = this.pointers.get(ids[1]);
+      if (!a || !b) {
+        return false;
+      }
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d = Math.hypot(dx, dy);
+      const m = native as MouseEvent;
+      const cx = m.clientX;
+      const cy = m.clientY;
+      this.pinchState = { id1: ids[0], id2: ids[1], startD: d, startScale: this.scale, cx, cy };
+      this._selectionRect = null;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 在捏合缩放过程中更新指针位置并计算缩放比例
+   * @param pid 指针ID（pointerId/touch identifier），-1 表示无效
+   * @param world 世界坐标（已经扣除了视口平移与缩放）
+   * @param native 原生事件（用于读取 clientX/clientY）
+   * @returns 是否进行了捏合更新
+   */
+  private updatePinchZoom(pid: number, world: { x: number; y: number }, native?: Event): boolean {
+    if (!this.pinchState || pid === -1) {
+      return false;
+    }
+    this.pointers.set(pid, world);
+    const a = this.pointers.get(this.pinchState.id1);
+    const b = this.pointers.get(this.pinchState.id2);
+    if (a && b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dNow = Math.hypot(dx, dy);
+      const s = clampScale(this.pinchState.startScale * (dNow / this.pinchState.startD));
+      const m = native as MouseEvent;
+      const cx = m?.clientX ?? 0;
+      const cy = m?.clientY ?? 0;
+      this._onZoomAt?.(s, cx, cy);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 若抬起的指针参与了捏合，结束捏合状态
+   * @param pid 指针ID（-1 表示无效）
+   * @returns 是否结束了捏合
+   */
+  private stopPinchIfPointer(pid: number): boolean {
+    if (
+      this.pinchState &&
+      pid !== -1 &&
+      (pid === this.pinchState.id1 || pid === this.pinchState.id2)
+    ) {
+      this.pinchState = null;
+      return true;
+    }
+    return false;
+  }
+
+  private collectKeysInRect(r: { x: number; y: number; width: number; height: number }): string[] {
+    const out: string[] = [];
+    const root = this.parent;
+    const walk = (w: Widget) => {
+      const p = w.getAbsolutePosition();
+      const s = w.renderObject.size;
+      const isNode = w.type === CustomComponentType.MindMapNode;
+      if (
+        isNode &&
+        p.dx < r.x + r.width &&
+        p.dx + s.width > r.x &&
+        p.dy < r.y + r.height &&
+        p.dy + s.height > r.y
+      ) {
+        out.push(w.key as string);
+      }
+      for (const c of (w as any).children as Widget[]) {
+        walk(c);
+      }
+    };
+    if (root) {
+      walk(root as Widget);
+    }
+    return out;
+  }
+
+  private collectAllNodeKeys(): string[] {
+    const out: string[] = [];
+    const root = this.parent;
+    const walk = (w: Widget) => {
+      const isNode = w.type === CustomComponentType.MindMapNode;
+      if (isNode) {
+        out.push(w.key as string);
+      }
+      for (const c of (w as any).children as Widget[]) {
+        walk(c);
+      }
+    };
+    if (root) {
+      walk(root as Widget);
+    }
+    return out;
+  }
+
+  protected getSelfTransformSteps(): Array<
+    | { t: 'translate'; x: number; y: number }
+    | { t: 'scale'; sx: number; sy: number }
+    | { t: 'rotate'; rad: number }
+  > {
+    const o = this.renderObject.offset;
+    return [
+      { t: 'translate', x: o.dx, y: o.dy },
+      { t: 'translate', x: this.tx, y: this.ty },
+      { t: 'scale', sx: this.scale, sy: this.scale },
+    ];
   }
 }
 

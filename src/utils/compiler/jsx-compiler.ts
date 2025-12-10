@@ -92,6 +92,8 @@ export function compileElement(element: AnyElement): ComponentData {
         });
         continue;
       }
+      // 非事件 onXXX 回调需要透传到数据对象，供组件内部调用
+      target[k] = v as unknown;
       continue;
     }
     target[k] = v as unknown;

@@ -2,16 +2,13 @@ import { CustomComponentType, Side } from '../../custom-widget/type';
 
 import { HistoryModule } from './history';
 import { LayoutModule } from './layout';
+import { moveNode as moveImpl } from './move';
 
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';
 
 import { Widget as WidgetCtor } from '@/core/base';
 
-/**
- * 节点增删改查模块
- * 负责兄弟/子节点的新增、选择删除（带撤销），并触发布局增量更新。
- */
 export class CrudModule {
   private controller: MindmapController;
   private history: HistoryModule;
@@ -22,7 +19,6 @@ export class CrudModule {
     this.history = history;
     this.layout = layout;
   }
-
   addSibling(key: string, dir: -1 | 1): void {
     const layout = this.getLayout();
     if (!layout) {
@@ -172,6 +168,10 @@ export class CrudModule {
     this.controller.runtime.rebuild();
   }
 
+  moveNode(key: string, dx: number, dy: number): void {
+    moveImpl(this.controller, key, dx, dy);
+  }
+
   deleteSelectionWithUndo(): void {
     const layout = this.getLayout();
     if (!layout) {
@@ -294,7 +294,6 @@ export class CrudModule {
   }
 
   private generateKey(prefix: string = 'node'): string {
-    const s = Math.random().toString(36).slice(2, 8);
-    return `${prefix}-${Date.now()}-${s}`;
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 }

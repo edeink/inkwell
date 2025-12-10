@@ -14,6 +14,7 @@ import type {
 
 import { Widget } from '@/core/base';
 import { createWidget as createExternalWidget } from '@/core/registry';
+import Runtime from '@/runtime';
 
 export interface MindMapNodeData extends WidgetData {
   title: string;
@@ -25,6 +26,10 @@ export interface MindMapNodeData extends WidgetData {
   borderRadius?: number;
   padding?: number;
   prefSide?: Side;
+  onSetActiveKey?: (key: string | null) => void;
+  onAddSibling?: (refKey: string, dir: -1 | 1) => void;
+  onAddChildSide?: (refKey: string, side: Side) => void;
+  onMoveNode?: (key: string, dx: number, dy: number) => void;
 }
 
 /**
@@ -41,7 +46,17 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   borderRadius: number = 10;
   padding: number = 12;
   prefSide: Side | undefined = undefined;
+  private _onSetActiveKey?: (key: string | null) => void;
+  private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
+  private _onAddChildSide?: (refKey: string, side: Side) => void;
+  private _onMoveNode?: (key: string, dx: number, dy: number) => void;
   private childOffsets: Offset[] = [];
+  private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
+    null;
+  private clickCandidate: { startX: number; startY: number } | null = null;
+  private static hoverAnim: Map<string, number> = new Map();
+  private static hoverAnimRaf: number | null = null;
+  private static currentHoverKey: string | null = null;
 
   static {
     Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
@@ -62,6 +77,10 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     this.borderRadius = (data.borderRadius ?? this.borderRadius) as number;
     this.padding = (data.padding ?? this.padding) as number;
     this.prefSide = data.prefSide;
+    this._onSetActiveKey = data.onSetActiveKey;
+    this._onAddSibling = data.onAddSibling;
+    this._onAddChildSide = data.onAddChildSide;
+    this._onMoveNode = data.onMoveNode;
   }
 
   createElement(data: MindMapNodeData): Widget<MindMapNodeData> {
@@ -71,6 +90,9 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   }
 
   protected createChildWidget(childData: WidgetData): Widget | null {
+    if (childData.type === CustomComponentType.MindMapNode) {
+      throw new Error('MindMapNode does not support nested MindMapNode');
+    }
     return Widget.createWidget(childData) ?? createExternalWidget(childData.type, childData);
   }
 
@@ -112,7 +134,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       });
     }
 
-    const hoverP = vp?.hoverAnim?.[this.key] ?? (vp?.hoveredKey === this.key ? 1 : 0);
+    const hoverP = MindMapNode.getHoverProgress(this.key);
     if (hoverP > 0) {
       const padW = Math.max(0, Math.round(2 * hoverP));
       renderer.drawRect({
@@ -151,46 +173,27 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       drawPlus(size.width / 2, size.height + 4 + half);
       const parentContainer = this.parent;
       let hasIncoming = false;
-      let parentKey: string | null = null;
       if (parentContainer) {
         for (const c of parentContainer.children) {
           if (c.type === CustomComponentType.Connector) {
             const to = (c as any).toKey as string;
-            const from = (c as any).fromKey as string;
             if (to === this.key) {
               hasIncoming = true;
-              parentKey = from;
               break;
             }
           }
         }
       }
       const isRoot = !hasIncoming;
-      let parentNode: MindMapNode | null = null;
-      if (hasIncoming && parentContainer) {
-        for (const c of parentContainer.children) {
-          if (c.type === CustomComponentType.MindMapNode && c.key === parentKey) {
-            parentNode = c as MindMapNode;
-            break;
-          }
-        }
-      }
-      if (!parentNode && parentContainer instanceof MindMapNode) {
-        parentNode = parentContainer as MindMapNode;
-      }
       let showLeft = false;
       let showRight = false;
       if (isRoot) {
         showLeft = true;
         showRight = true;
-      } else if (parentNode) {
-        const ppos = parentNode.getAbsolutePosition();
-        const pos = this.getAbsolutePosition();
-        if (pos.dx < ppos.dx) {
-          showLeft = true;
-        } else {
-          showRight = true;
-        }
+      } else if (this.prefSide === Side.Left) {
+        showLeft = true;
+      } else {
+        showRight = true;
       }
       if (showLeft) {
         drawPlus(-6 - half, size.height / 2);
@@ -207,26 +210,318 @@ export class MindMapNode extends Widget<MindMapNodeData> {
 
     const children = this.children.filter((c) => c.type === CustomComponentType.MindMapNode);
     if (!isCollapsed && children.length > 0) {
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        const childSize = child.renderObject.size;
-        const off = this.childOffsets[i] || { dx: 0, dy: 0 };
-        const sx = size.width;
-        const sy = size.height / 2;
-        const tx = off.dx;
-        const ty = off.dy + childSize.height / 2;
-        const mx = (sx + tx) / 2;
-        renderer.drawPath({
-          points: [
-            { x: sx, y: sy },
-            { x: mx, y: sy },
-            { x: mx, y: ty },
-            { x: tx, y: ty },
-          ],
-          stroke: '#8c8c8c',
-          strokeWidth: 1.5,
-        });
+    }
+  }
+
+  /**
+   * 事件迁移：节点级指针与双击事件由 InteractionModule 迁移至此
+   * - 绑定在组件实例上（类方法），通过统一事件系统按命中分发
+   * - 保持拖拽与激活/编辑行为一致，避免 window 级别监听
+   */
+  onPointerDown(e: any): boolean | void {
+    const vp = this.findViewport();
+    if (!vp) {
+      return;
+    }
+    const worldX = (e.x - vp.tx) / vp.scale;
+    const worldY = (e.y - vp.ty) / vp.scale;
+    const hit = this.hitToolbar(worldX, worldY);
+    if (hit) {
+      this.handleToolbarAction(hit, e?.nativeEvent);
+      return false;
+    }
+    const pos = this.getAbsolutePosition();
+    this.dragState = { startX: worldX, startY: worldY, origDx: pos.dx, origDy: pos.dy };
+    this.clickCandidate = { startX: e.x, startY: e.y };
+    return false;
+  }
+
+  onPointerMove(e: any): boolean | void {
+    const vp = this.findViewport();
+    if (!vp) {
+      return;
+    }
+    const worldX = (e.x - vp.tx) / vp.scale;
+    const worldY = (e.y - vp.ty) / vp.scale;
+    // 更新拖拽
+    if (!this.dragState) {
+      // 非拖拽时更新 hover 命中（流畅切换）
+      const pos = this.getAbsolutePosition();
+      const sz = this.renderObject.size;
+      const inside =
+        worldX >= pos.dx &&
+        worldY >= pos.dy &&
+        worldX <= pos.dx + sz.width &&
+        worldY <= pos.dy + sz.height;
+      const runtime = this.findRuntimeFromNative(e?.nativeEvent);
+      if (inside) {
+        MindMapNode.setHoveredKey(this.key, runtime ?? null);
+      } else if (MindMapNode.currentHoverKey === this.key) {
+        MindMapNode.setHoveredKey(null, runtime ?? null);
       }
+      return false;
+    }
+    const dx = worldX - this.dragState.startX;
+    const dy = worldY - this.dragState.startY;
+    this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
+    this.requestRerenderFromNative(e?.nativeEvent);
+    if (this.clickCandidate) {
+      const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
+      if (d > 3) {
+        this.clickCandidate = null;
+      }
+    }
+    return false;
+  }
+
+  onPointerUp(_e: any): boolean | void {
+    const vp = this.findViewport();
+    const ds = this.dragState;
+    if (!vp) {
+      this.dragState = null;
+      this.clickCandidate = null;
+      return;
+    }
+    const moved =
+      !!ds &&
+      (Math.abs((this.renderObject.offset?.dx ?? 0) - ds.origDx) > 0.5 ||
+        Math.abs((this.renderObject.offset?.dy ?? 0) - ds.origDy) > 0.5);
+    this.dragState = null;
+    if (moved) {
+      const off = this.renderObject.offset || { dx: 0, dy: 0 };
+      this._onMoveNode?.(this.key, off.dx, off.dy);
+      this.requestRerenderFromNative(_e?.nativeEvent);
+      this.clickCandidate = null;
+    } else if (this.clickCandidate) {
+      if (this._onSetActiveKey) {
+        this._onSetActiveKey(this.key);
+      } else {
+        vp.setActiveKey(this.key);
+      }
+      this.clickCandidate = null;
+      this.requestRerenderFromNative(_e?.nativeEvent);
+    }
+    return false;
+  }
+
+  onDblClick(e: any): boolean | void {
+    const vp = this.findViewport();
+    if (!vp) {
+      return;
+    }
+    vp.setEditingKey(this.key);
+    this.openInlineEditor(e?.nativeEvent);
+    return false;
+  }
+
+  private requestRerenderFromNative(native?: Event): void {
+    const runtime = this.findRuntimeFromNative(native);
+    runtime?.rerender();
+  }
+
+  static setHoveredKey(key: string | null, runtime: Runtime | null): void {
+    const prev = MindMapNode.currentHoverKey;
+    if (key === prev) {
+      return;
+    }
+    MindMapNode.currentHoverKey = key;
+    const anim = MindMapNode.hoverAnim;
+    const now = performance.now();
+    const duration = 300;
+    const start = now;
+    if (prev) {
+      anim.set(prev, anim.get(prev) ?? 1);
+    }
+    if (key) {
+      anim.set(key, anim.get(key) ?? 0);
+    }
+    const step = () => {
+      const t = performance.now() - start;
+      const p = Math.max(0, Math.min(1, t / duration));
+      if (prev) {
+        const pv = anim.get(prev) ?? 1;
+        anim.set(prev, Math.max(0, pv - p));
+      }
+      if (key) {
+        const kv = anim.get(key) ?? 0;
+        anim.set(key, Math.min(1, kv + p));
+      }
+      runtime?.rerender();
+      if (t < duration) {
+        MindMapNode.hoverAnimRaf = requestAnimationFrame(step);
+      } else {
+        MindMapNode.hoverAnimRaf = null;
+        if (prev) {
+          anim.delete(prev);
+        }
+        if (key) {
+          anim.set(key, 1);
+        }
+      }
+    };
+    if (MindMapNode.hoverAnimRaf) {
+      try {
+        cancelAnimationFrame(MindMapNode.hoverAnimRaf);
+      } catch {}
+      MindMapNode.hoverAnimRaf = null;
+    }
+    MindMapNode.hoverAnimRaf = requestAnimationFrame(step);
+  }
+
+  static getHoverProgress(key: string): number {
+    return MindMapNode.hoverAnim.get(key) ?? (MindMapNode.currentHoverKey === key ? 1 : 0);
+  }
+
+  private findRuntimeFromNative(native?: Event): Runtime | null {
+    try {
+      const me = native as MouseEvent | PointerEvent | TouchEvent | undefined;
+      const x = (me as MouseEvent | PointerEvent | undefined)?.clientX;
+      const y = (me as MouseEvent | PointerEvent | undefined)?.clientY;
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        return null;
+      }
+      const els = document.elementsFromPoint(x, y);
+      for (const el of els) {
+        if (el instanceof HTMLCanvasElement) {
+          const id = el.dataset.inkwellId || '';
+          if (!id) {
+            continue;
+          }
+          const rt = Runtime.getByCanvasId(id);
+          if (rt) {
+            return rt;
+          }
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  private openInlineEditor(native?: Event): void {
+    const vp = this.findViewport();
+    if (!vp) {
+      return;
+    }
+    const pos = this.getAbsolutePosition();
+    const sz = this.renderObject.size;
+    const runtime = this.findRuntimeFromNative(native);
+    const container = runtime?.getContainer() ?? document.body;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = this.title || '';
+    input.style.position = 'absolute';
+    input.style.left = `${Math.round(vp.tx + pos.dx * vp.scale)}px`;
+    input.style.top = `${Math.round(vp.ty + pos.dy * vp.scale)}px`;
+    input.style.width = `${Math.round(sz.width * vp.scale)}px`;
+    input.style.height = '28px';
+    input.style.border = '1px solid #1677ff';
+    input.style.borderRadius = '8px';
+    input.style.padding = '4px 8px';
+    input.style.zIndex = '10000';
+    input.style.background = '#ffffff';
+    input.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+    container.appendChild(input);
+    input.focus();
+    input.select();
+    const cleanup = () => {
+      input.remove();
+      const vp2 = this.findViewport();
+      vp2?.setEditingKey(null);
+      runtime?.rerender();
+    };
+    const confirm = () => {
+      const v = input.value;
+      this.title = v;
+      cleanup();
+    };
+    const cancel = () => {
+      cleanup();
+    };
+    input.addEventListener('keydown', (ke) => {
+      if (ke.key === 'Enter') {
+        confirm();
+      } else if (ke.key === 'Escape') {
+        cancel();
+      }
+    });
+    input.addEventListener('blur', () => {
+      confirm();
+    });
+  }
+
+  private hitToolbar(
+    x: number,
+    y: number,
+  ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; key: string } | null {
+    const vp = this.findViewport();
+    if (!vp) {
+      return null;
+    }
+    const isActive = vp.activeKey === this.key;
+    if (!isActive) {
+      return null;
+    }
+    const p = this.getAbsolutePosition();
+    const s = this.renderObject.size;
+    const inside = (rx: number, ry: number, rw: number, rh: number) => {
+      const M = 2;
+      return x >= rx - M && y >= ry - M && x <= rx + rw + M && y <= ry + rh + M;
+    };
+    const top = { x: p.dx + s.width / 2 - 10, y: p.dy - 24, w: 20, h: 20 };
+    const bottom = { x: p.dx + s.width / 2 - 10, y: p.dy + s.height + 4, w: 20, h: 20 };
+    const right = { x: p.dx + s.width + 6, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
+    const left = { x: p.dx - 26, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
+    let showLeft = false;
+    let showRight = false;
+    const parentContainer = this.parent;
+    let hasIncoming = false;
+    if (parentContainer) {
+      for (const c of parentContainer.children) {
+        if ((c as any).type === 'Connector') {
+          const to = (c as any).toKey as string;
+          if (to === this.key) {
+            hasIncoming = true;
+            break;
+          }
+        }
+      }
+    }
+    const isRoot = !hasIncoming;
+    if (isRoot) {
+      showLeft = true;
+      showRight = true;
+    } else if (this.prefSide === Side.Left) {
+      showLeft = true;
+    } else {
+      showRight = true;
+    }
+    if (inside(top.x, top.y, top.w, top.h)) {
+      return { type: 'addAbove', key: this.key };
+    }
+    if (inside(bottom.x, bottom.y, bottom.w, bottom.h)) {
+      return { type: 'addBelow', key: this.key };
+    }
+    if (showRight && inside(right.x, right.y, right.w, right.h)) {
+      return { type: 'addChildRight', key: this.key };
+    }
+    if (showLeft && inside(left.x, left.y, left.w, left.h)) {
+      return { type: 'addChildLeft', key: this.key };
+    }
+    return null;
+  }
+
+  private handleToolbarAction(
+    hit: { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; key: string },
+    native?: Event,
+  ): void {
+    if (hit.type === 'addAbove') {
+      this._onAddSibling?.(hit.key, -1);
+    } else if (hit.type === 'addBelow') {
+      this._onAddSibling?.(hit.key, 1);
+    } else if (hit.type === 'addChildLeft') {
+      this._onAddChildSide?.(hit.key, Side.Left);
+    } else if (hit.type === 'addChildRight') {
+      this._onAddChildSide?.(hit.key, Side.Right);
     }
   }
 
@@ -272,6 +567,6 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     return null;
   }
 }
-
-export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> & WidgetProps;
+export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> &
+  WidgetProps & { children?: never };
 export const MindMapNodeElement: React.FC<MindMapNodeProps> = () => null;

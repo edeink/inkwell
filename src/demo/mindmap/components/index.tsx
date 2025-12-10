@@ -11,7 +11,7 @@ import ZoomBar from './zoom-bar';
 
 import type { Widget } from '@/core/base';
 
-import { DevTools } from '@/devtools/components/devtools';
+import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
 
 import './index.modules.less';
@@ -119,7 +119,7 @@ export default function MindmapComponent({
         });
       }
       const runtime = runtimeRef.current!;
-      const scene = createScene(size.width, size.height);
+      const scene = createScene(size.width, size.height, runtime);
       await runtime.renderFromJSX(scene);
       const root = runtime.getRootWidget();
       const vp = findViewport(root);
