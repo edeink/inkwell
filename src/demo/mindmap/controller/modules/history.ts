@@ -142,7 +142,11 @@ export class HistoryModule {
     const ops: Array<{ parent: Widget; index: number; widget: Widget }> = [];
     for (let i = 0; i < layout.children.length; i++) {
       const ch = layout.children[i];
-      if (ch.type === CustomComponentType.MindMapNode && toDelete.has(ch.key)) {
+      if (
+        (ch.type === CustomComponentType.MindMapNode ||
+          ch.type === CustomComponentType.MindMapNodeToolbar) &&
+        toDelete.has(ch.key)
+      ) {
         ops.push({ parent: layout, index: i, widget: ch });
       } else if (ch.type === CustomComponentType.Connector) {
         const from = (ch as any).fromKey as string;

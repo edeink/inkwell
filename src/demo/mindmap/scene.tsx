@@ -4,6 +4,7 @@ import { ConnectorElement as Connector } from './custom-widget/connector';
 import { ConnectorStyleProviderElement as ConnectorStyleProvider } from './custom-widget/connector-style-provider';
 import { MindMapLayoutElement as MindMapLayout } from './custom-widget/mindmap-layout';
 import { MindMapNodeElement as MindMapNode } from './custom-widget/mindmap-node';
+import { MindMapNodeToolbarElement as MindMapNodeToolbar } from './custom-widget/mindmap-node-toolbar';
 import { Side } from './custom-widget/type';
 import { ViewportElement as Viewport } from './custom-widget/viewport';
 
@@ -94,7 +95,7 @@ export function createScene(width: number, height: number, runtime?: Runtime): S
       console.error('Set selected keys failed:', e);
     }
   };
-  const onSetActiveKey = (key: string | null): void => {
+  const onActive = (key: string | null): void => {
     try {
       const c = getController();
       c?.setActiveKey(key ?? null);
@@ -112,13 +113,6 @@ export function createScene(width: number, height: number, runtime?: Runtime): S
     crud.moveNode(key, dx, dy);
   });
 
-  const mindMapNodeHanlder = {
-    onSetActiveKey,
-    onAddSibling,
-    onAddChildSide,
-    onMoveNode,
-  };
-
   return (
     <Viewport
       key="v"
@@ -135,18 +129,28 @@ export function createScene(width: number, height: number, runtime?: Runtime): S
     >
       <ConnectorStyleProvider strokeWidth={2} strokeColor="#4a90e2" dashArray="5,3">
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
-          <MindMapNode key="root" title="主题" {...mindMapNodeHanlder} />
-          <MindMapNode key="n1" title="分支 1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n1-1" title="分支 1.1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n1-2" title="分支 1.2" {...mindMapNodeHanlder} />
-          <MindMapNode key="n2" title="分支 2" {...mindMapNodeHanlder} />
-          <MindMapNode key="n2-1" title="分支 2.1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n3" title="分支 3" {...mindMapNodeHanlder} />
-          <MindMapNode key="n3-1" title="分支 3.1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n3-1-1" title="分支 3.1.1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n4" title="分支 4" {...mindMapNodeHanlder} />
-          <MindMapNode key="n4-1" title="分支 4.1" {...mindMapNodeHanlder} />
-          <MindMapNode key="n4-1-1" title="分支 4.1.1" {...mindMapNodeHanlder} />
+          <MindMapNode key="root" title="主题" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n1" title="分支 1" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n1-1" title="分支 1.1" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n1-2" title="分支 1.2" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n2" title="分支 2" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n2-1" title="分支 2.1" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n3" title="分支 3" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n3-1" title="分支 3.1" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode
+            key="n3-1-1"
+            title="分支 3.1.1"
+            onActive={onActive}
+            onMoveNode={onMoveNode}
+          />
+          <MindMapNode key="n4" title="分支 4" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode key="n4-1" title="分支 4.1" onActive={onActive} onMoveNode={onMoveNode} />
+          <MindMapNode
+            key="n4-1-1"
+            title="分支 4.1.1"
+            onActive={onActive}
+            onMoveNode={onMoveNode}
+          />
           <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
           <Connector key="e-root-n2" fromKey="root" toKey="n2" style="elbow" />
           <Connector key="e-n1-n1-1" fromKey="n1" toKey="n1-1" style="elbow" />
@@ -158,6 +162,11 @@ export function createScene(width: number, height: number, runtime?: Runtime): S
           <Connector key="e-root-n4" fromKey="root" toKey="n4" style="elbow" />
           <Connector key="e-n4-n4-1" fromKey="n4" toKey="n4-1" style="elbow" />
           <Connector key="e-n4-1-n4-1-1" fromKey="n4-1" toKey="n4-1-1" style="elbow" />
+          <MindMapNodeToolbar
+            key="toolbar"
+            onAddSibling={onAddSibling}
+            onAddChildSide={onAddChildSide}
+          />
         </MindMapLayout>
       </ConnectorStyleProvider>
     </Viewport>

@@ -26,7 +26,7 @@ export interface MindMapNodeData extends WidgetData {
   borderRadius?: number;
   padding?: number;
   prefSide?: Side;
-  onSetActiveKey?: (key: string | null) => void;
+  onActive?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
   onMoveNode?: (key: string, dx: number, dy: number) => void;
@@ -46,17 +46,16 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   borderRadius: number = 10;
   padding: number = 12;
   prefSide: Side | undefined = undefined;
-  private _onSetActiveKey?: (key: string | null) => void;
-  private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
-  private _onAddChildSide?: (refKey: string, side: Side) => void;
+  private _onActive?: (key: string | null) => void;
   private _onMoveNode?: (key: string, dx: number, dy: number) => void;
-  private childOffsets: Offset[] = [];
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
     null;
   private clickCandidate: { startX: number; startY: number } | null = null;
   private static hoverAnim: Map<string, number> = new Map();
   private static hoverAnimRaf: number | null = null;
   private static currentHoverKey: string | null = null;
+  private dragRaf: number | null = null;
+  private lastNativeEvent: Event | null = null;
 
   static {
     Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
@@ -77,9 +76,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     this.borderRadius = (data.borderRadius ?? this.borderRadius) as number;
     this.padding = (data.padding ?? this.padding) as number;
     this.prefSide = data.prefSide;
-    this._onSetActiveKey = data.onSetActiveKey;
-    this._onAddSibling = data.onAddSibling;
-    this._onAddChildSide = data.onAddChildSide;
+    this._onActive = data.onActive;
     this._onMoveNode = data.onMoveNode;
   }
 
@@ -101,15 +98,23 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     const { size } = this.renderObject as { size: Size };
     const vp = this.findViewport();
     const editing = vp?.editingKey === this.key;
-    const baseFill = editing ? 'rgba(22,119,255,0.08)' : this.color;
+    const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
+    const isDragging = !!this.dragState;
+    const baseFill = editing
+      ? 'rgba(22,119,255,0.08)'
+      : selected
+        ? '#e6f7ff'
+        : isDragging
+          ? 'rgba(255,255,255,0.6)'
+          : this.color;
     renderer.drawRect({
       x: 0,
       y: 0,
       width: size.width,
       height: size.height,
       fill: baseFill,
-      stroke: this.borderColor,
-      strokeWidth: this.borderWidth,
+      stroke: selected ? '#1890ff' : this.borderColor,
+      strokeWidth: selected ? 2 : this.borderWidth,
       borderRadius: this.borderRadius,
     });
     const pad = this.padding;
@@ -123,16 +128,6 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       fontSize: 14,
       color: '#333333',
     });
-    if (vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key)) {
-      renderer.drawRect({
-        x: -2,
-        y: -2,
-        width: size.width + 4,
-        height: size.height + 4,
-        stroke: '#fa8c16',
-        strokeWidth: 2,
-      });
-    }
 
     const hoverP = MindMapNode.getHoverProgress(this.key);
     if (hoverP > 0) {
@@ -148,60 +143,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       });
     }
 
-    const isActive = vp?.activeKey === this.key;
-    const btnSize = 20;
-    const btnR = 8;
-    const half = btnSize / 2;
-    const blue = '#1677ff';
-    const white = '#ffffff';
-    const drawPlus = (cx: number, cy: number) => {
-      renderer.drawRect({
-        x: cx - half,
-        y: cy - half,
-        width: btnSize,
-        height: btnSize,
-        fill: white,
-        stroke: blue,
-        strokeWidth: 1,
-        borderRadius: btnR,
-      });
-      renderer.drawLine({ x1: cx - 5, y1: cy, x2: cx + 5, y2: cy, stroke: blue, strokeWidth: 2 });
-      renderer.drawLine({ x1: cx, y1: cy - 5, x2: cx, y2: cy + 5, stroke: blue, strokeWidth: 2 });
-    };
-    if (isActive) {
-      drawPlus(size.width / 2, -24 + half);
-      drawPlus(size.width / 2, size.height + 4 + half);
-      const parentContainer = this.parent;
-      let hasIncoming = false;
-      if (parentContainer) {
-        for (const c of parentContainer.children) {
-          if (c.type === CustomComponentType.Connector) {
-            const to = (c as any).toKey as string;
-            if (to === this.key) {
-              hasIncoming = true;
-              break;
-            }
-          }
-        }
-      }
-      const isRoot = !hasIncoming;
-      let showLeft = false;
-      let showRight = false;
-      if (isRoot) {
-        showLeft = true;
-        showRight = true;
-      } else if (this.prefSide === Side.Left) {
-        showLeft = true;
-      } else {
-        showRight = true;
-      }
-      if (showLeft) {
-        drawPlus(-6 - half, size.height / 2);
-      }
-      if (showRight) {
-        drawPlus(size.width + 6 + half, size.height / 2);
-      }
-    }
+    void vp;
 
     const vpCollapsed = Array.isArray((vp as any)?.collapsedKeys)
       ? ((vp as any).collapsedKeys as string[])
@@ -225,14 +167,10 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     }
     const worldX = (e.x - vp.tx) / vp.scale;
     const worldY = (e.y - vp.ty) / vp.scale;
-    const hit = this.hitToolbar(worldX, worldY);
-    if (hit) {
-      this.handleToolbarAction(hit, e?.nativeEvent);
-      return false;
-    }
     const pos = this.getAbsolutePosition();
     this.dragState = { startX: worldX, startY: worldY, origDx: pos.dx, origDy: pos.dy };
     this.clickCandidate = { startX: e.x, startY: e.y };
+    vp.setDragProxyKey(this.key);
     return false;
   }
 
@@ -264,7 +202,13 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     const dx = worldX - this.dragState.startX;
     const dy = worldY - this.dragState.startY;
     this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
-    this.requestRerenderFromNative(e?.nativeEvent);
+    this.lastNativeEvent = (e?.nativeEvent as Event) ?? null;
+    if (this.dragRaf == null) {
+      this.dragRaf = requestAnimationFrame(() => {
+        this.requestRerenderFromNative(this.lastNativeEvent ?? undefined);
+        this.dragRaf = null;
+      });
+    }
     if (this.clickCandidate) {
       const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
       if (d > 3) {
@@ -274,7 +218,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     return false;
   }
 
-  onPointerUp(_e: any): boolean | void {
+  onPointerUp(e: any): boolean | void {
     const vp = this.findViewport();
     const ds = this.dragState;
     if (!vp) {
@@ -282,24 +226,30 @@ export class MindMapNode extends Widget<MindMapNodeData> {
       this.clickCandidate = null;
       return;
     }
-    const moved =
-      !!ds &&
-      (Math.abs((this.renderObject.offset?.dx ?? 0) - ds.origDx) > 0.5 ||
-        Math.abs((this.renderObject.offset?.dy ?? 0) - ds.origDy) > 0.5);
+    const worldX = (e.x - vp.tx) / vp.scale;
+    const worldY = (e.y - vp.ty) / vp.scale;
+    const moved = !!ds && (Math.abs(worldX - ds.startX) > 5 || Math.abs(worldY - ds.startY) > 5);
     this.dragState = null;
     if (moved) {
       const off = this.renderObject.offset || { dx: 0, dy: 0 };
-      this._onMoveNode?.(this.key, off.dx, off.dy);
-      this.requestRerenderFromNative(_e?.nativeEvent);
+      if (this._onMoveNode) {
+        this._onMoveNode(this.key, off.dx, off.dy);
+      } else {
+        const t = this as unknown as Widget;
+        const p = t.parent as Widget | null;
+        const container = p && p.type === CustomComponentType.MindMapNodeToolbar ? p : t;
+        container.renderObject.offset = { dx: off.dx, dy: off.dy } as any;
+      }
+      this.requestRerenderFromNative(e?.nativeEvent);
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
-      if (this._onSetActiveKey) {
-        this._onSetActiveKey(this.key);
+      if (this._onActive) {
+        this._onActive(this.key);
       } else {
         vp.setActiveKey(this.key);
       }
       this.clickCandidate = null;
-      this.requestRerenderFromNative(_e?.nativeEvent);
+      this.requestRerenderFromNative(e?.nativeEvent);
     }
     return false;
   }
@@ -447,82 +397,6 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     input.addEventListener('blur', () => {
       confirm();
     });
-  }
-
-  private hitToolbar(
-    x: number,
-    y: number,
-  ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; key: string } | null {
-    const vp = this.findViewport();
-    if (!vp) {
-      return null;
-    }
-    const isActive = vp.activeKey === this.key;
-    if (!isActive) {
-      return null;
-    }
-    const p = this.getAbsolutePosition();
-    const s = this.renderObject.size;
-    const inside = (rx: number, ry: number, rw: number, rh: number) => {
-      const M = 2;
-      return x >= rx - M && y >= ry - M && x <= rx + rw + M && y <= ry + rh + M;
-    };
-    const top = { x: p.dx + s.width / 2 - 10, y: p.dy - 24, w: 20, h: 20 };
-    const bottom = { x: p.dx + s.width / 2 - 10, y: p.dy + s.height + 4, w: 20, h: 20 };
-    const right = { x: p.dx + s.width + 6, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
-    const left = { x: p.dx - 26, y: p.dy + s.height / 2 - 10, w: 20, h: 20 };
-    let showLeft = false;
-    let showRight = false;
-    const parentContainer = this.parent;
-    let hasIncoming = false;
-    if (parentContainer) {
-      for (const c of parentContainer.children) {
-        if ((c as any).type === 'Connector') {
-          const to = (c as any).toKey as string;
-          if (to === this.key) {
-            hasIncoming = true;
-            break;
-          }
-        }
-      }
-    }
-    const isRoot = !hasIncoming;
-    if (isRoot) {
-      showLeft = true;
-      showRight = true;
-    } else if (this.prefSide === Side.Left) {
-      showLeft = true;
-    } else {
-      showRight = true;
-    }
-    if (inside(top.x, top.y, top.w, top.h)) {
-      return { type: 'addAbove', key: this.key };
-    }
-    if (inside(bottom.x, bottom.y, bottom.w, bottom.h)) {
-      return { type: 'addBelow', key: this.key };
-    }
-    if (showRight && inside(right.x, right.y, right.w, right.h)) {
-      return { type: 'addChildRight', key: this.key };
-    }
-    if (showLeft && inside(left.x, left.y, left.w, left.h)) {
-      return { type: 'addChildLeft', key: this.key };
-    }
-    return null;
-  }
-
-  private handleToolbarAction(
-    hit: { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; key: string },
-    native?: Event,
-  ): void {
-    if (hit.type === 'addAbove') {
-      this._onAddSibling?.(hit.key, -1);
-    } else if (hit.type === 'addBelow') {
-      this._onAddSibling?.(hit.key, 1);
-    } else if (hit.type === 'addChildLeft') {
-      this._onAddChildSide?.(hit.key, Side.Left);
-    } else if (hit.type === 'addChildRight') {
-      this._onAddChildSide?.(hit.key, Side.Right);
-    }
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {

@@ -71,7 +71,8 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
     const height = node.renderObject.size.height;
     if (x >= left && x <= left + width && y >= top && y <= top + height) {
       found = node;
-      for (const child of node.children) {
+      const children = node.children.slice().sort((a, b) => a.zIndex - b.zIndex);
+      for (const child of children) {
         dfs(child);
       }
     }

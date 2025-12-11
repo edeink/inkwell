@@ -156,21 +156,25 @@ export class Connector extends Widget<ConnectorData> {
     root: Widget,
     key: string,
   ): { x: number; y: number; width: number; height: number } | null {
-    const walk = (w: Widget): Widget | null => {
+    const matches: Widget[] = [];
+    const walk = (w: Widget): void => {
       if (w.key === key) {
-        return w;
+        matches.push(w);
       }
       for (const c of w.children) {
-        const r = walk(c);
-        if (r) {
-          return r;
-        }
+        walk(c);
       }
-      return null;
     };
-    const hit = walk(root);
-    if (!hit) {
+    walk(root);
+    if (!matches.length) {
       return null;
+    }
+    let hit: Widget = matches[0];
+    for (const m of matches) {
+      if (m.type === CustomComponentType.MindMapNode) {
+        hit = m;
+        break;
+      }
     }
     const p = hit.getAbsolutePosition();
     const s = hit.renderObject.size;

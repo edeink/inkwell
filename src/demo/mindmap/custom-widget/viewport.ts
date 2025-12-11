@@ -47,11 +47,6 @@ function pointerIdOf(native?: Event): number {
   return -1;
 }
 
-function isShift(native?: Event): boolean {
-  const m = native as MouseEvent | PointerEvent | KeyboardEvent | undefined;
-  return !!m && !!(m as any).shiftKey;
-}
-
 function clampScale(s: number): number {
   const min = SCALE_CONFIG.MIN_SCALE;
   const max = SCALE_CONFIG.MAX_SCALE;
@@ -96,6 +91,7 @@ export class Viewport extends Widget<ViewportData> {
   private selectAllActive: boolean = false;
   private wheelPending: { dx: number; dy: number } | null = null;
   private wheelRaf: number | null = null;
+  private dragProxyKey: string | null = null;
 
   static {
     Widget.registerType(CustomComponentType.Viewport, Viewport);
@@ -268,6 +264,12 @@ export class Viewport extends Widget<ViewportData> {
 
   setActiveKey(key: string | null): void {
     this._activeKey = key ?? null;
+    const t = this.findByKey(this.parent as Widget, this._activeKey ?? '');
+    if (t) {
+      const isNode = t.type === CustomComponentType.MindMapNode;
+      const container = isNode && t.parent ? (t.parent as Widget) : t;
+      container.bringToFront();
+    }
   }
 
   setEditingKey(key: string | null): void {
@@ -282,11 +284,6 @@ export class Viewport extends Widget<ViewportData> {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
     this.pointers.set(pid, world);
-    // 按住 Shift 进入框选模式
-    if (e?.nativeEvent && isShift(e.nativeEvent)) {
-      this._selectionRect = { x: world.x, y: world.y, width: 0, height: 0 };
-      return false;
-    }
     // Ctrl/Meta + 左键：进入全选模式（不触发平移/滚动）
     const pe = e?.nativeEvent as PointerEvent | undefined;
     const ctrlLike = !!(pe && ((pe as any).ctrlKey || (pe as any).metaKey));
@@ -296,6 +293,10 @@ export class Viewport extends Widget<ViewportData> {
       const keys = this.collectAllNodeKeys();
       this.setSelectedKeys(keys);
       this.requestRender();
+      return false;
+    }
+    if (leftBtn && !ctrlLike) {
+      this._selectionRect = { x: world.x, y: world.y, width: 0, height: 0 };
       return false;
     }
     // 若满足双指捏合（pinch）启动条件，优先开始缩放交互
@@ -323,6 +324,13 @@ export class Viewport extends Widget<ViewportData> {
       this.requestRender();
       return false;
     }
+    if (this.dragProxyKey) {
+      const target = this.findByKey(this.parent as Widget, this.dragProxyKey);
+      if (target && typeof (target as any).onPointerMove === 'function') {
+        (target as any).onPointerMove({ x: e.x, y: e.y, nativeEvent: e?.nativeEvent });
+        return false;
+      }
+    }
   }
 
   onPointerUp(e: any): boolean | void {
@@ -348,6 +356,14 @@ export class Viewport extends Widget<ViewportData> {
       this.setSelectedKeys(Array.from(selected));
       this._onSetSelectedKeys?.(this._selectedKeys);
       this.requestRender();
+      return false;
+    }
+    if (this.dragProxyKey) {
+      const target = this.findByKey(this.parent as Widget, this.dragProxyKey);
+      if (target && typeof (target as any).onPointerUp === 'function') {
+        (target as any).onPointerUp({ x: e.x, y: e.y, nativeEvent: e?.nativeEvent });
+      }
+      this.dragProxyKey = null;
       return false;
     }
   }
@@ -590,6 +606,33 @@ export class Viewport extends Widget<ViewportData> {
       { t: 'translate', x: this.tx, y: this.ty },
       { t: 'scale', sx: this.scale, sy: this.scale },
     ];
+  }
+
+  setDragProxyKey(key: string | null): void {
+    this.dragProxyKey = key ?? null;
+  }
+
+  private findByKey(w: Widget | null, key: string): Widget | null {
+    if (!w || !key) {
+      return null;
+    }
+    let best: Widget | null = null;
+    if (w.key === key) {
+      best = w;
+      if (w.type === CustomComponentType.MindMapNode) {
+        return w;
+      }
+    }
+    for (const c of w.children) {
+      const r = this.findByKey(c as Widget, key);
+      if (r) {
+        if (r.type === CustomComponentType.MindMapNode) {
+          return r;
+        }
+        best = best ?? r;
+      }
+    }
+    return best;
   }
 }
 

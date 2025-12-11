@@ -5,10 +5,10 @@ import { CustomComponentType, Side } from './type';
 import type {
   BoxConstraints,
   BuildContext,
-  WidgetProps,
   Offset,
   Size,
   WidgetData,
+  WidgetProps,
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -36,12 +36,6 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
   nodeSpacing: number = 28;
   side: 'left' | 'right' = 'right';
   private computedOffsets: Offset[] = [];
-  private lastLayoutStats: { nodes: number; edges: number; durationMs: number; levels: number } = {
-    nodes: 0,
-    edges: 0,
-    durationMs: 0,
-    levels: 0,
-  };
 
   static {
     Widget.registerType(CustomComponentType.MindMapLayout, MindMapLayout);
@@ -80,7 +74,8 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
     if (this.mode === 'radial') {
       const nodeIndices: number[] = [];
       for (let i = 0; i < this.children.length; i++) {
-        if (this.children[i].type === CustomComponentType.MindMapNode) {
+        const t = this.children[i].type;
+        if (t === CustomComponentType.MindMapNode) {
           nodeIndices.push(i);
         }
       }
@@ -90,8 +85,10 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
         return { width: constraints.minWidth, height: constraints.minHeight } as Size;
       }
       const rootIdx = nodeIndices[0];
-      const cx = Math.max(childrenSizes[rootIdx].width, 120);
-      const cy = Math.max(childrenSizes[rootIdx].height, 60);
+      const rootWidget = this.children[rootIdx];
+      const rootSize = childrenSizes[rootIdx];
+      const cx = Math.max(rootSize.width, 120);
+      const cy = Math.max(rootSize.height, 60);
       const r = Math.max(cx, cy) + 80;
       const n = Math.max(1, nNodes - 1);
       const offsets: Offset[] = this.children.map(() => ({ dx: 0, dy: 0 }));
@@ -110,6 +107,7 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
       for (let k = 0; k < nNodes; k++) {
         const i = nodeIndices[k];
         const off = offsets[i];
+        const w = this.children[i];
         const sz = childrenSizes[i];
         minX = Math.min(minX, off.dx);
         minY = Math.min(minY, off.dy);
@@ -133,19 +131,21 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
       // 将平移量叠加到节点偏移；绘制型子组件维持 (0,0)
       this.computedOffsets = this.children.map((_, i) => {
         const base = offsets[i] || { dx: 0, dy: 0 };
-        if (this.children[i].type === CustomComponentType.MindMapNode) {
+        const t = this.children[i].type;
+        if (t === CustomComponentType.MindMapNode) {
           return { dx: base.dx + dx0, dy: base.dy + dy0 } as Offset;
         }
         return { dx: 0, dy: 0 } as Offset;
       });
       return { width: availW, height: availH };
     } else {
-      const nodes: Array<{ index: number; key: string; size: Size }> = [];
+      const nodes: Array<{ index: number; key: string; size: Size; widget: Widget }> = [];
       const edges: Array<{ from: string; to: string }> = [];
       for (let i = 0; i < this.children.length; i++) {
         const ch = this.children[i];
         if (ch.type === CustomComponentType.MindMapNode) {
-          nodes.push({ index: i, key: ch.key, size: childrenSizes[i] });
+          const sz = childrenSizes[i];
+          nodes.push({ index: i, key: ch.key, size: sz, widget: ch });
         } else if (ch.type === CustomComponentType.Connector) {
           const d = ch as unknown as { fromKey?: string; toKey?: string };
           if (typeof d.fromKey === 'string' && typeof d.toKey === 'string') {
@@ -163,7 +163,8 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
       for (const n of nodes) {
         indexByKey.set(n.key, n.index);
         sizeByKey.set(n.key, n.size);
-        widgetByKey.set(n.key, this.children[n.index]);
+        const w = n.widget;
+        widgetByKey.set(n.key, w);
       }
       const childMap = new Map<string, string[]>();
       for (const e of edges) {
@@ -240,18 +241,12 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
       const dy0 = Math.round((availH - contentH) / 2 - minY);
       this.computedOffsets = this.children.map((_, i) => {
         const base = offsets[i] || { dx: 0, dy: 0 };
-        if (this.children[i].type === CustomComponentType.MindMapNode) {
+        const t = this.children[i].type;
+        if (t === CustomComponentType.MindMapNode) {
           return { dx: base.dx + dx0, dy: base.dy + dy0 } as Offset;
         }
         return { dx: 0, dy: 0 } as Offset;
       });
-      const t1 = Date.now();
-      this.lastLayoutStats = {
-        nodes: nodes.length,
-        edges: edges.length,
-        durationMs: Math.max(0, t1 - t0),
-        levels: res.levels,
-      };
       return { width: availW, height: availH };
     }
   }

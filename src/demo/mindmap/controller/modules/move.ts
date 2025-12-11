@@ -1,3 +1,5 @@
+import { CustomComponentType } from '../../custom-widget/type';
+
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';
 
@@ -23,6 +25,21 @@ export function moveNode(controller: MindmapController, key: string, dx: number,
   if (!target) {
     return;
   }
-  target.renderObject.offset = { dx, dy } as any;
+  let wrapper: Widget | null = null;
+  if (target.type === CustomComponentType.MindMapNodeToolbar) {
+    wrapper = target;
+  } else if (target.type === CustomComponentType.MindMapNode) {
+    const p = target.parent as Widget | null;
+    if (p && p.type === CustomComponentType.MindMapNodeToolbar) {
+      wrapper = p;
+    } else {
+      wrapper = target;
+    }
+  } else {
+    wrapper = target;
+  }
+  if (wrapper) {
+    wrapper.renderObject.offset = { dx, dy } as any;
+  }
   controller.runtime.rerender();
 }

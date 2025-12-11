@@ -68,6 +68,7 @@ export interface WidgetData {
   type: string;
   children?: WidgetData[];
   flex?: FlexProperties; // 添加flex属性支持
+  zIndex?: number;
   [key: string]: unknown;
 }
 
@@ -153,6 +154,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     offset: { dx: 0, dy: 0 },
     size: { width: 0, height: 0 },
   };
+  zIndex: number = 0;
 
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
@@ -209,6 +211,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.type = data.type;
     this.data = { ...data };
     this.flex = data.flex || {}; // 初始化flex属性
+    this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
     // 递归构建子组件
     if (data.children && Array.isArray(data.children) && data.children.length > 0) {
@@ -222,6 +225,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   createElement(data: TData): Widget<TData> {
     this.data = data;
+    this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : this.zIndex;
 
     // 重新构建子组件
     if (data.children && data.children.length > 0) {
@@ -342,7 +346,8 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
     this.paintSelf({ ...context, worldMatrix: next });
 
-    for (const child of this.children) {
+    const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
+    for (const child of children) {
       child.paint({ ...context, worldMatrix: next });
     }
 
@@ -396,6 +401,20 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   protected getSelfTransformSteps(): TransformStep[] {
     const o = this.renderObject.offset;
     return [{ t: 'translate', x: o.dx, y: o.dy }];
+  }
+
+  bringToFront(): void {
+    const p = this.parent;
+    if (!p) {
+      return;
+    }
+    let maxZ = 0;
+    for (const c of p.children) {
+      if (c !== this) {
+        maxZ = Math.max(maxZ, c.zIndex);
+      }
+    }
+    this.zIndex = maxZ + 1;
   }
 }
 
