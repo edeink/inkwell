@@ -66,7 +66,7 @@ describe('事件委托（多 canvas 路由）', () => {
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 22, clientY: 22 }));
     expect(spy).not.toHaveBeenCalled();
     if (stored) {
-      stored(performance.now());
+      (stored as FrameRequestCallback)(performance.now());
     }
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();

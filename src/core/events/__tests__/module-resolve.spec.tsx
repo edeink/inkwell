@@ -9,8 +9,11 @@ import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('模块解析与事件系统（路径别名验证）', () => {
-  it('通过 @/core 与 @/runtime 成功导入并运行基本流程', () => {
-    const rt = new Runtime();
+  it('通过 @/core 与 @/runtime 成功导入并运行基本流程', async () => {
+    const div = document.createElement('div');
+    div.id = 'rt-container';
+    document.body.appendChild(div);
+    const rt = await Runtime.create('rt-container');
     expect(rt).toBeInstanceOf(Runtime);
 
     const el = (
@@ -27,8 +30,12 @@ describe('模块解析与事件系统（路径别名验证）', () => {
 
     const calls: string[] = [];
     // 通过 JSX 注册的 onClick 已由编译器写入注册表，此处额外验证注册调用也可用
-    EventRegistry.register('root', 'click', () => calls.push('root'));
-    EventRegistry.register('leaf', 'click', () => calls.push('leaf'));
+    EventRegistry.register('root', 'click', () => {
+      calls.push('root');
+    });
+    EventRegistry.register('leaf', 'click', () => {
+      calls.push('leaf');
+    });
 
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);

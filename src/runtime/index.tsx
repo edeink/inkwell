@@ -48,6 +48,7 @@ export default class Runtime {
   private oomErrorCount: number = 0;
   private lastOomToastAt: number = 0;
   private canvasId: string | null = null;
+  private dirtyWidgets: Set<Widget> = new Set();
   static canvasRegistry: Map<
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
@@ -213,6 +214,65 @@ export default class Runtime {
     this.initRenderer(options);
   }
 
+  tick(dirty?: Widget[]): void {
+    if (Array.isArray(dirty) && dirty.length > 0) {
+      for (const w of dirty) {
+        if (w) {
+          this.dirtyWidgets.add(w);
+        }
+      }
+    }
+    if (!this.rootWidget || !this.renderer) {
+      this.dirtyWidgets.clear();
+      return;
+    }
+    if (this.dirtyWidgets.size === 0) {
+      return;
+    }
+    const list = Array.from(this.dirtyWidgets);
+    this.dirtyWidgets.clear();
+    const lca = this.findLowestCommonAncestor(list) ?? this.rootWidget;
+    void lca;
+    this.rebuild();
+  }
+
+  private findLowestCommonAncestor(widgets: Widget[]): Widget | null {
+    if (!widgets || widgets.length === 0) {
+      return null;
+    }
+    if (widgets.length === 1) {
+      return widgets[0];
+    }
+    const paths: Widget[][] = widgets.map((w) => this.pathToRoot(w));
+    let lca: Widget | null = null;
+    const firstPath = paths[0].slice().reverse();
+    for (const candidate of firstPath) {
+      let ok = true;
+      for (let i = 1; i < paths.length; i++) {
+        const has = paths[i].includes(candidate);
+        if (!has) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        lca = candidate;
+        break;
+      }
+    }
+    return lca;
+  }
+
+  private pathToRoot(w: Widget): Widget[] {
+    const out: Widget[] = [];
+    let cur: Widget | null = w;
+    while (cur) {
+      out.push(cur);
+      cur = cur.parent as Widget | null;
+    }
+    return out;
+  }
+
   /**
    * 从 JSX 元素渲染
    */
@@ -244,8 +304,11 @@ export default class Runtime {
     }
 
     try {
-      // 解析JSON并创建组件树
       this.rootWidget = this.parseComponentData(jsonData);
+      if (this.rootWidget) {
+        // 将当前运行时对象挂载到根 Widget 上，供增量更新调度使用
+        this.rootWidget.__runtime = this;
+      }
 
       if (this.rootWidget) {
         // 先进行布局计算获得总尺寸

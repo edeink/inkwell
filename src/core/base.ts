@@ -117,6 +117,9 @@ export interface BuildContext {
   [key: string]: unknown;
 }
 
+// 构造器类型：约束 Widget 的数据类型与返回实例类型保持一致
+export type WidgetConstructor<T extends WidgetData = WidgetData> = new (data: T) => Widget<T>;
+
 /**
  * 创建默认的盒约束
  */
@@ -150,6 +153,9 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   children: Widget[] = [];
   parent: Widget | null = null;
   data: TData;
+  props: TData;
+  // 组件本地状态：使用 unknown 提升类型安全，避免 any 扩散
+  state: Record<string, unknown> = {};
   flex: FlexProperties; // 添加flex属性
   renderObject: RenderObject = {
     offset: { dx: 0, dy: 0 },
@@ -157,11 +163,15 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   };
   zIndex: number = 0;
   pointerEvents = 'auto';
+  private _needsLayout: boolean = false;
 
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
+  // 运行时挂载点：用于增量更新调度（避免在此模块直接依赖 Runtime 类型）
+  __runtime?: unknown;
+
   // 组件注册表 - 使用协变的构造函数类型
-  private static registry: Map<string, new (data: WidgetData) => Widget<any>> = new Map();
+  private static registry: Map<string, WidgetConstructor> = new Map();
 
   // 注册组件类型
   public static registerType<T extends WidgetData>(
@@ -169,7 +179,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     constructor: new (data: T) => Widget<T>,
   ): void {
     // 将具体构造函数安全提升为通用构造函数
-    Widget.registry.set(type, constructor as unknown as new (data: WidgetData) => Widget<any>);
+    Widget.registry.set(type, constructor as unknown as WidgetConstructor);
   }
 
   // 创建组件实例
@@ -211,7 +221,8 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
 
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
     this.type = data.type;
-    this.data = { ...data };
+    this.props = { ...data } as TData;
+    this.data = this.props;
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
@@ -226,14 +237,14 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 类似于 React 的 createElement 方法
    */
   createElement(data: TData): Widget<TData> {
-    this.data = data;
-    this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : this.zIndex;
-
-    // 重新构建子组件
-    if (data.children && data.children.length > 0) {
-      this.buildChildren(data.children);
+    const nextProps = data as TData;
+    const should = this.shouldWidgetUpdate(nextProps, this.state);
+    this.props = { ...nextProps } as TData;
+    this.data = this.props;
+    this.zIndex = typeof nextProps.zIndex === 'number' ? (nextProps.zIndex as number) : this.zIndex;
+    if (should && nextProps.children && nextProps.children.length > 0) {
+      this.buildChildren(nextProps.children);
     }
-
     return this;
   }
 
@@ -270,6 +281,8 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     // 根据子组件布局结果计算自身布局
     const size = this.performLayout(constraints, childrenSizes);
     this.renderObject.size = size;
+
+    this._needsLayout = false;
 
     // 现在自身尺寸已确定，可以正确定位子组件
     this.positionChildren(childrenSizes);
@@ -361,6 +374,42 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   protected abstract paintSelf(context: BuildContext): void;
 
+  // 变更检测：仅对非 children 字段进行浅比较，并比较 state 的键值
+  shouldWidgetUpdate(nextProps: TData, nextState: Record<string, unknown>): boolean {
+    const a = this.props as WidgetData;
+    const b = nextProps as WidgetData;
+    const ka = Object.keys(a).filter((k) => k !== 'children');
+    const kb = Object.keys(b).filter((k) => k !== 'children');
+    if (ka.length !== kb.length) {
+      return true;
+    }
+    for (const k of ka) {
+      if (a[k] !== b[k]) {
+        return true;
+      }
+    }
+    const sa = this.state;
+    const sb = nextState;
+    const ksA = Object.keys(sa);
+    const ksB = Object.keys(sb);
+    if (ksA.length !== ksB.length) {
+      return true;
+    }
+    for (const k of ksA) {
+      if (sa[k] !== sb[k]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  setState(partial: Record<string, unknown>): void {
+    const prev = this.state;
+    const next = { ...prev, ...partial };
+    this.state = next;
+    this.markNeedsLayout();
+  }
+
   /**
    * 构建方法，类似于 Flutter 的 build 方法
    * 用于创建组件树
@@ -375,9 +424,70 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 类似于 Flutter 的 markNeedsLayout 方法
    */
   markNeedsLayout(): void {
-    // 在实际应用中，这里应该触发重新布局和渲染
-    // 目前只是一个占位实现
-    console.log(`Widget ${this.key} marked for layout`);
+    if (this._needsLayout) {
+      return;
+    }
+    this._needsLayout = true;
+    let p: Widget | null = this.parent;
+    while (p) {
+      if (!p._needsLayout) {
+        p._needsLayout = true;
+      }
+      p = p.parent;
+    }
+    const schedule = (): void => {
+      const findRoot = (self: Widget): Widget | null => {
+        let cur: Widget | null = self;
+        while (cur && cur.parent) {
+          cur = cur.parent;
+        }
+        return cur;
+      };
+      const root = findRoot(this);
+      const rt = root.__runtime ?? null;
+      // 具备 tick 方法的运行时对象才能触发增量重建
+      type RuntimeLike = { tick: (dirty?: Widget[]) => void };
+      const hasTick = (x: unknown): x is RuntimeLike =>
+        !!x && typeof (x as { tick?: unknown }).tick === 'function';
+      if (hasTick(rt)) {
+        try {
+          rt.tick([this]);
+          return;
+        } catch {}
+      }
+      let q: Widget | null = this.parent;
+      while (q) {
+        const fn = (q as unknown as { requestRender?: unknown }).requestRender;
+        if (typeof fn === 'function') {
+          try {
+            fn.call(q);
+          } catch {}
+          break;
+        }
+        q = q.parent;
+      }
+    };
+    const findRoot = (self: Widget): Widget | null => {
+      let cur: Widget | null = self;
+      while (cur && cur.parent) {
+        cur = cur.parent;
+      }
+      return cur;
+    };
+    const root = findRoot(this);
+    type LayoutHost = { __layoutScheduled?: boolean; __layoutRaf?: number | null };
+    const host = (root.__runtime ?? root) as LayoutHost;
+    if (!host.__layoutScheduled) {
+      host.__layoutScheduled = true;
+      host.__layoutRaf = requestAnimationFrame(() => {
+        try {
+          schedule();
+        } finally {
+          host.__layoutScheduled = false;
+          host.__layoutRaf = null;
+        }
+      });
+    }
   }
 
   /**
