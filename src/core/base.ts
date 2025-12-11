@@ -69,6 +69,7 @@ export interface WidgetData {
   children?: WidgetData[];
   flex?: FlexProperties; // 添加flex属性支持
   zIndex?: number;
+  pointerEvents?: 'auto' | 'none';
   [key: string]: unknown;
 }
 
@@ -155,6 +156,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
+  pointerEvents = 'auto';
 
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
@@ -415,6 +417,13 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
       }
     }
     this.zIndex = maxZ + 1;
+  }
+
+  public hitTest(x: number, y: number): boolean {
+    const pos = this.getAbsolutePosition();
+    const w = this.renderObject.size.width;
+    const h = this.renderObject.size.height;
+    return x >= pos.dx && y >= pos.dy && x <= pos.dx + w && y <= pos.dy + h;
   }
 }
 

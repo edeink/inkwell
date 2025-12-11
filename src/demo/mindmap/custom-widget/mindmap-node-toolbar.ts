@@ -156,6 +156,38 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     }
   }
 
+  public hitTest(x: number, y: number): boolean {
+    const node = this.getActiveNode();
+    const vp = this.findViewport();
+    if (!node || !vp) {
+      return false;
+    }
+    const activeKey = this.getActiveKey();
+    const active = activeKey === node.key;
+    if (!active) {
+      return false;
+    }
+    const size = node.renderObject.size as Size;
+    const margin = 6;
+    const sides = this.resolveSides(node, size);
+    const pNode = node.getAbsolutePosition();
+    const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
+    const btnSize = 20;
+    for (const s of sides) {
+      const pos = calculatePlusButtonPosition(
+        s,
+        nodeRect,
+        { width: btnSize, height: btnSize },
+        margin,
+      );
+      const inside = x >= pos.x && y >= pos.y && x <= pos.x + btnSize && y <= pos.y + btnSize;
+      if (inside) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   onPointerDown(e: any): boolean | void {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {

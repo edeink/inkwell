@@ -10,17 +10,6 @@
  */
 import type { Widget } from '@/core/base';
 
-function findViewportAncestor(node: Widget | null): Widget | null {
-  let cur: Widget | null = node;
-  while (cur) {
-    if (cur.type === 'Viewport') {
-      return cur;
-    }
-    cur = cur.parent;
-  }
-  return null;
-}
-
 function findViewportInTree(root: Widget | null): Widget | null {
   if (!root) {
     return null;
@@ -64,12 +53,15 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   }
   let found: Widget | null = null;
   function dfs(node: Widget): void {
-    const pos = node.getAbsolutePosition();
-    const left = pos.dx;
-    const top = pos.dy;
-    const width = node.renderObject.size.width;
-    const height = node.renderObject.size.height;
-    if (x >= left && x <= left + width && y >= top && y <= top + height) {
+    const peNone = node.pointerEvents === 'none';
+    if (peNone) {
+      const children = node.children.slice().sort((a, b) => a.zIndex - b.zIndex);
+      for (const child of children) {
+        dfs(child);
+      }
+      return;
+    }
+    if (node.hitTest(x, y)) {
       found = node;
       const children = node.children.slice().sort((a, b) => a.zIndex - b.zIndex);
       for (const child of children) {

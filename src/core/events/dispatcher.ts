@@ -87,7 +87,10 @@ function buildPath(target: Widget | null): Widget[] {
   const path: Widget[] = [];
   let cur = target;
   while (cur) {
-    path.push(cur);
+    const peNone = cur.pointerEvents === 'none';
+    if (!peNone) {
+      path.push(cur);
+    }
     cur = cur.parent;
   }
   return path.reverse();
