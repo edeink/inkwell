@@ -403,6 +403,20 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     return false;
   }
 
+  protected shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+    const ka = Object.keys(a);
+    const kb = Object.keys(b);
+    if (ka.length !== kb.length) {
+      return false;
+    }
+    for (const k of ka) {
+      if (a[k] !== b[k]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   setState(partial: Record<string, unknown>): void {
     const prev = this.state;
     const next = { ...prev, ...partial };

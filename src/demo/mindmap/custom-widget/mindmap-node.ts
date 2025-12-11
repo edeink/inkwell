@@ -14,6 +14,7 @@ import type {
 
 import { Widget } from '@/core/base';
 import { createWidget as createExternalWidget } from '@/core/registry';
+import { StatelessWidget } from '@/core/state/stateless';
 import Runtime from '@/runtime';
 
 export interface MindMapNodeData extends WidgetData {
@@ -26,6 +27,8 @@ export interface MindMapNodeData extends WidgetData {
   borderRadius?: number;
   padding?: number;
   prefSide?: Side;
+  active?: boolean;
+  activeKey?: string | null;
   onActive?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
@@ -36,7 +39,7 @@ export interface MindMapNodeData extends WidgetData {
  * MindMapNode（思维导图节点）
  * 提供基础矩形节点绘制与尺寸估算，支持自定义边框、圆角与内边距。
  */
-export class MindMapNode extends Widget<MindMapNodeData> {
+export class MindMapNode extends StatelessWidget<MindMapNodeData> {
   title: string = '';
   width?: number;
   height?: number;
@@ -46,6 +49,7 @@ export class MindMapNode extends Widget<MindMapNodeData> {
   borderRadius: number = 10;
   padding: number = 12;
   prefSide: Side | undefined = undefined;
+  active: boolean = false;
   private _onActive?: (key: string | null) => void;
   private _onMoveNode?: (key: string, dx: number, dy: number) => void;
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
@@ -76,6 +80,11 @@ export class MindMapNode extends Widget<MindMapNodeData> {
     this.borderRadius = (data.borderRadius ?? this.borderRadius) as number;
     this.padding = (data.padding ?? this.padding) as number;
     this.prefSide = data.prefSide;
+    const akFromProps = (data.activeKey ?? null) as string | null;
+    const vp = this.findViewport();
+    const akFromViewport = vp?.activeKey ?? null;
+    const ak = akFromProps ?? akFromViewport;
+    this.active = typeof data.active === 'boolean' ? (data.active as boolean) : ak === this.key;
     this._onActive = data.onActive;
     this._onMoveNode = data.onMoveNode;
   }

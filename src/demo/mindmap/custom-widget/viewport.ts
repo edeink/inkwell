@@ -264,11 +264,29 @@ export class Viewport extends Widget<ViewportData> {
 
   setActiveKey(key: string | null): void {
     this._activeKey = key ?? null;
-    const t = this.findByKey(this.parent as Widget, this._activeKey ?? '');
+    const start = (this.parent as Widget) ?? (this as Widget);
+    const t = this.findByKey(start, this._activeKey ?? '');
     if (t) {
       const isNode = t.type === CustomComponentType.MindMapNode;
       const container = isNode && t.parent ? (t.parent as Widget) : t;
       container.bringToFront();
+    }
+    const root = this as unknown as Widget;
+    const next = this._activeKey;
+    const update = (w: Widget): void => {
+      if ((w as any).type === CustomComponentType.MindMapNode) {
+        const data = (w as any).data as WidgetData;
+        (w as any).createElement({ ...data, activeKey: next, active: (w as any).key === next });
+      } else if ((w as any).type === CustomComponentType.MindMapNodeToolbar) {
+        const data = (w as any).data as WidgetData;
+        (w as any).createElement({ ...data, activeKey: next });
+      }
+      for (const c of (w as any).children as Widget[]) {
+        update(c);
+      }
+    };
+    for (const c of root.children) {
+      update(c);
     }
   }
 

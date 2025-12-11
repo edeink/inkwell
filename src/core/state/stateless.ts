@@ -8,9 +8,11 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
   private _prevData: TData | null = null;
 
   createElement(data: TData): Widget<TData> {
-    const prev = (this._prevData ?? this.data) as TData;
     const next = data;
-    const changed = !this.shallowEqual(prev, next);
+    const changed = this.shouldWidgetUpdate(
+      next as unknown as TData,
+      this.state as Record<string, unknown>,
+    );
     super.createElement(data);
     this._prevData = next;
     if (changed) {

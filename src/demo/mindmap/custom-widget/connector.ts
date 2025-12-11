@@ -2,7 +2,6 @@ import React from 'react';
 
 import { CustomComponentType } from './type';
 
-import type { ConnectorStyleProviderData } from './connector-style-provider';
 import type {
   BoxConstraints,
   BuildContext,
@@ -25,6 +24,7 @@ export interface ConnectorData extends WidgetData {
   color?: string;
   strokeWidth?: number;
   style?: ConnectorStyle;
+  dashArray?: string;
 }
 
 /**
@@ -38,6 +38,7 @@ export class Connector extends Widget<ConnectorData> {
   color: string = '#8c8c8c';
   strokeWidth: number = 1.5;
   style: ConnectorStyle = ConnectorStyle.Bezier;
+  dashArray?: string;
 
   static {
     Widget.registerType(CustomComponentType.Connector, Connector);
@@ -54,6 +55,7 @@ export class Connector extends Widget<ConnectorData> {
     this.color = (data.color ?? this.color) as string;
     this.strokeWidth = (data.strokeWidth ?? this.strokeWidth) as number;
     this.style = (data.style ?? this.style) as ConnectorStyle;
+    this.dashArray = data.dashArray;
   }
 
   createElement(data: ConnectorData): Widget<ConnectorData> {
@@ -74,14 +76,13 @@ export class Connector extends Widget<ConnectorData> {
     if (!a || !b) {
       return;
     }
-    const prov = this.findStyleProvider();
-    const dashStr = prov?.dashArray || '';
+    const dashStr = this.dashArray || '';
     const dash = dashStr
       .split(',')
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
-    const stroke = prov?.strokeColor ?? this.color;
-    const sw = prov?.strokeWidth ?? this.strokeWidth;
+    const stroke = this.color;
+    const sw = this.strokeWidth;
     const aCenterX = a.x + a.width / 2;
     const bCenterX = b.x + b.width / 2;
     const left = aCenterX <= bCenterX ? a : b;
@@ -139,17 +140,6 @@ export class Connector extends Widget<ConnectorData> {
       p = p.parent;
     }
     return p ?? this;
-  }
-
-  private findStyleProvider(): ConnectorStyleProviderData | null {
-    let p: Widget | null = this.parent;
-    while (p) {
-      if (p.type === CustomComponentType.ConnectorStyleProvider) {
-        return p as unknown as ConnectorStyleProviderData;
-      }
-      p = p.parent;
-    }
-    return null;
   }
 
   private getRectByKey(

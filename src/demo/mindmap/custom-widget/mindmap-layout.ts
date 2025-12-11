@@ -36,6 +36,8 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
   nodeSpacing: number = 28;
   side: 'left' | 'right' = 'right';
   private computedOffsets: Offset[] = [];
+  private lastSignature: string | null = null;
+  private lastSize: Size | null = null;
 
   static {
     Widget.registerType(CustomComponentType.MindMapLayout, MindMapLayout);
@@ -70,7 +72,10 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
     if (childrenSizes.length === 0) {
       return { width: constraints.minWidth ?? 0, height: constraints.minHeight ?? 0 } as Size;
     }
-    const t0 = Date.now();
+    const signature = this.computeSignature(constraints, childrenSizes);
+    if (this.lastSignature && signature === this.lastSignature && this.lastSize) {
+      return this.lastSize;
+    }
     if (this.mode === 'radial') {
       const nodeIndices: number[] = [];
       for (let i = 0; i < this.children.length; i++) {
@@ -137,7 +142,10 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
         }
         return { dx: 0, dy: 0 } as Offset;
       });
-      return { width: availW, height: availH };
+      const size = { width: availW, height: availH } as Size;
+      this.lastSignature = signature;
+      this.lastSize = size;
+      return size;
     } else {
       const nodes: Array<{ index: number; key: string; size: Size; widget: Widget }> = [];
       const edges: Array<{ from: string; to: string }> = [];
@@ -247,7 +255,10 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
         }
         return { dx: 0, dy: 0 } as Offset;
       });
-      return { width: availW, height: availH };
+      const size = { width: availW, height: availH } as Size;
+      this.lastSignature = signature;
+      this.lastSize = size;
+      return size;
     }
   }
 
@@ -270,6 +281,27 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
       return { dx: 0, dy: 0 } as Offset;
     }
     return this.computedOffsets[childIndex];
+  }
+
+  private computeSignature(constraints: BoxConstraints, childrenSizes: Size[]): string {
+    const parts: string[] = [];
+    parts.push(`mode:${this.mode}`);
+    parts.push(`sx:${this.spacingX}`);
+    parts.push(`sy:${this.spacingY}`);
+    parts.push(`ns:${this.nodeSpacing}`);
+    parts.push(`side:${this.side}`);
+    parts.push(`mw:${constraints.maxWidth}`);
+    parts.push(`mh:${constraints.maxHeight}`);
+    for (let i = 0; i < this.children.length; i++) {
+      const ch = this.children[i];
+      const sz = childrenSizes[i];
+      parts.push(`${ch.type}:${ch.key}:${sz.width}x${sz.height}`);
+      if (ch.type === CustomComponentType.Connector) {
+        const d = ch as unknown as { fromKey?: string; toKey?: string };
+        parts.push(`edge:${String(d.fromKey)}->${String(d.toKey)}`);
+      }
+    }
+    return parts.join('|');
   }
 }
 

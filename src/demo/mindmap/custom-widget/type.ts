@@ -13,7 +13,6 @@ export const enum CustomComponentType {
   MindMapNode = 'MindMapNode',
   MindMapLayout = 'MindMapLayout',
   Connector = 'Connector',
-  ConnectorStyleProvider = 'ConnectorStyleProvider',
   MindMapNodeToolbar = 'MindMapNodeToolbar',
   MindMapNodeToolbarLayer = 'MindMapNodeToolbarLayer',
 }

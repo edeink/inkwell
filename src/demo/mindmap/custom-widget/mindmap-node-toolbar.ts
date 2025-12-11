@@ -21,11 +21,13 @@ import type {
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
+import { StatelessWidget } from '@/core/state/stateless';
 
 export interface MindMapNodeToolbarData extends WidgetData {
   onActive?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
+  activeKey?: string | null;
 }
 
 function calculatePlusButtonPosition(
@@ -57,7 +59,7 @@ function calculatePlusButtonPosition(
  * - 封装一个 MindMapNode 子组件，并在其周围绘制加号按钮
  * - 命中与事件在本组件中处理，确保 zIndex 与响应顺序正确
  */
-export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
+export class MindMapNodeToolbar extends StatelessWidget<MindMapNodeToolbarData> {
   private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   private _onAddChildSide?: (refKey: string, side: Side) => void;
 
@@ -86,12 +88,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
   }
 
   protected performLayout(): Size {
-    const node = this.getActiveNode();
-    if (!node) {
-      return { width: 0, height: 0 };
-    } else {
-      return node.renderObject.size as Size;
+    const vp = this.findViewport();
+    if (vp) {
+      return { width: vp.width, height: vp.height } as Size;
     }
+    const node = this.getActiveNode();
+    return node ? (node.renderObject.size as Size) : ({ width: 0, height: 0 } as Size);
   }
 
   protected getConstraintsForChild(
@@ -113,7 +115,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     if (!node || !vp) {
       return;
     }
-    const active = vp.activeKey === node.key;
+    const activeKey = this.getActiveKey();
+    const active = activeKey === node.key;
     if (!active) {
       return;
     }
@@ -235,8 +238,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
   }
 
   private getActiveNode(): Widget | null {
-    const vp = this.findViewport();
-    const activeKey = vp?.activeKey ?? null;
+    const activeKey = this.getActiveKey();
     if (!activeKey) {
       return null;
     }
@@ -257,6 +259,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
       return null;
     };
     return find(root);
+  }
+
+  private getActiveKey(): string | null {
+    const k = (this.data as any).activeKey;
+    if (k === null || typeof k === 'string') {
+      return k ?? null;
+    }
+    const vp = this.findViewport();
+    return vp?.activeKey ?? null;
   }
 
   private getNodeKey(): string | null {
