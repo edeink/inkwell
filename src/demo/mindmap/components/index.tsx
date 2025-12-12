@@ -7,6 +7,7 @@ import { createScene } from '../scene';
 
 import ErrorBoundary from './error-boundary';
 import Minimap from './minimap';
+import Toolbar from './toolbar';
 import ZoomBar from './zoom-bar';
 
 import type { Widget } from '@/core/base';
@@ -184,6 +185,7 @@ export default function MindmapComponent({
             controller?.zoomAt(s, size.width / 2, size.height / 2);
           }}
         />
+        <Toolbar runtime={runtimeRef.current} width={size.width} height={size.height} />
         <DevTools />
       </div>
     </ErrorBoundary>

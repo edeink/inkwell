@@ -215,11 +215,7 @@ export class MindMapNodeToolbar extends StatelessWidget<MindMapNodeToolbarData> 
           this._onAddChildSide?.(key, Side.Right);
         }
       }
-      return false;
-    }
-    const node = this.getActiveNode();
-    if (node && typeof (node as any).onPointerDown === 'function') {
-      return (node as any).onPointerDown(e);
+      e.stopPropagation();
     }
   }
 

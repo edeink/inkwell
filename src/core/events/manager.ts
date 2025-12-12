@@ -166,11 +166,6 @@ class EventManagerImpl {
     if (!runtime) {
       return;
     }
-    if (type === 'wheel') {
-      try {
-        console.debug('EventManager route wheel', runtime.getCanvasId?.());
-      } catch {}
-    }
     dispatchAt(runtime, type, native);
   }
 

@@ -201,11 +201,6 @@ export function dispatchAt(
     currentRuntime = null;
     return;
   }
-  if (type === 'wheel') {
-    try {
-      console.debug('Dispatcher dispatch wheel', { key: (target as any).key, x, y });
-    } catch {}
-  }
   dispatchToTree(root, target, type, x, y, native);
   currentRuntime = null;
 }

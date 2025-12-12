@@ -30,8 +30,11 @@ src/
 
 ## 遗留问题
 
-- [] 约束为无限时，未能对齐 Flutter
+- [x] 约束为无限时，未能对齐 Flutter
 - [] 为支持 Scroll，但不一定需要支持
-- [] 缺乏 Devtools 调试
-- [] 缺乏 单元测试
+- [x] 缺乏 Devtools 调试
+- [x] 缺乏 单元测试
 - [] 缺乏基于此孵化 图文编辑器 和 表格场景
+- [] rebuild 会初始化 canvas，触发 GC 性能问题
+- [] React 组件按钮有问题
+- [] Viewport 会移动出视图外，导致无法响应 mousewheel
