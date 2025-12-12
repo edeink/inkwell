@@ -1,7 +1,10 @@
 import { type IRenderer } from '../renderer/IRenderer';
 
-import type { EventHandler } from './events/types';
+import { EventRegistry } from './events/registry';
+
+import type { EventHandler, EventType } from './events/types';
 import type { FlexProperties } from './flex/type';
+import type Runtime from '@/runtime';
 
 export interface WidgetEventHandler {
   onClick?: EventHandler;
@@ -211,6 +214,20 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     return Widget.registry.has(type);
   }
 
+  // 判断某类型是否为复合组件（Stateless/Stateful），用于事件绑定策略
+  public static isCompositeType(type: string): boolean {
+    const ctor = Widget.registry.get(type);
+    if (!ctor) {
+      return false;
+    }
+    try {
+      const proto = (ctor as unknown as { prototype?: Record<string, unknown> }).prototype;
+      return !!proto && typeof (proto as Record<string, unknown>).render === 'function';
+    } catch {
+      return false;
+    }
+  }
+
   constructor(data: TData) {
     if (!data) {
       throw new Error('Widget data cannot be null or undefined');
@@ -238,12 +255,112 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   createElement(data: TData): Widget<TData> {
     const nextProps = data as TData;
+    const prevProps = this.props as WidgetData;
     const should = this.shouldWidgetUpdate(nextProps, this.state);
+    const nextChildrenData = (nextProps.children ?? []) as WidgetData[];
+    const prevChildrenData = (prevProps.children ?? []) as WidgetData[];
+
+    // 快速路径：props/state 无变更且 children 的 key 与长度完全一致 → 直接复用
+    const prevKeys = prevChildrenData.map((c) => String(c.key ?? ''));
+    const nextKeys = nextChildrenData.map((c) => String(c.key ?? ''));
+    const childrenChanged =
+      prevKeys.length !== nextKeys.length || prevKeys.some((k, i) => k !== nextKeys[i]);
+    const shallowDiff = (a: WidgetData, b: WidgetData): boolean => {
+      const ka = Object.keys(a).filter((k) => k !== 'children');
+      const kb = Object.keys(b).filter((k) => k !== 'children');
+      if (ka.length !== kb.length) {
+        return true;
+      }
+      for (const k of ka) {
+        if (a[k] !== b[k]) {
+          return true;
+        }
+      }
+      return false;
+    };
+    const childrenPropsChanged =
+      prevChildrenData.length !== nextChildrenData.length ||
+      nextChildrenData.some((c, i) => {
+        const prev = prevChildrenData[i];
+        if (!prev) {
+          return true;
+        }
+        return shallowDiff(c, prev);
+      });
+
+    if (!this.parent) {
+      const findRoot = (self: Widget): Widget | null => {
+        let cur: Widget | null = self;
+        while (cur && cur.parent) {
+          cur = cur.parent;
+        }
+        return cur;
+      };
+      const root = findRoot(this);
+      const rt = (root?.__runtime ?? null) as Runtime | null;
+      try {
+        EventRegistry.clearKey(String(this.key), rt ?? undefined);
+      } catch {}
+      const toEventTypeSelf = (base: string): EventType | null => {
+        const lower = base.toLowerCase();
+        const map: Record<string, EventType> = {
+          click: 'click',
+          mousedown: 'mousedown',
+          mouseup: 'mouseup',
+          mousemove: 'mousemove',
+          mouseover: 'mouseover',
+          mouseout: 'mouseout',
+          wheel: 'wheel',
+          dblclick: 'dblclick',
+          doubleclick: 'dblclick',
+          contextmenu: 'contextmenu',
+          pointerdown: 'pointerdown',
+          pointerup: 'pointerup',
+          pointermove: 'pointermove',
+          pointerover: 'pointerover',
+          pointerout: 'pointerout',
+          pointerenter: 'pointerenter',
+          pointerleave: 'pointerleave',
+          touchstart: 'touchstart',
+          touchmove: 'touchmove',
+          touchend: 'touchend',
+          touchcancel: 'touchcancel',
+          keydown: 'keydown',
+          keyup: 'keyup',
+          keypress: 'keypress',
+        };
+        return map[lower] ?? null;
+      };
+      const dataSelf = nextProps as unknown as WidgetData;
+      for (const [k, v] of Object.entries(dataSelf)) {
+        if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
+          const base = k.replace(/^on/, '').replace(/Capture$/, '');
+          const type = toEventTypeSelf(base);
+          if (type) {
+            const capture = /Capture$/.test(k);
+            EventRegistry.register(String(this.key), type, v as any, { capture }, rt ?? undefined);
+          }
+        }
+      }
+    }
+
+    if (!should && !childrenChanged && !childrenPropsChanged) {
+      // props 不变且 children 结构不变：直接返回，避免不必要的重建
+      return this;
+    }
+
+    // 更新自身 props 引用（保持不可变语义）
     this.props = { ...nextProps } as TData;
     this.data = this.props;
     this.zIndex = typeof nextProps.zIndex === 'number' ? (nextProps.zIndex as number) : this.zIndex;
-    if (should && nextProps.children && nextProps.children.length > 0) {
-      this.buildChildren(nextProps.children);
+
+    // children 差异或需要更新时执行子树增量重建
+    if (nextChildrenData.length > 0) {
+      this.buildChildren(nextChildrenData);
+      this.markNeedsLayout();
+    } else if (this.children.length > 0) {
+      this.children = [];
+      this.markNeedsLayout();
     }
     return this;
   }
@@ -252,17 +369,105 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    * 构建子组件
    */
   protected buildChildren(childrenData: WidgetData[]): void {
-    // 清空现有子组件
-    this.children = [];
+    const prev = this.children;
+    const byKey = new Map<string, Widget>();
+    for (const c of prev) {
+      byKey.set(String((c as unknown as { key?: string }).key ?? ''), c);
+    }
 
-    // 递归构建每个子组件
+    const nextChildren: Widget[] = [];
+    const toEventType = (base: string): EventType | null => {
+      const lower = base.toLowerCase();
+      const map: Record<string, EventType> = {
+        click: 'click',
+        mousedown: 'mousedown',
+        mouseup: 'mouseup',
+        mousemove: 'mousemove',
+        mouseover: 'mouseover',
+        mouseout: 'mouseout',
+        wheel: 'wheel',
+        dblclick: 'dblclick',
+        doubleclick: 'dblclick',
+        contextmenu: 'contextmenu',
+        pointerdown: 'pointerdown',
+        pointerup: 'pointerup',
+        pointermove: 'pointermove',
+        pointerover: 'pointerover',
+        pointerout: 'pointerout',
+        pointerenter: 'pointerenter',
+        pointerleave: 'pointerleave',
+        touchstart: 'touchstart',
+        touchmove: 'touchmove',
+        touchend: 'touchend',
+        touchcancel: 'touchcancel',
+        keydown: 'keydown',
+        keyup: 'keyup',
+        keypress: 'keypress',
+      };
+      return map[lower] ?? null;
+    };
+    const bindEventsIfNeeded = (widget: Widget, data: WidgetData): void => {
+      const findRoot = (self: Widget): Widget | null => {
+        let cur: Widget | null = self;
+        while (cur && cur.parent) {
+          cur = cur.parent;
+        }
+        return cur;
+      };
+      const root = findRoot(widget);
+      const rt = (root?.__runtime ?? null) as Runtime | null;
+      const skipSelfBind = Widget.isCompositeType(widget.type);
+      const hasEventFns = Object.entries(data).some(
+        ([k, v]) => typeof v === 'function' && /^on[A-Z]/.test(k),
+      );
+      if (!hasEventFns) {
+        return;
+      }
+      if (skipSelfBind) {
+        return;
+      }
+      try {
+        EventRegistry.clearKey(String(widget.key), rt ?? undefined);
+      } catch {}
+      for (const [k, v] of Object.entries(data)) {
+        if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
+          const base = k.replace(/^on/, '').replace(/Capture$/, '');
+          const type = toEventType(base);
+          if (type) {
+            const capture = /Capture$/.test(k);
+            EventRegistry.register(
+              String(widget.key),
+              type,
+              v as any,
+              { capture },
+              rt ?? undefined,
+            );
+          }
+        }
+      }
+    };
     for (const childData of childrenData) {
-      const childWidget = this.createChildWidget(childData);
-      if (childWidget) {
-        childWidget.parent = this;
-        this.children.push(childWidget);
+      const k = String(childData.key ?? '');
+      const reuse = k ? (byKey.get(k) ?? null) : null;
+      if (reuse && reuse.type === childData.type) {
+        // 复用已有节点：仅更新数据
+        reuse.createElement(childData as unknown as typeof reuse.data);
+        reuse.parent = this;
+        nextChildren.push(reuse);
+        bindEventsIfNeeded(reuse, childData);
+      } else {
+        const childWidget = this.createChildWidget(childData);
+        if (childWidget) {
+          childWidget.parent = this;
+          childWidget.createElement(childData as unknown as typeof childWidget.data);
+          nextChildren.push(childWidget);
+          bindEventsIfNeeded(childWidget, childData);
+        }
       }
     }
+
+    // 替换 children 引用（删除未复用的旧节点）
+    this.children = nextChildren;
   }
 
   /**

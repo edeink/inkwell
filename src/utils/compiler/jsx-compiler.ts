@@ -3,7 +3,7 @@ import type { EventType } from '@/core/events/types';
 import type { ComponentData } from '@/runtime';
 
 import { Widget } from '@/core/base';
-import { EventRegistry } from '@/core/events/registry';
+import { EventRegistry } from '@/core/events';
 import { widgetRegistry } from '@/core/registry';
 import { ComponentType } from '@/core/type';
 
@@ -57,6 +57,7 @@ export function compileElement(element: AnyElement): ComponentData {
   };
   const { type, props, key } = anyEl;
   const typeName = resolveTypeName(type);
+  const isComposite = Widget.isCompositeType(typeName);
   const componentType: ComponentType = isValidType(typeName)
     ? (typeName as ComponentType)
     : (typeName as unknown as ComponentType);
@@ -69,10 +70,10 @@ export function compileElement(element: AnyElement): ComponentData {
   const p = (props ?? {}) as Record<string, unknown>;
   const target = data as unknown as Record<string, unknown>;
   const keyStr = String(data.key ?? '');
+
+  // 清理旧的注册，避免同 key 累积旧处理器
   try {
-    if (keyStr) {
-      EventRegistry.clearKey(keyStr);
-    }
+    EventRegistry.clearKey(keyStr);
   } catch {}
 
   for (const [k, v] of Object.entries(p)) {
@@ -83,16 +84,17 @@ export function compileElement(element: AnyElement): ComponentData {
       continue;
     }
     if (typeof v === 'function') {
-      const isCapture = /Capture$/.test(k);
-      const base = k.replace(/^on/, '').replace(/Capture$/, '');
-      const evt = toEventType(base);
-      if (evt) {
-        EventRegistry.register(keyStr, evt, v as unknown as (e: any) => boolean | void, {
-          capture: isCapture,
-        });
-        continue;
+      if (!isComposite) {
+        const cap = /Capture$/.test(k);
+        const base = k.replace(/^on/, '').replace(/Capture$/, '');
+        const type = toEventType(base);
+        if (type) {
+          try {
+            EventRegistry.register(keyStr, type, v as any, { capture: cap });
+          } catch {}
+        }
       }
-      // 非事件 onXXX 回调需要透传到数据对象，供组件内部调用
+      // 同步到数据对象，便于后续构建阶段复用
       target[k] = v as unknown;
       continue;
     }

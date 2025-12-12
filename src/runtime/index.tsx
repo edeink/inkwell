@@ -283,6 +283,10 @@ export default class Runtime {
     await this.renderFromJSON(json);
   }
 
+  async render(element: AnyElement): Promise<void> {
+    await this.renderFromJSX(element);
+  }
+
   /**
    * 从模板函数渲染（返回 JSX 元素）
    */
@@ -304,10 +308,12 @@ export default class Runtime {
     }
 
     try {
+      EventRegistry.setCurrentRuntime(this);
       this.rootWidget = this.parseComponentData(jsonData);
       if (this.rootWidget) {
         // 将当前运行时对象挂载到根 Widget 上，供增量更新调度使用
         this.rootWidget.__runtime = this;
+        this.rootWidget.createElement(this.rootWidget.props as any);
       }
 
       if (this.rootWidget) {
@@ -361,6 +367,8 @@ export default class Runtime {
 
       // 重新抛出错误以便调试
       throw error;
+    } finally {
+      EventRegistry.setCurrentRuntime(null);
     }
   }
 

@@ -49,8 +49,10 @@ class EventRegistryImpl {
     const store = this.getStore(rt ?? this.currentRuntime);
     const byType = store.get(key) ?? new Map<EventType, HandlerEntry[]>();
     const list = byType.get(type) ?? [];
-    list.push({ handler, capture: !!opts?.capture });
-    byType.set(type, list);
+    const cap = !!opts?.capture;
+    const filtered = list.filter((h) => h.capture !== cap);
+    filtered.push({ handler, capture: cap });
+    byType.set(type, filtered);
     store.set(key, byType);
   }
 

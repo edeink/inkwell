@@ -1,20 +1,26 @@
 import { Widget } from '../base';
 
-import type { WidgetData } from '../base';
+import type { BoxConstraints, BuildContext, Size, WidgetData } from '../base';
 
+import { EventRegistry } from '@/core/events/registry';
 import Runtime from '@/runtime';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 export abstract class StatelessWidget<TData extends WidgetData = WidgetData> extends Widget<TData> {
-  private _prevData: TData | null = null;
+  protected abstract render(): unknown;
 
   createElement(data: TData): Widget<TData> {
     const next = data;
+    const children = this.compileChildrenFromRender();
+    const nextWithChildren =
+      children.length > 0
+        ? ({ ...(next as unknown as WidgetData), children } as unknown as TData)
+        : next;
     const changed = this.shouldWidgetUpdate(
-      next as unknown as TData,
+      nextWithChildren as unknown as TData,
       this.state as Record<string, unknown>,
     );
-    super.createElement(data);
-    this._prevData = next;
+    super.createElement(nextWithChildren);
     if (changed) {
       this.scheduleUpdate();
     }
@@ -36,7 +42,7 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
   }
 
   protected scheduleUpdate(): void {
-    const rt = this.findRuntime();
+    const rt = this.resolveRuntime();
     if (rt) {
       try {
         // 绑定在根节点上的运行时将负责触发增量重建
@@ -57,7 +63,7 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
     }
   }
 
-  private findRuntime(): Runtime | null {
+  protected resolveRuntime(): Runtime | null {
     // 自下而上查找树根并匹配已注册的画布与运行时
     const findRoot = (self: Widget): Widget | null => {
       let cur: Widget | null = self;
@@ -67,6 +73,10 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
       return cur;
     };
     const root = findRoot(this);
+    const rt0 = (root?.__runtime ?? null) as Runtime | null;
+    if (rt0) {
+      return rt0;
+    }
     for (const rec of Runtime.listCanvas()) {
       const rt = rec.runtime;
       try {
@@ -76,5 +86,47 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
       } catch {}
     }
     return null;
+  }
+
+  protected compileChildrenFromRender(): WidgetData[] {
+    const r = (this as unknown as { render?: () => unknown }).render;
+    if (typeof r !== 'function') {
+      return [];
+    }
+    const rt = this.resolveRuntime();
+    EventRegistry.setCurrentRuntime(rt);
+    const el = r.call(this);
+    const json = compileElement(el as any);
+    EventRegistry.setCurrentRuntime(null);
+    return [json as unknown as WidgetData];
+  }
+
+  protected createChildWidget(childData: WidgetData): Widget | null {
+    return Widget.createWidget(childData);
+  }
+
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+    const w = childrenSizes.length > 0 ? childrenSizes[0].width : 0;
+    const h = childrenSizes.length > 0 ? childrenSizes[0].height : 0;
+    return { width: Math.min(w, constraints.maxWidth), height: Math.min(h, constraints.maxHeight) };
+  }
+
+  protected paintSelf(_context: BuildContext): void {}
+
+  protected shouldComponentUpdate(
+    next: Record<string, unknown>,
+    prev: Record<string, unknown>,
+  ): boolean {
+    const ka = Object.keys(next);
+    const kb = Object.keys(prev);
+    if (ka.length !== kb.length) {
+      return true;
+    }
+    for (const k of ka) {
+      if (next[k] !== prev[k]) {
+        return true;
+      }
+    }
+    return false;
   }
 }

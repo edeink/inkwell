@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 import { DevTools } from '../devtools/index';
-import Runtime from '../runtime';
 
 import CompleteTab from './components/complete-tab';
 import CounterTab from './components/counter-tab';
@@ -18,9 +17,8 @@ type Theme = 'light' | 'dark';
 type TabType = 'complete' | 'renderer' | 'counter';
 
 const TestPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('complete');
+  const [activeTab, setActiveTab] = useState<TabType>('counter');
   const [theme, setTheme] = useState<Theme>('light');
-  const [editorForDevtools, setEditorForDevtools] = useState<Runtime | null>(null);
   const [showDevtools, setShowDevtools] = useState(
     () => localStorage.getItem('INKWELL_DEVTOOLS_VISIBLE') === 'true',
   );

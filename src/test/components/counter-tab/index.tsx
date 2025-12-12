@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { getTestTemplate } from './data';
+import { runApp } from './app';
 import styles from './index.module.less';
 
 import Runtime from '@/runtime';
@@ -24,7 +24,7 @@ export default function CounterTab({ theme }: { theme: Theme }) {
       background: theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,
     }).then((rt) => {
-      rt.renderTemplate(() => getTestTemplate(theme));
+      runApp(rt);
     });
     return () => {
       el.innerHTML = '';

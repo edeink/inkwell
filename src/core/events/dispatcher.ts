@@ -213,6 +213,13 @@ export function dispatchToTree(
   y: number,
   native?: Event,
 ): void {
+  const prevRuntime = currentRuntime;
+  try {
+    const rt = (root as unknown as { __runtime?: Runtime | null }).__runtime ?? null;
+    currentRuntime = rt;
+  } catch {
+    currentRuntime = null;
+  }
   const path = buildPath(target);
   const ancestors = path.slice(0, Math.max(0, path.length - 1));
   for (const node of ancestors) {
@@ -244,4 +251,5 @@ export function dispatchToTree(
       return;
     }
   }
+  currentRuntime = prevRuntime;
 }

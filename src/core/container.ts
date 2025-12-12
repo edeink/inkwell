@@ -192,10 +192,7 @@ export class Container extends Widget<ContainerData> {
     return { width, height };
   }
 
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
+  protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     // 计算可用于子组件的空间
     const marginHorizontal = this.margin ? this.margin.left + this.margin.right : 0;
     const marginVertical = this.margin ? this.margin.top + this.margin.bottom : 0;
