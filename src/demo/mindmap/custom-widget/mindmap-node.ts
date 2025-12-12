@@ -11,6 +11,7 @@ import type {
   WidgetData,
   WidgetProps,
 } from '@/core/base';
+import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
 import { createWidget as createExternalWidget } from '@/core/registry';
@@ -60,6 +61,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
   private static currentHoverKey: string | null = null;
   private dragRaf: number | null = null;
   private lastNativeEvent: Event | null = null;
+  private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
+  private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
+  private activePointerId: number | null = null;
 
   static {
     Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
@@ -169,101 +173,38 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
    * - 绑定在组件实例上（类方法），通过统一事件系统按命中分发
    * - 保持拖拽与激活/编辑行为一致，避免 window 级别监听
    */
-  onPointerDown(e: any): boolean | void {
+  onPointerDown(e: InkwellEvent): boolean | void {
     const vp = this.findViewport();
     if (!vp) {
       return;
+    }
+    if (this.isRootNode()) {
+      this.clickCandidate = { startX: e.x, startY: e.y };
+      this.detachWindowPointerListeners();
+      return false;
     }
     const worldX = (e.x - vp.tx) / vp.scale;
     const worldY = (e.y - vp.ty) / vp.scale;
     const pos = this.getAbsolutePosition();
     this.dragState = { startX: worldX, startY: worldY, origDx: pos.dx, origDy: pos.dy };
     this.clickCandidate = { startX: e.x, startY: e.y };
-    vp.setDragProxyKey(this.key);
+    this.detachWindowPointerListeners();
+    this.attachWindowPointerListeners(e.nativeEvent);
     return false;
   }
 
-  onPointerMove(e: any): boolean | void {
-    const vp = this.findViewport();
-    if (!vp) {
-      return;
-    }
-    const worldX = (e.x - vp.tx) / vp.scale;
-    const worldY = (e.y - vp.ty) / vp.scale;
-    // 更新拖拽
-    if (!this.dragState) {
-      // 非拖拽时更新 hover 命中（流畅切换）
-      const pos = this.getAbsolutePosition();
-      const sz = this.renderObject.size;
-      const inside =
-        worldX >= pos.dx &&
-        worldY >= pos.dy &&
-        worldX <= pos.dx + sz.width &&
-        worldY <= pos.dy + sz.height;
-      const runtime = this.findRuntimeFromNative(e?.nativeEvent);
-      if (inside) {
-        MindMapNode.setHoveredKey(this.key, runtime ?? null);
-      } else if (MindMapNode.currentHoverKey === this.key) {
-        MindMapNode.setHoveredKey(null, runtime ?? null);
-      }
-      return false;
-    }
-    const dx = worldX - this.dragState.startX;
-    const dy = worldY - this.dragState.startY;
-    this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
-    this.lastNativeEvent = (e?.nativeEvent as Event) ?? null;
-    if (this.dragRaf == null) {
-      this.dragRaf = requestAnimationFrame(() => {
-        this.requestRerenderFromNative(this.lastNativeEvent ?? undefined);
-        this.dragRaf = null;
-      });
-    }
-    if (this.clickCandidate) {
-      const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
-      if (d > 3) {
-        this.clickCandidate = null;
-      }
-    }
+  onPointerMove(e: InkwellEvent): boolean | void {
+    this.handlePointerMove({ x: e.x, y: e.y, native: e.nativeEvent });
     return false;
   }
 
-  onPointerUp(e: any): boolean | void {
-    const vp = this.findViewport();
-    const ds = this.dragState;
-    if (!vp) {
-      this.dragState = null;
-      this.clickCandidate = null;
-      return;
-    }
-    const worldX = (e.x - vp.tx) / vp.scale;
-    const worldY = (e.y - vp.ty) / vp.scale;
-    const moved = !!ds && (Math.abs(worldX - ds.startX) > 5 || Math.abs(worldY - ds.startY) > 5);
-    this.dragState = null;
-    if (moved) {
-      const off = this.renderObject.offset || { dx: 0, dy: 0 };
-      if (this._onMoveNode) {
-        this._onMoveNode(this.key, off.dx, off.dy);
-      } else {
-        const t = this as unknown as Widget;
-        const p = t.parent as Widget | null;
-        const container = p && p.type === CustomComponentType.MindMapNodeToolbar ? p : t;
-        container.renderObject.offset = { dx: off.dx, dy: off.dy } as any;
-      }
-      this.requestRerenderFromNative(e?.nativeEvent);
-      this.clickCandidate = null;
-    } else if (this.clickCandidate) {
-      if (this._onActive) {
-        this._onActive(this.key);
-      } else {
-        vp.setActiveKey(this.key);
-      }
-      this.clickCandidate = null;
-      this.requestRerenderFromNative(e?.nativeEvent);
-    }
+  onPointerUp(e: InkwellEvent): boolean | void {
+    this.handlePointerUp({ x: e.x, y: e.y, native: e.nativeEvent });
+    this.detachWindowPointerListeners();
     return false;
   }
 
-  onDblClick(e: any): boolean | void {
+  onDblClick(e: InkwellEvent): boolean | void {
     const vp = this.findViewport();
     if (!vp) {
       return;
@@ -354,6 +295,203 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
       }
     } catch {}
     return null;
+  }
+
+  private toCanvasXY(native?: Event): { x: number; y: number } | null {
+    try {
+      const m = native as MouseEvent | PointerEvent | TouchEvent | undefined;
+      const cx = (m as MouseEvent | PointerEvent | undefined)?.clientX;
+      const cy = (m as MouseEvent | PointerEvent | undefined)?.clientY;
+      if (typeof cx !== 'number' || typeof cy !== 'number') {
+        return null;
+      }
+      const rt = this.findRuntimeFromNative(native);
+      const renderer = rt?.getRenderer?.();
+      const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+      const canvas = raw?.canvas ?? rt?.getContainer()?.querySelector('canvas') ?? null;
+      if (!canvas) {
+        return null;
+      }
+      const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
+      const x = cx - rect.left;
+      const y = cy - rect.top;
+      return { x, y };
+    } catch {
+      return null;
+    }
+  }
+
+  private attachWindowPointerListeners(native?: Event): void {
+    const pe = native as PointerEvent | undefined;
+    this.activePointerId = typeof pe?.pointerId === 'number' ? pe!.pointerId : null;
+    if (!this.windowMoveHandler) {
+      this.windowMoveHandler = (ev: PointerEvent) => {
+        if (this.activePointerId != null && ev.pointerId !== this.activePointerId) {
+          return;
+        }
+        const pt = this.toCanvasXY(ev);
+        if (!pt) {
+          return;
+        }
+        this.handlePointerMove({ x: pt.x, y: pt.y, native: ev });
+      };
+    }
+    if (!this.windowUpHandler) {
+      this.windowUpHandler = (ev: PointerEvent) => {
+        if (this.activePointerId != null && ev.pointerId !== this.activePointerId) {
+          return;
+        }
+        const pt = this.toCanvasXY(ev);
+        if (!pt) {
+          this.handlePointerUp({ x: 0, y: 0, native: ev });
+        } else {
+          this.handlePointerUp({ x: pt.x, y: pt.y, native: ev });
+        }
+        this.detachWindowPointerListeners();
+      };
+    }
+    window.addEventListener('pointermove', this.windowMoveHandler as EventListener, {
+      capture: true,
+    });
+    window.addEventListener('pointerup', this.windowUpHandler as EventListener, { capture: true });
+  }
+
+  private detachWindowPointerListeners(): void {
+    if (this.windowMoveHandler) {
+      window.removeEventListener(
+        'pointermove',
+        this.windowMoveHandler as EventListener,
+        {
+          capture: true,
+        } as any,
+      );
+    }
+    if (this.windowUpHandler) {
+      window.removeEventListener(
+        'pointerup',
+        this.windowUpHandler as EventListener,
+        {
+          capture: true,
+        } as any,
+      );
+    }
+    this.windowMoveHandler = null;
+    this.windowUpHandler = null;
+    this.activePointerId = null;
+  }
+
+  private handlePointerMove(e: { x: number; y: number; native?: Event }): void {
+    const vp = this.findViewport();
+    if (!vp) {
+      return;
+    }
+    const worldX = (e.x - vp.tx) / vp.scale;
+    const worldY = (e.y - vp.ty) / vp.scale;
+    if (!this.dragState) {
+      const pos = this.getAbsolutePosition();
+      const sz = this.renderObject.size;
+      const inside =
+        worldX >= pos.dx &&
+        worldY >= pos.dy &&
+        worldX <= pos.dx + sz.width &&
+        worldY <= pos.dy + sz.height;
+      const runtime = this.findRuntimeFromNative(e?.native);
+      if (inside) {
+        MindMapNode.setHoveredKey(this.key, runtime ?? null);
+      } else if (MindMapNode.currentHoverKey === this.key) {
+        MindMapNode.setHoveredKey(null, runtime ?? null);
+      }
+      return;
+    }
+    const dx = worldX - this.dragState.startX;
+    const dy = worldY - this.dragState.startY;
+    this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
+    this.lastNativeEvent = (e?.native as Event) ?? null;
+    if (this.dragRaf == null) {
+      this.dragRaf = requestAnimationFrame(() => {
+        this.requestRerenderFromNative(this.lastNativeEvent ?? undefined);
+        this.dragRaf = null;
+      });
+    }
+    if (this.clickCandidate) {
+      const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
+      if (d > 3) {
+        this.clickCandidate = null;
+      }
+    }
+  }
+
+  private handlePointerUp(e: { x: number; y: number; native?: Event }): void {
+    const vp = this.findViewport();
+    const ds = this.dragState;
+    if (!vp) {
+      this.dragState = null;
+      this.clickCandidate = null;
+      return;
+    }
+    const worldX = (e.x - vp.tx) / vp.scale;
+    const worldY = (e.y - vp.ty) / vp.scale;
+    const moved = !!ds && (Math.abs(worldX - ds.startX) > 5 || Math.abs(worldY - ds.startY) > 5);
+    this.dragState = null;
+    if (moved) {
+      const off = this.renderObject.offset || { dx: 0, dy: 0 };
+      if (this._onMoveNode) {
+        this._onMoveNode(this.key, off.dx, off.dy);
+      } else {
+        const t = this as unknown as Widget;
+        const p = t.parent as Widget | null;
+        const container = p && p.type === CustomComponentType.MindMapNodeToolbar ? p : t;
+        container.renderObject.offset = { dx: off.dx, dy: off.dy } as any;
+      }
+      try {
+        const parentContainer = (this.parent as Widget) ?? null;
+        const layout =
+          parentContainer && parentContainer.type === CustomComponentType.MindMapNodeToolbar
+            ? (parentContainer.parent as Widget)
+            : (parentContainer as Widget);
+        if (layout && layout.type === CustomComponentType.MindMapLayout) {
+          const descendants = new Set<string>();
+          const seen = new Set<string>();
+          const stack: string[] = [this.key as string];
+          const collectChildren = (fromKey: string): string[] => {
+            const out: string[] = [];
+            for (const c of layout.children) {
+              if ((c as any).type === CustomComponentType.Connector) {
+                const from = (c as any).fromKey as string;
+                const to = (c as any).toKey as string;
+                if (from === fromKey && !seen.has(to)) {
+                  out.push(to);
+                }
+              }
+            }
+            return out;
+          };
+          while (stack.length) {
+            const curKey = stack.pop()!;
+            const children = collectChildren(curKey);
+            for (const ck of children) {
+              if (seen.has(ck)) {
+                continue;
+              }
+              seen.add(ck);
+              descendants.add(ck);
+              stack.push(ck);
+            }
+          }
+          // layout.markNeedsLayout();
+        }
+      } catch {}
+      this.requestRerenderFromNative(e?.native);
+      this.clickCandidate = null;
+    } else if (this.clickCandidate) {
+      if (this._onActive) {
+        this._onActive(this.key);
+      } else {
+        vp.setActiveKey(this.key);
+      }
+      this.clickCandidate = null;
+      this.requestRerenderFromNative(e?.native);
+    }
   }
 
   private openInlineEditor(native?: Event): void {
@@ -448,6 +586,22 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
       p = p.parent;
     }
     return null;
+  }
+
+  private isRootNode(): boolean {
+    const parent = this.parent as Widget | null;
+    if (!parent) {
+      return false;
+    }
+    for (const c of parent.children) {
+      if ((c as any).type === CustomComponentType.Connector) {
+        const to = (c as any).toKey as string;
+        if (to === this.key) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }
 export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> &

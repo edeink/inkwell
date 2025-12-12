@@ -91,7 +91,6 @@ export class Viewport extends Widget<ViewportData> {
   private selectAllActive: boolean = false;
   private wheelPending: { dx: number; dy: number } | null = null;
   private wheelRaf: number | null = null;
-  private dragProxyKey: string | null = null;
 
   static {
     Widget.registerType(CustomComponentType.Viewport, Viewport);
@@ -342,13 +341,6 @@ export class Viewport extends Widget<ViewportData> {
       this.requestRender();
       return false;
     }
-    if (this.dragProxyKey) {
-      const target = this.findByKey(this.parent as Widget, this.dragProxyKey);
-      if (target && typeof (target as any).onPointerMove === 'function') {
-        (target as any).onPointerMove({ x: e.x, y: e.y, nativeEvent: e?.nativeEvent });
-        return false;
-      }
-    }
   }
 
   onPointerUp(e: any): boolean | void {
@@ -376,30 +368,17 @@ export class Viewport extends Widget<ViewportData> {
       this.requestRender();
       return false;
     }
-    if (this.dragProxyKey) {
-      const target = this.findByKey(this.parent as Widget, this.dragProxyKey);
-      if (target && typeof (target as any).onPointerUp === 'function') {
-        (target as any).onPointerUp({ x: e.x, y: e.y, nativeEvent: e?.nativeEvent });
-      }
-      this.dragProxyKey = null;
-      return false;
-    }
   }
 
   onWheel(e: any): boolean | void {
     const we = e?.nativeEvent as WheelEvent | undefined;
     if (we && (we.ctrlKey || we.metaKey)) {
-      try {
-        we.preventDefault();
-      } catch {}
+      we.preventDefault();
     }
     // 触控板双指滚动：当未按下 Ctrl/Meta 时，按 wheel delta 平滑平移视口
     if (we && !(we.ctrlKey || we.metaKey)) {
       const dx = we.deltaX || 0;
       const dy = we.deltaY || 0;
-      try {
-        console.debug('[Viewport] wheel', { dx, dy, tx: this.tx, ty: this.ty, scale: this.scale });
-      } catch {}
       // 合并多次 wheel 事件到一帧
       const pending = this.wheelPending ?? { dx: 0, dy: 0 };
       pending.dx = dx;
@@ -415,9 +394,6 @@ export class Viewport extends Widget<ViewportData> {
           const ty = this.ty - p.dy;
           this.setPosition(tx, ty);
           this._onSetViewPosition?.(this.tx, this.ty);
-          try {
-            console.debug('[Viewport] pan', { tx: this.tx, ty: this.ty });
-          } catch {}
           this.requestRender();
         });
       }
@@ -450,9 +426,7 @@ export class Viewport extends Widget<ViewportData> {
     ) {
       this._onRedo?.();
     } else if (ctrlKey && (ke.key === '+' || ke.key === '-' || ke.key === '=' || ke.key === '0')) {
-      try {
-        ke.preventDefault();
-      } catch {}
+      ke.preventDefault();
     } else if (ke.key === 'Delete' || ke.key === 'Backspace') {
       const editing = this.editingKey;
       if (editing) {
@@ -624,10 +598,6 @@ export class Viewport extends Widget<ViewportData> {
       { t: 'translate', x: this.tx, y: this.ty },
       { t: 'scale', sx: this.scale, sy: this.scale },
     ];
-  }
-
-  setDragProxyKey(key: string | null): void {
-    this.dragProxyKey = key ?? null;
   }
 
   private findByKey(w: Widget | null, key: string): Widget | null {
