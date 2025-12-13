@@ -1,32 +1,20 @@
+/** @jsxImportSource @/utils/compiler */
 import React from 'react';
 
 import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from '@/core/base';
+import type { WidgetData, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
+import { Container, Text } from '@/core';
 import { Widget } from '@/core/base';
 import { createWidget as createExternalWidget } from '@/core/registry';
-import { StatelessWidget } from '@/core/state/stateless';
+import { StatefulWidget } from '@/core/state/stateful';
 import Runtime from '@/runtime';
 
 export interface MindMapNodeData extends WidgetData {
   title: string;
-  width?: number;
-  height?: number;
-  color?: string;
-  borderColor?: string;
-  borderWidth?: number;
-  borderRadius?: number;
-  padding?: number;
   prefSide?: Side;
   active?: boolean;
   activeKey?: string | null;
@@ -37,18 +25,21 @@ export interface MindMapNodeData extends WidgetData {
 }
 
 /**
- * MindMapNode（思维导图节点）
- * 提供基础矩形节点绘制与尺寸估算，支持自定义边框、圆角与内边距。
+ * 组件状态
+ * 描述 MindMapNode 的可变状态：标题文本与拖拽中的标记
  */
-export class MindMapNode extends StatelessWidget<MindMapNodeData> {
+interface MindMapNodeState extends Record<string, unknown> {
+  title: string;
+  dragging: boolean;
+  hovering: boolean;
+}
+
+/**
+ * MindMapNode
+ * 有状态的思维导图节点组件，负责渲染节点外观与处理点击/拖拽/编辑交互
+ */
+export class MindMapNode extends StatefulWidget<MindMapNodeData> {
   title: string = '';
-  width?: number;
-  height?: number;
-  color: string = '#ffffff';
-  borderColor: string = '#1677ff';
-  borderWidth: number = 1.2;
-  borderRadius: number = 10;
-  padding: number = 12;
   prefSide: Side | undefined = undefined;
   active: boolean = false;
   private _onActive?: (key: string | null) => void;
@@ -56,9 +47,6 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
     null;
   private clickCandidate: { startX: number; startY: number } | null = null;
-  private static hoverAnim: Map<string, number> = new Map();
-  private static hoverAnimRaf: number | null = null;
-  private static currentHoverKey: string | null = null;
   private dragRaf: number | null = null;
   private lastNativeEvent: Event | null = null;
   private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
@@ -69,20 +57,26 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
   }
 
+  /**
+   * 构造函数
+   * 初始化组件状态与静态属性，保留传入的节点数据与业务逻辑
+   */
   constructor(data: MindMapNodeData) {
     super(data);
+    this.state = this.initialState(data);
     this.init(data);
+  }
+
+  /**
+   * 初始化状态
+   * 从节点数据推导初始标题文本与拖拽标记
+   */
+  private initialState(data: MindMapNodeData): MindMapNodeState {
+    return { title: data.title || '', dragging: false, hovering: false };
   }
 
   private init(data: MindMapNodeData): void {
     this.title = data.title || '';
-    this.width = data.width;
-    this.height = data.height;
-    this.color = (data.color ?? this.color) as string;
-    this.borderColor = (data.borderColor ?? this.borderColor) as string;
-    this.borderWidth = (data.borderWidth ?? this.borderWidth) as number;
-    this.borderRadius = (data.borderRadius ?? this.borderRadius) as number;
-    this.padding = (data.padding ?? this.padding) as number;
     this.prefSide = data.prefSide;
     const akFromProps = (data.activeKey ?? null) as string | null;
     const vp = this.findViewport();
@@ -94,8 +88,17 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
   }
 
   createElement(data: MindMapNodeData): Widget<MindMapNodeData> {
-    super.createElement(data);
-    this.init(data);
+    const withEvents = {
+      ...data,
+      onPointerDown: (e: InkwellEvent) => this.onPointerDown(e),
+      onPointerMove: (e: InkwellEvent) => this.onPointerMove(e),
+      onPointerUp: (e: InkwellEvent) => this.onPointerUp(e),
+      onDblClick: (e: InkwellEvent) => this.onDblClick(e),
+      onPointerEnter: () => this.setState({ hovering: true } as Partial<MindMapNodeState>),
+      onPointerLeave: () => this.setState({ hovering: false } as Partial<MindMapNodeState>),
+    } as MindMapNodeData;
+    super.createElement(withEvents);
+    this.init(withEvents);
     return this;
   }
 
@@ -106,72 +109,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     return Widget.createWidget(childData) ?? createExternalWidget(childData.type, childData);
   }
 
-  protected paintSelf(context: BuildContext): void {
-    const { renderer } = context;
-    const { size } = this.renderObject as { size: Size };
-    const vp = this.findViewport();
-    const editing = vp?.editingKey === this.key;
-    const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
-    const isDragging = !!this.dragState;
-    const baseFill = editing
-      ? 'rgba(22,119,255,0.08)'
-      : selected
-        ? '#e6f7ff'
-        : isDragging
-          ? 'rgba(255,255,255,0.6)'
-          : this.color;
-    renderer.drawRect({
-      x: 0,
-      y: 0,
-      width: size.width,
-      height: size.height,
-      fill: baseFill,
-      stroke: selected ? '#1890ff' : this.borderColor,
-      strokeWidth: selected ? 2 : this.borderWidth,
-      borderRadius: this.borderRadius,
-    });
-    const pad = this.padding;
-    const textX = pad;
-    const textY = pad + 14;
-    renderer.drawText({
-      text: this.title,
-      x: textX,
-      y: textY,
-      width: size.width - pad * 2,
-      fontSize: 14,
-      color: '#333333',
-    });
-
-    const hoverP = MindMapNode.getHoverProgress(this.key);
-    if (hoverP > 0) {
-      const padW = Math.max(0, Math.round(2 * hoverP));
-      renderer.drawRect({
-        x: -padW,
-        y: -padW,
-        width: size.width + padW * 2,
-        height: size.height + padW * 2,
-        stroke: '#1677ff',
-        strokeWidth: Math.max(1, Math.round(2 * hoverP)),
-        borderRadius: this.borderRadius + padW,
-      });
-    }
-
-    void vp;
-
-    const vpCollapsed = Array.isArray((vp as any)?.collapsedKeys)
-      ? ((vp as any).collapsedKeys as string[])
-      : [];
-    const isCollapsed = vpCollapsed.includes(this.key);
-
-    const children = this.children.filter((c) => c.type === CustomComponentType.MindMapNode);
-    if (!isCollapsed && children.length > 0) {
-    }
-  }
-
   /**
-   * 事件迁移：节点级指针与双击事件由 InteractionModule 迁移至此
-   * - 绑定在组件实例上（类方法），通过统一事件系统按命中分发
-   * - 保持拖拽与激活/编辑行为一致，避免 window 级别监听
+   * 指针按下事件
+   * 区分根节点点击与可拖拽节点，记录初始位置并进入拖拽状态
    */
   onPointerDown(e: InkwellEvent): boolean | void {
     const vp = this.findViewport();
@@ -181,6 +121,7 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     if (this.isRootNode()) {
       this.clickCandidate = { startX: e.x, startY: e.y };
       this.detachWindowPointerListeners();
+      this.setState({ dragging: false });
       return false;
     }
     const worldX = (e.x - vp.tx) / vp.scale;
@@ -190,20 +131,34 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     this.clickCandidate = { startX: e.x, startY: e.y };
     this.detachWindowPointerListeners();
     this.attachWindowPointerListeners(e.nativeEvent);
+    this.setState({ dragging: true });
     return false;
   }
 
+  /**
+   * 指针移动事件
+   * 在拖拽中更新位移并节流重绘；非拖拽时维护悬停动画进度
+   */
   onPointerMove(e: InkwellEvent): boolean | void {
     this.handlePointerMove({ x: e.x, y: e.y, native: e.nativeEvent });
     return false;
   }
 
+  /**
+   * 指针抬起事件
+   * 结束拖拽并提交位置变更或触发点击激活
+   */
   onPointerUp(e: InkwellEvent): boolean | void {
     this.handlePointerUp({ x: e.x, y: e.y, native: e.nativeEvent });
     this.detachWindowPointerListeners();
+    this.setState({ dragging: false });
     return false;
   }
 
+  /**
+   * 双击进入内联编辑
+   * 请求视口进入编辑态并创建原生输入框进行文本编辑
+   */
   onDblClick(e: InkwellEvent): boolean | void {
     const vp = this.findViewport();
     if (!vp) {
@@ -214,64 +169,18 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     return false;
   }
 
+  /**
+   * 从原生事件上下文请求一次重绘
+   * 通过查找关联的 Runtime 并调用 rerender 完成画布刷新
+   */
   private requestRerenderFromNative(native?: Event): void {
     const runtime = this.findRuntimeFromNative(native);
     runtime?.rerender();
   }
 
-  static setHoveredKey(key: string | null, runtime: Runtime | null): void {
-    const prev = MindMapNode.currentHoverKey;
-    if (key === prev) {
-      return;
-    }
-    MindMapNode.currentHoverKey = key;
-    const anim = MindMapNode.hoverAnim;
-    const now = performance.now();
-    const duration = 300;
-    const start = now;
-    if (prev) {
-      anim.set(prev, anim.get(prev) ?? 1);
-    }
-    if (key) {
-      anim.set(key, anim.get(key) ?? 0);
-    }
-    const step = () => {
-      const t = performance.now() - start;
-      const p = Math.max(0, Math.min(1, t / duration));
-      if (prev) {
-        const pv = anim.get(prev) ?? 1;
-        anim.set(prev, Math.max(0, pv - p));
-      }
-      if (key) {
-        const kv = anim.get(key) ?? 0;
-        anim.set(key, Math.min(1, kv + p));
-      }
-      runtime?.rerender();
-      if (t < duration) {
-        MindMapNode.hoverAnimRaf = requestAnimationFrame(step);
-      } else {
-        MindMapNode.hoverAnimRaf = null;
-        if (prev) {
-          anim.delete(prev);
-        }
-        if (key) {
-          anim.set(key, 1);
-        }
-      }
-    };
-    if (MindMapNode.hoverAnimRaf) {
-      try {
-        cancelAnimationFrame(MindMapNode.hoverAnimRaf);
-      } catch {}
-      MindMapNode.hoverAnimRaf = null;
-    }
-    MindMapNode.hoverAnimRaf = requestAnimationFrame(step);
-  }
-
-  static getHoverProgress(key: string): number {
-    return MindMapNode.hoverAnim.get(key) ?? (MindMapNode.currentHoverKey === key ? 1 : 0);
-  }
-
+  /**
+   * 基于原生事件坐标反查所属 Runtime
+   */
   private findRuntimeFromNative(native?: Event): Runtime | null {
     try {
       const me = native as MouseEvent | PointerEvent | TouchEvent | undefined;
@@ -297,6 +206,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     return null;
   }
 
+  /**
+   * 将原生事件坐标转换为画布坐标
+   */
   private toCanvasXY(native?: Event): { x: number; y: number } | null {
     try {
       const m = native as MouseEvent | PointerEvent | TouchEvent | undefined;
@@ -321,6 +233,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     }
   }
 
+  /**
+   * 监听全局指针事件以支持拖拽越界场景
+   */
   private attachWindowPointerListeners(native?: Event): void {
     const pe = native as PointerEvent | undefined;
     this.activePointerId = typeof pe?.pointerId === 'number' ? pe!.pointerId : null;
@@ -356,6 +271,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     window.addEventListener('pointerup', this.windowUpHandler as EventListener, { capture: true });
   }
 
+  /**
+   * 解除全局指针事件监听，清理拖拽状态
+   */
   private detachWindowPointerListeners(): void {
     if (this.windowMoveHandler) {
       window.removeEventListener(
@@ -380,6 +298,10 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     this.activePointerId = null;
   }
 
+  /**
+   * 处理指针移动
+   * 拖拽时更新偏移并节流重绘；非拖拽时维护悬停动画与命中测试
+   */
   private handlePointerMove(e: { x: number; y: number; native?: Event }): void {
     const vp = this.findViewport();
     if (!vp) {
@@ -388,19 +310,6 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     const worldX = (e.x - vp.tx) / vp.scale;
     const worldY = (e.y - vp.ty) / vp.scale;
     if (!this.dragState) {
-      const pos = this.getAbsolutePosition();
-      const sz = this.renderObject.size;
-      const inside =
-        worldX >= pos.dx &&
-        worldY >= pos.dy &&
-        worldX <= pos.dx + sz.width &&
-        worldY <= pos.dy + sz.height;
-      const runtime = this.findRuntimeFromNative(e?.native);
-      if (inside) {
-        MindMapNode.setHoveredKey(this.key, runtime ?? null);
-      } else if (MindMapNode.currentHoverKey === this.key) {
-        MindMapNode.setHoveredKey(null, runtime ?? null);
-      }
       return;
     }
     const dx = worldX - this.dragState.startX;
@@ -421,6 +330,10 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     }
   }
 
+  /**
+   * 处理指针抬起
+   * 根据是否发生明显位移决定提交拖拽结果或作为点击激活
+   */
   private handlePointerUp(e: { x: number; y: number; native?: Event }): void {
     const vp = this.findViewport();
     const ds = this.dragState;
@@ -478,7 +391,6 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
               stack.push(ck);
             }
           }
-          // layout.markNeedsLayout();
         }
       } catch {}
       this.requestRerenderFromNative(e?.native);
@@ -494,32 +406,34 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     }
   }
 
+  /**
+   * 打开内联文本编辑器
+   * 以绝对定位的原生 input 与视口缩放/平移对齐，编辑完成后写回组件状态
+   */
   private openInlineEditor(native?: Event): void {
     const vp = this.findViewport();
     if (!vp) {
       return;
     }
     const pos = this.getAbsolutePosition();
-    const sz = this.renderObject.size;
     const runtime = this.findRuntimeFromNative(native);
     const container = runtime?.getContainer() ?? document.body;
     const input = document.createElement('input');
     input.type = 'text';
-    input.value = this.title || '';
+    const st = this.state as MindMapNodeState;
+    input.value = st.title || '';
     input.style.position = 'absolute';
     input.style.left = `${Math.round(vp.tx + pos.dx * vp.scale)}px`;
     input.style.top = `${Math.round(vp.ty + pos.dy * vp.scale)}px`;
-    input.style.width = `${Math.round(sz.width * vp.scale)}px`;
-    input.style.height = '28px';
-    input.style.border = '1px solid #1677ff';
-    input.style.borderRadius = '8px';
-    input.style.padding = '4px 8px';
-    input.style.zIndex = '10000';
-    input.style.background = '#ffffff';
-    input.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+    input.style.opacity = '0';
     container.appendChild(input);
     input.focus();
     input.select();
+    const onInput = () => {
+      const v = input.value;
+      this.setState({ title: v } as Partial<MindMapNodeState>);
+    };
+    input.addEventListener('input', onInput);
     const cleanup = () => {
       input.remove();
       const vp2 = this.findViewport();
@@ -528,7 +442,7 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     };
     const confirm = () => {
       const v = input.value;
-      this.title = v;
+      this.setState({ title: v } as Partial<MindMapNodeState>);
       cleanup();
     };
     const cancel = () => {
@@ -546,37 +460,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     });
   }
 
-  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
-    void childrenSizes;
-    const textLen = this.title ? this.title.length : 0;
-    const estTextW = Math.max(40, textLen * 9);
-    const estTextH = 20;
-    let width = this.width ?? estTextW + this.padding * 2;
-    let height = this.height ?? estTextH + this.padding * 2;
-    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
-    height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
-    return { width, height };
-  }
-
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
-    void childIndex;
-    return {
-      minWidth: 0,
-      maxWidth: constraints.maxWidth,
-      minHeight: 0,
-      maxHeight: constraints.maxHeight,
-    };
-  }
-
-  protected positionChild(childIndex: number, childSize: Size): Offset {
-    void childIndex;
-    void childSize;
-    return { dx: 0, dy: 0 };
-  }
-
+  /**
+   * 向上查找所属视口组件
+   */
   private findViewport(): Viewport | null {
     let p = this.parent;
     while (p) {
@@ -588,6 +474,9 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     return null;
   }
 
+  /**
+   * 判断是否为根节点（不存在指向自身的连接线）
+   */
   private isRootNode(): boolean {
     const parent = this.parent as Widget | null;
     if (!parent) {
@@ -603,7 +492,59 @@ export class MindMapNode extends StatelessWidget<MindMapNodeData> {
     }
     return true;
   }
+
+  /**
+   * 渲染组件树
+   * 使用 Container + Text 保持视觉效果与交互绑定，避免直接使用底层绘制方法
+   */
+  render() {
+    const vp = this.findViewport();
+    const st = this.state as MindMapNodeState;
+    const editing = vp?.editingKey === this.key;
+    const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
+    const isDragging = !!st.dragging;
+    const baseFill = editing
+      ? 'rgba(22,119,255,0.08)'
+      : selected
+        ? '#e6f7ff'
+        : isDragging
+          ? 'rgba(255,255,255,0.6)'
+          : '#ffffff';
+    const textLen = st.title ? st.title.length : 0;
+    const estTextW = Math.max(40, textLen * 9);
+    const w = estTextW + 24;
+    const h = 20 + 24;
+    const hover = !!st.hovering;
+    const borderColor = hover || selected ? '#1890ff' : '#1677ff';
+    const borderWidth = hover || selected ? 2 : 1.2;
+    return (
+      <Container
+        key={`${String(this.key)}-box`}
+        width={w}
+        height={h}
+        padding={12}
+        color={baseFill as any}
+        border={{
+          color: borderColor,
+          width: borderWidth,
+        }}
+        borderRadius={10}
+        pointerEvents={'none'}
+      >
+        <Text
+          key={`${String(this.key)}-text`}
+          text={st.title}
+          fontSize={14}
+          color={'#333333'}
+          textAlign={'left'}
+          textAlignVertical={'top'}
+          pointerEvents={'none'}
+        />
+      </Container>
+    ) as any;
+  }
 }
+
 export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> &
   WidgetProps & { children?: never };
 export const MindMapNodeElement: React.FC<MindMapNodeProps> = () => null;

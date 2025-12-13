@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SCALE_CONFIG } from '../config/constants';
 import { MindmapController } from '../controller/index';
 import { Viewport } from '../custom-widget/viewport';
-import { createScene } from '../scene';
+import { runApp } from '../scene';
 
 import ErrorBoundary from './error-boundary';
 import Minimap from './minimap';
@@ -120,15 +120,14 @@ export default function MindmapComponent({
         });
       }
       const runtime = runtimeRef.current!;
-      const scene = createScene(size.width, size.height, runtime);
-      await runtime.renderFromJSX(scene);
-      const root = runtime.getRootWidget();
-      const vp = findViewport(root);
-      if (vp) {
-        const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
-        setController(ctrl);
-        setZoom(vp.scale);
-      }
+      runApp(runtime!, size);
+      // const root = runtime.getRootWidget();
+      // const vp = findViewport(root);
+      // if (vp) {
+      //   const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
+      //   setController(ctrl);
+      //   setZoom(vp.scale);
+      // }
     })().catch((e) => console.error('Render mindmap failed:', e));
 
     return () => {

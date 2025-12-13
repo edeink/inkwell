@@ -21,7 +21,6 @@ import type {
 } from '@/core/base';
 
 import { Widget } from '@/core/base';
-import { StatelessWidget } from '@/core/state/stateless';
 
 export interface MindMapNodeToolbarData extends WidgetData {
   onActive?: (key: string | null) => void;
@@ -59,7 +58,7 @@ function calculatePlusButtonPosition(
  * - 封装一个 MindMapNode 子组件，并在其周围绘制加号按钮
  * - 命中与事件在本组件中处理，确保 zIndex 与响应顺序正确
  */
-export class MindMapNodeToolbar extends StatelessWidget<MindMapNodeToolbarData> {
+export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
   private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   private _onAddChildSide?: (refKey: string, side: Side) => void;
 

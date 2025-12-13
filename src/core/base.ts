@@ -242,6 +242,10 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.data = this.props;
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
+    const pe0 = (data as unknown as WidgetData).pointerEvents;
+    if (pe0 === 'none' || pe0 === 'auto') {
+      this.pointerEvents = pe0;
+    }
 
     // 递归构建子组件
     if (data.children && Array.isArray(data.children) && data.children.length > 0) {
@@ -353,6 +357,10 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.props = { ...nextProps } as TData;
     this.data = this.props;
     this.zIndex = typeof nextProps.zIndex === 'number' ? (nextProps.zIndex as number) : this.zIndex;
+    const pe = (nextProps as unknown as WidgetData).pointerEvents;
+    if (pe === 'none' || pe === 'auto') {
+      this.pointerEvents = pe;
+    }
 
     // children 差异或需要更新时执行子树增量重建
     if (nextChildrenData.length > 0) {
