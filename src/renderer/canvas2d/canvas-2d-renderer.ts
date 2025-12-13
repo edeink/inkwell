@@ -66,6 +66,29 @@ export class Canvas2DRenderer implements IRenderer {
     this.container.appendChild(this.canvas);
   }
 
+  update(options: Partial<RendererOptions>): void {
+    if (!this.canvas || !this.ctx) {
+      return;
+    }
+    const next: RendererOptions = {
+      width: options.width ?? this.options?.width ?? this.canvas.width,
+      height: options.height ?? this.options?.height ?? this.canvas.height,
+      antialias: options.antialias ?? this.options?.antialias,
+      resolution: options.resolution ?? this.options?.resolution,
+      background: options.background ?? this.options?.background,
+      backgroundAlpha: options.backgroundAlpha ?? this.options?.backgroundAlpha,
+    } as RendererOptions;
+    const dw = next.width;
+    const dh = next.height;
+    const cw = this.options?.width ?? dw;
+    const ch = this.options?.height ?? dh;
+    if (dw !== cw || dh !== ch) {
+      this.resize(dw, dh);
+    } else {
+      this.options = { ...(this.options ?? next), ...next } as RendererOptions;
+    }
+  }
+
   /**
    * 调整渲染器大小
    * @param width 宽度

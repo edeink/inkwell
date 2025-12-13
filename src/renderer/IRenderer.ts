@@ -28,6 +28,8 @@ export interface IRenderer {
    */
   initialize(container: HTMLElement, options: RendererOptions): void | Promise<void>;
 
+  update?(options: Partial<RendererOptions>): void;
+
   /**
    * 调整渲染器大小
    * @param width 宽度

@@ -473,10 +473,21 @@ export default class Runtime {
       return;
     }
     const totalSize = this.calculateLayout(this.rootWidget);
-    void this.initRenderer({}, totalSize).then(() => {
-      this.clearCanvas();
-      this.performRender();
-    });
+    const hasUpdate = typeof (this.renderer as { update?: unknown }).update === 'function';
+    if (hasUpdate) {
+      try {
+        (this.renderer as { update: (opts: Partial<RendererOptions>) => void }).update({
+          width: totalSize.width,
+          height: totalSize.height,
+        });
+      } catch {}
+    } else {
+      try {
+        this.renderer.resize(totalSize.width, totalSize.height);
+      } catch {}
+    }
+    this.clearCanvas();
+    this.performRender();
   }
 
   rerender(): void {
