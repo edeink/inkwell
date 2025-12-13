@@ -7,26 +7,9 @@ import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
 import { Viewport } from '../viewport';
 
-import type { Widget } from '@/core/base';
-
 import { dispatchToTree, hitTest } from '@/core/events';
+import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
-function findByKey(w: Widget | null, key: string): Widget | null {
-  if (!w) {
-    return null;
-  }
-  if (w.key === key) {
-    return w;
-  }
-  for (const c of w.children) {
-    const r = findByKey(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 beforeEach(() => {
   if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
@@ -91,8 +74,8 @@ describe('window级指针事件监听与清理', () => {
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findByKey(root, 'v')! as any;
-    const node1 = findByKey(root, 'n1')! as any;
+    const vp = findWidget(root, 'Viewport') as any;
+    const node1 = findWidget(root, '#n1') as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({
@@ -131,8 +114,8 @@ describe('window级指针事件监听与清理', () => {
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findByKey(root, 'v')! as any;
-    const node1 = findByKey(root, 'n1')! as any;
+    const vp = findWidget(root, 'Viewport') as any;
+    const node1 = findWidget(root, '#n1') as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({
@@ -176,8 +159,8 @@ describe('window级指针事件监听与清理', () => {
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findByKey(root, 'v')! as any;
-    const node1 = findByKey(root, 'n1')! as any;
+    const vp = findWidget(root, 'Viewport') as any;
+    const node1 = findWidget(root, '#n1') as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({
@@ -235,8 +218,8 @@ describe('window级指针事件监听与清理', () => {
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findByKey(root, 'v')! as any;
-    const node1 = findByKey(root, 'n1')! as any;
+    const vp = findWidget(root, 'Viewport') as any;
+    const node1 = findWidget(root, '#n1') as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({

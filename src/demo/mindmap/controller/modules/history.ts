@@ -1,7 +1,10 @@
+import { Connector } from '../../custom-widget/connector';
 import { CustomComponentType } from '../../custom-widget/type';
 
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';
+
+import { findWidget } from '@/core/helper/widget-selector';
 
 /**
  * 撤销/重做历史模块
@@ -103,7 +106,7 @@ export class HistoryModule {
   ): Array<{ parent: Widget; index: number; widget: Widget }> {
     const root = this.controller.runtime.getRootWidget();
     const parent = this.findParentOfKey(root, key);
-    const node = this.findByKey(root, key);
+    const node = findWidget(root, `#${key}`) as Widget | null;
     if (!parent || !node) {
       return [];
     }
@@ -120,9 +123,9 @@ export class HistoryModule {
   ): Array<{ parent: Widget; index: number; widget: Widget }> {
     const childrenMap = new Map<string, string[]>();
     for (const c of layout.children) {
-      if (c.type === CustomComponentType.Connector) {
-        const from = (c as any).fromKey as string;
-        const to = (c as any).toKey as string;
+      if (c instanceof Connector) {
+        const from = c.fromKey as string;
+        const to = c.toKey as string;
         const arr = childrenMap.get(from) || [];
         arr.push(to);
         childrenMap.set(from, arr);
@@ -148,9 +151,9 @@ export class HistoryModule {
         toDelete.has(ch.key)
       ) {
         ops.push({ parent: layout, index: i, widget: ch });
-      } else if (ch.type === CustomComponentType.Connector) {
-        const from = (ch as any).fromKey as string;
-        const to = (ch as any).toKey as string;
+      } else if (ch instanceof Connector) {
+        const from = ch.fromKey as string;
+        const to = ch.toKey as string;
         if (toDelete.has(from) || toDelete.has(to)) {
           ops.push({ parent: layout, index: i, widget: ch });
         }
@@ -226,22 +229,6 @@ export class HistoryModule {
         parent.children.splice(it.index, 0, it.widget);
       }
     }
-  }
-
-  private findByKey(widget: Widget | null, key: string): Widget | null {
-    if (!widget) {
-      return null;
-    }
-    if (widget.key === key) {
-      return widget;
-    }
-    for (const c of widget.children) {
-      const r = this.findByKey(c, key);
-      if (r) {
-        return r;
-      }
-    }
-    return null;
   }
 
   private findParentOfKey(widget: Widget | null, key: string): Widget | null {

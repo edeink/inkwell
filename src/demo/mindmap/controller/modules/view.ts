@@ -76,7 +76,7 @@ export class ViewModule {
     }
     this.dispatchViewChangeEvent();
     try {
-      (vp as any).requestRender?.();
+      (vp as unknown as { requestRender?: () => void }).requestRender?.();
     } catch {}
     try {
       const ctx = this.controller.getPluginContext();
@@ -91,25 +91,9 @@ export class ViewModule {
   setActiveKey(key: string | null): void {
     this.controller.viewport.setActiveKey(key);
     try {
-      (this.controller.viewport as any).requestRender?.();
+      (this.controller.viewport as unknown as { requestRender?: () => void }).requestRender?.();
     } catch {}
     this.dispatchActiveChangeEvent(key);
-  }
-
-  findByKey(widget: Widget | null, key: string): Widget | null {
-    if (!widget) {
-      return null;
-    }
-    if ((widget as Widget).key === key) {
-      return widget;
-    }
-    for (const c of (widget as Widget).children) {
-      const r = this.findByKey(c, key);
-      if (r) {
-        return r;
-      }
-    }
-    return null;
   }
 
   findNodeAtPoint(widget: Widget | null, x: number, y: number): Widget | null {

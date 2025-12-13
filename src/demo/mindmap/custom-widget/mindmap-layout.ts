@@ -4,7 +4,6 @@ import { CustomComponentType } from './type';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
-import { createWidget as createExternalWidget } from '@/core/registry';
 
 export type LayoutMode = 'radial' | 'tree' | 'treeBalanced';
 

@@ -1,6 +1,5 @@
 import { Viewport } from '../custom-widget/viewport';
 
-import { CrudModule } from './modules/crud';
 import { EventsModule } from './modules/events';
 import { HistoryModule } from './modules/history';
 import { InteractionModule } from './modules/interaction';
@@ -21,7 +20,6 @@ export class MindmapController {
   private plugins: Set<ControllerPlugin> = new Set();
   private layoutModule: LayoutModule;
   private historyModule: HistoryModule;
-  private crudModule: CrudModule;
   private eventsModule: EventsModule;
   private view: ViewModule;
   private interaction: InteractionModule;
@@ -42,14 +40,12 @@ export class MindmapController {
     this.layoutModule = new LayoutModule(this);
     this.historyModule = new HistoryModule(this);
     this.layoutModule.attach();
-    this.crudModule = new CrudModule(this, this.historyModule, this.layoutModule);
     this.eventsModule = new EventsModule(this);
     this.interaction = new InteractionModule(this, this.view);
     this.interaction.attach();
     try {
       MindmapController.byRuntime.set(runtime, this);
     } catch {}
-    void this.crudModule;
     void this.eventsModule;
   }
 
@@ -91,7 +87,7 @@ export class MindmapController {
     } catch {}
     this.dispatchViewChangeEvent();
     try {
-      (this.viewport as any).requestRender?.();
+      this.viewport.requestRender?.();
     } catch {}
   }
 
@@ -123,7 +119,7 @@ export class MindmapController {
   setActiveKey(key: string | null): void {
     this.viewport.setActiveKey(key);
     try {
-      (this.viewport as any).requestRender?.();
+      this.viewport.requestRender?.();
     } catch {}
     this.dispatchActiveChangeEvent(key);
   }
@@ -173,4 +169,4 @@ export function createController(
   return new MindmapController(runtime, viewport, onViewChange);
 }
 
-export { CrudModule, EventsModule, HistoryModule, LayoutModule };
+export { EventsModule, HistoryModule, LayoutModule };

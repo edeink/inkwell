@@ -10,5 +10,7 @@ export { Padding } from './padding';
 export { Positioned } from './positioned';
 export { SizedBox } from './sized-box';
 export { Stack } from './stack';
+export { StatefulWidget } from './state/stateful';
+export { StatelessWidget } from './state/stateless';
 export { Text } from './text';
 export { Wrap } from './wrap';

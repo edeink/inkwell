@@ -10,44 +10,18 @@
  */
 import type { Widget } from '@/core/base';
 
-function findViewportInTree(root: Widget | null): Widget | null {
-  if (!root) {
-    return null;
-  }
-  if (root.type === 'Viewport') {
-    return root;
-  }
-  for (const c of root.children) {
-    const r = findViewportInTree(c);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
-
-function isViewportLike(w: Widget | null): w is Widget & { scale: number; tx: number; ty: number } {
-  if (!w) {
-    return false;
-  }
-  const obj = w as unknown as { scale?: unknown; tx?: unknown; ty?: unknown };
-  return (
-    w.type === 'Viewport' &&
-    typeof obj.scale === 'number' &&
-    typeof obj.tx === 'number' &&
-    typeof obj.ty === 'number'
-  );
-}
+import { findWidget } from '@/core/helper/widget-selector';
 
 export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
   if (!root) {
     return null;
   }
-  const vp = findViewportInTree(root);
+  const vp = findWidget(root, 'Viewport') as Widget | null;
   if (vp) {
-    const s = isViewportLike(vp) ? vp.scale || 1 : 1;
-    const tx = isViewportLike(vp) ? vp.tx || 0 : 0;
-    const ty = isViewportLike(vp) ? vp.ty || 0 : 0;
+    const obj = vp as unknown as { scale?: number; tx?: number; ty?: number };
+    const s = typeof obj.scale === 'number' ? obj.scale || 1 : 1;
+    const tx = typeof obj.tx === 'number' ? obj.tx || 0 : 0;
+    const ty = typeof obj.ty === 'number' ? obj.ty || 0 : 0;
     x = (x - tx) / s;
     y = (y - ty) / s;
   }

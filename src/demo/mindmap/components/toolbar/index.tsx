@@ -9,30 +9,15 @@ import styles from './index.module.less';
 
 import type { MindMapLayout } from '../../custom-widget/mindmap-layout';
 import type { Viewport } from '../../custom-widget/viewport';
-import type { Widget } from '@/core';
 import type Runtime from '@/runtime';
+
+import { findWidget } from '@/core/helper/widget-selector';
 
 type Props = {
   runtime: Runtime | null;
   width?: number;
   height?: number;
 };
-
-function findByKey<T extends Widget>(w: Widget | null, key: string): T | null {
-  if (!w) {
-    return null;
-  }
-  if (w.key === key) {
-    return w as T;
-  }
-  for (const c of w.children) {
-    const r = findByKey<T>(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 function collectGraph(runtime: Runtime): {
   nodes: Array<{ key: string; title: string; prefSide?: 'left' | 'right' }>;
@@ -44,8 +29,8 @@ function collectGraph(runtime: Runtime): {
   if (!root) {
     return { nodes: [], edges: [], activeKey: null, viewportSize: null };
   }
-  const vp = findByKey<Viewport>(root, 'v');
-  const layout = findByKey<MindMapLayout>(root, 'layout-root');
+  const vp = findWidget(root, '#v') as Viewport | null;
+  const layout = findWidget(root, '#layout-root') as MindMapLayout | null;
   const nodes: Array<{ key: string; title: string; prefSide?: 'left' | 'right' }> = [];
   const edges: Array<{ from: string; to: string }> = [];
   const activeKey: string | null = vp?.activeKey ?? null;

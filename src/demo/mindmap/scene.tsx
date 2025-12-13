@@ -12,8 +12,8 @@ import type { WidgetProps } from '@/core/base';
 import type Runtime from '@/runtime';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
-import { Widget } from '@/core';
-import { StatefulWidget } from '@/core/state/stateful';
+import { StatefulWidget, Widget } from '@/core';
+import { findWidget } from '@/core/helper/widget-selector';
 
 type NodeId = string;
 type GraphNode = {
@@ -94,29 +94,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     this.state = { graph: makeInitialState() };
   }
 
-  private findByKey(w: Widget | null, key: string): Widget | null {
-    if (!w) {
-      return null;
-    }
-    if (w.key === key) {
-      return w;
-    }
-    for (const c of w.children) {
-      const r = this.findByKey(c as Widget, key);
-      if (r) {
-        return r;
-      }
-    }
-    return null;
-  }
-
   private getViewport(): ViewportCls | null {
     const rt = this.resolveRuntime();
     if (!rt) {
       return null;
     }
     const root = rt.getRootWidget();
-    return this.findByKey(root, 'v') as ViewportCls | null;
+    return findWidget(root, '#v') as ViewportCls | null;
   }
 
   private onSetViewPosition = (tx: number, ty: number): void => {
@@ -254,7 +238,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       return;
     }
     const root = rt.getRootWidget();
-    const target = this.findByKey(root, key);
+    const target = findWidget(root, `#${key}`) as Widget | null;
     if (!target) {
       return;
     }

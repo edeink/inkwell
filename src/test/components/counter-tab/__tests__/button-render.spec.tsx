@@ -4,24 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { Button } from '../button';
 
 import { Center, Widget } from '@/core';
+import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
-
-function findByKey(root: Widget, key: string): Widget | null {
-  if (!root) {
-    return null;
-  }
-  if (String(root.key) === key) {
-    return root;
-  }
-  for (const c of root.children || []) {
-    const f = findByKey(c, key);
-    if (f) {
-      return f;
-    }
-  }
-  return null;
-}
 
 describe('ButtonElement 渲染与递归编译', () => {
   it('ButtonElement 生成包含子节点的 Button', () => {
@@ -46,7 +31,7 @@ describe('ButtonElement 渲染与递归编译', () => {
     const btn = root.children[0];
     expect(btn.type).toBe('Button');
     expect(btn.children.length).toBeGreaterThan(0);
-    const container = findByKey(root, 'counter-btn');
+    const container = findWidget(root, '#counter-btn') as Widget | null;
     expect(container).not.toBeNull();
     expect(container!.type).toBe('Container');
   });

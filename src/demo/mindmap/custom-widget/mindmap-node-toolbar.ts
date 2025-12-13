@@ -15,6 +15,7 @@ import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
+import { findWidget } from '@/core/helper/widget-selector';
 
 export interface MindMapNodeToolbarProps extends WidgetProps {
   onActive?: (key: string | null) => void;
@@ -77,11 +78,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   protected performLayout(): Size {
-    const vp = this.findViewport();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const vp = findWidget(root, 'Viewport') as Viewport | null;
     if (vp) {
       return { width: vp.width, height: vp.height } as Size;
     }
-    const node = this.getActiveNode();
+    const node = findWidget(root, ':active') as Widget | null;
     return node ? (node.renderObject.size as Size) : ({ width: 0, height: 0 } as Size);
   }
 
@@ -99,8 +104,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
 
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    const node = this.getActiveNode();
-    const vp = this.findViewport();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const node = findWidget(root, ':active') as Widget | null;
+    const vp = findWidget(root, 'Viewport') as Viewport | null;
     if (!node || !vp) {
       return;
     }
@@ -149,8 +158,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   public hitTest(x: number, y: number): boolean {
-    const node = this.getActiveNode();
-    const vp = this.findViewport();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const node = findWidget(root, ':active') as Widget | null;
+    const vp = findWidget(root, 'Viewport') as Viewport | null;
     if (!node || !vp) {
       return false;
     }
@@ -208,55 +221,25 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     }
   }
 
-  onPointerMove(e: InkwellEvent): boolean | void {
-    const node = this.getActiveNode();
-    if (node && node.onPointerMove) {
-      return node.onPointerMove(e);
-    }
-  }
-
-  onPointerUp(e: InkwellEvent): boolean | void {
-    const node = this.getActiveNode();
-    if (node && node.onPointerUp) {
-      return node.onPointerUp(e);
-    }
-  }
-
-  private getActiveNode(): Widget | null {
-    const activeKey = this.getActiveKey();
-    if (!activeKey) {
-      return null;
-    }
-    const root = this.parent;
-    const find = (w: Widget | null): Widget | null => {
-      if (!w) {
-        return null;
-      }
-      if (w.key === activeKey && w.type === CustomComponentType.MindMapNode) {
-        return w;
-      }
-      for (const c of w.children) {
-        const r = find(c);
-        if (r) {
-          return r;
-        }
-      }
-      return null;
-    };
-    return find(root);
-  }
-
   private getActiveKey(): string | null {
     const k = this.data.activeKey;
     if (k === null || typeof k === 'string') {
       return k ?? null;
     }
-    const vp = this.findViewport();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const vp = findWidget(root, 'Viewport') as Viewport | null;
     return vp?.activeKey ?? null;
   }
 
   private getNodeKey(): string | null {
-    const n = this.getActiveNode();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const n = findWidget(root, ':active') as Widget | null;
     return n ? (n.key as string) : null;
   }
 
@@ -264,11 +247,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     x: number,
     y: number,
   ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight' } | null {
-    const node = this.getActiveNode();
+    let root: Widget | null = (this as unknown as Widget) ?? null;
+    while (root && root.parent) {
+      root = root.parent as Widget;
+    }
+    const node = findWidget(root, ':active') as Widget | null;
     if (!node) {
       return null;
     }
-    const vp = this.findViewport();
+    const vp = findWidget(root, 'Viewport') as Viewport | null;
     if (!vp) {
       return null;
     }
@@ -313,35 +300,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     return null;
   }
 
-  private findViewport(): Viewport | null {
-    let p = this.parent;
-    while (p) {
-      if (p instanceof Viewport) {
-        return p as Viewport;
-      }
-      p = p.parent;
-    }
-    return null;
-  }
-
-  private hasIncomingEdge(node: Widget): boolean {
-    const parentContainer = this.parent;
-    if (!parentContainer) {
-      return false;
-    }
-    for (const c of parentContainer.children) {
-      if (c instanceof Connector) {
-        const to = c.toKey;
-        if (to === node.key) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   private resolveSides(node: Widget, size: Size): Array<'top' | 'bottom' | 'left' | 'right'> {
-    const isRoot = !this.hasIncomingEdge(node);
+    const container = (this.parent as Widget | null) ?? (this as Widget);
+    const edge = findWidget(container, `Connector[toKey="${String(node.key)}"]`);
+    const isRoot = !edge;
     if (isRoot) {
       return ['left', 'right'];
     }

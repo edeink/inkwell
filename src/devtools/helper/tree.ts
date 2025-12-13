@@ -51,27 +51,6 @@ export function toAntTreeData(node: DevTreeNode | null): DataNode[] {
 }
 
 /**
- * 在 Widget 树中查找指定 key 的节点
- * 参数：root - 根组件；k - 目标 key
- * 返回：找到的 Widget 或 null
- */
-export function findByKey(root: Widget | null, k: string): Widget | null {
-  if (!root) {
-    return null;
-  }
-  if (root.key === k) {
-    return root;
-  }
-  for (const c of root.children) {
-    const r = findByKey(c, k);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
-
-/**
  * 获取从根到目标节点的路径 key 列表
  * 参数：root - 根组件；k - 目标 key
  * 返回：路径上的 key 列表

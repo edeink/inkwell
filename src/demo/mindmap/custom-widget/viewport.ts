@@ -6,6 +6,7 @@ import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
+import { findWidget } from '@/core/helper/widget-selector';
 
 export interface ViewportProps extends WidgetProps {
   scale?: number;
@@ -248,7 +249,7 @@ export class Viewport extends Widget<ViewportProps> {
   setActiveKey(key: string | null): void {
     this._activeKey = key ?? null;
     const start = (this.parent as Widget) ?? (this as Widget);
-    const t = this.findByKey(start, this._activeKey ?? '');
+    const t = findWidget(start, `#${this._activeKey ?? ''}`) as Widget | null;
     if (t) {
       const isNode = t.type === CustomComponentType.MindMapNode;
       const container = isNode && t.parent ? (t.parent as Widget) : t;
@@ -582,28 +583,5 @@ export class Viewport extends Widget<ViewportProps> {
       { t: 'translate', x: this.tx, y: this.ty },
       { t: 'scale', sx: this.scale, sy: this.scale },
     ];
-  }
-
-  private findByKey(w: Widget | null, key: string): Widget | null {
-    if (!w || !key) {
-      return null;
-    }
-    let best: Widget | null = null;
-    if (w.key === key) {
-      best = w;
-      if (w.type === CustomComponentType.MindMapNode) {
-        return w;
-      }
-    }
-    for (const c of w.children) {
-      const r = this.findByKey(c as Widget, key);
-      if (r) {
-        if (r.type === CustomComponentType.MindMapNode) {
-          return r;
-        }
-        best = best ?? r;
-      }
-    }
-    return best;
   }
 }

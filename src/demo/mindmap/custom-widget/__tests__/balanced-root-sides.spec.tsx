@@ -9,23 +9,8 @@ import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
+import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
-function findByKey(w: Widget | null, key: string): Widget | null {
-  if (!w) {
-    return null;
-  }
-  if ((w as any).key === key) {
-    return w;
-  }
-  for (const c of (w as any).children as Widget[]) {
-    const r = findByKey(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 async function makeScene(runtime: Runtime, count: number) {
   const nodes = [];
@@ -109,12 +94,12 @@ describe('Balanced root sides distribution', () => {
   it('even number children split equally', async () => {
     await makeScene(runtime, 4);
     const root = runtime.getRootWidget();
-    const rootNode = findByKey(root, 'root')!;
+    const rootNode = findWidget(root, '#root') as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 4; i++) {
-      const n = findByKey(root, `c${i}`)!;
+      const n = findWidget(root, `#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;
@@ -128,12 +113,12 @@ describe('Balanced root sides distribution', () => {
   it('odd number children differ by at most 1', async () => {
     await makeScene(runtime, 5);
     const root = runtime.getRootWidget();
-    const rootNode = findByKey(root, 'root')!;
+    const rootNode = findWidget(root, '#root') as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 5; i++) {
-      const n = findByKey(root, `c${i}`)!;
+      const n = findWidget(root, `#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;
@@ -147,12 +132,12 @@ describe('Balanced root sides distribution', () => {
   it('three children split 2-1', async () => {
     await makeScene(runtime, 3);
     const root = runtime.getRootWidget();
-    const rootNode = findByKey(root, 'root')!;
+    const rootNode = findWidget(root, '#root') as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 3; i++) {
-      const n = findByKey(root, `c${i}`)!;
+      const n = findWidget(root, `#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;

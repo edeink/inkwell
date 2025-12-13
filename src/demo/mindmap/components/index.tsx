@@ -2,15 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { SCALE_CONFIG } from '../config/constants';
 import { MindmapController } from '../controller/index';
-import { Viewport } from '../custom-widget/viewport';
 import { runApp } from '../scene';
 
 import ErrorBoundary from './error-boundary';
 import Minimap from './minimap';
 import Toolbar from './toolbar';
 import ZoomBar from './zoom-bar';
-
-import type { Widget } from '@/core/base';
 
 import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
@@ -56,34 +53,6 @@ export default function MindmapComponent({
   const runtimeRef = useRef<Runtime | null>(null);
   const [controller, setController] = useState<MindmapController | null>(null);
   const [zoom, setZoom] = useState(1);
-  const viewportCacheRef = useRef<WeakMap<Widget, Viewport>>(new WeakMap());
-
-  const findViewport = (widget: Widget | null): Viewport | null => {
-    if (!widget) {
-      return null;
-    }
-    const cached = viewportCacheRef.current.get(widget as Widget);
-    if (cached) {
-      return cached;
-    }
-    const dfs = (w: Widget): Viewport | null => {
-      if (w instanceof Viewport) {
-        return w as Viewport;
-      }
-      for (const c of w.children) {
-        const r = dfs(c);
-        if (r) {
-          return r;
-        }
-      }
-      return null;
-    };
-    const v = dfs(widget as Widget);
-    if (v) {
-      viewportCacheRef.current.set(widget as Widget, v);
-    }
-    return v;
-  };
 
   useEffect(() => {
     // 初始化并监听容器尺寸变化，确保 canvas 非零尺寸
@@ -133,7 +102,7 @@ export default function MindmapComponent({
     return () => {
       setController(null);
     };
-  }, [canvasContainerId, size.width, size.height, background, backgroundAlpha]);
+  }, [canvasContainerId, size, background, backgroundAlpha]);
 
   useEffect(() => {
     const el = document.getElementById(canvasContainerId);

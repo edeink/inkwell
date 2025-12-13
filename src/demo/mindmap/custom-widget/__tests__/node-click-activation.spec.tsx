@@ -7,23 +7,8 @@ import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
+import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
-function findByKey(w: Widget | null, key: string): Widget | null {
-  if (!w) {
-    return null;
-  }
-  if (w.key === key) {
-    return w;
-  }
-  for (const c of w.children) {
-    const r = findByKey(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 describe('MindMapNode click activation without move', async () => {
   beforeEach(() => {
@@ -101,8 +86,8 @@ describe('MindMapNode click activation without move', async () => {
     await runtime.renderFromJSX(scene as any);
 
     const root = runtime.getRootWidget();
-    const node = findByKey(root, 'n1')!;
-    const vp = findByKey(root, 'v')!;
+    const node = findWidget(root, '#n1') as Widget;
+    const vp = findWidget(root, '#v') as Widget;
     vpRef = vp;
 
     const e = {

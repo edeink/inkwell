@@ -10,23 +10,8 @@ import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
+import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
-function findByKey(w: Widget | null, key: string): Widget | null {
-  if (!w) {
-    return null;
-  }
-  if (w.key === key) {
-    return w;
-  }
-  for (const c of w.children) {
-    const r = findByKey(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 // toolbar 不再包裹节点，改为同级存在
 
@@ -121,8 +106,8 @@ describe('MindMapNode layout stability and active position', () => {
     await createSceneWithoutToolbar(800, 600, runtimeB);
     const rootA = runtimeA.getRootWidget();
     const rootB = runtimeB.getRootWidget();
-    const nodeA = findByKey(rootA, 'n1')!;
-    const nodeB = findByKey(rootB, 'n1')!;
+    const nodeA = findWidget(rootA, '#n1') as Widget;
+    const nodeB = findWidget(rootB, '#n1') as Widget;
     const pa = nodeA.getAbsolutePosition();
     const pb = nodeB.getAbsolutePosition();
     expect(Math.abs(pa.dx - pb.dx)).toBeLessThan(1);
@@ -132,8 +117,8 @@ describe('MindMapNode layout stability and active position', () => {
   it('node absolute position stable on active state', async () => {
     await createSceneWithToolbar(800, 600, runtimeA);
     const rootA = runtimeA.getRootWidget();
-    const vp = findByKey(rootA, 'v')!;
-    const nodeA = findByKey(rootA, 'n1')!;
+    const vp = findWidget(rootA, 'Viewport') as Widget;
+    const nodeA = findWidget(rootA, '#n1') as Widget;
     const p0 = nodeA.getAbsolutePosition();
     (vp as any).setActiveKey?.('n1');
     const p1 = nodeA.getAbsolutePosition();

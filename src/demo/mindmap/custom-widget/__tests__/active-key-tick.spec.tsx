@@ -8,23 +8,8 @@ import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
+import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
-function findByKey(w: Widget | null, key: string): Widget | null {
-  if (!w) {
-    return null;
-  }
-  if (w.key === key) {
-    return w;
-  }
-  for (const c of w.children) {
-    const r = findByKey(c, key);
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
 
 describe('activeKey tick order and propagation', async () => {
   beforeEach(() => {
@@ -83,7 +68,7 @@ describe('activeKey tick order and propagation', async () => {
     await runtime.renderFromJSX(scene as any);
 
     const root = runtime.getRootWidget();
-    const vp = findByKey(root, 'v')!;
+    const vp = findWidget(root, '#v') as Widget;
 
     const spyRebuild = vi.spyOn(runtime as any, 'rebuild');
     const spyCalc = vi.spyOn(runtime as any, 'calculateLayout');
@@ -108,10 +93,10 @@ describe('activeKey tick order and propagation', async () => {
     expect(orders[1]).toBeGreaterThan(orders[0]);
     expect(orders[2]).toBeGreaterThan(orders[1]);
 
-    const n1 = findByKey(root, 'n1')!;
-    const toolbar = findByKey(root, 'toolbar')!;
+    const n1 = findWidget(root, '#n1') as Widget;
+    const toolbar = findWidget(root, '#toolbar') as Widget;
     expect((n1 as any).active).toBe(true);
-    const activeNode = (toolbar as any).getActiveNode();
+    const activeNode = findWidget(root, ':active') as Widget | null;
     expect(activeNode?.key).toBe('n1');
   });
 });

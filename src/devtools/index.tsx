@@ -10,13 +10,15 @@ import LayoutPanel, { type LayoutInfo } from './components/layout';
 import Overlay from './components/overlay';
 import { PropsEditor } from './components/props-editor';
 import SimpleTip from './components/simple-tip';
-import { findByKey, getPathKeys, toAntTreeData, toTree } from './helper/tree';
+import { getPathKeys, toAntTreeData, toTree } from './helper/tree';
 import { useDevtoolsHotkeys } from './hooks/useDevtoolsHotkeys';
 import { useMouseInteraction } from './hooks/useMouseInteraction';
 
 import type { Widget } from '../core/base';
 import type { DataNode } from 'antd/es/tree';
 import type { Key } from 'react';
+
+import { findWidget } from '@/core/helper/widget-selector';
 
 /**
  * DevTools
@@ -177,7 +179,10 @@ export function DevTools(props: DevToolsProps) {
               <span
                 data-key={String(node.key)}
                 onMouseEnter={() => {
-                  const w = findByKey(runtime?.getRootWidget?.() ?? null, String(node.key));
+                  const w = findWidget(
+                    runtime?.getRootWidget?.() ?? null,
+                    `#${String(node.key)}`,
+                  ) as Widget | null;
                   hoverRef.current = w;
                   overlay?.setActive(true);
                   overlay?.highlight(w);
@@ -195,7 +200,7 @@ export function DevTools(props: DevToolsProps) {
             selectedKeys={selected ? [selected.key] : []}
             onSelect={(keys: Key[]) => {
               const k = String(keys[0]);
-              const w = findByKey(runtime?.getRootWidget?.() ?? null, k);
+              const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
               setSelected(w);
               if (w) {
                 const path = getPathKeys(runtime?.getRootWidget?.() ?? null, k);
