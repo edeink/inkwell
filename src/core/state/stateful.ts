@@ -1,10 +1,10 @@
-import { type WidgetData } from '../base';
+import { type WidgetProps } from '../base';
 
 import { StatelessWidget } from './stateless';
 
 // 有状态组件：以泛型 S 提供类型安全的状态集合
 export abstract class StatefulWidget<
-  TData extends WidgetData = WidgetData,
+  TData extends WidgetProps = WidgetProps,
   S extends Record<string, unknown> = Record<string, unknown>,
 > extends StatelessWidget<TData> {
   constructor(data: TData) {

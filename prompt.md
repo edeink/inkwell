@@ -37,7 +37,7 @@
 - 类型与注册：
   - 每个 Widget 子类需在静态初始化中注册类型，类型字符串大小写敏感，需与 JSON 中 `type` 匹配。
     - 例：`Text` 注册参见 `src/core/text.ts:55`；`Container` 注册参见 `src/core/container.ts:55`。
-  - 通过 `Widget.createWidget(data)` 按 `data.type` 查找构造器并创建实例（`src/core/base.ts:115`）。
+  - 通过 `WidgetRegistry.createWidget(data)` 按 `data.type` 查找构造器并创建实例（`src/core/base.ts:115`）。
 - 生命周期方法：
   - `createChildWidget(childData)`：从子项数据递归创建 Widget（`src/core/base.ts:200`）。
   - `performLayout(constraints, childrenSizes)`：返回自身 `Size`，并由基类完成子项定位（`src/core/base.ts:276`）。

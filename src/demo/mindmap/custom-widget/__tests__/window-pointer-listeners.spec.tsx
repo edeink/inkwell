@@ -1,10 +1,11 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectorElement as Connector } from '../connector';
-import { MindMapLayoutElement as MindMapLayout } from '../mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '../mindmap-node';
-import { ViewportElement as Viewport } from '../viewport';
+import { ConnectorStyle } from '../../helpers/connection-drawer';
+import { Connector } from '../connector';
+import { MindMapLayout } from '../mindmap-layout';
+import { MindMapNode } from '../mindmap-node';
+import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
@@ -84,7 +85,7 @@ describe('window级指针事件监听与清理', () => {
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
-          <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+          <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
       </Viewport>
     );
@@ -124,7 +125,7 @@ describe('window级指针事件监听与清理', () => {
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
-          <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+          <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
       </Viewport>
     );
@@ -169,7 +170,7 @@ describe('window级指针事件监听与清理', () => {
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
-          <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+          <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
       </Viewport>
     );
@@ -228,7 +229,7 @@ describe('window级指针事件监听与清理', () => {
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
-          <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+          <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
       </Viewport>
     );

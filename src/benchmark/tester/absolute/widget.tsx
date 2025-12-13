@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { Container, Positioned, Stack } from '../../../core';
-import { Widget } from '../../../core/base';
 import '../../../core/registry';
+import { WidgetRegistry } from '../../../core/registry';
 import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
 import Runtime from '../../../runtime';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
@@ -53,7 +53,7 @@ export async function buildAbsoluteWidgetScene(
   const tCompile1 = performance.now();
 
   const tBuild0 = performance.now();
-  const root = Widget.createWidget(json)!;
+  const root = WidgetRegistry.createWidget(json)!;
   const tBuild1 = performance.now();
 
   const constraints: BoxConstraints = {

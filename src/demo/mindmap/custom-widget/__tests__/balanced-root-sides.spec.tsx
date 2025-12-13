@@ -1,10 +1,11 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ConnectorElement as Connector } from '../connector';
-import { MindMapLayoutElement as MindMapLayout } from '../mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '../mindmap-node';
-import { ViewportElement as Viewport } from '../viewport';
+import { ConnectorStyle } from '../../helpers/connection-drawer';
+import { Connector } from '../connector';
+import { MindMapLayout } from '../mindmap-layout';
+import { MindMapNode } from '../mindmap-node';
+import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
@@ -27,12 +28,19 @@ function findByKey(w: Widget | null, key: string): Widget | null {
 }
 
 async function makeScene(runtime: Runtime, count: number) {
-  const nodes: JSX.Element[] = [] as any;
+  const nodes = [];
   nodes.push((<MindMapNode key="root" title="root" />) as any);
   for (let i = 0; i < count; i++) {
     nodes.push((<MindMapNode key={`c${i}`} title={`c${i}`} />) as any);
     nodes.push(
-      (<Connector key={`e-root-c${i}`} fromKey="root" toKey={`c${i}`} style="elbow" />) as any,
+      (
+        <Connector
+          key={`e-root-c${i}`}
+          fromKey="root"
+          toKey={`c${i}`}
+          style={ConnectorStyle.Elbow}
+        />
+      ) as any,
     );
   }
   const scene = (

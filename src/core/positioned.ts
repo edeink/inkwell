@@ -1,24 +1,21 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
-export interface PositionedData extends WidgetData {
+export interface PositionedProps extends WidgetProps {
   left?: number;
   top?: number;
   right?: number;
   bottom?: number;
   width?: number;
   height?: number;
-  child?: WidgetData;
+  child?: WidgetProps;
 }
 
 /**
  * Positioned 组件 - 在 Stack 中定位子组件
  */
-export class Positioned extends Widget<PositionedData> {
+export class Positioned extends Widget<PositionedProps> {
   left?: number;
   top?: number;
   right?: number;
@@ -26,17 +23,12 @@ export class Positioned extends Widget<PositionedData> {
   width?: number;
   height?: number;
 
-  // 注册 Positioned 组件类型
-  static {
-    Widget.registerType(ComponentType.Positioned, Positioned);
-  }
-
-  constructor(data: PositionedData) {
+  constructor(data: PositionedProps) {
     super(data);
     this.initPositionedProperties(data);
   }
 
-  private initPositionedProperties(data: PositionedData): void {
+  private initPositionedProperties(data: PositionedProps): void {
     this.left = data.left;
     this.top = data.top;
     this.right = data.right;
@@ -45,22 +37,10 @@ export class Positioned extends Widget<PositionedData> {
     this.height = data.height;
   }
 
-  createElement(data: PositionedData): Widget {
+  createElement(data: PositionedProps): Widget {
     super.createElement(data);
     this.initPositionedProperties(data);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // Positioned 只能有一个子组件
-    return Widget.createWidget(childData);
-  }
-
-  /**
-   * Positioned 不需要绘制自己
-   */
-  protected paintSelf(context: BuildContext): void {
-    // Positioned 组件不绘制任何内容
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -126,12 +106,6 @@ export class Positioned extends Widget<PositionedData> {
     };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
-    // Positioned 组件的子组件位置始终为 (0, 0)
-    // 实际的定位由父组件 Stack 处理
-    return { dx: 0, dy: 0 };
-  }
-
   /**
    * 获取在 Stack 中的实际位置
    * 这个方法会被 Stack 组件调用
@@ -167,11 +141,8 @@ export class Positioned extends Widget<PositionedData> {
   }
 }
 
-export type PositionedProps = Omit<PositionedData, 'type' | 'child' | 'children'> & WidgetProps;
-export const PositionedElement: React.FC<PositionedProps> = () => null;
-
 // 便捷函数：创建填充整个 Stack 的 Positioned
-export function fill(child: WidgetData): PositionedData {
+export function fill(child: WidgetProps): PositionedProps {
   return {
     type: 'Positioned',
     left: 0,
@@ -188,8 +159,8 @@ export function fromLTWH(
   top: number,
   width: number,
   height: number,
-  child: WidgetData,
-): PositionedData {
+  child: WidgetProps,
+): PositionedProps {
   return {
     type: 'Positioned',
     left,

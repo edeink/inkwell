@@ -1,21 +1,21 @@
 import { Widget } from '../base';
 
-import type { BoxConstraints, BuildContext, Size, WidgetData } from '../base';
+import type { BoxConstraints, BuildContext, Size, WidgetProps } from '../base';
 
 import { EventRegistry } from '@/core/events/registry';
 import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-export abstract class StatelessWidget<TData extends WidgetData = WidgetData> extends Widget<TData> {
+export abstract class StatelessWidget<
+  TData extends WidgetProps = WidgetProps,
+> extends Widget<TData> {
   protected abstract render(): unknown;
 
   createElement(data: TData): Widget<TData> {
     const next = data;
     const children = this.compileChildrenFromRender();
     const nextWithChildren =
-      children.length > 0
-        ? ({ ...(next as unknown as WidgetData), children } as unknown as TData)
-        : next;
+      children.length > 0 ? ({ ...next, children } as unknown as TData) : next;
     const changed = this.shouldWidgetUpdate(
       nextWithChildren as unknown as TData,
       this.state as Record<string, unknown>,
@@ -27,7 +27,7 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
     return this;
   }
 
-  protected shallowEqual(a: WidgetData, b: WidgetData): boolean {
+  protected shallowEqual(a: WidgetProps, b: WidgetProps): boolean {
     const ka = Object.keys(a).filter((k) => k !== 'children');
     const kb = Object.keys(b).filter((k) => k !== 'children');
     if (ka.length !== kb.length) {
@@ -88,21 +88,17 @@ export abstract class StatelessWidget<TData extends WidgetData = WidgetData> ext
     return null;
   }
 
-  protected compileChildrenFromRender(): WidgetData[] {
-    const r = (this as unknown as { render?: () => unknown }).render;
+  protected compileChildrenFromRender(): WidgetProps[] {
+    const r = this.render;
     if (typeof r !== 'function') {
       return [];
     }
     const rt = this.resolveRuntime();
     EventRegistry.setCurrentRuntime(rt);
     const el = r.call(this);
-    const json = compileElement(el as any);
+    const json = compileElement(el);
     EventRegistry.setCurrentRuntime(null);
-    return [json as unknown as WidgetData];
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    return Widget.createWidget(childData);
+    return [json];
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {

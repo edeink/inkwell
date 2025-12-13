@@ -1,13 +1,13 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { ButtonElement } from '../button';
+import { Button } from '../button';
 
-import { Center } from '@/core';
-import { Widget, type WidgetData } from '@/core/base';
+import { Center, Widget } from '@/core';
+import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-function findByKey(root: any, key: string): any | null {
+function findByKey(root: Widget, key: string): Widget | null {
   if (!root) {
     return null;
   }
@@ -25,9 +25,9 @@ function findByKey(root: any, key: string): any | null {
 
 describe('ButtonElement 渲染与递归编译', () => {
   it('ButtonElement 生成包含子节点的 Button', () => {
-    const json = compileElement(<ButtonElement />);
-    const btn = Widget.createWidget(json)!;
-    btn.createElement(btn.props as WidgetData);
+    const json = compileElement(<Button />);
+    const btn = WidgetRegistry.createWidget(json)!;
+    btn.createElement(btn.props);
     expect(btn.type).toBe('Button');
     expect(btn.children.length).toBeGreaterThan(0);
     const child = btn.children[0];
@@ -38,16 +38,16 @@ describe('ButtonElement 渲染与递归编译', () => {
   it('嵌套组件递归处理，结构保持', () => {
     const json = compileElement(
       <Center>
-        <ButtonElement />
+        <Button />
       </Center>,
     );
-    const root = Widget.createWidget(json)!;
-    root.createElement(root.props as WidgetData);
+    const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(root.props);
     const btn = root.children[0];
     expect(btn.type).toBe('Button');
     expect(btn.children.length).toBeGreaterThan(0);
     const container = findByKey(root, 'counter-btn');
     expect(container).not.toBeNull();
-    expect(container.type).toBe('Container');
+    expect(container!.type).toBe('Container');
   });
 });

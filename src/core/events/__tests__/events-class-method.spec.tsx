@@ -2,18 +2,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Container } from '@/core';
-import { Widget, createBoxConstraints, type BoxConstraints, type BuildContext } from '@/core/base';
-import { EventRegistry, dispatchToTree } from '@/core/events';
+import {
+  Widget,
+  createBoxConstraints,
+  type BoxConstraints,
+  type BuildContext,
+  type WidgetProps,
+} from '@/core/base';
+import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events';
 import '@/core/registry';
+import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 class CustomWidget extends Widget<{ key?: string; type: string; width?: number; height?: number }> {
   width = 40;
   height = 30;
-
-  protected createChildWidget(childData: any): Widget | null {
-    return Widget.createWidget(childData);
-  }
 
   protected performLayout(constraints: BoxConstraints): { width: number; height: number } {
     const w = (this.data.width ?? this.width) as number;
@@ -24,29 +27,29 @@ class CustomWidget extends Widget<{ key?: string; type: string; width?: number; 
   protected paintSelf(_context: BuildContext): void {}
 
   // 类方法事件处理（用于测试优先级与传播阶段）
-  onClick?(_e: any): boolean | void;
-  onClickCapture?(_e: any): boolean | void;
-  onMouseOver?(_e: any): boolean | void;
-  onMouseOverCapture?(_e: any): boolean | void;
+  onClick?(_e: InkwellEvent): boolean | void;
+  onClickCapture?(_e: InkwellEvent): boolean | void;
+  onMouseOver?(_e: InkwellEvent): boolean | void;
+  onMouseOverCapture?(_e: InkwellEvent): boolean | void;
 }
 
 // 在静态注册表中注册类型以便 JSX 编译识别
-Widget.registerType('CustomWidget', CustomWidget);
+WidgetRegistry.registerType('CustomWidget', CustomWidget);
 
 function CustomWidgetElement(props: {
   key: string;
   width?: number;
   height?: number;
-  [k: string]: any;
+  [k: string]: unknown;
 }) {
-  return props as any;
+  return props;
 }
 
 function buildTree(
   props: {
-    root?: Record<string, unknown>;
-    inner?: Record<string, unknown>;
-    leaf?: Record<string, unknown>;
+    root?: WidgetProps;
+    inner?: WidgetProps;
+    leaf?: WidgetProps;
   } = {},
 ) {
   const el = (
@@ -58,9 +61,9 @@ function buildTree(
     </Container>
   );
   const data = compileElement(el);
-  const root = Widget.createWidget(data)!;
+  const root = WidgetRegistry.createWidget(data) as CustomWidget;
   root.layout(createBoxConstraints());
-  const inner = root.children[0];
+  const inner = root.children[0] as CustomWidget;
   const leaf = inner.children[0] as CustomWidget;
   return { root, inner, leaf };
 }
@@ -74,7 +77,9 @@ describe('事件系统（类方法）', () => {
     const calls: string[] = [];
     const { root, leaf } = buildTree();
     // 为实例挂载类方法
-    (leaf as any).onClick = () => calls.push('method:leaf');
+    leaf.onClick = (_e: InkwellEvent) => {
+      calls.push('method:leaf');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['method:leaf']);
@@ -82,8 +87,16 @@ describe('事件系统（类方法）', () => {
 
   it('类方法优先于 JSX 属性：onClick 方法先于属性处理器', () => {
     const calls: string[] = [];
-    const { root, leaf } = buildTree({ leaf: { onClick: () => calls.push('attr:leaf') } });
-    (leaf as any).onClick = () => calls.push('method:leaf');
+    const { root, leaf } = buildTree({
+      leaf: {
+        onClick: (_e: any) => {
+          calls.push('attr:leaf');
+        },
+      },
+    });
+    leaf.onClick = (_e: InkwellEvent) => {
+      calls.push('method:leaf');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['method:leaf', 'attr:leaf']);
@@ -91,11 +104,19 @@ describe('事件系统（类方法）', () => {
 
   it('跨组件传播顺序一致：捕获→目标→冒泡（MouseOver）', () => {
     const calls: string[] = [];
-    const { root, inner, leaf } = buildTree();
-    (root as any).onMouseOverCapture = () => calls.push('capture:root');
-    (root as any).onMouseOver = () => calls.push('bubble:root');
-    (leaf as any).onMouseOverCapture = () => calls.push('target-capture:leaf');
-    (leaf as any).onMouseOver = () => calls.push('target-bubble:leaf');
+    const { root, leaf } = buildTree();
+    root.onMouseOverCapture = (_e: InkwellEvent) => {
+      calls.push('capture:root');
+    };
+    root.onMouseOver = (_e: InkwellEvent) => {
+      calls.push('bubble:root');
+    };
+    leaf.onMouseOverCapture = (_e: InkwellEvent) => {
+      calls.push('target-capture:leaf');
+    };
+    leaf.onMouseOver = (_e: InkwellEvent) => {
+      calls.push('target-bubble:leaf');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'mouseover', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual([
@@ -113,28 +134,23 @@ describe('事件系统（类方法）', () => {
 
     // 纯属性处理器
     const callsAttr: number[] = [];
-    (leaf as any).onClick = undefined;
+    leaf.onClick = undefined;
     EventRegistry.clearKey(leaf.key);
     const dataAttr = compileElement(
-      (
-        <Container key="rootA" width={200} height={200}>
-          <CustomWidgetElement
-            key="leafA"
-            width={80}
-            height={40}
-            onClick={() => callsAttr.push(1)}
-          />
-        </Container>
-      ) as any,
+      <Container key="rootA" width={200} height={200}>
+        <CustomWidgetElement key="leafA" width={80} height={40} onClick={() => callsAttr.push(1)} />
+      </Container>,
     );
-    const rootAttr = Widget.createWidget(dataAttr)!;
+    const rootAttr = WidgetRegistry.createWidget(dataAttr)!;
     rootAttr.layout(createBoxConstraints());
     const leafAttr = rootAttr.children[0] as CustomWidget;
     const posAttr = leafAttr.getAbsolutePosition();
 
     // 纯类方法处理器
     const callsMeth: number[] = [];
-    (leaf as any).onClick = () => callsMeth.push(1);
+    leaf.onClick = () => {
+      callsMeth.push(1);
+    };
 
     const t0 = performance.now();
     for (let i = 0; i < N; i++) {

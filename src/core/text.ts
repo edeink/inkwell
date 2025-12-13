@@ -1,9 +1,6 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, WidgetProps, Offset, Size, WidgetData } from './base';
+import type { BoxConstraints, BuildContext, Size, WidgetProps } from './base';
 
 export enum TextAlign {
   Left = 'left',
@@ -30,8 +27,7 @@ export enum TextBaseline {
   Alphabetic = 'alphabetic',
 }
 
-export interface TextData extends Omit<WidgetData, 'children'> {
-  type: string;
+export interface TextProps extends WidgetProps {
   text: string;
   fontSize?: number;
   fontFamily?: string;
@@ -63,7 +59,7 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical.Center,
 };
 
-export class Text extends Widget<TextData> {
+export class Text extends Widget<TextProps> {
   text: string = '';
   fontSize: number = 16;
   fontFamily: string = DefaultStyle.fontFamily;
@@ -79,11 +75,7 @@ export class Text extends Widget<TextData> {
   private static measureCanvas: HTMLCanvasElement = document.createElement('canvas');
   private static measureCtx: CanvasRenderingContext2D = Text.measureCanvas.getContext('2d')!;
 
-  static {
-    Widget.registerType(ComponentType.Text, Text);
-  }
-
-  protected createChildWidget(_childData: WidgetData): Widget | null {
+  protected createChildWidget(_childData: WidgetProps): Widget | null {
     void _childData;
     console.warn('Text 组件不支持子组件');
     return null;
@@ -97,12 +89,12 @@ export class Text extends Widget<TextData> {
     descent: number;
   } = { width: 0, height: 0, lines: [], ascent: 0, descent: 0 };
 
-  constructor(data: TextData) {
+  constructor(data: TextProps) {
     super(data);
     this.initTextProperties(data);
   }
 
-  private initTextProperties(data: TextData): void {
+  private initTextProperties(data: TextProps): void {
     if (!data.text && data.text !== '') {
       console.warn('Text 组件必须提供 text 属性');
       this.text = '[缺少文本]';
@@ -122,7 +114,7 @@ export class Text extends Widget<TextData> {
     this.overflow = (data.overflow ?? this.overflow) as typeof this.overflow;
   }
 
-  createElement(data: TextData): Widget<TextData> {
+  createElement(data: TextProps): Widget<TextProps> {
     super.createElement(data);
     this.initTextProperties(data);
     return this;
@@ -142,7 +134,7 @@ export class Text extends Widget<TextData> {
     const fontFamily = this.fontFamily || DefaultStyle.fontFamily;
     const fontWeight = this.fontWeight || DefaultStyle.fontWeight;
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-    const m = ctx.measureText(this.text) as any;
+    const m = ctx.measureText(this.text);
     const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
     const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
     const textWidth = m.width;
@@ -271,13 +263,6 @@ export class Text extends Widget<TextData> {
     return { minWidth: 0, maxWidth: 0, minHeight: 0, maxHeight: 0 };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
-    void childIndex;
-    void childSize;
-    console.warn('Text 组件不支持子组件，不应调用 positionChild');
-    return { dx: 0, dy: 0 };
-  }
-
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const { size } = this.renderObject;
@@ -316,6 +301,3 @@ export class Text extends Widget<TextData> {
     });
   }
 }
-
-export type TextProps = Omit<TextData, 'type' | 'children'> & WidgetProps;
-export const TextElement: React.FC<TextProps> = () => null;

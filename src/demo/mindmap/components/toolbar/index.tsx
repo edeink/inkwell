@@ -2,17 +2,15 @@ import { CloudDownloadOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import React, { useCallback, useMemo, useRef } from 'react';
 
+import { Connector } from '../../custom-widget/connector';
+import { MindMapNode } from '../../custom-widget/mindmap-node';
+
 import styles from './index.module.less';
 
+import type { MindMapLayout } from '../../custom-widget/mindmap-layout';
+import type { Viewport } from '../../custom-widget/viewport';
+import type { Widget } from '@/core';
 import type Runtime from '@/runtime';
-import type { JSXElement } from '@/utils/compiler/jsx-runtime';
-
-import { ConnectorElement as Connector } from '@/demo/mindmap/custom-widget/connector';
-import { MindMapLayoutElement as MindMapLayout } from '@/demo/mindmap/custom-widget/mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '@/demo/mindmap/custom-widget/mindmap-node';
-import { MindMapNodeToolbarElement as MindMapNodeToolbar } from '@/demo/mindmap/custom-widget/mindmap-node-toolbar';
-import { ViewportElement as Viewport } from '@/demo/mindmap/custom-widget/viewport';
-import { compileTemplate } from '@/utils/compiler/jsx-compiler';
 
 type Props = {
   runtime: Runtime | null;
@@ -20,17 +18,15 @@ type Props = {
   height?: number;
 };
 
-type Rect = { x: number; y: number; width: number; height: number };
-
-function findByKey(w: any, key: string): any {
+function findByKey<T extends Widget>(w: Widget | null, key: string): T | null {
   if (!w) {
     return null;
   }
   if (w.key === key) {
-    return w;
+    return w as T;
   }
   for (const c of w.children) {
-    const r = findByKey(c, key);
+    const r = findByKey<T>(c, key);
     if (r) {
       return r;
     }
@@ -48,8 +44,8 @@ function collectGraph(runtime: Runtime): {
   if (!root) {
     return { nodes: [], edges: [], activeKey: null, viewportSize: null };
   }
-  const vp = findByKey(root, 'v');
-  const layout = findByKey(root, 'layout-root');
+  const vp = findByKey<Viewport>(root, 'v');
+  const layout = findByKey<MindMapLayout>(root, 'layout-root');
   const nodes: Array<{ key: string; title: string; prefSide?: 'left' | 'right' }> = [];
   const edges: Array<{ from: string; to: string }> = [];
   const activeKey: string | null = vp?.activeKey ?? null;
@@ -58,11 +54,11 @@ function collectGraph(runtime: Runtime): {
     return { nodes, edges, activeKey, viewportSize };
   }
   for (const c of layout.children) {
-    if (c.type === 'MindMapNode') {
+    if (c instanceof MindMapNode) {
       nodes.push({ key: c.key as string, title: c.title as string, prefSide: c.prefSide });
-    } else if (c.type === 'Connector') {
-      const fromKey = (c as any).fromKey as string;
-      const toKey = (c as any).toKey as string;
+    } else if (c instanceof Connector) {
+      const fromKey = c.fromKey as string;
+      const toKey = c.toKey as string;
       edges.push({ from: fromKey, to: toKey });
     }
   }
@@ -120,42 +116,8 @@ export default function Toolbar({ runtime, width, height }: Props) {
       if (!runtime) {
         return;
       }
-      const vpSize = data.viewport ?? size;
-      const children: JSXElement[] = [] as any;
-      for (const n of data.nodes) {
-        children.push(
-          (
-            <MindMapNode
-              key={n.key}
-              title={n.title}
-              prefSide={n.prefSide as any}
-              active={data.activeKey === n.key}
-              activeKey={data.activeKey ?? null}
-            />
-          ) as unknown as JSXElement,
-        );
-      }
-      for (const e of data.edges) {
-        children.push(
-          (
-            <Connector key={`e-${e.from}-${e.to}`} fromKey={e.from} toKey={e.to} style="elbow" />
-          ) as unknown as JSXElement,
-        );
-      }
-      children.push((<MindMapNodeToolbar key="toolbar" />) as unknown as JSXElement);
-      const comp = compileTemplate(
-        () =>
-          (
-            <Viewport key="v" scale={1} tx={0} ty={0} width={vpSize.width} height={vpSize.height}>
-              <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
-                {children as any}
-              </MindMapLayout>
-            </Viewport>
-          ) as unknown as JSXElement,
-      );
-      await runtime.renderFromJSON(comp);
     },
-    [runtime, size],
+    [runtime],
   );
 
   const onUploadClick = useCallback(() => {

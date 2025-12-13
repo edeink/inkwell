@@ -1,17 +1,6 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  EdgeInsets,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from './base';
+import type { BoxConstraints, BuildContext, EdgeInsets, Offset, Size, WidgetProps } from './base';
 
 export interface BorderRadius {
   topLeft: number;
@@ -26,7 +15,7 @@ export interface Border {
   style?: 'solid' | 'dashed' | 'dotted';
 }
 
-export interface ContainerData extends WidgetData {
+export interface ContainerProps extends WidgetProps {
   width?: number;
   height?: number;
   padding?: EdgeInsets | number;
@@ -34,14 +23,13 @@ export interface ContainerData extends WidgetData {
   color?: string;
   border?: Border;
   borderRadius?: BorderRadius | number;
-  child?: WidgetData;
 }
 
 /**
  * Container 组件 - 最常用的容器组件
  * 支持设置尺寸、内边距、外边距、背景色、边框等
  */
-export class Container extends Widget<ContainerData> {
+export class Container extends Widget<ContainerProps> {
   width?: number;
   height?: number;
   padding?: EdgeInsets;
@@ -50,17 +38,12 @@ export class Container extends Widget<ContainerData> {
   border?: Border;
   borderRadius?: BorderRadius;
 
-  // 注册 Container 组件类型
-  static {
-    Widget.registerType(ComponentType.Container, Container);
-  }
-
-  constructor(data: ContainerData) {
+  constructor(data: ContainerProps) {
     super(data);
     this.initContainerProperties(data);
   }
 
-  private initContainerProperties(data: ContainerData): void {
+  private initContainerProperties(data: ContainerProps): void {
     this.width = data.width;
     this.height = data.height;
     this.padding = this.normalizeEdgeInsets(data.padding);
@@ -95,15 +78,10 @@ export class Container extends Widget<ContainerData> {
     return value;
   }
 
-  createElement(data: ContainerData): Widget {
+  createElement(data: ContainerProps): Widget {
     super.createElement(data);
     this.initContainerProperties(data);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // Container 只能有一个子组件
-    return Widget.createWidget(childData);
   }
 
   /**
@@ -224,7 +202,7 @@ export class Container extends Widget<ContainerData> {
     };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(): Offset {
     // 计算子组件的位置（考虑外边距和内边距）
     const marginLeft = this.margin?.left || 0;
     const marginTop = this.margin?.top || 0;
@@ -237,6 +215,3 @@ export class Container extends Widget<ContainerData> {
     };
   }
 }
-
-export type ContainerProps = Omit<ContainerData, 'type' | 'child' | 'children'> & WidgetProps;
-export const ContainerElement: React.FC<ContainerProps> = () => null;

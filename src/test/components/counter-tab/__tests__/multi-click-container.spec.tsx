@@ -1,10 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { TemplateElement } from '../counter';
+import { Template } from '../counter';
 
-import { Widget, type WidgetData } from '@/core/base';
 import { dispatchToTree } from '@/core/events';
+import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 function findByKey(root: any, key: string): any | null {
@@ -25,9 +25,9 @@ function findByKey(root: any, key: string): any | null {
 
 describe('Container onClick 可多次触发（计数累加）', () => {
   it('连续两次点击均触发 onClick，状态累计为 2', () => {
-    const json = compileElement(<TemplateElement />);
-    const root = Widget.createWidget(json)!;
-    root.createElement(root.props as WidgetData);
+    const json = compileElement(<Template />);
+    const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(root.props);
     const btn = findByKey(root, 'counter-btn')!;
     const pos = btn.getAbsolutePosition();
     dispatchToTree(root, btn, 'click', pos.dx + 1, pos.dy + 1);

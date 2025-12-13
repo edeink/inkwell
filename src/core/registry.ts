@@ -1,27 +1,69 @@
-import { Widget } from './base';
-
-// 导入所有组件以确保它们被注册
-import './center';
-import './container';
-import './flex/column';
-import './flex/expanded';
-import './flex/row';
-import './image';
-import './next-text';
-import './padding';
-import './positioned';
-import './sized-box';
-import './stack';
-import './text';
+import { Widget, type WidgetConstructor, type WidgetProps } from './base';
 
 export class WidgetRegistry {
-  private widgets: Map<string, new (data: any) => Widget> = new Map();
+  private static registry: Map<string, WidgetConstructor> = new Map();
 
-  register(type: string, widgetClass: new (data: any) => Widget): void {
+  private widgets: Map<string, new (data: WidgetProps) => Widget> = new Map();
+
+  // 注册组件类型
+  public static registerType<T extends WidgetProps>(
+    type: string,
+    constructor: new (data: T) => Widget<T>,
+  ): void {
+    // 将具体构造函数安全提升为通用构造函数
+    WidgetRegistry.registry.set(type, constructor as unknown as WidgetConstructor);
+  }
+
+  // 创建组件实例
+  public static createWidget<TData extends WidgetProps = WidgetProps>(
+    data: TData,
+  ): Widget<TData> | null {
+    if (!data) {
+      console.error('createWidget: data is null or undefined');
+      return null;
+    }
+    if (!data.type) {
+      console.error('createWidget: data.type is missing', data);
+      return null;
+    }
+
+    const constructor = WidgetRegistry.registry.get(data.type);
+    if (constructor) {
+      try {
+        return new constructor(data) as Widget<TData>;
+      } catch (error) {
+        console.error(`Failed to create widget of type ${data.type}:`, error, data);
+        return null;
+      }
+    }
+    console.warn(`Unknown widget type: ${data.type}`);
+    return null;
+  }
+
+  // 动态注册类型查询
+  public static hasRegisteredType(type: string): boolean {
+    return WidgetRegistry.registry.has(type);
+  }
+
+  // 判断某类型是否为复合组件（Stateless/Stateful），用于事件绑定策略
+  public static isCompositeType(type: string): boolean {
+    const ctor = WidgetRegistry.registry.get(type);
+    if (!ctor) {
+      return false;
+    }
+    try {
+      const proto = (ctor as unknown as { prototype?: Record<string, unknown> }).prototype;
+      return !!proto && typeof (proto as Record<string, unknown>).render === 'function';
+    } catch {
+      return false;
+    }
+  }
+
+  register(type: string, widgetClass: new (data: WidgetProps) => Widget): void {
     this.widgets.set(type, widgetClass);
   }
 
-  create(type: string, data: any): Widget | null {
+  create(type: string, data: WidgetProps): Widget | null {
     const WidgetClass = this.widgets.get(type);
     if (!WidgetClass) {
       console.warn(`Widget type "${type}" not found in registry`);
@@ -39,24 +81,10 @@ export class WidgetRegistry {
 export const widgetRegistry = new WidgetRegistry();
 
 // 便捷函数
-export function registerWidget(type: string, widgetClass: new (data: any) => Widget): void {
+export function registerWidget(type: string, widgetClass: new (data: WidgetProps) => Widget): void {
   widgetRegistry.register(type, widgetClass);
 }
 
-export function createWidget(type: string, data: any): Widget | null {
+export function createWidget(type: string, data: WidgetProps): Widget | null {
   return widgetRegistry.create(type, data);
 }
-
-// 导入并注册所有组件
-import { Center } from './center';
-import { Container } from './container';
-import { Padding } from './padding';
-import { Positioned } from './positioned';
-import { Stack } from './stack';
-
-// 注册所有组件
-registerWidget('container', Container);
-registerWidget('padding', Padding);
-registerWidget('center', Center);
-registerWidget('stack', Stack);
-registerWidget('positioned', Positioned);

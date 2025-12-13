@@ -1,12 +1,11 @@
 import { Widget } from '../base';
-import { ComponentType } from '../type';
 
-import { FlexFit } from './type';
+import { FlexFit, type FlexProperties } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from '../base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from '../base';
 
-export interface ExpandedData extends WidgetData {
-  child: WidgetData;
+export interface ExpandedProps extends WidgetProps {
+  flex: FlexProperties;
 }
 
 /**
@@ -15,21 +14,17 @@ export interface ExpandedData extends WidgetData {
  * Expanded组件必须作为Column、Row或Flex的直接子组件使用。
  * 它会让子组件在主轴方向上扩展以填充可用空间。
  */
-export class Expanded extends Widget<ExpandedData> {
+export class Expanded extends Widget<ExpandedProps> {
   flexValue: number = 1;
   flexFit: FlexFit = FlexFit.Tight;
   child: Widget | null = null;
 
-  static {
-    Widget.registerType(ComponentType.Expanded, Expanded);
-  }
-
-  constructor(data: ExpandedData) {
+  constructor(data: ExpandedProps) {
     super(data);
     this.initExpandedProperties(data);
   }
 
-  private initExpandedProperties(data: ExpandedData): void {
+  private initExpandedProperties(data: ExpandedProps): void {
     // 从统一的flex属性中获取值
     if (data.flex?.flex !== undefined) {
       this.flexValue = data.flex.flex;
@@ -39,19 +34,14 @@ export class Expanded extends Widget<ExpandedData> {
     }
   }
 
-  createElement(data: ExpandedData): Widget<ExpandedData> {
+  createElement(data: ExpandedProps): Widget<ExpandedProps> {
     super.createElement(data);
     this.initExpandedProperties(data);
     this.child = this.children[0] ?? null;
     return this;
   }
 
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // 使用 Widget 静态方法动态创建组件
-    return Widget.createWidget(childData);
-  }
-
-  protected paintSelf(context: BuildContext): void {
+  protected paintSelf(): void {
     // Expanded本身不绘制任何内容，只是一个布局容器
   }
 
@@ -73,19 +63,13 @@ export class Expanded extends Widget<ExpandedData> {
     };
   }
 
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
+  protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     // Expanded将父级约束直接传递给子组件
     return constraints;
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(): Offset {
     // 子组件位于左上角
     return { dx: 0, dy: 0 };
   }
 }
-
-export type RowProps = Omit<ExpandedData, 'type' | 'children'> & WidgetProps;
-export const ExpandedElement: React.FC<RowProps> = () => null;

@@ -1,15 +1,6 @@
-import React from 'react';
-
 import { CustomComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from '@/core/base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
 import {
@@ -18,7 +9,7 @@ import {
   DEFAULT_CONNECTOR_OPTIONS,
 } from '@/demo/mindmap/helpers/connection-drawer';
 
-export interface ConnectorData extends WidgetData {
+export interface ConnectorProps extends WidgetProps {
   fromKey: string;
   toKey: string;
   color?: string;
@@ -32,7 +23,7 @@ export interface ConnectorData extends WidgetData {
  * 支持直线 straight 与折线 elbow 两种风格。根据节点的绝对坐标绘制连接线，
  * 以 Viewport 坐标系为准，不额外叠加偏移。
  */
-export class Connector extends Widget<ConnectorData> {
+export class Connector extends Widget<ConnectorProps> {
   fromKey: string = '';
   toKey: string = '';
   color: string = '#8c8c8c';
@@ -40,16 +31,12 @@ export class Connector extends Widget<ConnectorData> {
   style: ConnectorStyle = ConnectorStyle.Bezier;
   dashArray?: string;
 
-  static {
-    Widget.registerType(CustomComponentType.Connector, Connector);
-  }
-
-  constructor(data: ConnectorData) {
+  constructor(data: ConnectorProps) {
     super(data);
     this.init(data);
   }
 
-  private init(data: ConnectorData): void {
+  private init(data: ConnectorProps): void {
     this.fromKey = data.fromKey;
     this.toKey = data.toKey;
     this.color = (data.color ?? this.color) as string;
@@ -58,13 +45,13 @@ export class Connector extends Widget<ConnectorData> {
     this.dashArray = data.dashArray;
   }
 
-  createElement(data: ConnectorData): Widget<ConnectorData> {
+  createElement(data: ConnectorProps): Widget<ConnectorProps> {
     super.createElement(data);
     this.init(data);
     return this;
   }
 
-  protected createChildWidget(_childData: WidgetData): Widget | null {
+  protected createChildWidget(_childData: WidgetProps): Widget | null {
     return null;
   }
 
@@ -194,6 +181,3 @@ export class Connector extends Widget<ConnectorData> {
     return { dx: 0, dy: 0 };
   }
 }
-
-export type ConnectorProps = Omit<ConnectorData, 'type' | 'children'> & WidgetProps;
-export const ConnectorElement: React.FC<ConnectorProps> = () => null;

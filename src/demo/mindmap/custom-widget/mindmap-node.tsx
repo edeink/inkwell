@@ -1,19 +1,19 @@
 /** @jsxImportSource @/utils/compiler */
-import React from 'react';
 
+import { Connector } from './connector';
 import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
 
-import type { WidgetData, WidgetProps } from '@/core/base';
+import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
 import { Container, Text } from '@/core';
 import { Widget } from '@/core/base';
-import { createWidget as createExternalWidget } from '@/core/registry';
 import { StatefulWidget } from '@/core/state/stateful';
+import { TextAlign, TextAlignVertical } from '@/core/text';
 import Runtime from '@/runtime';
 
-export interface MindMapNodeData extends WidgetData {
+export interface MindMapNodeProps extends WidgetProps {
   title: string;
   prefSide?: Side;
   active?: boolean;
@@ -25,20 +25,10 @@ export interface MindMapNodeData extends WidgetData {
 }
 
 /**
- * 组件状态
- * 描述 MindMapNode 的可变状态：标题文本与拖拽中的标记
- */
-interface MindMapNodeState extends Record<string, unknown> {
-  title: string;
-  dragging: boolean;
-  hovering: boolean;
-}
-
-/**
  * MindMapNode
  * 有状态的思维导图节点组件，负责渲染节点外观与处理点击/拖拽/编辑交互
  */
-export class MindMapNode extends StatefulWidget<MindMapNodeData> {
+export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   title: string = '';
   prefSide: Side | undefined = undefined;
   active: boolean = false;
@@ -53,15 +43,11 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
   private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
   private activePointerId: number | null = null;
 
-  static {
-    Widget.registerType(CustomComponentType.MindMapNode, MindMapNode);
-  }
-
   /**
    * 构造函数
    * 初始化组件状态与静态属性，保留传入的节点数据与业务逻辑
    */
-  constructor(data: MindMapNodeData) {
+  constructor(data: MindMapNodeProps) {
     super(data);
     this.state = this.initialState(data);
     this.init(data);
@@ -71,11 +57,11 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
    * 初始化状态
    * 从节点数据推导初始标题文本与拖拽标记
    */
-  private initialState(data: MindMapNodeData): MindMapNodeState {
+  private initialState(data: MindMapNodeProps): MindMapNodeProps {
     return { title: data.title || '', dragging: false, hovering: false };
   }
 
-  private init(data: MindMapNodeData): void {
+  private init(data: MindMapNodeProps): void {
     this.title = data.title || '';
     this.prefSide = data.prefSide;
     const akFromProps = (data.activeKey ?? null) as string | null;
@@ -87,26 +73,19 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
     this._onMoveNode = data.onMoveNode;
   }
 
-  createElement(data: MindMapNodeData): Widget<MindMapNodeData> {
+  createElement(data: MindMapNodeProps): Widget<MindMapNodeProps> {
     const withEvents = {
       ...data,
       onPointerDown: (e: InkwellEvent) => this.onPointerDown(e),
       onPointerMove: (e: InkwellEvent) => this.onPointerMove(e),
       onPointerUp: (e: InkwellEvent) => this.onPointerUp(e),
       onDblClick: (e: InkwellEvent) => this.onDblClick(e),
-      onPointerEnter: () => this.setState({ hovering: true } as Partial<MindMapNodeState>),
-      onPointerLeave: () => this.setState({ hovering: false } as Partial<MindMapNodeState>),
-    } as MindMapNodeData;
+      onPointerEnter: () => this.setState({ hovering: true } as Partial<MindMapNodeProps>),
+      onPointerLeave: () => this.setState({ hovering: false } as Partial<MindMapNodeProps>),
+    } as MindMapNodeProps;
     super.createElement(withEvents);
     this.init(withEvents);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    if (childData.type === CustomComponentType.MindMapNode) {
-      throw new Error('MindMapNode does not support nested MindMapNode');
-    }
-    return Widget.createWidget(childData) ?? createExternalWidget(childData.type, childData);
   }
 
   /**
@@ -276,22 +255,14 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
    */
   private detachWindowPointerListeners(): void {
     if (this.windowMoveHandler) {
-      window.removeEventListener(
-        'pointermove',
-        this.windowMoveHandler as EventListener,
-        {
-          capture: true,
-        } as any,
-      );
+      window.removeEventListener('pointermove', this.windowMoveHandler as EventListener, {
+        capture: true,
+      });
     }
     if (this.windowUpHandler) {
-      window.removeEventListener(
-        'pointerup',
-        this.windowUpHandler as EventListener,
-        {
-          capture: true,
-        } as any,
-      );
+      window.removeEventListener('pointerup', this.windowUpHandler as EventListener, {
+        capture: true,
+      });
     }
     this.windowMoveHandler = null;
     this.windowUpHandler = null;
@@ -354,7 +325,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
         const t = this as unknown as Widget;
         const p = t.parent as Widget | null;
         const container = p && p.type === CustomComponentType.MindMapNodeToolbar ? p : t;
-        container.renderObject.offset = { dx: off.dx, dy: off.dy } as any;
+        container.renderObject.offset = { dx: off.dx, dy: off.dy };
       }
       try {
         const parentContainer = (this.parent as Widget) ?? null;
@@ -369,9 +340,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
           const collectChildren = (fromKey: string): string[] => {
             const out: string[] = [];
             for (const c of layout.children) {
-              if ((c as any).type === CustomComponentType.Connector) {
-                const from = (c as any).fromKey as string;
-                const to = (c as any).toKey as string;
+              if (c instanceof Connector) {
+                const from = c.fromKey as string;
+                const to = c.toKey as string;
                 if (from === fromKey && !seen.has(to)) {
                   out.push(to);
                 }
@@ -420,7 +391,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
     const container = runtime?.getContainer() ?? document.body;
     const input = document.createElement('input');
     input.type = 'text';
-    const st = this.state as MindMapNodeState;
+    const st = this.state as MindMapNodeProps;
     input.value = st.title || '';
     input.style.position = 'absolute';
     input.style.left = `${Math.round(vp.tx + pos.dx * vp.scale)}px`;
@@ -431,7 +402,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
     input.select();
     const onInput = () => {
       const v = input.value;
-      this.setState({ title: v } as Partial<MindMapNodeState>);
+      this.setState({ title: v } as Partial<MindMapNodeProps>);
     };
     input.addEventListener('input', onInput);
     const cleanup = () => {
@@ -442,7 +413,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
     };
     const confirm = () => {
       const v = input.value;
-      this.setState({ title: v } as Partial<MindMapNodeState>);
+      this.setState({ title: v } as Partial<MindMapNodeProps>);
       cleanup();
     };
     const cancel = () => {
@@ -483,9 +454,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
       return false;
     }
     for (const c of parent.children) {
-      if ((c as any).type === CustomComponentType.Connector) {
-        const to = (c as any).toKey as string;
-        if (to === this.key) {
+      if (c instanceof Connector) {
+        if (c.toKey === this.key) {
           return false;
         }
       }
@@ -499,7 +469,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
    */
   render() {
     const vp = this.findViewport();
-    const st = this.state as MindMapNodeState;
+    const st = this.state as MindMapNodeProps;
     const editing = vp?.editingKey === this.key;
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
     const isDragging = !!st.dragging;
@@ -523,7 +493,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
         width={w}
         height={h}
         padding={12}
-        color={baseFill as any}
+        color={baseFill}
         border={{
           color: borderColor,
           width: borderWidth,
@@ -536,15 +506,11 @@ export class MindMapNode extends StatefulWidget<MindMapNodeData> {
           text={st.title}
           fontSize={14}
           color={'#333333'}
-          textAlign={'left'}
-          textAlignVertical={'top'}
+          textAlign={TextAlign.Left}
+          textAlignVertical={TextAlignVertical.Top}
           pointerEvents={'none'}
         />
       </Container>
-    ) as any;
+    );
   }
 }
-
-export type MindMapNodeProps = Omit<MindMapNodeData, 'type' | 'children'> &
-  WidgetProps & { children?: never };
-export const MindMapNodeElement: React.FC<MindMapNodeProps> = () => null;

@@ -2,9 +2,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { Container, Text } from '@/core';
-import { Widget, createBoxConstraints } from '@/core/base';
+import { createBoxConstraints } from '@/core/base';
 import { EventRegistry, dispatchToTree } from '@/core/events';
 import '@/core/registry';
+import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
@@ -24,7 +25,7 @@ describe('模块解析与事件系统（路径别名验证）', () => {
     const data = compileElement(el);
     expect(data.type).toBe('Container');
 
-    const root = Widget.createWidget(data)!;
+    const root = WidgetRegistry.createWidget(data)!;
     root.layout(createBoxConstraints());
     const leaf = root.children[0];
 

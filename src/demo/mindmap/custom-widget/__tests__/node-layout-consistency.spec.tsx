@@ -1,11 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ConnectorElement as Connector } from '../connector';
-import { MindMapLayoutElement as MindMapLayout } from '../mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '../mindmap-node';
-import { MindMapNodeToolbarElement as MindMapNodeToolbar } from '../mindmap-node-toolbar';
-import { ViewportElement as Viewport } from '../viewport';
+import { ConnectorStyle } from '../../helpers/connection-drawer';
+import { Connector } from '../connector';
+import { MindMapLayout } from '../mindmap-layout';
+import { MindMapNode } from '../mindmap-node';
+import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
+import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 
@@ -36,7 +37,7 @@ async function createSceneWithToolbar(width: number, height: number, runtime: Ru
         <MindMapNode key="root" title="主题" />
         <MindMapNode key="n1" title="分支 1" />
         <MindMapNodeToolbar key="toolbar" />
-        <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+        <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
       </MindMapLayout>
     </Viewport>
   );
@@ -49,11 +50,11 @@ async function createSceneWithoutToolbar(width: number, height: number, runtime:
       <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
         <MindMapNode key="root" title="主题" />
         <MindMapNode key="n1" title="分支 1" />
-        <Connector key="e-root-n1" fromKey="root" toKey="n1" style="elbow" />
+        <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
       </MindMapLayout>
     </Viewport>
   );
-  await runtime.renderFromJSX(scene as any);
+  await runtime.renderFromJSX(scene);
 }
 
 describe('MindMapNode layout stability and active position', () => {

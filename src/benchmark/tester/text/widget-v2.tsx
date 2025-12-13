@@ -5,7 +5,8 @@ import { detPos } from './helper';
 import type { Timings } from '@/benchmark/metrics/collector';
 
 import { measureNextPaint } from '@/benchmark/metrics/collector';
-import { NextText, Positioned, Stack, Widget } from '@/core';
+import { NextText, Positioned, Stack } from '@/core';
+import { WidgetRegistry } from '@/core/registry';
 import { Canvas2DRenderer } from '@/renderer/canvas2d/canvas-2d-renderer';
 import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
@@ -46,7 +47,7 @@ export async function buildTextWidgetSceneV2(
   const tCompile1 = performance.now();
 
   const tBuild0 = performance.now();
-  const root = (await Widget.createWidget(json))!; // use same path as prev for fairness
+  const root = (await WidgetRegistry.createWidget(json))!; // use same path as prev for fairness
   const tBuild1 = performance.now();
 
   const constraints = {
@@ -56,7 +57,7 @@ export async function buildTextWidgetSceneV2(
     maxHeight: stageH,
   } as const;
   const tLayout0 = performance.now();
-  root.layout(constraints as any);
+  root.layout(constraints);
   const tLayout1 = performance.now();
 
   const renderer = runtime.getRenderer() ?? new Canvas2DRenderer();
@@ -65,12 +66,12 @@ export async function buildTextWidgetSceneV2(
     width: Math.max(stageW, 100),
     height: Math.max(stageH, 100),
     backgroundAlpha: 0,
-  } as any;
+  };
   const tInit0 = performance.now();
-  await renderer.initialize(container, opts as any);
+  await renderer.initialize(container, opts);
   const tInit1 = performance.now();
 
-  const context: any = { renderer };
+  const context = { renderer };
   root.paint(context);
   renderer.render();
   const paintWait = await measureNextPaint();

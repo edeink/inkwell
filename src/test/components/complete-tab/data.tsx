@@ -1,5 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
 import { Center, Column, Container, Expanded, Padding, Positioned, Row, Stack, Text } from '@/core';
+import { TextAlignVertical } from '@/core/text';
 
 export const getTestTemplate = () => (
   <Column
@@ -52,7 +53,7 @@ export const getTestTemplate = () => (
           text="左侧"
           fontSize={16}
           color="#d32f2f"
-          textAlignVertical="top"
+          textAlignVertical={TextAlignVertical.Top}
         />
       </Container>
       <Expanded flex={{ flex: 1 }}>
@@ -70,7 +71,7 @@ export const getTestTemplate = () => (
               text="中间弹性区域"
               fontSize={16}
               color="#2e7d32"
-              textAlignVertical="center"
+              textAlignVertical={TextAlignVertical.Center}
             />
           </Center>
         </Container>
@@ -81,7 +82,7 @@ export const getTestTemplate = () => (
           text="右侧"
           fontSize={16}
           color="#d32f2f"
-          textAlignVertical="top"
+          textAlignVertical={TextAlignVertical.Top}
         />
       </Container>
     </Row>
@@ -115,7 +116,7 @@ export const getTestTemplate = () => (
             text="圆角容器"
             fontSize={16}
             fontWeight="bold"
-            textAlignVertical="top"
+            textAlignVertical={TextAlignVertical.Top}
           />
         </Container>
 

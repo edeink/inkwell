@@ -1,19 +1,18 @@
 /** @jsxImportSource @/utils/compiler */
 
-import type { WidgetData, WidgetProps } from '@/core/base';
+import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
-import { Center, Container, Text, Widget } from '@/core';
+import { Center, Container, Text } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
+import { TextAlign, TextAlignVertical } from '@/core/text';
 
-type ButtonData = WidgetData & { onClick?: (e: InkwellEvent) => void };
+interface ButtonProps extends WidgetProps {
+  onClick?: (e: InkwellEvent) => void;
+}
 
-export class Button extends StatefulWidget<ButtonData> {
-  static {
-    Widget.registerType('Button', Button);
-  }
-
-  constructor(data: ButtonData) {
+export class Button extends StatefulWidget<ButtonProps> {
+  constructor(data: ButtonProps) {
     super(data);
   }
 
@@ -33,14 +32,11 @@ export class Button extends StatefulWidget<ButtonData> {
             text="点击 +1"
             fontSize={16}
             color="#ffffff"
-            textAlign="center"
-            textAlignVertical="center"
+            textAlign={TextAlign.Center}
+            textAlignVertical={TextAlignVertical.Center}
           />
         </Center>
       </Container>
     );
   }
 }
-
-export type ButtonProps = Omit<ButtonData, 'type' | 'children'> & WidgetProps;
-export const ButtonElement: React.FC<ButtonProps> = () => null;

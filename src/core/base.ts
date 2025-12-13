@@ -1,78 +1,30 @@
 import { type IRenderer } from '../renderer/IRenderer';
 
+import { toEventType } from './events/helper';
 import { EventRegistry } from './events/registry';
+import {
+  applySteps,
+  composeSteps,
+  IDENTITY_MATRIX,
+  multiply,
+  type TransformStep,
+} from './helper/transform';
+import { WidgetRegistry } from './registry';
 
-import type { EventHandler, EventType } from './events/types';
+import type { EventHandler, WidgetEventHandler } from './events/types';
 import type { FlexProperties } from './flex/type';
 import type Runtime from '@/runtime';
 
-export interface WidgetEventHandler {
-  onClick?: EventHandler;
-  onClickCapture?: EventHandler;
-  onDblClick?: EventHandler;
-  onDblClickCapture?: EventHandler;
-  onDoubleClick?: EventHandler;
-  onDoubleClickCapture?: EventHandler;
-  onContextMenu?: EventHandler;
-  onContextMenuCapture?: EventHandler;
-  onMouseDown?: EventHandler;
-  onMouseDownCapture?: EventHandler;
-  onMouseUp?: EventHandler;
-  onMouseUpCapture?: EventHandler;
-  onMouseMove?: EventHandler;
-  onMouseMoveCapture?: EventHandler;
-  onMouseOver?: EventHandler;
-  onMouseOverCapture?: EventHandler;
-  onMouseOut?: EventHandler;
-  onMouseOutCapture?: EventHandler;
-  onWheel?: EventHandler;
-  onWheelCapture?: EventHandler;
-  onTouchStart?: EventHandler;
-  onTouchStartCapture?: EventHandler;
-  onTouchMove?: EventHandler;
-  onTouchMoveCapture?: EventHandler;
-  onTouchEnd?: EventHandler;
-  onTouchEndCapture?: EventHandler;
-  onTouchCancel?: EventHandler;
-  onTouchCancelCapture?: EventHandler;
-  onPointerDown?: EventHandler;
-  onPointerDownCapture?: EventHandler;
-  onPointerUp?: EventHandler;
-  onPointerUpCapture?: EventHandler;
-  onPointerMove?: EventHandler;
-  onPointerMoveCapture?: EventHandler;
-  onPointerOver?: EventHandler;
-  onPointerOverCapture?: EventHandler;
-  onPointerOut?: EventHandler;
-  onPointerOutCapture?: EventHandler;
-  onPointerEnter?: EventHandler;
-  onPointerEnterCapture?: EventHandler;
-  onPointerLeave?: EventHandler;
-  onPointerLeaveCapture?: EventHandler;
-  onKeyDown?: EventHandler;
-  onKeyDownCapture?: EventHandler;
-  onKeyUp?: EventHandler;
-  onKeyUpCapture?: EventHandler;
-  onKeyPress?: EventHandler;
-  onKeyPressCapture?: EventHandler;
-}
-
+// 内置属性
 export interface WidgetProps extends WidgetEventHandler {
   key?: string;
-  children?: React.ReactNode;
-}
-
-/**
- * 基础组件类，提供构建、布局和绘制的基本方法
- * 参考 Flutter 的实现风格
- */
-export interface WidgetData {
-  key?: string;
-  type: string;
-  children?: WidgetData[];
-  flex?: FlexProperties; // 添加flex属性支持
+  type?: string; // 此方法需要移除
+  flex?: FlexProperties;
   zIndex?: number;
   pointerEvents?: 'auto' | 'none';
+  // props 的 children 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
+  // widget 的 children 是 Widget[]，请注意区分
+  children?: WidgetProps[];
   [key: string]: unknown;
 }
 
@@ -121,7 +73,7 @@ export interface BuildContext {
 }
 
 // 构造器类型：约束 Widget 的数据类型与返回实例类型保持一致
-export type WidgetConstructor<T extends WidgetData = WidgetData> = new (data: T) => Widget<T>;
+export type WidgetConstructor<T extends WidgetProps = WidgetProps> = new (data: T) => Widget<T>;
 
 /**
  * 创建默认的盒约束
@@ -150,7 +102,7 @@ export function createTightConstraints(width: number, height: number): BoxConstr
 /**
  * 基础组件类
  */
-export abstract class Widget<TData extends WidgetData = WidgetData> {
+export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   key: string;
   type: string;
   children: Widget[] = [];
@@ -165,68 +117,13 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
-  pointerEvents = 'auto';
+  pointerEvents: 'auto' | 'none' = 'auto';
   private _needsLayout: boolean = false;
 
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
   // 运行时挂载点：用于增量更新调度（避免在此模块直接依赖 Runtime 类型）
   __runtime?: unknown;
-
-  // 组件注册表 - 使用协变的构造函数类型
-  private static registry: Map<string, WidgetConstructor> = new Map();
-
-  // 注册组件类型
-  public static registerType<T extends WidgetData>(
-    type: string,
-    constructor: new (data: T) => Widget<T>,
-  ): void {
-    // 将具体构造函数安全提升为通用构造函数
-    Widget.registry.set(type, constructor as unknown as WidgetConstructor);
-  }
-
-  // 创建组件实例
-  public static createWidget(data: WidgetData): Widget | null {
-    if (!data) {
-      console.error('createWidget: data is null or undefined');
-      return null;
-    }
-    if (!data.type) {
-      console.error('createWidget: data.type is missing', data);
-      return null;
-    }
-
-    const constructor = Widget.registry.get(data.type);
-    if (constructor) {
-      try {
-        return new constructor(data);
-      } catch (error) {
-        console.error(`Failed to create widget of type ${data.type}:`, error, data);
-        return null;
-      }
-    }
-    console.warn(`Unknown widget type: ${data.type}`);
-    return null;
-  }
-
-  // 动态注册类型查询
-  public static hasRegisteredType(type: string): boolean {
-    return Widget.registry.has(type);
-  }
-
-  // 判断某类型是否为复合组件（Stateless/Stateful），用于事件绑定策略
-  public static isCompositeType(type: string): boolean {
-    const ctor = Widget.registry.get(type);
-    if (!ctor) {
-      return false;
-    }
-    try {
-      const proto = (ctor as unknown as { prototype?: Record<string, unknown> }).prototype;
-      return !!proto && typeof (proto as Record<string, unknown>).render === 'function';
-    } catch {
-      return false;
-    }
-  }
 
   constructor(data: TData) {
     if (!data) {
@@ -242,7 +139,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.data = this.props;
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
-    const pe0 = (data as unknown as WidgetData).pointerEvents;
+    const pe0 = data.pointerEvents;
     if (pe0 === 'none' || pe0 === 'auto') {
       this.pointerEvents = pe0;
     }
@@ -259,17 +156,17 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
    */
   createElement(data: TData): Widget<TData> {
     const nextProps = data as TData;
-    const prevProps = this.props as WidgetData;
+    const prevProps = this.props;
     const should = this.shouldWidgetUpdate(nextProps, this.state);
-    const nextChildrenData = (nextProps.children ?? []) as WidgetData[];
-    const prevChildrenData = (prevProps.children ?? []) as WidgetData[];
+    const nextChildrenData = nextProps.children ?? ([] as WidgetProps[]);
+    const prevChildrenData = prevProps.children ?? ([] as WidgetProps[]);
 
     // 快速路径：props/state 无变更且 children 的 key 与长度完全一致 → 直接复用
     const prevKeys = prevChildrenData.map((c) => String(c.key ?? ''));
     const nextKeys = nextChildrenData.map((c) => String(c.key ?? ''));
     const childrenChanged =
       prevKeys.length !== nextKeys.length || prevKeys.some((k, i) => k !== nextKeys[i]);
-    const shallowDiff = (a: WidgetData, b: WidgetData): boolean => {
+    const shallowDiff = (a: WidgetProps, b: WidgetProps): boolean => {
       const ka = Object.keys(a).filter((k) => k !== 'children');
       const kb = Object.keys(b).filter((k) => k !== 'children');
       if (ka.length !== kb.length) {
@@ -305,44 +202,14 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
       try {
         EventRegistry.clearKey(String(this.key), rt ?? undefined);
       } catch {}
-      const toEventTypeSelf = (base: string): EventType | null => {
-        const lower = base.toLowerCase();
-        const map: Record<string, EventType> = {
-          click: 'click',
-          mousedown: 'mousedown',
-          mouseup: 'mouseup',
-          mousemove: 'mousemove',
-          mouseover: 'mouseover',
-          mouseout: 'mouseout',
-          wheel: 'wheel',
-          dblclick: 'dblclick',
-          doubleclick: 'dblclick',
-          contextmenu: 'contextmenu',
-          pointerdown: 'pointerdown',
-          pointerup: 'pointerup',
-          pointermove: 'pointermove',
-          pointerover: 'pointerover',
-          pointerout: 'pointerout',
-          pointerenter: 'pointerenter',
-          pointerleave: 'pointerleave',
-          touchstart: 'touchstart',
-          touchmove: 'touchmove',
-          touchend: 'touchend',
-          touchcancel: 'touchcancel',
-          keydown: 'keydown',
-          keyup: 'keyup',
-          keypress: 'keypress',
-        };
-        return map[lower] ?? null;
-      };
-      const dataSelf = nextProps as unknown as WidgetData;
+      const dataSelf = nextProps;
       for (const [k, v] of Object.entries(dataSelf)) {
         if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
           const base = k.replace(/^on/, '').replace(/Capture$/, '');
-          const type = toEventTypeSelf(base);
+          const type = toEventType(base);
           if (type) {
             const capture = /Capture$/.test(k);
-            EventRegistry.register(String(this.key), type, v as any, { capture }, rt ?? undefined);
+            EventRegistry.register(this.key, type, v as EventHandler, { capture }, rt);
           }
         }
       }
@@ -357,7 +224,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     this.props = { ...nextProps } as TData;
     this.data = this.props;
     this.zIndex = typeof nextProps.zIndex === 'number' ? (nextProps.zIndex as number) : this.zIndex;
-    const pe = (nextProps as unknown as WidgetData).pointerEvents;
+    const pe = nextProps.pointerEvents;
     if (pe === 'none' || pe === 'auto') {
       this.pointerEvents = pe;
     }
@@ -373,10 +240,51 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     return this;
   }
 
+  private bindEventsIfNeeded = (widget: Widget, data: WidgetProps): void => {
+    const findRoot = (self: Widget): Widget | null => {
+      let cur: Widget | null = self;
+      while (cur && cur.parent) {
+        cur = cur.parent;
+      }
+      return cur;
+    };
+    const root = findRoot(widget);
+    const rt = (root?.__runtime ?? null) as Runtime | null;
+    const skipSelfBind = WidgetRegistry.isCompositeType(widget.type);
+    const hasEventFns = Object.entries(data).some(
+      ([k, v]) => typeof v === 'function' && /^on[A-Z]/.test(k),
+    );
+    if (!hasEventFns) {
+      return;
+    }
+    if (skipSelfBind) {
+      return;
+    }
+    try {
+      EventRegistry.clearKey(String(widget.key), rt ?? undefined);
+    } catch {}
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
+        const base = k.replace(/^on/, '').replace(/Capture$/, '');
+        const type = toEventType(base);
+        if (type) {
+          const capture = /Capture$/.test(k);
+          EventRegistry.register(
+            String(widget.key),
+            type,
+            v as EventHandler,
+            { capture },
+            rt ?? undefined,
+          );
+        }
+      }
+    }
+  };
+
   /**
    * 构建子组件
    */
-  protected buildChildren(childrenData: WidgetData[]): void {
+  protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
     const byKey = new Map<string, Widget>();
     for (const c of prev) {
@@ -384,76 +292,6 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     }
 
     const nextChildren: Widget[] = [];
-    const toEventType = (base: string): EventType | null => {
-      const lower = base.toLowerCase();
-      const map: Record<string, EventType> = {
-        click: 'click',
-        mousedown: 'mousedown',
-        mouseup: 'mouseup',
-        mousemove: 'mousemove',
-        mouseover: 'mouseover',
-        mouseout: 'mouseout',
-        wheel: 'wheel',
-        dblclick: 'dblclick',
-        doubleclick: 'dblclick',
-        contextmenu: 'contextmenu',
-        pointerdown: 'pointerdown',
-        pointerup: 'pointerup',
-        pointermove: 'pointermove',
-        pointerover: 'pointerover',
-        pointerout: 'pointerout',
-        pointerenter: 'pointerenter',
-        pointerleave: 'pointerleave',
-        touchstart: 'touchstart',
-        touchmove: 'touchmove',
-        touchend: 'touchend',
-        touchcancel: 'touchcancel',
-        keydown: 'keydown',
-        keyup: 'keyup',
-        keypress: 'keypress',
-      };
-      return map[lower] ?? null;
-    };
-    const bindEventsIfNeeded = (widget: Widget, data: WidgetData): void => {
-      const findRoot = (self: Widget): Widget | null => {
-        let cur: Widget | null = self;
-        while (cur && cur.parent) {
-          cur = cur.parent;
-        }
-        return cur;
-      };
-      const root = findRoot(widget);
-      const rt = (root?.__runtime ?? null) as Runtime | null;
-      const skipSelfBind = Widget.isCompositeType(widget.type);
-      const hasEventFns = Object.entries(data).some(
-        ([k, v]) => typeof v === 'function' && /^on[A-Z]/.test(k),
-      );
-      if (!hasEventFns) {
-        return;
-      }
-      if (skipSelfBind) {
-        return;
-      }
-      try {
-        EventRegistry.clearKey(String(widget.key), rt ?? undefined);
-      } catch {}
-      for (const [k, v] of Object.entries(data)) {
-        if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
-          const base = k.replace(/^on/, '').replace(/Capture$/, '');
-          const type = toEventType(base);
-          if (type) {
-            const capture = /Capture$/.test(k);
-            EventRegistry.register(
-              String(widget.key),
-              type,
-              v as any,
-              { capture },
-              rt ?? undefined,
-            );
-          }
-        }
-      }
-    };
     for (const childData of childrenData) {
       const k = String(childData.key ?? '');
       const reuse = k ? (byKey.get(k) ?? null) : null;
@@ -462,14 +300,14 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
         reuse.createElement(childData as unknown as typeof reuse.data);
         reuse.parent = this;
         nextChildren.push(reuse);
-        bindEventsIfNeeded(reuse, childData);
+        this.bindEventsIfNeeded(reuse, childData);
       } else {
         const childWidget = this.createChildWidget(childData);
         if (childWidget) {
           childWidget.parent = this;
           childWidget.createElement(childData as unknown as typeof childWidget.data);
           nextChildren.push(childWidget);
-          bindEventsIfNeeded(childWidget, childData);
+          this.bindEventsIfNeeded(childWidget, childData);
         }
       }
     }
@@ -481,7 +319,9 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   /**
    * 创建子组件的抽象方法，由子类实现
    */
-  protected abstract createChildWidget(childData: WidgetData): Widget | null;
+  protected createChildWidget(childData: WidgetProps): Widget | null {
+    return WidgetRegistry.createWidget(childData);
+  }
 
   /**
    * 布局组件及其子组件
@@ -585,12 +425,14 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
   /**
    * 绘制组件自身
    */
-  protected abstract paintSelf(context: BuildContext): void;
+  protected paintSelf(context: BuildContext) {
+    // 在子组实现
+  }
 
   // 变更检测：仅对非 children 字段进行浅比较，并比较 state 的键值
   shouldWidgetUpdate(nextProps: TData, nextState: Record<string, unknown>): boolean {
-    const a = this.props as WidgetData;
-    const b = nextProps as WidgetData;
+    const a = this.props;
+    const b = nextProps;
     const ka = Object.keys(a).filter((k) => k !== 'children');
     const kb = Object.keys(b).filter((k) => k !== 'children');
     if (ka.length !== kb.length) {
@@ -671,7 +513,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
         return cur;
       };
       const root = findRoot(this);
-      const rt = root.__runtime ?? null;
+      const rt = root!.__runtime ?? null;
       // 具备 tick 方法的运行时对象才能触发增量重建
       type RuntimeLike = { tick: (dirty?: Widget[]) => void };
       const hasTick = (x: unknown): x is RuntimeLike =>
@@ -703,7 +545,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     };
     const root = findRoot(this);
     type LayoutHost = { __layoutScheduled?: boolean; __layoutRaf?: number | null };
-    const host = (root.__runtime ?? root) as LayoutHost;
+    const host = (root!.__runtime ?? root) as LayoutHost;
     if (!host.__layoutScheduled) {
       host.__layoutScheduled = true;
       host.__layoutRaf = requestAnimationFrame(() => {
@@ -749,7 +591,7 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     }
     let maxZ = 0;
     for (const c of p.children) {
-      if (c !== this) {
+      if (c.key !== this.key) {
         maxZ = Math.max(maxZ, c.zIndex);
       }
     }
@@ -761,66 +603,5 @@ export abstract class Widget<TData extends WidgetData = WidgetData> {
     const w = this.renderObject.size.width;
     const h = this.renderObject.size.height;
     return x >= pos.dx && y >= pos.dy && x <= pos.dx + w && y <= pos.dy + h;
-  }
-}
-
-type TransformStep =
-  | { t: 'translate'; x: number; y: number }
-  | { t: 'scale'; sx: number; sy: number }
-  | { t: 'rotate'; rad: number };
-
-const IDENTITY_MATRIX: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
-
-function composeSteps(steps: TransformStep[]): [number, number, number, number, number, number] {
-  let m = IDENTITY_MATRIX;
-  for (const s of steps) {
-    if (s.t === 'translate') {
-      m = multiply(m, [1, 0, 0, 1, s.x, s.y]);
-    } else if (s.t === 'scale') {
-      m = multiply(m, [s.sx, 0, 0, s.sy, 0, 0]);
-    } else if (s.t === 'rotate') {
-      const c = Math.cos(s.rad);
-      const g = Math.sin(s.rad);
-      m = multiply(m, [c, g, -g, c, 0, 0]);
-    }
-  }
-  return m;
-}
-
-function multiply(
-  a: [number, number, number, number, number, number],
-  b: [number, number, number, number, number, number],
-): [number, number, number, number, number, number] {
-  const a0 = a[0],
-    a1 = a[1],
-    a2 = a[2],
-    a3 = a[3],
-    a4 = a[4],
-    a5 = a[5];
-  const b0 = b[0],
-    b1 = b[1],
-    b2 = b[2],
-    b3 = b[3],
-    b4 = b[4],
-    b5 = b[5];
-  return [
-    a0 * b0 + a2 * b1,
-    a1 * b0 + a3 * b1,
-    a0 * b2 + a2 * b3,
-    a1 * b2 + a3 * b3,
-    a0 * b4 + a2 * b5 + a4,
-    a1 * b4 + a3 * b5 + a5,
-  ];
-}
-
-function applySteps(renderer: IRenderer, steps: TransformStep[]): void {
-  for (const s of steps) {
-    if (s.t === 'translate') {
-      renderer.translate(s.x, s.y);
-    } else if (s.t === 'scale') {
-      renderer.scale(s.sx, s.sy);
-    } else if (s.t === 'rotate') {
-      renderer.rotate(s.rad);
-    }
   }
 }

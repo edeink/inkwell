@@ -2,9 +2,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Container, Text } from '@/core';
-import { Widget, createBoxConstraints } from '@/core/base';
+import { createBoxConstraints } from '@/core/base';
 import { EventRegistry, dispatchToTree } from '@/core/events';
 import '@/core/registry';
+import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 function createRuntimeTag(id: string): any {
@@ -22,7 +23,7 @@ function buildTreeWithRuntime(rt: any) {
   EventRegistry.setCurrentRuntime(rt);
   const data = compileElement(el);
   EventRegistry.setCurrentRuntime(null);
-  const root = Widget.createWidget(data)!;
+  const root = WidgetRegistry.createWidget(data)!;
   root.layout(createBoxConstraints());
   const inner = root.children[0];
   const leaf = inner.children[0];

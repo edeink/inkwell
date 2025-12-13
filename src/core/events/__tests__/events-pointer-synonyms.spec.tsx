@@ -1,19 +1,16 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, it, expect, afterEach } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { Container } from '@/core';
 import { Widget, createBoxConstraints, type BoxConstraints, type BuildContext } from '@/core/base';
-import { EventRegistry, dispatchToTree } from '@/core/events';
+import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events';
 import '@/core/registry';
+import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 class SynWidget extends Widget<{ key?: string; type: string; width?: number; height?: number }> {
   width = 40;
   height = 30;
-
-  protected createChildWidget(childData: any): Widget | null {
-    return Widget.createWidget(childData);
-  }
 
   protected performLayout(constraints: BoxConstraints): { width: number; height: number } {
     const w = (this.data.width ?? this.width) as number;
@@ -23,12 +20,12 @@ class SynWidget extends Widget<{ key?: string; type: string; width?: number; hei
 
   protected paintSelf(_context: BuildContext): void {}
 
-  onPointerDown?(_e: any): boolean | void;
-  onPointerMove?(_e: any): boolean | void;
-  onPointerUp?(_e: any): boolean | void;
+  onPointerDown?(_e: InkwellEvent): boolean | void;
+  onPointerMove?(_e: InkwellEvent): boolean | void;
+  onPointerUp?(_e: InkwellEvent): boolean | void;
 }
 
-Widget.registerType('SynWidget', SynWidget);
+WidgetRegistry.registerType('SynWidget', SynWidget);
 
 function SynWidgetElement(props: {
   key: string;
@@ -36,7 +33,7 @@ function SynWidgetElement(props: {
   height?: number;
   [k: string]: any;
 }) {
-  return props as any;
+  return props;
 }
 
 function buildTree() {
@@ -48,9 +45,9 @@ function buildTree() {
     </Container>
   );
   const data = compileElement(el);
-  const root = Widget.createWidget(data)!;
+  const root = WidgetRegistry.createWidget(data) as SynWidget;
   root.layout(createBoxConstraints());
-  const inner = root.children[0];
+  const inner = root.children[0] as SynWidget;
   const leaf = inner.children[0] as SynWidget;
   return { root, leaf };
 }
@@ -63,7 +60,9 @@ describe('事件系统：鼠标/触摸到指针方法的桥接', () => {
   it('mousedown 触发 onPointerDown（无 onMouseDown 时）', () => {
     const { root, leaf } = buildTree();
     const calls: string[] = [];
-    (leaf as any).onPointerDown = () => calls.push('pd');
+    leaf.onPointerDown = () => {
+      calls.push('pd');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'mousedown', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['pd']);
@@ -72,7 +71,9 @@ describe('事件系统：鼠标/触摸到指针方法的桥接', () => {
   it('mousemove 触发 onPointerMove（无 onMouseMove 时）', () => {
     const { root, leaf } = buildTree();
     const calls: string[] = [];
-    (leaf as any).onPointerMove = () => calls.push('pm');
+    leaf.onPointerMove = () => {
+      calls.push('pm');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'mousemove', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['pm']);
@@ -81,7 +82,9 @@ describe('事件系统：鼠标/触摸到指针方法的桥接', () => {
   it('mouseup 触发 onPointerUp（无 onMouseUp 时）', () => {
     const { root, leaf } = buildTree();
     const calls: string[] = [];
-    (leaf as any).onPointerUp = () => calls.push('pu');
+    leaf.onPointerUp = () => {
+      calls.push('pu');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'mouseup', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['pu']);
@@ -90,9 +93,15 @@ describe('事件系统：鼠标/触摸到指针方法的桥接', () => {
   it('touchstart/move/end 触发 onPointer*（无 onTouch* 时）', () => {
     const { root, leaf } = buildTree();
     const calls: string[] = [];
-    (leaf as any).onPointerDown = () => calls.push('pd');
-    (leaf as any).onPointerMove = () => calls.push('pm');
-    (leaf as any).onPointerUp = () => calls.push('pu');
+    leaf.onPointerDown = () => {
+      calls.push('pd');
+    };
+    leaf.onPointerMove = () => {
+      calls.push('pm');
+    };
+    leaf.onPointerUp = () => {
+      calls.push('pu');
+    };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'touchstart', pos.dx + 1, pos.dy + 1);
     dispatchToTree(root, leaf, 'touchmove', pos.dx + 1, pos.dy + 1);

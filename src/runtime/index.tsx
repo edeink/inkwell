@@ -9,7 +9,7 @@ import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
 import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
-import { createWidget as createExternalWidget } from '@/core/registry';
+import { createWidget as createExternalWidget, WidgetRegistry } from '@/core/registry';
 import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
 
 import '../core/registry';
@@ -313,7 +313,7 @@ export default class Runtime {
       if (this.rootWidget) {
         // 将当前运行时对象挂载到根 Widget 上，供增量更新调度使用
         this.rootWidget.__runtime = this;
-        this.rootWidget.createElement(this.rootWidget.props as any);
+        this.rootWidget.createElement(this.rootWidget.props);
       }
 
       if (this.rootWidget) {
@@ -390,7 +390,7 @@ export default class Runtime {
 
     // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
     try {
-      const w = Widget.createWidget(data);
+      const w = WidgetRegistry.createWidget(data);
       if (w) {
         return w;
       }

@@ -1,11 +1,8 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, WidgetProps, Offset, Size, WidgetData } from './base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
-export interface WrapData extends WidgetData {
+export interface WrapProps extends WidgetProps {
   spacing?: number; // 同一行子元素之间的水平间距
   runSpacing?: number; // 行与行之间的垂直间距
 }
@@ -14,30 +11,18 @@ export interface WrapData extends WidgetData {
  * Wrap 组件：按水平方向排列子元素，超出宽度时自动换行
  * 参考 Flutter 的 Wrap 行为，目标兼容 HTML 的 inline-block + 自动折行
  */
-export class Wrap extends Widget<WrapData> {
+export class Wrap extends Widget<WrapProps> {
   spacing: number = 0;
   runSpacing: number = 0;
+  private __wrapLines: { widths: number; height: number; indices: number[] }[] = [];
 
-  constructor(data: WrapData) {
+  constructor(data: WrapProps) {
     super(data);
     this.spacing = data.spacing || 0;
     this.runSpacing = data.runSpacing || 0;
   }
 
-  static {
-    Widget.registerType(ComponentType.Wrap, Wrap);
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    return Widget.createWidget(childData);
-  }
-
-  protected paintSelf(context: BuildContext): void {}
-
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
+  protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     return {
       minWidth: 0,
       maxWidth: constraints.maxWidth,
@@ -87,7 +72,7 @@ export class Wrap extends Widget<WrapData> {
     );
 
     // 记录行信息以供定位
-    (this as any).__wrapLines = lines;
+    this.__wrapLines = lines;
 
     return {
       width: finalWidth,
@@ -96,8 +81,7 @@ export class Wrap extends Widget<WrapData> {
   }
 
   protected positionChild(childIndex: number, childSize: Size): Offset {
-    const lines: { widths: number; height: number; indices: number[] }[] =
-      (this as any).__wrapLines || [];
+    const lines: { widths: number; height: number; indices: number[] }[] = this.__wrapLines || [];
     let y = 0;
     for (let li = 0; li < lines.length; li++) {
       const line = lines[li];
@@ -118,6 +102,3 @@ export class Wrap extends Widget<WrapData> {
     return { dx: 0, dy: 0 };
   }
 }
-
-export type WrapProps = Omit<WrapData, 'type' | 'children'> & WidgetProps;
-export const WrapElement: React.FC<WrapProps> = () => null;

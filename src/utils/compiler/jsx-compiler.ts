@@ -1,10 +1,10 @@
 import type { JSXElement } from './jsx-runtime';
-import type { EventType } from '@/core/events/types';
+import type { EventHandler, EventType } from '@/core/events/types';
 import type { ComponentData } from '@/runtime';
 
-import { Widget } from '@/core/base';
+import { Widget, type WidgetProps } from '@/core/base';
 import { EventRegistry } from '@/core/events';
-import { widgetRegistry } from '@/core/registry';
+import { WidgetRegistry, widgetRegistry } from '@/core/registry';
 import { ComponentType } from '@/core/type';
 
 /**
@@ -26,7 +26,25 @@ function resolveTypeName(type: unknown): string {
 }
 
 function isValidType(t: string): boolean {
-  return Widget.hasRegisteredType(t) || widgetRegistry.getRegisteredTypes().includes(t);
+  return WidgetRegistry.hasRegisteredType(t) || widgetRegistry.getRegisteredTypes().includes(t);
+}
+
+function autoRegisterIfNeeded(type: unknown, typeName: string): void {
+  const isFn = typeof type === 'function';
+  if (!isFn) {
+    return;
+  }
+  const proto = (type as { prototype?: unknown }).prototype as object | undefined;
+  const isWidgetSubclass = !!proto && proto instanceof Widget;
+  if (!isWidgetSubclass) {
+    return;
+  }
+  if (WidgetRegistry.hasRegisteredType(typeName)) {
+    return;
+  }
+  try {
+    WidgetRegistry.registerType(typeName, type as new (data: WidgetProps) => Widget);
+  } catch {}
 }
 
 function toArrayChildren(children: unknown): AnyElement[] {
@@ -57,7 +75,8 @@ export function compileElement(element: AnyElement): ComponentData {
   };
   const { type, props, key } = anyEl;
   const typeName = resolveTypeName(type);
-  const isComposite = Widget.isCompositeType(typeName);
+  autoRegisterIfNeeded(type, typeName);
+  const isComposite = WidgetRegistry.isCompositeType(typeName);
   const componentType: ComponentType = isValidType(typeName)
     ? (typeName as ComponentType)
     : (typeName as unknown as ComponentType);
@@ -90,7 +109,7 @@ export function compileElement(element: AnyElement): ComponentData {
         const type = toEventType(base);
         if (type) {
           try {
-            EventRegistry.register(keyStr, type, v as any, { capture: cap });
+            EventRegistry.register(keyStr, type, v as EventHandler, { capture: cap });
           } catch {}
         }
       }

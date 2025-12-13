@@ -1,16 +1,13 @@
-import React from 'react';
-
 import { Widget } from '../base';
-import { ComponentType } from '../type';
 
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from '../base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '../base';
 
 /**
  * Row布局组件的数据接口
  */
-export interface RowData extends WidgetData {
+export interface RowProps extends WidgetProps {
   mainAxisAlignment?: MainAxisAlignment;
   crossAxisAlignment?: CrossAxisAlignment;
   mainAxisSize?: MainAxisSize;
@@ -21,18 +18,14 @@ export interface RowData extends WidgetData {
  * Row布局组件，水平排列子组件
  * 类似于Flutter的Row widget
  */
-export class Row extends Widget<RowData> {
+export class Row extends Widget<RowProps> {
   // 布局属性
   mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
   crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;
   mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
-  static {
-    Widget.registerType(ComponentType.Row, Row);
-  }
-
-  constructor(data: RowData) {
+  constructor(data: RowProps) {
     super(data);
     this.initRowProperties(data);
   }
@@ -40,7 +33,7 @@ export class Row extends Widget<RowData> {
   /**
    * 初始化Row特有属性
    */
-  private initRowProperties(data: RowData): void {
+  private initRowProperties(data: RowProps): void {
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
     this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;
     this.mainAxisSize = data.mainAxisSize || MainAxisSize.Max;
@@ -50,18 +43,10 @@ export class Row extends Widget<RowData> {
   /**
    * 创建组件
    */
-  createElement(data: RowData): Widget {
+  createElement(data: RowProps): Widget {
     super.createElement(data);
     this.initRowProperties(data);
     return this;
-  }
-
-  /**
-   * 创建子组件
-   */
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // 使用 Widget 静态方法动态创建组件
-    return Widget.createWidget(childData);
   }
 
   /**
@@ -239,6 +224,3 @@ export class Row extends Widget<RowData> {
     return { dx: xOffset, dy: yOffset };
   }
 }
-
-export type ExpandedProps = Omit<RowData, 'type' | 'children'> & WidgetProps;
-export const RowElement: React.FC<ExpandedProps> = () => null;

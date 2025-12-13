@@ -1,9 +1,6 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
 export type StackFit = 'loose' | 'expand' | 'passthrough';
 export type AlignmentGeometry =
@@ -17,50 +14,32 @@ export type AlignmentGeometry =
   | 'bottomCenter'
   | 'bottomRight';
 
-export interface StackData extends WidgetData {
+export interface StackProps extends WidgetProps {
   alignment?: AlignmentGeometry;
   fit?: StackFit;
-  children?: WidgetData[];
 }
 
 /**
  * Stack 组件 - 将子组件堆叠在一起
  */
-export class Stack extends Widget<StackData> {
+export class Stack extends Widget<StackProps> {
   alignment: AlignmentGeometry = 'center';
   fit: StackFit = 'loose';
 
-  // 注册 Stack 组件类型
-  static {
-    Widget.registerType(ComponentType.Stack, Stack);
-  }
-
-  constructor(data: StackData) {
+  constructor(data: StackProps) {
     super(data);
     this.initStackProperties(data);
   }
 
-  private initStackProperties(data: StackData): void {
+  private initStackProperties(data: StackProps): void {
     this.alignment = data.alignment || 'topLeft';
     this.fit = data.fit || 'loose';
   }
 
-  createElement(data: StackData): Widget {
+  createElement(data: StackProps): Widget {
     super.createElement(data);
     this.initStackProperties(data);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // Stack 可以有多个子组件
-    return Widget.createWidget(childData);
-  }
-
-  /**
-   * Stack 不需要绘制自己
-   */
-  protected paintSelf(context: BuildContext): void {
-    // Stack 组件不绘制任何内容
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -211,6 +190,3 @@ export class Stack extends Widget<StackData> {
     return { dx, dy };
   }
 }
-
-export type StackProps = Omit<StackData, 'type' | 'children'> & WidgetProps;
-export const StackElement: React.FC<StackProps> = () => null;

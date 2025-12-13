@@ -1,9 +1,9 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { MindMapLayoutElement as MindMapLayout } from '../mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from '../mindmap-node';
-import { ViewportElement as Viewport } from '../viewport';
+import { MindMapLayout } from '../mindmap-layout';
+import { MindMapNode } from '../mindmap-node';
+import { Viewport } from '../viewport';
 
 import type { Widget } from '@/core/base';
 

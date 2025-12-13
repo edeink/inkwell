@@ -1,17 +1,14 @@
-import React from 'react';
-
 import { Widget } from '../base';
-import { ComponentType } from '../type';
 
 import { createRenderFlexUnboundedError } from './errors';
 import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from '../base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '../base';
 
 /**
  * Column布局组件的数据接口
  */
-export interface ColumnData extends WidgetData {
+export interface ColumnProps extends WidgetProps {
   mainAxisAlignment?: MainAxisAlignment;
   crossAxisAlignment?: CrossAxisAlignment;
   mainAxisSize?: MainAxisSize;
@@ -22,18 +19,14 @@ export interface ColumnData extends WidgetData {
  * Column布局组件，垂直排列子组件
  * 类似于Flutter的Column widget
  */
-export class Column extends Widget<ColumnData> {
+export class Column extends Widget<ColumnProps> {
   // 布局属性
   mainAxisAlignment: MainAxisAlignment = MainAxisAlignment.Start;
   crossAxisAlignment: CrossAxisAlignment = CrossAxisAlignment.Center;
   mainAxisSize: MainAxisSize = MainAxisSize.Max;
   spacing: number = 0;
 
-  static {
-    Widget.registerType(ComponentType.Column, Column);
-  }
-
-  constructor(data: ColumnData) {
+  constructor(data: ColumnProps) {
     super(data);
     this.initColumnProperties(data);
   }
@@ -41,7 +34,7 @@ export class Column extends Widget<ColumnData> {
   /**
    * 初始化Column特有属性
    */
-  private initColumnProperties(data: ColumnData): void {
+  private initColumnProperties(data: ColumnProps): void {
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
     this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;
     this.mainAxisSize = data.mainAxisSize || MainAxisSize.Max;
@@ -51,18 +44,10 @@ export class Column extends Widget<ColumnData> {
   /**
    * 创建组件
    */
-  createElement(data: ColumnData): Widget {
+  createElement(data: ColumnProps): Widget {
     super.createElement(data);
     this.initColumnProperties(data);
     return this;
-  }
-
-  /**
-   * 创建子组件
-   */
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // 使用 Widget 静态方法动态创建组件
-    return Widget.createWidget(childData);
   }
 
   /**
@@ -297,26 +282,6 @@ export class Column extends Widget<ColumnData> {
         break;
     }
 
-    const result = { dx: xOffset, dy: yOffset };
-
-    // 添加调试日志
-    if (this.children[childIndex]?.key === 'demo-footer') {
-      console.log(`Column positioning demo-footer (index ${childIndex}):`, {
-        childSize,
-        totalChildrenHeight,
-        availableSpace,
-        startY,
-        yOffset,
-        xOffset,
-        result,
-        columnSize: size,
-        mainAxisAlignment: this.mainAxisAlignment,
-      });
-    }
-
-    return result;
+    return { dx: xOffset, dy: yOffset };
   }
 }
-
-export type ColumnProps = Omit<ColumnData, 'type' | 'children'> & WidgetProps;
-export const ColumnElement: React.FC<ColumnProps> = () => null;

@@ -1,21 +1,13 @@
-import React from 'react';
-
 import { SCALE_CONFIG } from '../config/constants';
 
 import { CustomComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from '@/core/base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
 
-export interface ViewportData extends WidgetData {
+export interface ViewportProps extends WidgetProps {
   scale?: number;
   tx?: number;
   ty?: number;
@@ -60,7 +52,7 @@ function clampScale(s: number): number {
  * - 管理选中、悬停、编辑状态并通过回调与外部控制器通信
  * - 统一将屏幕坐标转换为世界坐标以便命中测试与框选
  */
-export class Viewport extends Widget<ViewportData> {
+export class Viewport extends Widget<ViewportProps> {
   private _scale: number = 1;
   private _tx: number = 0;
   private _ty: number = 0;
@@ -92,16 +84,12 @@ export class Viewport extends Widget<ViewportData> {
   private wheelPending: { dx: number; dy: number } | null = null;
   private wheelRaf: number | null = null;
 
-  static {
-    Widget.registerType(CustomComponentType.Viewport, Viewport);
-  }
-
-  constructor(data: ViewportData) {
+  constructor(data: ViewportProps) {
     super(data);
     this.init(data);
   }
 
-  private init(data: ViewportData): void {
+  private init(data: ViewportProps): void {
     this._scale = (data.scale ?? this._scale) as number;
     this._tx = (data.tx ?? this._tx) as number;
     this._ty = (data.ty ?? this._ty) as number;
@@ -126,14 +114,10 @@ export class Viewport extends Widget<ViewportData> {
     this._onRenderComplete = data.onRenderComplete;
   }
 
-  createElement(data: ViewportData): Widget<ViewportData> {
+  createElement(data: ViewportProps): Widget<ViewportProps> {
     super.createElement(data);
     this.init(data);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    return Widget.createWidget(childData);
   }
 
   protected paintSelf(context: BuildContext): void {
@@ -273,14 +257,14 @@ export class Viewport extends Widget<ViewportData> {
     const root = this as unknown as Widget;
     const next = this._activeKey;
     const update = (w: Widget): void => {
-      if ((w as any).type === CustomComponentType.MindMapNode) {
-        const data = (w as any).data as WidgetData;
-        (w as any).createElement({ ...data, activeKey: next, active: (w as any).key === next });
-      } else if ((w as any).type === CustomComponentType.MindMapNodeToolbar) {
-        const data = (w as any).data as WidgetData;
-        (w as any).createElement({ ...data, activeKey: next });
+      if (w.type === CustomComponentType.MindMapNode) {
+        const data = w.data;
+        w.createElement({ ...data, activeKey: next, active: w.key === next });
+      } else if (w.type === CustomComponentType.MindMapNodeToolbar) {
+        const data = w.data;
+        w.createElement({ ...data, activeKey: next });
       }
-      for (const c of (w as any).children as Widget[]) {
+      for (const c of w.children as Widget[]) {
         update(c);
       }
     };
@@ -297,13 +281,13 @@ export class Viewport extends Widget<ViewportData> {
     this._collapsedKeys = Array.from(keys);
   }
 
-  onPointerDown(e: any): boolean | void {
+  onPointerDown(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
     this.pointers.set(pid, world);
     // Ctrl/Meta + 左键：进入全选模式（不触发平移/滚动）
     const pe = e?.nativeEvent as PointerEvent | undefined;
-    const ctrlLike = !!(pe && ((pe as any).ctrlKey || (pe as any).metaKey));
+    const ctrlLike = !!(pe && (pe.ctrlKey || pe.metaKey));
     const leftBtn = !!(pe && pe.buttons & 1);
     if (ctrlLike && leftBtn) {
       this.selectAllActive = true;
@@ -324,7 +308,7 @@ export class Viewport extends Widget<ViewportData> {
     return false;
   }
 
-  onPointerMove(e: any): boolean | void {
+  onPointerMove(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
     // 在捏合缩放期间更新两指位置并计算缩放比例
@@ -343,7 +327,7 @@ export class Viewport extends Widget<ViewportData> {
     }
   }
 
-  onPointerUp(e: any): boolean | void {
+  onPointerUp(e: InkwellEvent): boolean | void {
     const pid = pointerIdOf(e?.nativeEvent);
     if (pid !== -1) {
       this.pointers.delete(pid);
@@ -370,7 +354,7 @@ export class Viewport extends Widget<ViewportData> {
     }
   }
 
-  onWheel(e: any): boolean | void {
+  onWheel(e: InkwellEvent): boolean | void {
     const we = e?.nativeEvent as WheelEvent | undefined;
     if (we && (we.ctrlKey || we.metaKey)) {
       we.preventDefault();
@@ -412,7 +396,7 @@ export class Viewport extends Widget<ViewportData> {
     return false;
   }
 
-  onKeyDown(e: any): boolean | void {
+  onKeyDown(e: InkwellEvent): boolean | void {
     const ke = e?.nativeEvent as KeyboardEvent | undefined;
     if (!ke) {
       return;
@@ -457,7 +441,7 @@ export class Viewport extends Widget<ViewportData> {
     return false;
   }
 
-  private getWorldXY(e: any): { x: number; y: number } {
+  private getWorldXY(e: InkwellEvent): { x: number; y: number } {
     const x = (e.x - this.tx) / this.scale;
     const y = (e.y - this.ty) / this.scale;
     return { x, y };
@@ -559,7 +543,7 @@ export class Viewport extends Widget<ViewportData> {
       ) {
         out.push(w.key as string);
       }
-      for (const c of (w as any).children as Widget[]) {
+      for (const c of w.children) {
         walk(c);
       }
     };
@@ -577,7 +561,7 @@ export class Viewport extends Widget<ViewportData> {
       if (isNode) {
         out.push(w.key as string);
       }
-      for (const c of (w as any).children as Widget[]) {
+      for (const c of w.children) {
         walk(c);
       }
     };
@@ -623,6 +607,3 @@ export class Viewport extends Widget<ViewportData> {
     return best;
   }
 }
-
-export type ViewportProps = Omit<ViewportData, 'type' | 'children'> & WidgetProps;
-export const ViewportElement: React.FC<ViewportProps> = () => null;

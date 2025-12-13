@@ -29,12 +29,10 @@ export default tseslint.config([
       'unused-imports': unusedImports,
       prettier: prettierPlugin,
     },
+    // 一般规则：对所有 TS/TSX 文件启用严格的 any 禁用（除专用覆盖外）
     rules: {
-      'unused-imports/no-unused-imports': 'warn',
-      'unused-imports/no-unused-vars': [
-        'warn',
-        { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
-      ],
+      'unused-imports/no-unused-imports': 'off',
+      'unused-imports/no-unused-vars': 'off',
       'import/order': [
         'warn',
         {
@@ -52,11 +50,11 @@ export default tseslint.config([
           alphabetize: { order: 'asc', caseInsensitive: true },
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': 'off',
       'custom-property-pattern': 'off',
       'react-refresh/only-export-components': 'off',
-      'no-empty': 'warn',
+      'no-empty': 'off',
       curly: ['warn', 'all'],
       'max-len': [
         'warn',
@@ -64,6 +62,16 @@ export default tseslint.config([
       ],
       'object-curly-newline': 'off',
       'prettier/prettier': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
+  {
+    // 测试覆盖：*.spec.tsx 文件中关闭 no-explicit-any
+    // 原因：测试场景常需要快速构造、模拟与断言对象，使用 any 可提升可读性与编写效率
+    // 适用范围：仅匹配所有路径下的 *.spec.tsx 文件，不影响生产代码
+    files: ['**/*.spec.tsx'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ]);

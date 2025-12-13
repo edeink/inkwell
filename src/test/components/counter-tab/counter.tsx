@@ -1,21 +1,19 @@
 /** @jsxImportSource @/utils/compiler */
 
-import { ButtonElement } from './button';
+import { Button } from './button';
 
-import type { WidgetData, WidgetProps } from '@/core/base';
+import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
-import { Center, Container, Row, Text, Widget } from '@/core';
+import { Center, Container, Row, Text } from '@/core';
+import { MainAxisSize } from '@/core/flex/type';
 import { StatefulWidget } from '@/core/state/stateful';
+import { TextAlign, TextAlignVertical } from '@/core/text';
 
-type TemplateData = WidgetData;
+interface TemplateProps extends WidgetProps {}
 
-export class Template extends StatefulWidget<TemplateData> {
-  static {
-    Widget.registerType('Template', Template);
-  }
-
-  constructor(data: TemplateData) {
+export class Template extends StatefulWidget<TemplateProps> {
+  constructor(data: TemplateProps) {
     super(data);
     this.state = { count: 0 };
   }
@@ -27,9 +25,9 @@ export class Template extends StatefulWidget<TemplateData> {
 
   render() {
     return (
-      <Row key="counter-root" spacing={16} mainAxisSize="min">
+      <Row key="counter-root" spacing={16} mainAxisSize={MainAxisSize.Max}>
         {/* 片段 1 */}
-        <ButtonElement onClick={this.onInc} />
+        <Button onClick={this.onInc} />
         {/* 片段 2 */}
         <Container
           key="counter-btn"
@@ -45,8 +43,8 @@ export class Template extends StatefulWidget<TemplateData> {
               text="点击 +1"
               fontSize={16}
               color="#ffffff"
-              textAlign="center"
-              textAlignVertical="center"
+              textAlign={TextAlign.Center}
+              textAlignVertical={TextAlignVertical.Center}
             />
           </Center>
         </Container>
@@ -60,6 +58,3 @@ export class Template extends StatefulWidget<TemplateData> {
     );
   }
 }
-
-export type TemplateProps = Omit<TemplateData, 'type' | 'children'> & WidgetProps;
-export const TemplateElement: React.FC<TemplateProps> = () => null;

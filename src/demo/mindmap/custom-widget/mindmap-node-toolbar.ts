@@ -1,4 +1,3 @@
-import React from 'react';
 /**
  * MindMapNodeToolbar（节点工具栏包装器）
  * 组件功能说明：
@@ -8,21 +7,16 @@ import React from 'react';
  * - 保持与节点拖拽/点击的交互一致性
  */
 
+import { Connector } from './connector';
 import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from '@/core/base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
 
-export interface MindMapNodeToolbarData extends WidgetData {
+export interface MindMapNodeToolbarProps extends WidgetProps {
   onActive?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
@@ -58,31 +52,27 @@ function calculatePlusButtonPosition(
  * - 封装一个 MindMapNode 子组件，并在其周围绘制加号按钮
  * - 命中与事件在本组件中处理，确保 zIndex 与响应顺序正确
  */
-export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
+export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   private _onAddChildSide?: (refKey: string, side: Side) => void;
 
-  static {
-    Widget.registerType(CustomComponentType.MindMapNodeToolbar, MindMapNodeToolbar);
-  }
-
-  constructor(data: MindMapNodeToolbarData) {
+  constructor(data: MindMapNodeToolbarProps) {
     super({ ...data, zIndex: typeof data.zIndex === 'number' ? data.zIndex : 1 });
     this.init(data);
   }
 
-  private init(data: MindMapNodeToolbarData): void {
+  private init(data: MindMapNodeToolbarProps): void {
     this._onAddSibling = data.onAddSibling;
     this._onAddChildSide = data.onAddChildSide;
   }
 
-  createElement(data: MindMapNodeToolbarData): Widget<MindMapNodeToolbarData> {
+  createElement(data: MindMapNodeToolbarProps): Widget<MindMapNodeToolbarProps> {
     super.createElement({ ...data, zIndex: typeof data.zIndex === 'number' ? data.zIndex : 1 });
     this.init(data);
     return this;
   }
 
-  protected createChildWidget(_childData: WidgetData): Widget | null {
+  protected createChildWidget(_childData: WidgetProps): Widget | null {
     return null;
   }
 
@@ -190,7 +180,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     return false;
   }
 
-  onPointerDown(e: any): boolean | void {
+  onPointerDown(e: InkwellEvent): boolean | void {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
       if (hit.type === 'addAbove') {
@@ -218,17 +208,17 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     }
   }
 
-  onPointerMove(e: any): boolean | void {
+  onPointerMove(e: InkwellEvent): boolean | void {
     const node = this.getActiveNode();
-    if (node && typeof (node as any).onPointerMove === 'function') {
-      return (node as any).onPointerMove(e);
+    if (node && node.onPointerMove) {
+      return node.onPointerMove(e);
     }
   }
 
-  onPointerUp(e: any): boolean | void {
+  onPointerUp(e: InkwellEvent): boolean | void {
     const node = this.getActiveNode();
-    if (node && typeof (node as any).onPointerUp === 'function') {
-      return (node as any).onPointerUp(e);
+    if (node && node.onPointerUp) {
+      return node.onPointerUp(e);
     }
   }
 
@@ -242,10 +232,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
       if (!w) {
         return null;
       }
-      if ((w as any).key === activeKey && (w as any).type === CustomComponentType.MindMapNode) {
-        return w as Widget;
+      if (w.key === activeKey && w.type === CustomComponentType.MindMapNode) {
+        return w;
       }
-      for (const c of (w as any).children as Widget[]) {
+      for (const c of w.children) {
         const r = find(c);
         if (r) {
           return r;
@@ -257,7 +247,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
   }
 
   private getActiveKey(): string | null {
-    const k = (this.data as any).activeKey;
+    const k = this.data.activeKey;
     if (k === null || typeof k === 'string') {
       return k ?? null;
     }
@@ -340,8 +330,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
       return false;
     }
     for (const c of parentContainer.children) {
-      if ((c as any).type === CustomComponentType.Connector) {
-        const to = (c as any).toKey as string;
+      if (c instanceof Connector) {
+        const to = c.toKey;
         if (to === node.key) {
           return true;
         }
@@ -359,10 +349,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     let parentKey: string | null = null;
     if (parentContainer) {
       for (const c of parentContainer.children) {
-        if ((c as any).type === CustomComponentType.Connector) {
-          const to = (c as any).toKey as string;
+        if (c instanceof Connector) {
+          const to = c.toKey;
           if (to === node.key) {
-            parentKey = (c as any).fromKey as string;
+            parentKey = c.fromKey;
             break;
           }
         }
@@ -388,7 +378,3 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarData> {
     return leftSide ? ['top', 'bottom', 'left'] : ['top', 'bottom', 'right'];
   }
 }
-
-export type MindMapNodeToolbarProps = Omit<MindMapNodeToolbarData, 'type' | 'children'> &
-  WidgetProps;
-export const MindMapNodeToolbarElement: React.FC<MindMapNodeToolbarProps> = () => null;

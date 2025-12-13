@@ -1,15 +1,11 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
 /**
  * SizedBox组件的数据接口
  */
-export interface SizedBoxData extends WidgetData {
-  type: 'sizedbox';
+export interface SizedBoxProps extends WidgetProps {
   width?: number; // 固定宽度
   height?: number; // 固定高度
 }
@@ -18,17 +14,12 @@ export interface SizedBoxData extends WidgetData {
  * SizedBox布局组件，为子组件提供固定尺寸
  * 类似于Flutter的SizedBox widget
  */
-export class SizedBox extends Widget<SizedBoxData> {
+export class SizedBox extends Widget<SizedBoxProps> {
   // 固定尺寸
   fixedWidth?: number;
   fixedHeight?: number;
 
-  // 注册 SizedBox 组件类型
-  static {
-    Widget.registerType(ComponentType.SizedBox, SizedBox);
-  }
-
-  constructor(data: SizedBoxData) {
+  constructor(data: SizedBoxProps) {
     super(data);
     this.initSizedBoxProperties(data);
   }
@@ -36,30 +27,9 @@ export class SizedBox extends Widget<SizedBoxData> {
   /**
    * 初始化SizedBox特有属性
    */
-  private initSizedBoxProperties(data: SizedBoxData): void {
+  private initSizedBoxProperties(data: SizedBoxProps): void {
     this.fixedWidth = data.width;
     this.fixedHeight = data.height;
-  }
-
-  /**
-   * 创建组件实例
-   */
-  createElement(data: SizedBoxData): Widget<SizedBoxData> {
-    return new SizedBox(data);
-  }
-
-  /**
-   * 创建子组件
-   */
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    return Widget.createWidget(childData);
-  }
-
-  /**
-   * 绘制自身（SizedBox通常不需要绘制背景）
-   */
-  protected paintSelf(context: BuildContext): void {
-    // SizedBox组件通常不绘制自身，只负责为子组件提供固定尺寸
   }
 
   /**
@@ -141,64 +111,4 @@ export class SizedBox extends Widget<SizedBoxData> {
 
     return { dx: Math.max(0, x), dy: Math.max(0, y) };
   }
-
-  /**
-   * 创建固定尺寸的SizedBox
-   */
-  static square(size: number, child?: WidgetData): SizedBoxData {
-    return {
-      type: 'sizedbox',
-      width: size,
-      height: size,
-      children: child ? [child] : undefined,
-    };
-  }
-
-  /**
-   * 创建固定宽度的SizedBox
-   */
-  static width(width: number, child?: WidgetData): SizedBoxData {
-    return {
-      type: 'sizedbox',
-      width: width,
-      children: child ? [child] : undefined,
-    };
-  }
-
-  /**
-   * 创建固定高度的SizedBox
-   */
-  static height(height: number, child?: WidgetData): SizedBoxData {
-    return {
-      type: 'sizedbox',
-      height: height,
-      children: child ? [child] : undefined,
-    };
-  }
-
-  /**
-   * 创建空的SizedBox（用作间距）
-   */
-  static shrink(): SizedBoxData {
-    return {
-      type: 'sizedbox',
-      width: 0,
-      height: 0,
-    };
-  }
-
-  /**
-   * 创建扩展的SizedBox（填充可用空间）
-   */
-  static expand(child?: WidgetData): SizedBoxData {
-    return {
-      type: 'sizedbox',
-      width: Infinity,
-      height: Infinity,
-      children: child ? [child] : undefined,
-    };
-  }
 }
-
-export type SizedBoxProps = Omit<SizedBoxData, 'type' | 'children'> & WidgetProps;
-export const SizedBoxElement: React.FC<SizedBoxProps> = () => null;

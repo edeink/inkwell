@@ -1,15 +1,12 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
+import type { BoxConstraints, BuildContext, Size, WidgetProps } from './base';
 
 /**
  * 图片组件特有的数据接口
  * 明确不支持子组件
  */
-export interface ImageData extends WidgetData {
+export interface ImageProps extends WidgetProps {
   type: 'image'; // 明确指定组件类型
   src: string; // 图片源地址
   width?: number; // 图片宽度
@@ -77,7 +74,7 @@ export const ImageAlignment = {
  * 图片组件类，继承自基础组件
  * 类似于 Flutter 的 Image widget
  */
-export class Image extends Widget<ImageData> {
+export class Image extends Widget<ImageProps> {
   // 图片源地址
   src: string = '';
 
@@ -97,36 +94,31 @@ export class Image extends Widget<ImageData> {
   private naturalWidth: number = 0;
   private naturalHeight: number = 0;
 
-  // 注册 Image 组件类型
-  static {
-    Widget.registerType(ComponentType.Image, Image);
-  }
-
   /**
    * 创建子组件
    * Image 组件不支持子组件，始终返回 null 并给出警告
    */
-  protected createChildWidget(childData: WidgetData): Widget | null {
+  protected createChildWidget(childData: WidgetProps): Widget | null {
     console.warn('Image 组件不支持子组件');
     return null;
   }
 
-  constructor(data: ImageData) {
+  constructor(data: ImageProps) {
     // 移除children属性（如果存在）
     const { children, ...imageData } = data;
     if (children) {
       console.warn('Image组件不支持子组件，已忽略children属性');
     }
 
-    super(imageData as ImageData);
-    this.initImageProperties(imageData as ImageData);
+    super(imageData as ImageProps);
+    this.initImageProperties(imageData as ImageProps);
     this.loadImage();
   }
 
   /**
    * 初始化图片特有属性
    */
-  private initImageProperties(data: ImageData): void {
+  private initImageProperties(data: ImageProps): void {
     // 确保 data.src 存在，否则给出警告
     if (!data.src) {
       console.warn('Image 组件必须提供 src 属性');
@@ -167,7 +159,7 @@ export class Image extends Widget<ImageData> {
   /**
    * 创建组件实例
    */
-  createElement(data: ImageData): Widget<ImageData> {
+  createElement(data: ImageProps): Widget<ImageProps> {
     return new Image(data);
   }
 
@@ -349,30 +341,6 @@ export class Image extends Widget<ImageData> {
   }
 
   /**
-   * 获取子组件的约束
-   * Image 组件没有子组件，返回空约束
-   */
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
-    return {
-      minWidth: 0,
-      maxWidth: 0,
-      minHeight: 0,
-      maxHeight: 0,
-    };
-  }
-
-  /**
-   * 定位子组件
-   * Image 组件没有子组件，返回零偏移
-   */
-  protected positionChild(childIndex: number, childSize: Size): Offset {
-    return { dx: 0, dy: 0 };
-  }
-
-  /**
    * 绘制图片
    */
   protected paintSelf(context: BuildContext): void {
@@ -415,6 +383,3 @@ export class Image extends Widget<ImageData> {
     });
   }
 }
-
-export type ImageProps = Omit<ImageData, 'type' | 'children'> & WidgetProps;
-export const ImageElement: React.FC<ImageProps> = () => null;

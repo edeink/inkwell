@@ -1,40 +1,23 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  EdgeInsets,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from './base';
+import type { BoxConstraints, EdgeInsets, Offset, Size, WidgetProps } from './base';
 
-export interface PaddingData extends WidgetData {
+export interface PaddingProps extends WidgetProps {
   padding: EdgeInsets | number;
-  child?: WidgetData;
 }
 
 /**
  * Padding 组件 - 为子组件添加内边距
  */
-export class Padding extends Widget<PaddingData> {
+export class Padding extends Widget<PaddingProps> {
   padding: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 
-  // 注册 Padding 组件类型
-  static {
-    Widget.registerType(ComponentType.Padding, Padding);
-  }
-
-  constructor(data: PaddingData) {
+  constructor(data: PaddingProps) {
     super(data);
     this.initPaddingProperties(data);
   }
 
-  private initPaddingProperties(data: PaddingData): void {
+  private initPaddingProperties(data: PaddingProps): void {
     this.padding = this.normalizeEdgeInsets(data.padding);
   }
 
@@ -45,22 +28,10 @@ export class Padding extends Widget<PaddingData> {
     return value;
   }
 
-  createElement(data: PaddingData): Widget<PaddingData> {
+  createElement(data: PaddingProps): Widget<PaddingProps> {
     super.createElement(data);
     this.initPaddingProperties(data);
     return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // Padding 只能有一个子组件
-    return Widget.createWidget(childData);
-  }
-
-  /**
-   * Padding 不需要绘制自己
-   */
-  protected paintSelf(context: BuildContext): void {
-    // Padding 组件不绘制任何内容
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -136,6 +107,3 @@ export function all(value: number): EdgeInsets {
     left: value,
   };
 }
-
-export type PaddingProps = Omit<PaddingData, 'type' | 'child' | 'children'> & WidgetProps;
-export const PaddingElement: React.FC<PaddingProps> = () => null;

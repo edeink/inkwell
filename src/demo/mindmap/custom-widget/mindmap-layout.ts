@@ -1,23 +1,14 @@
-import React from 'react';
-
 import { LayoutEngine } from './layout-engine';
 import { CustomComponentType } from './type';
 
-import type {
-  BoxConstraints,
-  BuildContext,
-  Offset,
-  Size,
-  WidgetData,
-  WidgetProps,
-} from '@/core/base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
 import { createWidget as createExternalWidget } from '@/core/registry';
 
 export type LayoutMode = 'radial' | 'tree' | 'treeBalanced';
 
-export interface MindMapLayoutData extends WidgetData {
+export interface MindMapLayoutProps extends WidgetProps {
   layout?: LayoutMode;
   spacingX?: number;
   spacingY?: number;
@@ -25,7 +16,7 @@ export interface MindMapLayoutData extends WidgetData {
   side?: 'left' | 'right';
 }
 
-export class MindMapLayout extends Widget<MindMapLayoutData> {
+export class MindMapLayout extends Widget<MindMapLayoutProps> {
   mode: LayoutMode = 'tree';
   spacingX: number = 40;
   spacingY: number = 24;
@@ -35,16 +26,12 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
   private lastSignature: string | null = null;
   private lastSize: Size | null = null;
 
-  static {
-    Widget.registerType(CustomComponentType.MindMapLayout, MindMapLayout);
-  }
-
-  constructor(data: MindMapLayoutData) {
+  constructor(data: MindMapLayoutProps) {
     super(data);
     this.init(data);
   }
 
-  private init(data: MindMapLayoutData): void {
+  private init(data: MindMapLayoutProps): void {
     this.mode = (data.layout ?? this.mode) as LayoutMode;
     this.spacingX = (data.spacingX ?? this.spacingX) as number;
     this.spacingY = (data.spacingY ?? this.spacingY) as number;
@@ -52,16 +39,11 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
     this.side = (data.side ?? this.side) as 'left' | 'right';
   }
 
-  createElement(data: MindMapLayoutData): Widget<MindMapLayoutData> {
+  createElement(data: MindMapLayoutProps): Widget<MindMapLayoutProps> {
     super.createElement(data);
     this.init(data);
     return this;
   }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    return Widget.createWidget(childData) ?? createExternalWidget(childData.type, childData);
-  }
-
   protected paintSelf(_context: BuildContext): void {}
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -141,6 +123,3 @@ export class MindMapLayout extends Widget<MindMapLayoutData> {
     return parts.join('|');
   }
 }
-
-export type MindMapLayoutProps = Omit<MindMapLayoutData, 'type' | 'children'> & WidgetProps;
-export const MindMapLayoutElement: React.FC<MindMapLayoutProps> = () => null;

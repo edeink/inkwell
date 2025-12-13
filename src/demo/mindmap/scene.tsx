@@ -1,13 +1,14 @@
 /** @jsxImportSource @/utils/compiler */
-import { ConnectorElement as Connector } from './custom-widget/connector';
-import { MindMapLayoutElement as MindMapLayout } from './custom-widget/mindmap-layout';
-import { MindMapNodeElement as MindMapNode } from './custom-widget/mindmap-node';
-import { MindMapNodeToolbarElement as MindMapNodeToolbar } from './custom-widget/mindmap-node-toolbar';
+import { Connector } from './custom-widget/connector';
+import { MindMapLayout } from './custom-widget/mindmap-layout';
+import { MindMapNode } from './custom-widget/mindmap-node';
+import { MindMapNodeToolbar } from './custom-widget/mindmap-node-toolbar';
 import { Side } from './custom-widget/type';
-import { ViewportElement as ViewportEl } from './custom-widget/viewport';
+import { Viewport } from './custom-widget/viewport';
+import { ConnectorStyle } from './helpers/connection-drawer';
 
 import type { Viewport as ViewportCls } from './custom-widget/viewport';
-import type { WidgetData, WidgetProps } from '@/core/base';
+import type { WidgetProps } from '@/core/base';
 import type Runtime from '@/runtime';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
@@ -69,7 +70,10 @@ function findParent(state: GraphState, childId: NodeId): NodeId | null {
   return null;
 }
 
-type SceneData = WidgetData & { width?: number; height?: number };
+interface SceneProps extends WidgetProps {
+  width?: number;
+  height?: number;
+}
 type SceneState = { graph: GraphState };
 
 /**
@@ -77,11 +81,7 @@ type SceneState = { graph: GraphState };
  * @param width 视口宽度（像素）
  * @param height 视口高度（像素）
  */
-export class Scene extends StatefulWidget<SceneData, SceneState> {
-  static {
-    Widget.registerType('Scene', Scene);
-  }
-
+export class Scene extends StatefulWidget<SceneProps, SceneState> {
   private nodePropsCache: Map<
     NodeId,
     { title: string; prefSide?: Side; activeKey: NodeId | null; active: boolean }
@@ -89,7 +89,7 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
   private nodeElementCache: Map<NodeId, JSXElement> = new Map();
   private edgeElementCache: Map<string, JSXElement> = new Map();
 
-  constructor(data: SceneData) {
+  constructor(data: SceneProps) {
     super(data);
     this.state = { graph: makeInitialState() };
   }
@@ -258,11 +258,11 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
     if (!target) {
       return;
     }
-    let wrapper: any = null;
+    let wrapper = null;
     if (target.type === 'MindMapNodeToolbar') {
       wrapper = target;
     } else if (target.type === 'MindMapNode') {
-      const p = target.parent as any;
+      const p = target.parent;
       if (p && p.type === 'MindMapNodeToolbar') {
         wrapper = p;
       } else {
@@ -272,7 +272,7 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
       wrapper = target;
     }
     if (wrapper) {
-      wrapper.renderObject.offset = { dx, dy } as any;
+      wrapper.renderObject.offset = { dx, dy };
       wrapper.markNeedsLayout();
     }
   };
@@ -285,7 +285,7 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
       onAddSibling: (refKey: string, dir: -1 | 1) => void;
       onAddChildSide: (refKey: string, side: Side) => void;
     },
-  ): JSXElement[] {
+  ) {
     const ids = new Set<string>();
     for (const id of state.nodes.keys()) {
       ids.add(id);
@@ -348,12 +348,12 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
             key={k}
             fromKey={e.from}
             toKey={e.to}
-            style="elbow"
+            style={ConnectorStyle.Elbow}
             strokeWidth={2}
             color="#4a90e2"
             dashArray="5,3"
           />
-        ) as unknown as JSXElement;
+        );
         this.edgeElementCache.set(k, el!);
       }
       edges.push(el!);
@@ -365,14 +365,14 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
         onAddChildSide={handlers.onAddChildSide}
         activeKey={state.activeKey}
       />
-    ) as unknown as JSXElement;
+    );
     return [...nodes, ...edges, toolbar];
   }
 
   render() {
     const s = (this.state as SceneState).graph;
-    const width = (this.props as SceneData).width ?? 800;
-    const height = (this.props as SceneData).height ?? 600;
+    const width = (this.props as SceneProps).width ?? 800;
+    const height = (this.props as SceneProps).height ?? 600;
     const children = this.renderGraphCached(s, {
       onActive: this.onActive,
       onMoveNode: this.onMoveNode,
@@ -380,7 +380,7 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
       onAddChildSide: this.onAddChildSide,
     });
     return (
-      <ViewportEl
+      <Viewport
         key="v"
         scale={1}
         tx={0}
@@ -400,16 +400,13 @@ export class Scene extends StatefulWidget<SceneData, SceneState> {
           spacingY={48}
           version={s.version}
         >
-          {children as any}
+          {children}
         </MindMapLayout>
-      </ViewportEl>
+      </Viewport>
     );
   }
 }
 
-export type SceneProps = Omit<SceneData, 'type' | 'children'> & WidgetProps;
-export const SceneElement: React.FC<SceneProps> = () => null;
-
 export function runApp(runtime: Runtime, size: { width: number; height: number }) {
-  runtime.render(<SceneElement width={size.width} height={size.height} />);
+  runtime.render(<Scene width={size.width} height={size.height} />);
 }

@@ -1,42 +1,15 @@
-import React from 'react';
-
 import { Widget } from './base';
-import { ComponentType } from './type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetData, WidgetProps } from './base';
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
-export interface CenterData extends WidgetData {
-  child?: WidgetData;
-}
+export interface CenterProps extends WidgetProps {}
 
 /**
  * Center 组件 - 将子组件在可用空间内居中
  */
-export class Center extends Widget<CenterData> {
-  // 注册 Center 组件类型
-  static {
-    Widget.registerType(ComponentType.Center, Center);
-  }
-
-  constructor(data: CenterData) {
+export class Center extends Widget<CenterProps> {
+  constructor(data: CenterProps) {
     super(data);
-  }
-
-  createElement(data: CenterData): Widget {
-    super.createElement(data);
-    return this;
-  }
-
-  protected createChildWidget(childData: WidgetData): Widget | null {
-    // Center 只能有一个子组件
-    return Widget.createWidget(childData);
-  }
-
-  /**
-   * Center 不需要绘制自己
-   */
-  protected paintSelf(context: BuildContext): void {
-    // Center 组件不绘制任何内容
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
@@ -61,7 +34,6 @@ export class Center extends Widget<CenterData> {
       maxHeight: constraints.maxHeight,
     };
   }
-
   protected positionChild(childIndex: number, childSize: Size): Offset {
     // 计算居中位置
     const parentSize = this.renderObject.size;
@@ -72,6 +44,3 @@ export class Center extends Widget<CenterData> {
     return { dx, dy };
   }
 }
-
-export type CenterProps = Omit<CenterData, 'type' | 'child' | 'children'> & WidgetProps;
-export const CenterElement: React.FC<CenterProps> = () => null;
