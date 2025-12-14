@@ -19,13 +19,16 @@ export interface ViewportProps extends WidgetProps {
   activeKey?: string | null;
   editingKey?: string | null;
   collapsedKeys?: string[];
-  onSetViewPosition?: (tx: number, ty: number) => void;
+  // 新增属性：以世界坐标单位控制 children 层偏移
+  scrollX?: number;
+  scrollY?: number;
+  // 新增事件：滚动更新回调，外部据此更新 scrollX/scrollY
+  onScroll?: (scrollX: number, scrollY: number) => void;
   onZoomAt?: (scale: number, cx: number, cy: number) => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onDeleteSelection?: () => void;
   onSetSelectedKeys?: (keys: string[]) => void;
-  onRenderComplete?: () => void;
 }
 
 function pointerIdOf(native?: Event): number {
@@ -57,6 +60,9 @@ export class Viewport extends Widget<ViewportProps> {
   private _scale: number = 1;
   private _tx: number = 0;
   private _ty: number = 0;
+  // children 层偏移（世界坐标），用于将平移作用于子元素而非视口自身
+  private _contentTx: number = 0;
+  private _contentTy: number = 0;
   private _selectedKeys: string[] = [];
   private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
   width?: number;
@@ -73,14 +79,12 @@ export class Viewport extends Widget<ViewportProps> {
     cy: number;
   } | null = null;
   private pointers: Map<number, { x: number; y: number }> = new Map();
-  private _onSetViewPosition?: (tx: number, ty: number) => void;
+  private _onScroll?: (scrollX: number, scrollY: number) => void;
   private _onZoomAt?: (scale: number, cx: number, cy: number) => void;
   private _onUndo?: () => void;
   private _onRedo?: () => void;
   private _onDeleteSelection?: () => void;
   private _onSetSelectedKeys?: (keys: string[]) => void;
-  private _onRenderComplete?: () => void;
-  private renderScheduled = false;
   private selectAllActive: boolean = false;
   private wheelPending: { dx: number; dy: number } | null = null;
   private wheelRaf: number | null = null;
@@ -106,13 +110,14 @@ export class Viewport extends Widget<ViewportProps> {
     this._activeKey = (data.activeKey ?? this._activeKey) as string | null;
     this._editingKey = (data.editingKey ?? this._editingKey) as string | null;
     this._collapsedKeys = (data.collapsedKeys ?? this._collapsedKeys) as string[];
-    this._onSetViewPosition = data.onSetViewPosition;
+    this._contentTx = (data.scrollX ?? this._contentTx) as number;
+    this._contentTy = (data.scrollY ?? this._contentTy) as number;
+    this._onScroll = data.onScroll;
     this._onZoomAt = data.onZoomAt;
     this._onUndo = data.onUndo;
     this._onRedo = data.onRedo;
     this._onDeleteSelection = data.onDeleteSelection;
     this._onSetSelectedKeys = data.onSetSelectedKeys;
-    this._onRenderComplete = data.onRenderComplete;
   }
 
   createElement(data: ViewportProps): Widget<ViewportProps> {
@@ -138,22 +143,7 @@ export class Viewport extends Widget<ViewportProps> {
     }
   }
 
-  requestRender(): void {
-    if (this.renderScheduled) {
-      return;
-    }
-    this.renderScheduled = true;
-    requestAnimationFrame(() => {
-      try {
-        this._onRenderComplete?.();
-      } finally {
-        // reset in microtask to coalesce rapid calls within same tick
-        Promise.resolve().then(() => {
-          this.renderScheduled = false;
-        });
-      }
-    });
-  }
+  // 移除组件内部的 requestRender：统一使用基类 markNeedsLayout 调度下一 Tick
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const childMaxW = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.width)) : 0;
@@ -181,7 +171,8 @@ export class Viewport extends Widget<ViewportProps> {
   protected positionChild(childIndex: number, childSize: Size): Offset {
     void childIndex;
     void childSize;
-    return { dx: 0, dy: 0 };
+    // children 层统一应用 scrollX/scrollY 的偏移
+    return { dx: this._contentTx, dy: this._contentTy };
   }
 
   private normalizeRect(r: { x: number; y: number; width: number; height: number }) {
@@ -224,7 +215,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._scale = s;
     this._tx = nx;
     this._ty = ny;
-    this.requestRender();
+    this.markNeedsLayout();
   }
 
   setPosition(tx: number, ty: number): void {
@@ -232,10 +223,12 @@ export class Viewport extends Widget<ViewportProps> {
     const ny = Number.isFinite(ty) ? ty : this._ty;
     this._tx = nx;
     this._ty = ny;
+    this.markNeedsLayout();
   }
 
   setScale(scale: number): void {
     this._scale = clampScale(scale);
+    this.markNeedsLayout();
   }
 
   setSelectedKeys(keys: string[]): void {
@@ -294,7 +287,7 @@ export class Viewport extends Widget<ViewportProps> {
       this.selectAllActive = true;
       const keys = this.collectAllNodeKeys();
       this.setSelectedKeys(keys);
-      this.requestRender();
+      this.markNeedsLayout();
       return false;
     }
     if (leftBtn && !ctrlLike) {
@@ -323,7 +316,7 @@ export class Viewport extends Widget<ViewportProps> {
     if (this._selectionRect) {
       this._selectionRect.width = world.x - this._selectionRect.x;
       this._selectionRect.height = world.y - this._selectionRect.y;
-      this.requestRender();
+      this.markNeedsLayout();
       return false;
     }
   }
@@ -350,7 +343,7 @@ export class Viewport extends Widget<ViewportProps> {
       const selected = new Set(this.collectKeysInRect(r));
       this.setSelectedKeys(Array.from(selected));
       this._onSetSelectedKeys?.(this._selectedKeys);
-      this.requestRender();
+      this.markNeedsLayout();
       return false;
     }
   }
@@ -374,12 +367,12 @@ export class Viewport extends Widget<ViewportProps> {
           const p = this.wheelPending ?? { dx: 0, dy: 0 };
           this.wheelPending = null;
           this.wheelRaf = null;
-          // 同时处理 x/y，实现对角线滚动
-          const tx = this.tx - p.dx;
-          const ty = this.ty - p.dy;
-          this.setPosition(tx, ty);
-          this._onSetViewPosition?.(this.tx, this.ty);
-          this.requestRender();
+          // 将滚轮平移作用于 children 层偏移（世界单位需除以缩放），通过 onScroll 通知外部
+          const nextScrollX = this._contentTx + -p.dx / this.scale;
+          const nextScrollY = this._contentTy + -p.dy / this.scale;
+          this.setContentPosition(nextScrollX, nextScrollY);
+          this._onScroll?.(nextScrollX, nextScrollY);
+          this.markNeedsLayout();
         });
       }
       return false;
@@ -419,42 +412,64 @@ export class Viewport extends Widget<ViewportProps> {
       }
       this._onDeleteSelection?.();
     } else if (ke.key === 'ArrowLeft') {
-      const tx = this.tx + 20;
-      const ty = this.ty;
-      this.setPosition(tx, ty);
-      this._onSetViewPosition?.(this.tx, this.ty);
+      const nextScrollX = this._contentTx + 20 / this.scale;
+      const nextScrollY = this._contentTy;
+      this.setContentPosition(nextScrollX, nextScrollY);
+      this._onScroll?.(nextScrollX, nextScrollY);
+      this.markNeedsLayout();
     } else if (ke.key === 'ArrowRight') {
-      const tx = this.tx - 20;
-      const ty = this.ty;
-      this.setPosition(tx, ty);
-      this._onSetViewPosition?.(this.tx, this.ty);
+      const nextScrollX = this._contentTx - 20 / this.scale;
+      const nextScrollY = this._contentTy;
+      this.setContentPosition(nextScrollX, nextScrollY);
+      this._onScroll?.(nextScrollX, nextScrollY);
+      this.markNeedsLayout();
     } else if (ke.key === 'ArrowUp') {
-      const tx = this.tx;
-      const ty = this.ty + 20;
-      this.setPosition(tx, ty);
-      this._onSetViewPosition?.(this.tx, this.ty);
+      const nextScrollX = this._contentTx;
+      const nextScrollY = this._contentTy + 20 / this.scale;
+      this.setContentPosition(nextScrollX, nextScrollY);
+      this._onScroll?.(nextScrollX, nextScrollY);
+      this.markNeedsLayout();
     } else if (ke.key === 'ArrowDown') {
-      const tx = this.tx;
-      const ty = this.ty - 20;
-      this.setPosition(tx, ty);
-      this._onSetViewPosition?.(this.tx, this.ty);
+      const nextScrollX = this._contentTx;
+      const nextScrollY = this._contentTy - 20 / this.scale;
+      this.setContentPosition(nextScrollX, nextScrollY);
+      this._onScroll?.(nextScrollX, nextScrollY);
+      this.markNeedsLayout();
     }
     return false;
   }
 
   private getWorldXY(e: InkwellEvent): { x: number; y: number } {
-    const x = (e.x - this.tx) / this.scale;
-    const y = (e.y - this.ty) / this.scale;
+    const x = (e.x - this.tx) / this.scale - this._contentTx;
+    const y = (e.y - this.ty) / this.scale - this._contentTy;
     return { x, y };
   }
 
   zoomAt(newScale: number, cx: number, cy: number): void {
-    const x = (cx - this.tx) / this.scale;
-    const y = (cy - this.ty) / this.scale;
+    const x = (cx - this.tx) / this.scale - this._contentTx;
+    const y = (cy - this.ty) / this.scale - this._contentTy;
     const s = clampScale(newScale);
-    const tx = cx - x * s;
-    const ty = cy - y * s;
+    const tx = cx - (this._contentTx + x) * s;
+    const ty = cy - (this._contentTy + y) * s;
     this.setTransform(s, tx, ty);
+  }
+
+  /**
+   * 设置 children 层滚动偏移
+   */
+  setContentPosition(tx: number, ty: number): void {
+    const nx = Number.isFinite(tx) ? tx : this._contentTx;
+    const ny = Number.isFinite(ty) ? ty : this._contentTy;
+    this._contentTx = nx;
+    this._contentTy = ny;
+    this.markNeedsLayout();
+  }
+
+  /**
+   * 获取 children 层滚动偏移
+   */
+  getContentPosition(): { tx: number; ty: number } {
+    return { tx: this._contentTx, ty: this._contentTy };
   }
 
   /**

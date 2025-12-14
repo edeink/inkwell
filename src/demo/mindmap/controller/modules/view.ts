@@ -76,7 +76,7 @@ export class ViewModule {
     }
     this.dispatchViewChangeEvent();
     try {
-      (vp as unknown as { requestRender?: () => void }).requestRender?.();
+      vp.markNeedsLayout();
     } catch {}
     try {
       const ctx = this.controller.getPluginContext();
@@ -91,7 +91,7 @@ export class ViewModule {
   setActiveKey(key: string | null): void {
     this.controller.viewport.setActiveKey(key);
     try {
-      (this.controller.viewport as unknown as { requestRender?: () => void }).requestRender?.();
+      this.controller.viewport.markNeedsLayout();
     } catch {}
     this.dispatchActiveChangeEvent(key);
   }

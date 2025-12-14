@@ -103,12 +103,12 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     return findWidget(root, '#v') as ViewportCls | null;
   }
 
-  private onSetViewPosition = (tx: number, ty: number): void => {
+  private onScroll = (scrollX: number, scrollY: number): void => {
     const vp = this.getViewport();
     if (!vp) {
       return;
     }
-    vp.setPosition(tx, ty);
+    vp.setContentPosition(scrollX, scrollY);
     vp.markNeedsLayout();
   };
 
@@ -121,13 +121,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     vp.markNeedsLayout();
   };
 
-  private onRenderComplete = (): void => {
-    const vp = this.getViewport();
-    if (!vp) {
-      return;
-    }
-    vp.markNeedsLayout();
-  };
+  // onRenderComplete 移除：统一由基类调度下一 Tick
 
   private onDeleteSelection = (): void => {
     const vp = this.getViewport();
@@ -371,9 +365,8 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         ty={0}
         width={width}
         height={height}
-        onSetViewPosition={this.onSetViewPosition}
+        onScroll={this.onScroll}
         onZoomAt={this.onZoomAt}
-        onRenderComplete={this.onRenderComplete}
         onDeleteSelection={this.onDeleteSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}
       >

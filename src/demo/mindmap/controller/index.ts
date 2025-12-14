@@ -87,7 +87,7 @@ export class MindmapController {
     } catch {}
     this.dispatchViewChangeEvent();
     try {
-      this.viewport.requestRender?.();
+      this.viewport.markNeedsLayout();
     } catch {}
   }
 
@@ -119,7 +119,7 @@ export class MindmapController {
   setActiveKey(key: string | null): void {
     this.viewport.setActiveKey(key);
     try {
-      this.viewport.requestRender?.();
+      this.viewport.markNeedsLayout();
     } catch {}
     this.dispatchActiveChangeEvent(key);
   }
