@@ -49,6 +49,8 @@ export default class Runtime {
   private lastOomToastAt: number = 0;
   private canvasId: string | null = null;
   private dirtyWidgets: Set<Widget> = new Set();
+  private __layoutScheduled: boolean = false;
+  private __layoutRaf: number | null = null;
   static canvasRegistry: Map<
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
@@ -223,54 +225,30 @@ export default class Runtime {
       }
     }
     if (!this.rootWidget || !this.renderer) {
-      this.dirtyWidgets.clear();
       return;
     }
     if (this.dirtyWidgets.size === 0) {
-      return;
+      this.dirtyWidgets.add(this.rootWidget);
     }
-    const list = Array.from(this.dirtyWidgets);
-    this.dirtyWidgets.clear();
-    const lca = this.findLowestCommonAncestor(list) ?? this.rootWidget;
-    void lca;
     this.rebuild();
   }
 
-  private findLowestCommonAncestor(widgets: Widget[]): Widget | null {
-    if (!widgets || widgets.length === 0) {
-      return null;
+  scheduleUpdate(widget: Widget): void {
+    if (!widget) {
+      return;
     }
-    if (widgets.length === 1) {
-      return widgets[0];
-    }
-    const paths: Widget[][] = widgets.map((w) => this.pathToRoot(w));
-    let lca: Widget | null = null;
-    const firstPath = paths[0].slice().reverse();
-    for (const candidate of firstPath) {
-      let ok = true;
-      for (let i = 1; i < paths.length; i++) {
-        const has = paths[i].includes(candidate);
-        if (!has) {
-          ok = false;
-          break;
+    this.dirtyWidgets.add(widget);
+    if (!this.__layoutScheduled) {
+      this.__layoutScheduled = true;
+      this.__layoutRaf = requestAnimationFrame(async () => {
+        try {
+          await this.rebuild();
+        } finally {
+          this.__layoutScheduled = false;
+          this.__layoutRaf = null;
         }
-      }
-      if (ok) {
-        lca = candidate;
-        break;
-      }
+      });
     }
-    return lca;
-  }
-
-  private pathToRoot(w: Widget): Widget[] {
-    const out: Widget[] = [];
-    let cur: Widget | null = w;
-    while (cur) {
-      out.push(cur);
-      cur = cur.parent as Widget | null;
-    }
-    return out;
   }
 
   /**
@@ -311,9 +289,8 @@ export default class Runtime {
       EventRegistry.setCurrentRuntime(this);
       this.rootWidget = this.parseComponentData(jsonData);
       if (this.rootWidget) {
-        // 将当前运行时对象挂载到根 Widget 上，供增量更新调度使用
         this.rootWidget.__runtime = this;
-        this.rootWidget.createElement(this.rootWidget.props);
+        this.rootWidget.createElement(this.rootWidget.data);
       }
 
       if (this.rootWidget) {
@@ -468,23 +445,36 @@ export default class Runtime {
     this.monitorMemory();
   }
 
-  rebuild(): void {
+  async rebuild(): Promise<void> {
     if (!this.rootWidget || !this.renderer || !this.container) {
       return;
     }
+    const dirtyList = Array.from(this.dirtyWidgets);
+    this.dirtyWidgets.clear();
+    let hasAnyUpdate = false;
+    if (dirtyList.length > 0) {
+      for (const w of dirtyList) {
+        const changed = w.rebuild();
+        const dirtyFlag = w.isLayoutDirty();
+        const widgetDirty = w.isDirty();
+        if (changed || dirtyFlag || widgetDirty) {
+          hasAnyUpdate = true;
+        }
+        w.clearDirty();
+      }
+    }
+    if (!hasAnyUpdate && dirtyList.length === 0) {
+      return;
+    }
     const totalSize = this.calculateLayout(this.rootWidget);
-    const hasUpdate = typeof (this.renderer as { update?: unknown }).update === 'function';
-    if (hasUpdate) {
-      try {
-        (this.renderer as { update: (opts: Partial<RendererOptions>) => void }).update({
-          width: totalSize.width,
-          height: totalSize.height,
-        });
-      } catch {}
+    const initialized = !!this.canvasId;
+    if (!initialized) {
+      await this.initRenderer({}, totalSize);
     } else {
-      try {
-        this.renderer.resize(totalSize.width, totalSize.height);
-      } catch {}
+      this.renderer.update({
+        width: totalSize.width,
+        height: totalSize.height,
+      });
     }
     this.clearCanvas();
     this.performRender();

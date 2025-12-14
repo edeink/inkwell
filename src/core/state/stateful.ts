@@ -7,27 +7,23 @@ export abstract class StatefulWidget<
   TData extends WidgetProps = WidgetProps,
   S extends Record<string, unknown> = Record<string, unknown>,
 > extends StatelessWidget<TData> {
-  constructor(data: TData) {
-    super(data);
-  }
+  protected state: S = {} as S;
+  private _lastStateSnapshot: S | null = null;
 
   public setState(partial: Partial<S>): void {
-    const prev = this.state as S;
-    const next = { ...prev, ...partial } as S;
-    if (
-      !this.shouldComponentUpdate(
-        next as unknown as Record<string, unknown>,
-        prev as unknown as Record<string, unknown>,
-      )
-    ) {
-      return;
-    }
+    const prev = this.state;
+    const next = {
+      ...(prev as Record<string, unknown>),
+      ...(partial as Record<string, unknown>),
+    } as S;
+    this._lastStateSnapshot = prev;
     this.state = next;
-    const children = super.compileChildrenFromRender();
-    this.props = { ...(this.props as TData), children } as TData;
-    this.data = this.props as TData;
-    this.buildChildren(children);
-    this.markNeedsLayout();
-    this.scheduleUpdate();
+    this.markDirty();
+  }
+
+  protected didStateChange(): boolean {
+    const prev = (this._lastStateSnapshot ?? this.state) as Record<string, unknown>;
+    const cur = this.state as Record<string, unknown>;
+    return this.shallowDiff(prev, cur);
   }
 }

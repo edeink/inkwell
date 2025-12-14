@@ -35,7 +35,7 @@ function autoRegisterIfNeeded(type: unknown, typeName: string): void {
     return;
   }
   const proto = (type as { prototype?: unknown }).prototype as object | undefined;
-  const isWidgetSubclass = !!proto && proto instanceof Widget;
+  const isWidgetSubclass = !!proto && Object.prototype.isPrototypeOf.call(Widget.prototype, proto);
   if (!isWidgetSubclass) {
     return;
   }
@@ -67,7 +67,17 @@ function toArrayChildren(children: unknown): AnyElement[] {
   return out;
 }
 
+// TODO 此方法应该提前到编译阶段，而不是运行时
 export function compileElement(element: AnyElement): ComponentData {
+  const maybeData = element as unknown as ComponentData;
+  if (
+    maybeData &&
+    typeof maybeData === 'object' &&
+    typeof maybeData.type === 'string' &&
+    !('props' in (element as unknown as Record<string, unknown>))
+  ) {
+    return maybeData;
+  }
   const anyEl = element as {
     type: unknown;
     props: Record<string, unknown> | null;

@@ -1,21 +1,17 @@
 /** @jsxImportSource @/utils/compiler */
 
 import type { WidgetProps } from '@/core/base';
-import type { InkwellEvent } from '@/core/events';
+import type { EventHandler } from '@/core/events';
 
-import { Center, Container, Text } from '@/core';
+import { Container, Row, Text } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
 
 interface ButtonProps extends WidgetProps {
-  onClick?: (e: InkwellEvent) => void;
+  onClick?: EventHandler;
 }
 
 export class Button extends StatefulWidget<ButtonProps> {
-  constructor(data: ButtonProps) {
-    super(data);
-  }
-
   render() {
     return (
       <Container
@@ -26,16 +22,17 @@ export class Button extends StatefulWidget<ButtonProps> {
         borderRadius={8}
         onClick={this.props.onClick}
       >
-        <Center>
+        <Row>
           <Text
-            key="counter-btn-text"
-            text="点击 +1"
+            key="counter-btn-text-01"
+            text="点击"
             fontSize={16}
             color="#ffffff"
             textAlign={TextAlign.Center}
             textAlignVertical={TextAlignVertical.Center}
           />
-        </Center>
+          {this.props.children}
+        </Row>
       </Container>
     );
   }

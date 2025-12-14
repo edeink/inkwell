@@ -77,7 +77,8 @@ describe('activeKey tick order and propagation', async () => {
 
     (vp as any).setActiveKey('n1');
 
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
 
     expect(spyRebuild).toHaveBeenCalled();
     expect(spyCalc).toHaveBeenCalled();

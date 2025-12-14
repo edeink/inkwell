@@ -265,6 +265,7 @@ export class Viewport extends Widget<ViewportProps> {
     for (const c of root.children) {
       update(c);
     }
+    this.markDirty();
   }
 
   setEditingKey(key: string | null): void {

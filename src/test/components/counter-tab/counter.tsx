@@ -15,7 +15,7 @@ interface TemplateProps extends WidgetProps {}
 export class Template extends StatefulWidget<TemplateProps> {
   constructor(data: TemplateProps) {
     super(data);
-    this.state = { count: 0 };
+    this.state = { count: 0, tips: '+1' };
   }
 
   private onInc = (_e: InkwellEvent): void => {
@@ -27,7 +27,16 @@ export class Template extends StatefulWidget<TemplateProps> {
     return (
       <Row key="counter-root" spacing={16} mainAxisSize={MainAxisSize.Max}>
         {/* 片段 1 */}
-        <Button onClick={this.onInc} />
+        <Button onClick={this.onInc}>
+          <Text
+            key="counter-btn-text-02"
+            text={String(this.state.tips)}
+            fontSize={16}
+            color="#ffffff"
+            textAlign={TextAlign.Center}
+            textAlignVertical={TextAlignVertical.Center}
+          />
+        </Button>
         {/* 片段 2 */}
         <Container
           key="counter-btn"

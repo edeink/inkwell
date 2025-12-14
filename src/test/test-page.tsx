@@ -17,7 +17,7 @@ type Theme = 'light' | 'dark';
 type TabType = 'complete' | 'renderer' | 'counter';
 
 const TestPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('complete');
+  const [activeTab, setActiveTab] = useState<TabType>('counter');
   const [theme, setTheme] = useState<Theme>('light');
   const [showDevtools, setShowDevtools] = useState(
     () => localStorage.getItem('INKWELL_DEVTOOLS_VISIBLE') === 'true',

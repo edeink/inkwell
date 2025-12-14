@@ -15,17 +15,23 @@ import type { EventHandler, WidgetEventHandler } from './events/types';
 import type { FlexProperties } from './flex/type';
 import type Runtime from '@/runtime';
 
-// 内置属性
+// JSX 编译得到的属性
 export interface WidgetProps extends WidgetEventHandler {
   key?: string;
-  type?: string; // 此方法需要移除
+  type?: string; // TODO 此方法需要移除？
   flex?: FlexProperties;
   zIndex?: number;
   pointerEvents?: 'auto' | 'none';
-  // props 的 children 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
-  // widget 的 children 是 Widget[]，请注意区分
+  // JSX 编译传入的 data 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
   children?: WidgetProps[];
+  // 其它未知的属性
   [key: string]: unknown;
+}
+
+// 内置的属性
+export interface WidgetCompactProps extends Omit<WidgetProps, 'children'>, WidgetEventHandler {
+  // 此处为了兼容 React 用法，访问 children 应当返回对象
+  children?: Widget[];
 }
 
 export interface Constraints {
@@ -107,10 +113,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   type: string;
   children: Widget[] = [];
   parent: Widget | null = null;
+  // 编译 JSX 得到的数据
   data: TData;
-  props: TData;
-  // 组件本地状态：使用 unknown 提升类型安全，避免 any 扩散
-  state: Record<string, unknown> = {};
+  // 为了兼容 React 用法，构造的属性
+  props: WidgetCompactProps;
+  // base 不维护状态
   flex: FlexProperties; // 添加flex属性
   renderObject: RenderObject = {
     offset: { dx: 0, dy: 0 },
@@ -118,12 +125,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   };
   zIndex: number = 0;
   pointerEvents: 'auto' | 'none' = 'auto';
-  private _needsLayout: boolean = false;
 
+  // 根节点
+  private __root: Widget | null = null;
+  // 运行时挂载点
+  public __runtime?: Runtime;
+  protected _needsLayout: boolean = false;
+  protected _dirty: boolean = true;
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
-
-  // 运行时挂载点：用于增量更新调度（避免在此模块直接依赖 Runtime 类型）
-  __runtime?: unknown;
 
   constructor(data: TData) {
     if (!data) {
@@ -135,101 +144,254 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
     this.type = data.type;
-    this.props = { ...data } as TData;
-    this.data = this.props;
+    // 编译 JSX 得到的数据
+    this.data = data;
+    // 实际运行的 props
+    this.props = { ...data, children: [] /** 未初始化 */ };
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
     const pe0 = data.pointerEvents;
     if (pe0 === 'none' || pe0 === 'auto') {
       this.pointerEvents = pe0;
     }
+  }
 
-    // 递归构建子组件
-    if (data.children && Array.isArray(data.children) && data.children.length > 0) {
-      this.buildChildren(data.children);
+  public shallowDiff(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+    const ka = Object.keys(a).filter((k) => k !== 'children');
+    const kb = Object.keys(b).filter((k) => k !== 'children');
+    if (ka.length !== kb.length) {
+      return true;
     }
+    for (const k of ka) {
+      if (a[k] !== b[k]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private shallowArrayDiff(
+    prevArray: Record<string, unknown>[],
+    nextArray: Record<string, unknown>[],
+  ): boolean {
+    const prevKeys = prevArray.map((c) => String(c.key ?? ''));
+    const nextKeys = nextArray.map((c) => String(c.key ?? ''));
+    if (prevKeys.length !== nextKeys.length) {
+      return true;
+    }
+    for (let i = 0; i < prevKeys.length; i++) {
+      if (prevKeys[i] !== nextKeys[i]) {
+        return true;
+      }
+    }
+    if (prevArray.length !== nextArray.length) {
+      return true;
+    }
+    for (let i = 0; i < nextArray.length; i++) {
+      const a = prevArray[i];
+      const b = nextArray[i];
+      if (!a || !b) {
+        return true;
+      }
+      if (this.shallowDiff(a, b)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public markDirty(): void {
+    this._dirty = true;
+    this.markNeedsLayout();
   }
 
   /**
-   * 创建组件元素
-   * 类似于 React 的 createElement 方法
+   * 标记需要重新布局
+   * 类似于 Flutter 的 markNeedsLayout 方法
    */
-  createElement(data: TData): Widget<TData> {
-    const nextProps = data as TData;
-    const prevProps = this.props;
-    const should = this.shouldWidgetUpdate(nextProps, this.state);
-    const nextChildrenData = nextProps.children ?? ([] as WidgetProps[]);
-    const prevChildrenData = prevProps.children ?? ([] as WidgetProps[]);
-
-    // 快速路径：props/state 无变更且 children 的 key 与长度完全一致 → 直接复用
-    const prevKeys = prevChildrenData.map((c) => String(c.key ?? ''));
-    const nextKeys = nextChildrenData.map((c) => String(c.key ?? ''));
-    const childrenChanged =
-      prevKeys.length !== nextKeys.length || prevKeys.some((k, i) => k !== nextKeys[i]);
-    const shallowDiff = (a: WidgetProps, b: WidgetProps): boolean => {
-      const ka = Object.keys(a).filter((k) => k !== 'children');
-      const kb = Object.keys(b).filter((k) => k !== 'children');
-      if (ka.length !== kb.length) {
-        return true;
+  markNeedsLayout(): void {
+    if (this._needsLayout) {
+      return;
+    }
+    this._needsLayout = true;
+    this._dirty = true;
+    let p: Widget | null = this.parent;
+    while (p) {
+      if (!p._needsLayout) {
+        p._needsLayout = true;
       }
-      for (const k of ka) {
-        if (a[k] !== b[k]) {
-          return true;
-        }
-      }
-      return false;
-    };
-    const childrenPropsChanged =
-      prevChildrenData.length !== nextChildrenData.length ||
-      nextChildrenData.some((c, i) => {
-        const prev = prevChildrenData[i];
-        if (!prev) {
-          return true;
-        }
-        return shallowDiff(c, prev);
+      p = p.parent;
+    }
+    const rt = this.runtime;
+    if (rt?.scheduleUpdate) {
+      rt.scheduleUpdate(this);
+      return;
+    }
+    if (rt?.tick) {
+      requestAnimationFrame(() => {
+        rt.tick([this]);
       });
+    }
+  }
 
-    if (!this.parent) {
-      const findRoot = (self: Widget): Widget | null => {
-        let cur: Widget | null = self;
-        while (cur && cur.parent) {
-          cur = cur.parent;
-        }
-        return cur;
-      };
-      const root = findRoot(this);
-      const rt = (root?.__runtime ?? null) as Runtime | null;
-      try {
-        EventRegistry.clearKey(String(this.key), rt ?? undefined);
-      } catch {}
-      const dataSelf = nextProps;
-      for (const [k, v] of Object.entries(dataSelf)) {
-        if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
-          const base = k.replace(/^on/, '').replace(/Capture$/, '');
-          const type = toEventType(base);
-          if (type) {
-            const capture = /Capture$/.test(k);
-            EventRegistry.register(this.key, type, v as EventHandler, { capture }, rt);
-          }
+  public isDirty(): boolean {
+    return this._dirty;
+  }
+
+  public clearDirty(): void {
+    this._dirty = false;
+  }
+
+  public isLayoutDirty(): boolean {
+    return this._needsLayout;
+  }
+
+  public rebuild(): boolean {
+    const prevData = this.data;
+    const prevChildrenData = prevData.children || [];
+    const nextChildrenData = this.computeNextChildrenData();
+
+    const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
+    const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
+    const propsChanged = this.shallowDiff(this.props, { ...prevData, children: nextChildrenData });
+    const stateChanged = this.didStateChange();
+
+    const hasActualUpdate = needInitialBuild || childrenChanged || propsChanged || stateChanged;
+    if (!hasActualUpdate) {
+      return false;
+    }
+
+    if (nextChildrenData.length > 0) {
+      this.buildChildren(nextChildrenData);
+    } else if (this.children.length > 0) {
+      this.children = [];
+    }
+
+    const nextProps = { ...prevData, children: this.children };
+    this.data = nextProps;
+    this.props = nextProps;
+    return true;
+  }
+
+  /**
+   * 构建方法，类似于 Flutter 的 build 方法
+   * 用于创建组件树
+   */
+  build(_context: BuildContext): Widget {
+    // 默认返回自身，子类可以覆盖此方法返回其他组件
+    return this;
+  }
+
+  protected computeNextChildrenData(): WidgetProps[] {
+    const d = this.data.children || [];
+    return Array.isArray(d) ? d : [];
+  }
+
+  /**
+   * 构建子组件
+   */
+  protected buildChildren(childrenData: WidgetProps[]): void {
+    const prev = this.children;
+    const byKey = new Map<string, Widget>();
+    for (const c of prev) {
+      byKey.set(c.key, c);
+    }
+    const nextChildren: Widget[] = [];
+    for (const childData of childrenData) {
+      const k = String(childData.key ?? '');
+      const reuse = k ? (byKey.get(k) ?? null) : null;
+      if (reuse && reuse.type === childData.type) {
+        // 复用已有节点：合并已有动态数据以保留增量更新结果
+        const merged = { ...reuse.data, ...childData };
+        reuse.createElement(merged as TData);
+        reuse.parent = this;
+        nextChildren.push(reuse);
+        this.bindEventsIfNeeded(reuse, childData);
+      } else {
+        const childWidget = this.createChildWidget(childData);
+        if (childWidget) {
+          childWidget.parent = this;
+          childWidget.createElement(childData);
+          nextChildren.push(childWidget);
+          this.bindEventsIfNeeded(childWidget, childData);
         }
       }
     }
 
-    if (!should && !childrenChanged && !childrenPropsChanged) {
-      // props 不变且 children 结构不变：直接返回，避免不必要的重建
+    // 替换 children 引用（删除未复用的旧节点）
+    this.children = nextChildren;
+  }
+
+  /**
+   * 创建子组件的抽象方法，由子类实现
+   */
+  protected createChildWidget(childData: WidgetProps): Widget | null {
+    return WidgetRegistry.createWidget(childData);
+  }
+
+  // 挂在根节点
+  public get root(): Widget | null {
+    if (this.__root) {
+      return this.__root;
+    }
+    this.__root = this.findRootFrom(this);
+    return this.__root;
+  }
+
+  private findRootFrom(node: Widget | null): Widget | null {
+    let cur: Widget | null = node;
+    while (cur && cur.parent) {
+      cur = cur.parent;
+      if (cur.__root) {
+        return cur.__root;
+      }
+    }
+    return cur;
+  }
+
+  // 挂在运行时
+  public get runtime() {
+    if (this.__runtime) {
+      return this.__runtime;
+    }
+    this.__runtime = this.root?.__runtime;
+    return this.__runtime;
+  }
+
+  /**
+   * 用于更新组件的属性和子组件
+   * 如果是创建子元素，请调用createChildWidget
+   */
+  createElement(data: TData): Widget {
+    const nextData = data;
+    const prevData = this.data;
+    const propsChanged = this.shallowDiff(prevData, nextData);
+    const prevChildrenData = prevData.children || [];
+    const nextChildrenData =
+      Array.isArray(nextData.children) && nextData.children.length > 0
+        ? nextData.children
+        : prevChildrenData || [];
+
+    const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
+
+    if (!this.parent) {
+      this.bindEventsIfNeeded(this, nextData);
+    }
+
+    const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
+    if (!propsChanged && !childrenChanged && !needInitialBuild) {
+      // props 不变且 children 结构不变，且无需初始构建：直接返回
       return this;
     }
 
-    // 更新自身 props 引用（保持不可变语义）
-    this.props = { ...nextProps } as TData;
-    this.data = this.props;
-    this.zIndex = typeof nextProps.zIndex === 'number' ? (nextProps.zIndex as number) : this.zIndex;
-    const pe = nextProps.pointerEvents;
+    this.data = nextData;
+    this.zIndex = typeof nextData.zIndex === 'number' ? (nextData.zIndex as number) : this.zIndex;
+    const pe = nextData.pointerEvents;
     if (pe === 'none' || pe === 'auto') {
       this.pointerEvents = pe;
     }
 
-    // children 差异或需要更新时执行子树增量重建
+    // 初始构建或 children 差异/需要更新时执行子树增量重建
     if (nextChildrenData.length > 0) {
       this.buildChildren(nextChildrenData);
       this.markNeedsLayout();
@@ -237,19 +399,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       this.children = [];
       this.markNeedsLayout();
     }
+
+    // 更新自身 props 引用
+    this.props = { ...nextData, children: this.children };
     return this;
   }
 
   private bindEventsIfNeeded = (widget: Widget, data: WidgetProps): void => {
-    const findRoot = (self: Widget): Widget | null => {
-      let cur: Widget | null = self;
-      while (cur && cur.parent) {
-        cur = cur.parent;
-      }
-      return cur;
-    };
-    const root = findRoot(widget);
-    const rt = (root?.__runtime ?? null) as Runtime | null;
+    const rt = this.runtime;
     const skipSelfBind = WidgetRegistry.isCompositeType(widget.type);
     const hasEventFns = Object.entries(data).some(
       ([k, v]) => typeof v === 'function' && /^on[A-Z]/.test(k),
@@ -260,9 +417,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (skipSelfBind) {
       return;
     }
-    try {
-      EventRegistry.clearKey(String(widget.key), rt ?? undefined);
-    } catch {}
+    EventRegistry.clearKey(String(widget.key), rt);
     for (const [k, v] of Object.entries(data)) {
       if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
         const base = k.replace(/^on/, '').replace(/Capture$/, '');
@@ -282,52 +437,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   };
 
   /**
-   * 构建子组件
-   */
-  protected buildChildren(childrenData: WidgetProps[]): void {
-    const prev = this.children;
-    const byKey = new Map<string, Widget>();
-    for (const c of prev) {
-      byKey.set(String((c as unknown as { key?: string }).key ?? ''), c);
-    }
-
-    const nextChildren: Widget[] = [];
-    for (const childData of childrenData) {
-      const k = String(childData.key ?? '');
-      const reuse = k ? (byKey.get(k) ?? null) : null;
-      if (reuse && reuse.type === childData.type) {
-        // 复用已有节点：仅更新数据
-        reuse.createElement(childData as unknown as typeof reuse.data);
-        reuse.parent = this;
-        nextChildren.push(reuse);
-        this.bindEventsIfNeeded(reuse, childData);
-      } else {
-        const childWidget = this.createChildWidget(childData);
-        if (childWidget) {
-          childWidget.parent = this;
-          childWidget.createElement(childData as unknown as typeof childWidget.data);
-          nextChildren.push(childWidget);
-          this.bindEventsIfNeeded(childWidget, childData);
-        }
-      }
-    }
-
-    // 替换 children 引用（删除未复用的旧节点）
-    this.children = nextChildren;
-  }
-
-  /**
-   * 创建子组件的抽象方法，由子类实现
-   */
-  protected createChildWidget(childData: WidgetProps): Widget | null {
-    return WidgetRegistry.createWidget(childData);
-  }
-
-  /**
    * 布局组件及其子组件
    * 类似于 Flutter 的 layout 方法
    */
   layout(constraints: BoxConstraints): Size {
+    // 若尚未构建子树，执行一次初始构建以确保布局阶段存在子节点
+    if (this.children.length === 0) {
+      const initialChildrenData = this.computeNextChildrenData();
+      if (initialChildrenData.length > 0) {
+        this.buildChildren(initialChildrenData);
+      }
+    }
     // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);
 
@@ -394,13 +514,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   /**
    * 执行布局计算
-   * 类似于 Flutter 的 performLayout 方法
    */
   protected abstract performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size;
 
   /**
    * 绘制组件及其子组件
-   * 类似于 Flutter 的 paint 方法
    */
   paint(context: BuildContext): void {
     const steps = this.getSelfTransformSteps();
@@ -429,134 +547,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 在子组实现
   }
 
-  // 变更检测：仅对非 children 字段进行浅比较，并比较 state 的键值
-  shouldWidgetUpdate(nextProps: TData, nextState: Record<string, unknown>): boolean {
-    const a = this.props;
-    const b = nextProps;
-    const ka = Object.keys(a).filter((k) => k !== 'children');
-    const kb = Object.keys(b).filter((k) => k !== 'children');
-    if (ka.length !== kb.length) {
-      return true;
-    }
-    for (const k of ka) {
-      if (a[k] !== b[k]) {
-        return true;
-      }
-    }
-    const sa = this.state;
-    const sb = nextState;
-    const ksA = Object.keys(sa);
-    const ksB = Object.keys(sb);
-    if (ksA.length !== ksB.length) {
-      return true;
-    }
-    for (const k of ksA) {
-      if (sa[k] !== sb[k]) {
-        return true;
-      }
-    }
+  protected didStateChange(): boolean {
     return false;
-  }
-
-  protected shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-    const ka = Object.keys(a);
-    const kb = Object.keys(b);
-    if (ka.length !== kb.length) {
-      return false;
-    }
-    for (const k of ka) {
-      if (a[k] !== b[k]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  setState(partial: Record<string, unknown>): void {
-    const prev = this.state;
-    const next = { ...prev, ...partial };
-    this.state = next;
-    this.markNeedsLayout();
-  }
-
-  /**
-   * 构建方法，类似于 Flutter 的 build 方法
-   * 用于创建组件树
-   */
-  build(_context: BuildContext): Widget {
-    // 默认返回自身，子类可以覆盖此方法返回其他组件
-    return this;
-  }
-
-  /**
-   * 标记需要重新布局
-   * 类似于 Flutter 的 markNeedsLayout 方法
-   */
-  markNeedsLayout(): void {
-    if (this._needsLayout) {
-      return;
-    }
-    this._needsLayout = true;
-    let p: Widget | null = this.parent;
-    while (p) {
-      if (!p._needsLayout) {
-        p._needsLayout = true;
-      }
-      p = p.parent;
-    }
-    const schedule = (): void => {
-      const findRoot = (self: Widget): Widget | null => {
-        let cur: Widget | null = self;
-        while (cur && cur.parent) {
-          cur = cur.parent;
-        }
-        return cur;
-      };
-      const root = findRoot(this);
-      const rt = root!.__runtime ?? null;
-      // 具备 tick 方法的运行时对象才能触发增量重建
-      type RuntimeLike = { tick: (dirty?: Widget[]) => void };
-      const hasTick = (x: unknown): x is RuntimeLike =>
-        !!x && typeof (x as { tick?: unknown }).tick === 'function';
-      if (hasTick(rt)) {
-        try {
-          rt.tick([this]);
-          return;
-        } catch {}
-      }
-      let q: Widget | null = this.parent;
-      while (q) {
-        const fn = (q as unknown as { requestRender?: unknown }).requestRender;
-        if (typeof fn === 'function') {
-          try {
-            fn.call(q);
-          } catch {}
-          break;
-        }
-        q = q.parent;
-      }
-    };
-    const findRoot = (self: Widget): Widget | null => {
-      let cur: Widget | null = self;
-      while (cur && cur.parent) {
-        cur = cur.parent;
-      }
-      return cur;
-    };
-    const root = findRoot(this);
-    type LayoutHost = { __layoutScheduled?: boolean; __layoutRaf?: number | null };
-    const host = (root!.__runtime ?? root) as LayoutHost;
-    if (!host.__layoutScheduled) {
-      host.__layoutScheduled = true;
-      host.__layoutRaf = requestAnimationFrame(() => {
-        try {
-          schedule();
-        } finally {
-          host.__layoutScheduled = false;
-          host.__layoutRaf = null;
-        }
-      });
-    }
   }
 
   /**
