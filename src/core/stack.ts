@@ -95,7 +95,7 @@ export class Stack extends Widget<StackProps> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     switch (this.fit) {
       case 'expand':

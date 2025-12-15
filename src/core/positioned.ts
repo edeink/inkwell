@@ -73,7 +73,7 @@ export class Positioned extends Widget<PositionedProps> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     let minWidth = 0;
     let maxWidth = constraints.maxWidth;

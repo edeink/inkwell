@@ -1,3 +1,6 @@
+import { MindMapNode } from '../../custom-widget/mindmap-node';
+
+import type { Widget } from '@/core';
 import type Runtime from '@/runtime';
 
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -8,8 +11,8 @@ function collectNodeRects(runtime: Runtime): Rect[] {
     return [];
   }
   const out: Rect[] = [];
-  const walk = (w: any) => {
-    if (w.type === 'MindMapNode') {
+  const walk = (w: Widget) => {
+    if (w instanceof MindMapNode) {
       const p = w.getAbsolutePosition();
       const s = w.renderObject.size;
       out.push({ x: p.dx, y: p.dy, width: s.width, height: s.height });
@@ -44,7 +47,6 @@ export function computePlacementForSibling(
   const rects = collectNodeRects(runtime);
   const cx = refRect.x;
   let cy = refRect.y + (dir > 0 ? refRect.height + minGap : -(estSize.height + minGap));
-  const cand = (): Rect => ({ x: cx, y: cy, width: estSize.width, height: estSize.height });
   let i = 0;
   while (
     rects.some((r) =>

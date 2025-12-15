@@ -95,7 +95,6 @@ describe('activeKey tick order and propagation', async () => {
     expect(orders[2]).toBeGreaterThan(orders[1]);
 
     const n1 = findWidget(root, '#n1') as Widget;
-    const toolbar = findWidget(root, '#toolbar') as Widget;
     expect((n1 as any).active).toBe(true);
     const activeNode = findWidget(root, ':active') as Widget | null;
     expect(activeNode?.key).toBe('n1');

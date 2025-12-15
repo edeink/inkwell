@@ -95,11 +95,12 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
   }
 
   private getViewport(): ViewportCls | null {
-    const rt = this.resolveRuntime();
+    const rt = this.runtime;
     if (!rt) {
       return null;
     }
-    const root = rt.getRootWidget();
+    const rtx = rt as Runtime;
+    const root = typeof rtx.getRootWidget === 'function' ? rtx.getRootWidget() : null;
     return findWidget(root, '#v') as ViewportCls | null;
   }
 
@@ -227,11 +228,12 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
   };
 
   private onMoveNode = (key: string, dx: number, dy: number): void => {
-    const rt = this.resolveRuntime();
+    const rt = this.runtime;
     if (!rt) {
       return;
     }
-    const root = rt.getRootWidget();
+    const rtx = rt as Runtime;
+    const root = typeof rtx.getRootWidget === 'function' ? rtx.getRootWidget() : null;
     const target = findWidget(root, `#${key}`) as Widget | null;
     if (!target) {
       return;

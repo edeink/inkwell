@@ -1,14 +1,15 @@
 /** @jsxImportSource @/utils/compiler */
 import { Center, Column, Container, Expanded, Padding, Positioned, Row, Stack, Text } from '@/core';
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
 import { TextAlignVertical } from '@/core/text';
 
 export const getTestTemplate = () => (
   <Column
     key="complete-demo-root"
-    mainAxisAlignment="start"
-    crossAxisAlignment="start"
+    mainAxisAlignment={MainAxisAlignment.Start}
+    crossAxisAlignment={CrossAxisAlignment.Start}
     spacing={20}
-    mainAxisSize="min"
+    mainAxisSize={MainAxisSize.Min}
   >
     <Text
       key="demo-title"
@@ -20,7 +21,7 @@ export const getTestTemplate = () => (
       fontWeight="bold"
     />
 
-    <Column key="container-section" spacing={15} mainAxisSize="min">
+    <Column key="container-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text key="container-title" text="事件" fontSize={24} color="#3498db" fontWeight="bold" />
       <Container key="root" width={240} height={120} onClick={() => console.log('root click')}>
         <Container
@@ -43,9 +44,9 @@ export const getTestTemplate = () => (
     <Row
       key="row-expanded-section"
       spacing={10}
-      mainAxisAlignment="center"
-      crossAxisAlignment="center"
-      mainAxisSize="min"
+      mainAxisAlignment={MainAxisAlignment.Center}
+      crossAxisAlignment={CrossAxisAlignment.Center}
+      mainAxisSize={MainAxisSize.Min}
     >
       <Container border={{ width: 1, color: '#9e9e9e' }} padding={2}>
         <Text
@@ -88,7 +89,7 @@ export const getTestTemplate = () => (
     </Row>
 
     {/* Container 组件展示 */}
-    <Column key="container-section" spacing={15} mainAxisSize="min">
+    <Column key="container-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text
         key="container-title"
         text="Container 组件"
@@ -97,7 +98,7 @@ export const getTestTemplate = () => (
         fontWeight="bold"
       />
 
-      <Row key="container-examples" spacing={20} mainAxisSize="min">
+      <Row key="container-examples" spacing={20} mainAxisSize={MainAxisSize.Min}>
         <Container key="basic-container" width={150} height={100} color="#e74c3c" padding={12}>
           <Text key="container-text" text="基础容器" fontSize={16} fontWeight="bold" />
         </Container>
@@ -137,7 +138,7 @@ export const getTestTemplate = () => (
     </Column>
 
     {/* Padding 组件展示 */}
-    <Column key="padding-section" spacing={15} mainAxisSize="min">
+    <Column key="padding-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text
         key="padding-title"
         text="Padding 组件"
@@ -176,7 +177,7 @@ export const getTestTemplate = () => (
     </Column>
 
     {/* Center 组件展示 */}
-    <Column key="center-section" spacing={15} mainAxisSize="min">
+    <Column key="center-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text key="center-title" text="Center 组件" fontSize={24} color="#ffc107" fontWeight="bold" />
 
       <Container
@@ -202,7 +203,7 @@ export const getTestTemplate = () => (
     </Column>
 
     {/* Stack 组件展示 */}
-    <Column key="stack-section" spacing={15} mainAxisSize="min">
+    <Column key="stack-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text key="stack-title" text="Stack 组件" fontSize={24} color="#dc3545" fontWeight="bold" />
 
       <Container
@@ -222,7 +223,7 @@ export const getTestTemplate = () => (
     </Column>
 
     {/* Positioned 组件展示 */}
-    <Column key="positioned-section" spacing={15} mainAxisSize="min">
+    <Column key="positioned-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
       <Text
         key="positioned-title"
         text="Positioned 组件"

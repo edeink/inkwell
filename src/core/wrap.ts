@@ -80,7 +80,7 @@ export class Wrap extends Widget<WrapProps> {
     };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(childIndex: number, _childSize: Size): Offset {
     const lines: { widths: number; height: number; indices: number[] }[] = this.__wrapLines || [];
     let y = 0;
     for (let li = 0; li < lines.length; li++) {

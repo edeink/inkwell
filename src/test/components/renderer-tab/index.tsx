@@ -11,7 +11,6 @@ type Theme = 'light' | 'dark';
 class RendererTest {
   private renderer: IRenderer;
   private container: HTMLElement;
-  private rendererType: 'canvas2d';
   private theme: Theme;
 
   constructor(
@@ -20,7 +19,7 @@ class RendererTest {
     theme: Theme = 'dark',
   ) {
     this.container = container;
-    this.rendererType = rendererType;
+    void rendererType;
     this.theme = theme;
     this.renderer = new Canvas2DRenderer();
   }

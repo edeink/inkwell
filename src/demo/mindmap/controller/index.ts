@@ -19,8 +19,6 @@ export class MindmapController {
   static byRuntime: WeakMap<Runtime, MindmapController> = new WeakMap();
   private plugins: Set<ControllerPlugin> = new Set();
   private layoutModule: LayoutModule;
-  private historyModule: HistoryModule;
-  private eventsModule: EventsModule;
   private view: ViewModule;
   private interaction: InteractionModule;
   private onViewChangeCb: ((scale: number, tx: number, ty: number) => void) | null = null;
@@ -38,15 +36,10 @@ export class MindmapController {
     this.view = new ViewModule(this, onViewChange);
     this.onViewChangeCb = onViewChange ?? null;
     this.layoutModule = new LayoutModule(this);
-    this.historyModule = new HistoryModule(this);
     this.layoutModule.attach();
-    this.eventsModule = new EventsModule(this);
     this.interaction = new InteractionModule(this, this.view);
     this.interaction.attach();
-    try {
-      MindmapController.byRuntime.set(runtime, this);
-    } catch {}
-    void this.eventsModule;
+    MindmapController.byRuntime.set(runtime, this);
   }
 
   registerPlugin(plugin: ControllerPlugin): void {

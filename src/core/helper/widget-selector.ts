@@ -35,13 +35,6 @@ export function clearSelectorCache(root?: Widget | null): void {
   CACHE.delete(root);
 }
 
-function isViewportLike(w: Widget | null): boolean {
-  if (!w) {
-    return false;
-  }
-  const obj = w as unknown as { scale?: unknown; tx?: unknown; ty?: unknown };
-  return typeof obj.scale === 'number' && typeof obj.tx === 'number' && typeof obj.ty === 'number';
-}
 function isRootNode(widget: Widget | null): boolean {
   if (!widget) {
     return false;

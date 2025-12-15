@@ -158,7 +158,7 @@ export class Connector extends Widget<ConnectorProps> {
     return { x: p.dx, y: p.dy, width: s.width, height: s.height };
   }
 
-  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+  protected performLayout(_constraints: BoxConstraints, childrenSizes: Size[]): Size {
     void childrenSizes;
     // 默认情况下，连接线不占用布局空间，仅用于绘制
     // 具体边界在 DevTools/命中测试中基于节点绝对位置动态计算

@@ -12,6 +12,7 @@ import styles from './index.module.less';
 import {
   averageSamples,
   TestCaseType,
+  TestMode,
   TestStatus,
   type ExperimentType,
   type PerformanceTestInterface,
@@ -97,12 +98,12 @@ async function runSingleWithProgress(
     // 监听 Long Task（>50ms）以累计主线程阻塞总时长
     po = new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      for (const e of entries as any) {
+      for (const e of entries) {
         const d = (e.duration as number) || 0;
         longTaskDuration += d;
       }
     });
-    po.observe({ entryTypes: ['longtask'] as any });
+    po.observe({ entryTypes: ['longtask'] });
   } catch {}
   for (let i = 1; i <= total; i++) {
     // 每轮：采集 → 构建 → 再采集，形成完整样本
@@ -134,7 +135,7 @@ async function runSingleWithProgress(
   const windowMs = Math.max(1, winEnd - winStart); // 观测窗口时长
   const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100); // 估算 CPU 忙碌比例
   avg.metrics.cpuBusyPercent = cpuBusyPercent;
-  return { name: label, mode: 'compare' as any, samples, average: avg };
+  return { name: label, mode: TestMode.Baseline, samples, average: avg };
 }
 
 /**
@@ -162,7 +163,6 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [experimentType, setExperimentType] = useState<ExperimentType>('dom_vs_widget');
   const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);
   const [thresholdPercent, setThresholdPercent] = useState<number>(0.05);
-  const [runSeq, setRunSeq] = useState<number>(0);
   // 独立的模态框进度：避免重置外部状态面板的历史
   const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
@@ -180,7 +180,6 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     pausedRef.current = false;
     cancelled.current = false;
     setShowStage(true);
-    setRunSeq((x) => x + 1);
     let stage: HTMLDivElement | null = null;
     for (let i = 0; i < 5; i++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -361,7 +360,6 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     setBaselineResults,
     thresholdPercent,
     setThresholdPercent,
-    runSeq,
     modalProgressItems,
   };
 }
@@ -391,7 +389,6 @@ function App() {
     baselineResults,
     setBaselineResults,
     thresholdPercent,
-    runSeq,
     modalProgressItems,
   } = useRunAll(stageRef as React.RefObject<HTMLDivElement>);
 
@@ -440,7 +437,7 @@ function App() {
         onCancel={stop}
       >
         <div className={styles.modalHeader}>
-          <StatusPanel compact runSeq={runSeq} items={modalProgressItems} current={currentTask} />
+          <StatusPanel compact items={modalProgressItems} current={currentTask} />
         </div>
         <div className={styles.modalBodyWrap}>
           <StageContainer ref={stageRef} />

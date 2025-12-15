@@ -50,7 +50,7 @@ export class Padding extends Widget<PaddingProps> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     // 计算可用于子组件的空间
     const paddingHorizontal = this.padding.left + this.padding.right;
@@ -64,7 +64,7 @@ export class Padding extends Widget<PaddingProps> {
     };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(_childIndex: number, _childSize: Size): Offset {
     // 子组件的位置偏移内边距
     return {
       dx: this.padding.left,

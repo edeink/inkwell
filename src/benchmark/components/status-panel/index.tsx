@@ -24,12 +24,10 @@ export default function StatusPanel({
   items,
   current,
   compact,
-  runSeq,
 }: {
   items: ProgressItem[];
   current: { name: string; round: number; total: number } | null;
   compact?: boolean;
-  runSeq?: number;
 }) {
   // 汇总整体完成度：避免超过 total 时溢出
   const totalAll = items.reduce((s, it) => s + it.total, 0);

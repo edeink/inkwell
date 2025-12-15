@@ -12,7 +12,7 @@ describe('Container onClick 可多次触发（计数累加）', () => {
   it('连续两次点击均触发 onClick，状态累计为 2', () => {
     const json = compileElement(<Template />);
     const root = WidgetRegistry.createWidget(json)!;
-    root.createElement(root.props);
+    root.createElement(root.data);
     const btn = findWidget(root as any, '#counter-btn') as any;
     const pos = btn.getAbsolutePosition();
     dispatchToTree(root, btn, 'click', pos.dx + 1, pos.dy + 1);

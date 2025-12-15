@@ -1,6 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
 import { Positioned, Stack, Text } from '../../../core';
-import { Widget } from '../../../core/base';
 import '../../../core/registry';
 import { WidgetRegistry } from '../../../core/registry';
 import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';

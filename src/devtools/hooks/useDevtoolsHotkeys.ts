@@ -29,10 +29,8 @@ function matches(ev: KeyboardEvent, comboStr: string): boolean {
   const platStr =
     typeof navigator !== 'undefined' ? navigator.platform || navigator.userAgent || '' : '';
   let isMac: boolean = false;
-  let isWin: boolean = false;
   if (platStr) {
     isMac = /Mac|iPhone|iPad|iPod/i.test(platStr);
-    isWin = /Win/i.test(platStr);
   }
   // CmdOrCtrl 的跨平台映射策略：
   // - 在 macOS 上视为必须按下 Meta(Command) 键
@@ -64,7 +62,7 @@ function matches(ev: KeyboardEvent, comboStr: string): boolean {
   return keyMatch && modOk;
 }
 
-export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions, deps?: unknown[]) {
+export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
   const defaultCombo = useMemo(
     () => opts.combo || localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || 'CmdOrCtrl+Shift+D',
     [opts.combo],
@@ -72,27 +70,25 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions, deps?: unknown[
   const [combo, setCombo] = useState<string>(defaultCombo);
   const enabled = opts.enabled ?? true;
   const action: HotkeyAction = opts.action ?? 'toggle';
+  const { onToggle, onClose, onInspectToggle } = opts;
 
-  useEffect(
-    () => {
-      function onKey(ev: KeyboardEvent) {
-        const current = localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || combo;
-        if (enabled && matches(ev, current)) {
-          ev.preventDefault();
-          if (action === 'toggle') {
-            opts.onToggle?.();
-          } else if (action === 'close') {
-            opts.onClose?.();
-          } else if (action === 'inspect') {
-            opts.onInspectToggle?.();
-          }
+  useEffect(() => {
+    function onKey(ev: KeyboardEvent) {
+      const current = localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || combo;
+      if (enabled && matches(ev, current)) {
+        ev.preventDefault();
+        if (action === 'toggle') {
+          onToggle?.();
+        } else if (action === 'close') {
+          onClose?.();
+        } else if (action === 'inspect') {
+          onInspectToggle?.();
         }
       }
-      window.addEventListener('keydown', onKey);
-      return () => window.removeEventListener('keydown', onKey);
-    },
-    deps ?? [combo, enabled, action, opts.onToggle, opts.onClose, opts.onInspectToggle],
-  );
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [combo, enabled, action, onToggle, onClose, onInspectToggle]);
 
   function updateCombo(next: string) {
     const normalized = normalizeCombo(next);

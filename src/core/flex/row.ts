@@ -52,7 +52,7 @@ export class Row extends Widget<RowProps> {
   /**
    * 绘制自身（Row通常不需要绘制背景）
    */
-  protected paintSelf(context: BuildContext): void {
+  protected paintSelf(_context: BuildContext): void {
     // Row 组件本身不需要绘制任何内容，它只是一个布局容器
     // 子组件的绘制由基类的 paint 方法处理
   }
@@ -115,7 +115,7 @@ export class Row extends Widget<RowProps> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     // 根据交叉轴对齐方式确定子组件高度约束
     if (this.crossAxisAlignment === 'stretch') {
@@ -141,7 +141,7 @@ export class Row extends Widget<RowProps> {
    * 定位子组件
    */
   protected positionChild(childIndex: number, childSize: Size): Offset {
-    const { offset, size } = this.renderObject;
+    const { size } = this.renderObject;
 
     // 计算所有子组件的总宽度（包括间距）
     let totalChildrenWidth = 0;

@@ -7,6 +7,7 @@ import { Container } from '@/core';
 import { Widget as BaseWidget } from '@/core/base';
 import { clearSelectorCache, findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
+import { Viewport } from '@/demo/mindmap/custom-widget/viewport';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 class ViewportStub extends BaseWidget<{
@@ -71,11 +72,11 @@ WidgetRegistry.registerType('Connector', ConnectorStub);
 function buildTree() {
   const el = (
     <Container key="root" width={400} height={300}>
-      <ViewportStub key="v" width={400} height={300} scale={2} tx={10} ty={20}>
+      <Viewport key="v" width={400} height={300} scale={2} tx={10} ty={20}>
         <NodeStub key="n1" title="A" className="widget-class" data-type="node" />
         <ConnectorStub key="e12" fromKey="n1" toKey="n2" />
         <NodeStub key="n2" title="B" active={true} />
-      </ViewportStub>
+      </Viewport>
     </Container>
   );
   const json = compileElement(el);
@@ -87,8 +88,8 @@ function buildTree() {
 describe('widget-selector', () => {
   it('findViewport works', () => {
     const root = buildTree();
-    const vp = findWidget(root, 'ViewportStub') as Widget | null;
-    expect(vp?.type).toBe('ViewportStub');
+    const vp = findWidget(root, 'Viewport') as Widget | null;
+    expect(vp?.type).toBe('Viewport');
   });
 
   it('findByKey works', () => {
@@ -105,8 +106,6 @@ describe('widget-selector', () => {
 
   it('isRootNode detects no incoming edge', () => {
     const root = buildTree();
-    const n1 = findWidget(root, '#n1') as Widget;
-    const n2 = findWidget(root, '#n2') as Widget;
     const edgeToN1 = findWidget(root, 'Connector[toKey="n1"]');
     const edgeToN2 = findWidget(root, 'Connector[toKey="n2"]');
     expect(edgeToN1 == null).toBe(true);

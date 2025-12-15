@@ -24,7 +24,7 @@ export class Center extends Widget<CenterProps> {
 
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     // 子组件可以使用任意尺寸，但不能超过父组件的约束
     return {
@@ -34,7 +34,7 @@ export class Center extends Widget<CenterProps> {
       maxHeight: constraints.maxHeight,
     };
   }
-  protected positionChild(childIndex: number, childSize: Size): Offset {
+  protected positionChild(_childIndex: number, childSize: Size): Offset {
     // 计算居中位置
     const parentSize = this.renderObject.size;
 

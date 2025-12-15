@@ -1,5 +1,8 @@
 /** 测试模式 */
-export type TestMode = 'baseline' | 'stress';
+export enum TestMode {
+  Baseline = 'baseline',
+  Stress = 'stress',
+}
 
 /** Performance.memory 结构（浏览器提供）*/
 export type MemoryInfo = {

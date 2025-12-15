@@ -53,7 +53,7 @@ export class Column extends Widget<ColumnProps> {
   /**
    * 绘制组件
    */
-  protected paintSelf(context: BuildContext): void {
+  protected paintSelf(_context: BuildContext): void {
     // Column 组件本身不需要绘制任何内容，它只是一个布局容器
     // 子组件的绘制由基类的 paint 方法处理
   }
@@ -167,7 +167,7 @@ export class Column extends Widget<ColumnProps> {
    */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
-    childIndex: number,
+    _childIndex: number,
   ): BoxConstraints {
     // 根据交叉轴对齐方式确定子组件宽度约束
     if (this.crossAxisAlignment === 'stretch') {

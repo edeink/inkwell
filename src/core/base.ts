@@ -222,14 +222,20 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       }
       p = p.parent;
     }
-    const rt = this.runtime;
-    if (rt?.scheduleUpdate) {
+    const rt = this.runtime as
+      | Runtime
+      | { scheduleUpdate?: (w: Widget) => void; tick?: (ws?: Widget[]) => void }
+      | null as
+      | Runtime
+      | { scheduleUpdate?: (w: Widget) => void; tick?: (ws?: Widget[]) => void }
+      | null;
+    if (rt && 'scheduleUpdate' in rt && typeof rt.scheduleUpdate === 'function') {
       rt.scheduleUpdate(this);
       return;
     }
-    if (rt?.tick) {
+    if (rt && 'tick' in rt && typeof rt.tick === 'function') {
       requestAnimationFrame(() => {
-        rt.tick([this]);
+        rt.tick?.([this]);
       });
     }
   }
@@ -248,7 +254,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   public rebuild(): boolean {
     const prevData = this.data;
-    const prevChildrenData = prevData.children || [];
+    const prevChildrenData = Array.isArray(prevData.children)
+      ? (prevData.children as WidgetProps[])
+      : [];
     const nextChildrenData = this.computeNextChildrenData();
 
     const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
@@ -283,8 +291,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   protected computeNextChildrenData(): WidgetProps[] {
-    const d = this.data.children || [];
-    return Array.isArray(d) ? d : [];
+    const d = this.data.children;
+    return Array.isArray(d) ? (d.filter((x) => x && typeof x === 'object') as WidgetProps[]) : [];
   }
 
   /**
@@ -366,10 +374,12 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const nextData = data;
     const prevData = this.data;
     const propsChanged = this.shallowDiff(prevData, nextData);
-    const prevChildrenData = prevData.children || [];
+    const prevChildrenData = Array.isArray(prevData.children)
+      ? (prevData.children as WidgetProps[])
+      : [];
     const nextChildrenData =
-      Array.isArray(nextData.children) && nextData.children.length > 0
-        ? nextData.children
+      Array.isArray(nextData.children) && (nextData.children as unknown[]).length > 0
+        ? (nextData.children as WidgetProps[])
         : prevChildrenData || [];
 
     const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
@@ -543,7 +553,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   /**
    * 绘制组件自身
    */
-  protected paintSelf(context: BuildContext) {
+  protected paintSelf(_context: BuildContext) {
     // 在子组实现
   }
 

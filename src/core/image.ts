@@ -98,7 +98,7 @@ export class Image extends Widget<ImageProps> {
    * 创建子组件
    * Image 组件不支持子组件，始终返回 null 并给出警告
    */
-  protected createChildWidget(childData: WidgetProps): Widget | null {
+  protected createChildWidget(_childData: WidgetProps): Widget | null {
     console.warn('Image 组件不支持子组件');
     return null;
   }
@@ -295,7 +295,7 @@ export class Image extends Widget<ImageProps> {
   /**
    * 执行布局计算
    */
-  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+  protected performLayout(constraints: BoxConstraints, _childrenSizes: Size[]): Size {
     // 如果指定了固定尺寸，优先使用
     if (this.imageWidth && this.imageHeight) {
       const width = Math.max(constraints.minWidth, Math.min(this.imageWidth, constraints.maxWidth));

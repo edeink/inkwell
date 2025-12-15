@@ -92,7 +92,7 @@ export default function Toolbar({ runtime, width, height }: Props) {
   }, [runtime, size]);
 
   const importFromJSON = useCallback(
-    async (data: {
+    async (_data: {
       nodes: Array<{ key: string; title: string; prefSide?: 'left' | 'right' }>;
       edges: Array<{ from: string; to: string }>;
       activeKey?: string | null;

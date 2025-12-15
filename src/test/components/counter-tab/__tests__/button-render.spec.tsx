@@ -12,7 +12,7 @@ describe('ButtonElement 渲染与递归编译', () => {
   it('ButtonElement 生成包含子节点的 Button', () => {
     const json = compileElement(<Button />);
     const btn = WidgetRegistry.createWidget(json)!;
-    btn.createElement(btn.props);
+    btn.createElement(btn.data);
     expect(btn.type).toBe('Button');
     expect(btn.children.length).toBeGreaterThan(0);
     const child = btn.children[0];
@@ -27,7 +27,7 @@ describe('ButtonElement 渲染与递归编译', () => {
       </Center>,
     );
     const root = WidgetRegistry.createWidget(json)!;
-    root.createElement(root.props);
+    root.createElement(root.data);
     const btn = root.children[0];
     expect(btn.type).toBe('Button');
     expect(btn.children.length).toBeGreaterThan(0);

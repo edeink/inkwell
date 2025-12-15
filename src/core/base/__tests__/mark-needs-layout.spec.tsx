@@ -44,13 +44,12 @@ describe('markNeedsLayout 基本与传播', () => {
   it('单节点标记后在下一帧触发布局', async () => {
     const { root, inner } = buildSimpleTree();
     const calls: { rebuild: number } = { rebuild: 0 };
-    const { runtime } = attachFakeRuntime(root, () => {
+    attachFakeRuntime(root, () => {
       calls.rebuild++;
     });
     inner.markNeedsLayout();
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => setTimeout(r, 1));
-    expect(runtime.rebuild.mock.calls.length).toBe(1);
     expect(calls.rebuild).toBe(1);
   });
 
@@ -64,13 +63,16 @@ describe('markNeedsLayout 基本与传播', () => {
 
   it('并发多次调用仅调度一次', async () => {
     const { root, inner } = buildSimpleTree();
-    const { runtime } = attachFakeRuntime(root, () => void 0);
+    const calls: { rebuild: number } = { rebuild: 0 };
+    attachFakeRuntime(root, () => {
+      calls.rebuild++;
+    });
     inner.markNeedsLayout();
     inner.markNeedsLayout();
     inner.markNeedsLayout();
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => setTimeout(r, 1));
-    expect(runtime.rebuild.mock.calls.length).toBe(1);
+    expect(calls.rebuild).toBe(1);
   });
 
   it('markDirty 自动调度 scheduleUpdate 下一帧重建', async () => {
@@ -86,7 +88,6 @@ describe('markNeedsLayout 基本与传播', () => {
     inner.markDirty();
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => requestAnimationFrame(() => r(null)));
-    expect(runtime.rebuild.mock.calls.length).toBe(1);
     expect(calls.rebuild).toBe(1);
   });
 });

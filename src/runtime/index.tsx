@@ -578,6 +578,12 @@ export default class Runtime {
    * 销毁运行时实例
    */
   destroy(): void {
+    if (this.__layoutRaf != null) {
+      try {
+        cancelAnimationFrame(this.__layoutRaf);
+      } catch {}
+      this.__layoutRaf = null;
+    }
     if (this.renderer) {
       this.renderer.destroy();
       this.renderer = null;
