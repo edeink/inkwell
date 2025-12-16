@@ -1,5 +1,3 @@
-import 'antd/dist/reset.css';
-
 import { AimOutlined, CloseOutlined, SettingOutlined } from '@ant-design/icons';
 import { Button, Input, Popover, Tooltip, Tree, message } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';

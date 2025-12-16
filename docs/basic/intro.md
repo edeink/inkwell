@@ -1,7 +1,8 @@
 ---
 id: intro
-title: 指南
+title: 介绍
 slug: /
+sidebar_position: 1
 ---
 
 欢迎来到 Inkwell 文档。Inkwell 是一个以 Canvas 为核心的 UI 运行时，采用 JSX 编写体验，兼顾性能与可维护性。

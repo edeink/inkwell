@@ -1,0 +1,34 @@
+---
+id: testing
+title: 测试指南
+sidebar_position: 6
+---
+
+# 测试指南
+
+Inkwell 使用 Vitest 进行单元测试。确保你的代码具有高可测试性是维护大型 Canvas 应用的关键。
+
+## 基本测试流程
+
+1.  **运行测试**
+    ```bash
+    pnpm test
+    ```
+
+2.  **测试 Widget**
+    由于 Widget 只是配置对象，你可以直接实例化它们并检查属性。
+    对于更复杂的渲染测试，建议使用 `test-utils` 模拟 Runtime 环境。
+
+## 示例
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { Container } from '@/core';
+
+describe('Container', () => {
+  it('should initialize with correct color', () => {
+    const container = new Container({ color: 'red' });
+    expect(container.props.color).toBe('red');
+  });
+});
+```

@@ -111,7 +111,7 @@ const config: Config = {
       title: 'Inkwell',
       hideOnScroll: true,
       items: [
-        { type: 'doc', docId: 'intro', position: 'left', label: '指引' },
+        { type: 'doc', docId: 'basic/intro', position: 'left', label: '指引' },
         // { type: 'doc', docId: 'widgets/overview', position: 'left', label: 'Widgets' },
         {
           href: 'https://github.com/edeink/inkwell',

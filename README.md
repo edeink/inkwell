@@ -1,40 +1,78 @@
-# @edeink/inkwell
+# Inkwell (@edeink/inkwell)
 
-十年功力汇聚一处。
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
 
-1. 能支持多种编辑器类型，如 figma-like、notion-like 等。
-2. 实现排版和绘制
+**Inkwell** is a high-performance, canvas-based UI rendering framework for React. It brings a Flutter-like declarative widget system to the web, enabling the creation of complex canvas applications like mind maps, whiteboards, and charts with the ease of React JSX.
 
-## 代码结构
+## ✨ Core Features
 
-以下目录结构由 gemini 生产，后续再改
+- **Flutter-like Architecture**: Build UI using a tree of Widgets (`Container`, `Row`, `Column`, `Stack`, etc.).
+- **High Performance**: Renders directly to HTML5 Canvas with an optimized render pipeline.
+- **React Integration**: Write widgets using JSX syntax you already know.
+- **Flexbox Layout**: Built-in layout engine supporting Flexbox models.
+- **Event System**: robust pointer event handling (click, hover, drag) with bubbling.
+- **DevTools**: Integrated debugging tools to inspect the widget tree.
 
-```shell
-src/
-├── core/
-├── components/
-├── renderer/
-├── editors/
-├── utils/
-├── types/
-└── index.ts
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js >= 22.0.0
+- pnpm
+
+### Installation
+
+```bash
+git clone https://github.com/edeink/inkwell.git
+cd inkwell
+pnpm install
 ```
 
-- core/: 存放项目的核心逻辑。例如，排版计算引擎、事件处理、状态管理等最底层的代码。
-- components/: 存放基础的、可复用的排版组件。例如，Text（文本）、Image（图片）、Shape（形状）等。这些组件是使用 JSX 进行排版的基础元素。
-- renderer/: 存放渲染相关的代码。这可能是项目最核心的部分之一，负责将虚拟 DOM（或类似的中间数据结构）转换为实际的画布绘制指令（例如，canvas 或 svg）。
-- editors/: 存放不同编辑器实现的示例或基础代码。这里可以分别创建 figma-like 和 notion-like 文件夹，用于演示如何基于核心库构建不同类型的编辑器。
-- utils/: 存放各种辅助函数，如数学计算、坐标转换、数据格式化等。
-- types/: 存放 TypeScript 类型定义文件，用于增强代码的可维护性和可读性。
-- index.ts: 项目的入口文件，负责导出核心模块和组件，供外部使用。
+### Running the Demo
 
-## 遗留问题
+Start the Mindmap demo to see Inkwell in action:
 
-- [x] 约束为无限时，未能对齐 Flutter
-- [] 为支持 Scroll，但不一定需要支持
-- [x] 缺乏 Devtools 调试
-- [x] 缺乏 单元测试
-- [] 缺乏基于此孵化 图文编辑器 和 表格场景
-- [] rebuild 会初始化 canvas，触发 GC 性能问题
-- [] React 组件按钮有问题
-- [] Viewport 会移动出视图外，导致无法响应 mousewheel
+```bash
+pnpm dev
+```
+
+Visit `http://localhost:5173` (or the port shown in your terminal).
+
+### Running Documentation
+
+```bash
+pnpm doc
+```
+
+### Running Tests
+
+```bash
+pnpm test
+```
+
+## 🏗 Project Structure
+
+```bash
+src/
+├── core/           # Core framework (Widgets, Elements, RenderObjects)
+├── renderer/       # Rendering implementations (Canvas2D)
+├── utils/          # Utilities & Custom JSX Compiler
+├── demo/           # Example applications (Mindmap, etc.)
+├── devtools/       # Debugging overlay tools
+└── benchmark/      # Performance testing
+```
+
+## 🤝 Contribution
+
+1.  Fork the repository.
+2.  Create a feature branch: `git checkout -b feature/my-feature`.
+3.  Commit your changes.
+4.  Push to the branch.
+5.  Open a Pull Request.
+
+Please ensure you run `pnpm format` and `pnpm test` before submitting.
+
+## 📄 License
+
+MIT

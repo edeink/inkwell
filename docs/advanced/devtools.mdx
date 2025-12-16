@@ -1,51 +1,42 @@
 ---
-title: DevTools 使用
-slug: /advanced/devtools
+id: devtools
+title: 开发者工具
+sidebar_position: 4
 ---
 
-import { DevTools } from '@/devtools/index.tsx';
-import Runtime from '@/runtime';
-import BrowserOnly from '@docusaurus/BrowserOnly';
+# DevTools 调试指南
 
-# DevTools 使用指南
+Inkwell 配备了强大的开发者工具 (DevTools)，旨在帮助开发者实时检查 Widget 树、调试布局、修改属性以及监控性能。
 
-在 React 中使用组件：
+## 启动与集成
+
+DevTools 作为一个独立的浮层组件集成在你的应用中。
+
+### 安装
+
+在应用的根组件中引入并渲染 `DevTools`：
 
 ```tsx
-import { DevTools } from '@/devtools/index';
+import { DevTools } from '@/devtools';
+import { MindMap } from './mindmap'; // 你的应用组件
 
-<DevTools/>
+function App() {
+  return (
+    <>
+      {/* 你的业务组件 */}
+      <MindMap />
+      
+      {/* 调试工具组件 */}
+      <DevTools /> 
+    </>
+  );
+}
 ```
 
-通过快捷键 Command（For MacPs） Or Ctrl（For Windows） + Shift + D 唤起 DevTools。
+### 快捷键
+- **切换显示/隐藏**：`Cmd + Shift + D` (Mac) 或 `Ctrl + Shift + D` (Windows)。
 
-点击左侧 Inspect 按钮，移动到对应的 Canvas 上，即可查看元素的属性和位置信息。
-
-## 单例机制与注意事项
-
-DevTools 在整个应用中以单例方式存在：
-
-- 任意位置渲染多个 `<DevTools/>`，实际只会创建并挂载一个全局面板。
-- 通过 `Devtools.getInstance()` 可获取全局实例；`dispose()` 可销毁实例并移除挂载；`reset()` 仅用于测试重置状态。
-- 单例获取实现了双重检查锁定（DCL），在并发初始化场景下也只会创建一个实例。
-
-示例：
-
-```ts
-import { Devtools } from '@/devtools';
-
-const inst = Devtools.getInstance();
-// ... 在需要时销毁
-inst.dispose();
-```
-
-## 在线试用
-
-<BrowserOnly>
-  {() => (
-    <DevTools/>
-  )}
-</BrowserOnly>
+### 尝试一下
 
 ```tsx mode:render
 /** @jsxImportSource @/utils/compiler */
@@ -89,10 +80,47 @@ inst.dispose();
 </Container>
 ```
 
+## 核心功能
 
-## 功能概览
+### 1. Widget 树检视 (Tree Inspector)
 
-- Inspect：选择画布中的元素，查看树结构与属性
-- Overlay：在画布上叠加边界与对齐参考线
-- 属性编辑：直接修改选中元素的属性并实时刷新
-- 可停靠面板：支持左/右/上/下停靠与尺寸调整
+左侧面板展示了当前运行时的 Widget 树结构。
+- **层级结构**：清晰展示父子关系。
+- **组件类型**：显示 Widget 的类名（如 `Container`, `Text`, `Row`）。
+- **Key**：显示组件的 Key，便于区分同类组件。
+
+### 2. 属性编辑器 (Props Editor)
+
+当在树中选中一个 Widget，或通过 Inspect 模式点击画布上的元素时，右侧面板会显示该组件的详细信息：
+- **Props**：实时查看和修改组件属性（如 `width`, `height`, `color`）。修改后画布会立即刷新。
+- **State**：对于 `StatefulWidget`，可以查看当前状态。
+- **Layout**：显示组件的盒模型数据（Position, Size, Padding, Margin）。
+
+### 3. 元素选取 (Inspect Mode)
+
+点击 DevTools 顶部的 **"Select Element"** 图标（瞄准镜图标）进入选取模式。
+- **高亮**：鼠标悬停在画布元素上时，会显示高亮框和尺寸信息。
+- **选中**：点击元素，DevTools 会自动在树中展开并选中该节点，同时显示其属性。
+
+### 4. 布局可视化 (Layout Overlay)
+
+DevTools 会在画布上绘制辅助线框，帮助调试布局问题：
+- **蓝色框**：组件的内容区域 (Content)。
+- **绿色区域**：Padding。
+- **橙色区域**：Margin。
+
+## 典型调试场景
+
+### 场景一：排查布局错乱
+1. 开启 **Select Element** 模式。
+2. 将鼠标悬停在位置不正确的元素上。
+3. 观察高亮框的大小是否符合预期。
+4. 选中元素，查看右侧 **Layout** 面板，检查 `width`, `height` 是否为 `0` 或异常值，检查 `constraints` 是否限制了尺寸。
+
+### 场景二：动态调整样式
+1. 在 Widget 树中选中目标组件。
+2. 在 **Props Editor** 中找到 `style` 或相关属性（如 `color`, `fontSize`）。
+3. 直接修改数值，观察画布变化，找到最佳视觉参数后再回填到代码中。
+
+### 场景三：性能分析 (待完善)
+目前可以通过观察 **Widget 树** 的深度和节点数量来评估渲染压力。后续版本将集成帧率监控和渲染耗时统计。
