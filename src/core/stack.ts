@@ -1,4 +1,4 @@
-import { Widget } from './base';
+import { Widget, createBoxConstraints } from './base';
 
 import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
@@ -17,6 +17,7 @@ export type AlignmentGeometry =
 export interface StackProps extends WidgetProps {
   alignment?: AlignmentGeometry;
   fit?: StackFit;
+  allowOverflowPositioned?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export class Stack extends Widget<StackProps> {
   private initStackProperties(data: StackProps): void {
     this.alignment = data.alignment || 'topLeft';
     this.fit = data.fit || 'loose';
+    this.props.allowOverflowPositioned = data.allowOverflowPositioned;
   }
 
   createElement(data: StackProps): Widget {
@@ -53,16 +55,25 @@ export class Stack extends Widget<StackProps> {
     let width: number;
     let height: number;
 
+    const isPositionedChild = (i: number): boolean => {
+      const child = this.children[i];
+      const maybe = child as unknown as { isPositioned?: () => boolean };
+      return !!maybe && typeof maybe.isPositioned === 'function' && maybe.isPositioned();
+    };
+
+    const nonPosSizes = childrenSizes.filter((_, i) => !isPositionedChild(i));
+    const fallbackSizes = nonPosSizes.length > 0 ? nonPosSizes : childrenSizes; // 若全部是 Positioned，则退回到所有子项
+
     switch (this.fit) {
       case 'expand':
         // 扩展到最大约束
         width =
           constraints.maxWidth === Infinity
-            ? Math.max(...childrenSizes.map((s) => s.width))
+            ? Math.max(...fallbackSizes.map((s) => s.width))
             : constraints.maxWidth;
         height =
           constraints.maxHeight === Infinity
-            ? Math.max(...childrenSizes.map((s) => s.height))
+            ? Math.max(...fallbackSizes.map((s) => s.height))
             : constraints.maxHeight;
         break;
 
@@ -70,19 +81,19 @@ export class Stack extends Widget<StackProps> {
         // 传递约束给子组件，Stack 本身尺寸由约束决定
         width =
           constraints.maxWidth === Infinity
-            ? Math.max(...childrenSizes.map((s) => s.width))
+            ? Math.max(...fallbackSizes.map((s) => s.width))
             : constraints.maxWidth;
         height =
           constraints.maxHeight === Infinity
-            ? Math.max(...childrenSizes.map((s) => s.height))
+            ? Math.max(...fallbackSizes.map((s) => s.height))
             : constraints.maxHeight;
         break;
 
       case 'loose':
       default:
         // 根据子组件的最大尺寸确定
-        width = Math.max(...childrenSizes.map((s) => s.width));
-        height = Math.max(...childrenSizes.map((s) => s.height));
+        width = Math.max(...fallbackSizes.map((s) => s.width));
+        height = Math.max(...fallbackSizes.map((s) => s.height));
         break;
     }
 
@@ -91,6 +102,70 @@ export class Stack extends Widget<StackProps> {
     height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
 
     return { width, height };
+  }
+
+  protected layoutChildren(parentConstraints: BoxConstraints): Size[] {
+    const sizes: Size[] = new Array(this.children.length);
+
+    const isPositionedChild = (child: Widget): boolean => {
+      const maybe = child as unknown as { isPositioned?: () => boolean };
+      return !!maybe && typeof maybe.isPositioned === 'function' && maybe.isPositioned();
+    };
+
+    // 1) 先布局非 Positioned 子项以确定 Stack 参考尺寸
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      if (!isPositionedChild(child)) {
+        const constraints = this.getConstraintsForChild(parentConstraints, i);
+        sizes[i] = child.layout(constraints);
+      }
+    }
+
+    // 计算参考尺寸（忽略 Positioned 子项）
+    const nonPosSizes = sizes.filter((s) => !!s);
+    let refWidth = 0;
+    let refHeight = 0;
+    if (nonPosSizes.length > 0) {
+      switch (this.fit) {
+        case 'expand':
+        case 'passthrough':
+          refWidth =
+            parentConstraints.maxWidth === Infinity
+              ? Math.max(...nonPosSizes.map((s) => s.width))
+              : parentConstraints.maxWidth;
+          refHeight =
+            parentConstraints.maxHeight === Infinity
+              ? Math.max(...nonPosSizes.map((s) => s.height))
+              : parentConstraints.maxHeight;
+          break;
+        case 'loose':
+        default:
+          refWidth = Math.max(...nonPosSizes.map((s) => s.width));
+          refHeight = Math.max(...nonPosSizes.map((s) => s.height));
+      }
+    } else {
+      // 若不存在非 Positioned 子项，参考尺寸退化为父约束的最小值
+      refWidth = parentConstraints.minWidth ?? 0;
+      refHeight = parentConstraints.minHeight ?? 0;
+    }
+
+    // 2) 布局 Positioned 子项，使用基于参考尺寸的约束避免无穷大尺寸
+    const posConstraints = this.props.allowOverflowPositioned
+      ? parentConstraints
+      : createBoxConstraints({
+          minWidth: 0,
+          maxWidth: refWidth === 0 ? parentConstraints.maxWidth : refWidth,
+          minHeight: 0,
+          maxHeight: refHeight === 0 ? parentConstraints.maxHeight : refHeight,
+        });
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      if (isPositionedChild(child)) {
+        sizes[i] = child.layout(posConstraints);
+      }
+    }
+
+    return sizes;
   }
 
   protected getConstraintsForChild(

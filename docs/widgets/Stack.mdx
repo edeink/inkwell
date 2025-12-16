@@ -36,6 +36,17 @@ title: Stack
 </Stack>
 ```
 
+### 容器宽度
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Stack>
+  <Container color="#e6f4ff" width={80} height={80} />
+  <Positioned left={40} top={40} width={80} height={40}>
+    <Container color="#f6ffed" />
+  </Positioned>
+</Stack>
+```
+
 ## 属性
 
 | 属性名 | 类型 | 必填 | 默认值 | 说明 |

@@ -9,6 +9,7 @@ import styles from './index.module.less';
 
 import type { InkPlaygroundProps } from './types';
 
+import { DevTools } from '@/devtools';
 import { stripJsxImportSource } from '@/docusaurus/utils/strip-jsx';
 
 /**
@@ -132,30 +133,33 @@ export default function InkPlayground({
   }
 
   return (
-    <div className={styles.rootVertical}>
-      <Inkwell
-        instanceId={uniqId}
-        data={committedCode}
-        width={width}
-        height={height}
-        readonly={false}
-        onError={(e) => {
-          setError(e);
-          setRunning(false);
-        }}
-        onSuccess={() => {
-          setError(null);
-          setRunning(false);
-        }}
-      />
-      <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
-      <ControlPanel
-        instanceId={uniqId}
-        running={running}
-        error={error}
-        onRun={onRun}
-        onClear={onClear}
-      />
-    </div>
+    <>
+      <div className={styles.rootVertical}>
+        <Inkwell
+          instanceId={uniqId}
+          data={committedCode}
+          width={width}
+          height={height}
+          readonly={false}
+          onError={(e) => {
+            setError(e);
+            setRunning(false);
+          }}
+          onSuccess={() => {
+            setError(null);
+            setRunning(false);
+          }}
+        />
+        <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
+        <ControlPanel
+          instanceId={uniqId}
+          running={running}
+          error={error}
+          onRun={onRun}
+          onClear={onClear}
+        />
+      </div>
+      <DevTools />
+    </>
   );
 }

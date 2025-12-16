@@ -21,6 +21,24 @@ import { DevTools } from '@/devtools/index';
 
 点击左侧 Inspect 按钮，移动到对应的 Canvas 上，即可查看元素的属性和位置信息。
 
+## 单例机制与注意事项
+
+DevTools 在整个应用中以单例方式存在：
+
+- 任意位置渲染多个 `<DevTools/>`，实际只会创建并挂载一个全局面板。
+- 通过 `Devtools.getInstance()` 可获取全局实例；`dispose()` 可销毁实例并移除挂载；`reset()` 仅用于测试重置状态。
+- 单例获取实现了双重检查锁定（DCL），在并发初始化场景下也只会创建一个实例。
+
+示例：
+
+```ts
+import { Devtools } from '@/devtools';
+
+const inst = Devtools.getInstance();
+// ... 在需要时销毁
+inst.dispose();
+```
+
 ## 在线试用
 
 <BrowserOnly>

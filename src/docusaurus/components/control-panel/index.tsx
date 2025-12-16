@@ -86,7 +86,9 @@ export default function ControlPanel({
             >
               <MessageOutlined />
             </button>
-            <span className={styles.count}>{logCount > 999 ? '999+' : logCount}</span>
+            {logCount > 1 && (
+              <span className={styles.count}>{logCount > 999 ? '999+' : logCount}</span>
+            )}
           </span>
         </Tooltip>
         <Tooltip title="运行" placement="top" mouseEnterDelay={0.15}>
