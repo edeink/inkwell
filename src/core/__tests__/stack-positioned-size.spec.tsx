@@ -19,6 +19,7 @@ describe('Stack 尺寸计算（忽略 Positioned 子项）', () => {
     );
     const json = compileElement(jsx);
     const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(json);
 
     const constraints = createBoxConstraints({
       minWidth: 0,

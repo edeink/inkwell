@@ -1,5 +1,5 @@
 import { LayoutEngine } from './layout-engine';
-import { CustomComponentType } from './type';
+import { CustomComponentType, Side } from './type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
@@ -13,6 +13,7 @@ export interface MindMapLayoutProps extends WidgetProps {
   spacingY?: number;
   nodeSpacing?: number;
   side?: 'left' | 'right';
+  onLayout?: (size: Size) => void;
 }
 
 export class MindMapLayout extends Widget<MindMapLayoutProps> {
@@ -21,9 +22,11 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
   spacingY: number = 24;
   nodeSpacing: number = 28;
   side: 'left' | 'right' = 'right';
+  onLayout?: (size: Size) => void;
   private computedOffsets: Offset[] = [];
   private lastSignature: string | null = null;
   private lastSize: Size | null = null;
+  private lastSides = new Map<string, Side>();
 
   constructor(data: MindMapLayoutProps) {
     super(data);
@@ -36,6 +39,7 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
     this.spacingY = (data.spacingY ?? this.spacingY) as number;
     this.nodeSpacing = (data.nodeSpacing ?? this.nodeSpacing) as number;
     this.side = (data.side ?? this.side) as 'left' | 'right';
+    this.onLayout = data.onLayout;
   }
 
   createElement(data: MindMapLayoutProps): Widget<MindMapLayoutProps> {
@@ -75,10 +79,50 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
       return { width: constraints.minWidth, height: constraints.minHeight } as Size;
     }
     const engine = new LayoutEngine(this.spacingX, this.spacingY, this.nodeSpacing);
-    const { offsets, size } = engine.compute(constraints, this.mode, nodes, edges, this.side);
+    const { offsets, size } = engine.compute(
+      constraints,
+      this.mode,
+      nodes,
+      edges,
+      this.side,
+      this.lastSides,
+    );
     this.computedOffsets = this.children.map((_, i) => offsets[i] ?? ({ dx: 0, dy: 0 } as Offset));
     this.lastSignature = signature;
     this.lastSize = size;
+
+    // Update lastSides based on new layout
+    const hasIncoming = new Set<string>();
+    for (const e of edges) {
+      hasIncoming.add(e.to);
+    }
+    let rootKey = nodes[0].key;
+    for (const n of nodes) {
+      if (!hasIncoming.has(n.key)) {
+        rootKey = n.key;
+        break;
+      }
+    }
+    const rootNode = nodes.find((n) => n.key === rootKey);
+    if (rootNode) {
+      const rootOff = offsets[rootNode.index];
+      for (const n of nodes) {
+        if (n.key === rootKey) {
+          continue;
+        }
+        const off = offsets[n.index];
+        // Threshold can be small epsilon, but usually diff is large
+        if (off.dx < rootOff.dx) {
+          this.lastSides.set(n.key, Side.Left);
+        } else if (off.dx > rootOff.dx) {
+          this.lastSides.set(n.key, Side.Right);
+        }
+      }
+    }
+
+    if (this.onLayout) {
+      this.onLayout(size);
+    }
     return size;
   }
 

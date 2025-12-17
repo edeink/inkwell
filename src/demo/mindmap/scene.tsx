@@ -22,7 +22,7 @@ type GraphNode = {
   prefSide?: Side;
 };
 type GraphEdge = { from: NodeId; to: NodeId };
-type GraphState = {
+export type GraphState = {
   nodes: Map<NodeId, GraphNode>;
   edges: GraphEdge[];
   activeKey: NodeId | null;
@@ -193,19 +193,38 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     this.setState({ graph: next });
   };
 
+  private generateNodeTitle(state: GraphState, parentId: string): string {
+    const parentNode = state.nodes.get(parentId);
+    if (!parentNode) {
+      return '新节点';
+    }
+    let count = 0;
+    for (const e of state.edges) {
+      if (e.from === parentId) {
+        count++;
+      }
+    }
+    const index = count + 1;
+    if (parentId === 'root') {
+      return `节点 ${index}`;
+    }
+    return `${parentNode.title}-${index}`;
+  }
+
   private onAddSibling = (refKey: string, _dir: -1 | 1): void => {
     const cur = (this.state as SceneState).graph;
     const parent = findParent(cur, refKey);
     if (!parent) {
       return;
     }
+    const title = this.generateNodeTitle(cur, parent);
     const id = `n${cur.nextId}`;
     const nextId = cur.nextId + 1;
     const nextEdges: GraphEdge[] = [...cur.edges, { from: parent, to: id }];
     const next: GraphState = {
       ...cur,
       nextId,
-      nodes: new Map(cur.nodes).set(id, { id, title: '新节点' }),
+      nodes: new Map(cur.nodes).set(id, { id, title }),
       edges: nextEdges,
       version: cur.version + 1,
     };
@@ -215,12 +234,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
 
   private onAddChildSide = (refKey: string, side: Side): void => {
     const cur = (this.state as SceneState).graph;
+    const title = this.generateNodeTitle(cur, refKey);
     const id = `n${cur.nextId}`;
     const nextId = cur.nextId + 1;
     const next: GraphState = {
       ...cur,
       nextId,
-      nodes: new Map(cur.nodes).set(id, { id, title: '新节点', prefSide: side }),
+      nodes: new Map(cur.nodes).set(id, { id, title, prefSide: side }),
       edges: [...cur.edges, { from: refKey, to: id }],
       version: cur.version + 1,
     };
@@ -349,6 +369,26 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     return [...nodes, ...edges, toolbar];
   }
 
+  private onLayout = (size: { width: number; height: number }) => {
+    const vp = this.getViewport();
+    if (!vp) {
+      return;
+    }
+    // 仅在首次加载或显式重置时居中 (可以通过状态控制，这里简单实现首次居中逻辑：如果 tx/ty 为 0)
+    // 但 tx/ty 可能被用户滚动回 0。
+    // 更好的方式是使用一个标志位
+    if (this.shouldCenter) {
+      const { width, height } = this.props as SceneProps;
+      const vw = width ?? 800;
+      const vh = height ?? 600;
+      const tx = (vw - size.width) / 2;
+      const ty = (vh - size.height) / 2;
+      vp.setContentPosition(tx, ty);
+      this.shouldCenter = false;
+    }
+  };
+  private shouldCenter = true;
+
   render() {
     const s = (this.state as SceneState).graph;
     const width = (this.props as SceneProps).width ?? 800;
@@ -378,6 +418,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
           spacingX={48}
           spacingY={48}
           version={s.version}
+          onLayout={this.onLayout}
         >
           {children}
         </MindMapLayout>

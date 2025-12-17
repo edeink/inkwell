@@ -6,7 +6,7 @@ import Toolbox from '../toolbox';
 import styles from './index.module.less';
 
 import type { TestResult } from '../../index.types';
-import type { EChartsOption } from 'echarts';
+import type { EChartsOption, SeriesOption } from 'echarts';
 
 /**
  * Charts
@@ -31,7 +31,10 @@ export default function Charts({
 }) {
   // 按测试名称聚合不同节点规模下的指标，便于序列化到折线图
   const byTest = useMemo(() => {
-    const map: Record<string, { nodes: number; createMs: number; mem: number; fps: number }[]> = {};
+    const map: Record<
+      string,
+      { nodes: number; createMs: number; mem: number; fps: number; updateMs: number }[]
+    > = {};
     const median = (arr: number[]) => {
       const s = [...arr].sort((a, b) => a - b);
       const m = Math.floor(s.length / 2);
@@ -40,6 +43,7 @@ export default function Charts({
     for (const r of results) {
       const nodes = r.average.metrics.nodes;
       const createMs = r.average.metrics.createTimeMs;
+      const updateMs = r.average.metrics.updateMs ?? 0;
       const mem = r.average.metrics.memoryDelta ?? 0;
       const fps = median(r.average.frames.map((f) => f.fps)); // 使用中位数代表帧率稳定性
       const arr = map[r.name] ?? [];
@@ -48,6 +52,7 @@ export default function Charts({
         createMs,
         mem,
         fps,
+        updateMs,
       });
       map[r.name] = arr;
     }
@@ -111,11 +116,12 @@ export default function Charts({
   }, [nodeAxis]);
 
   const timeOption = useMemo<EChartsOption>(() => {
-    const series: any[] = Object.keys(byTest).map((name) => ({
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, v.createMs]),
-      showSymbol: false,
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
     }));
     return {
       title: {
@@ -134,13 +140,39 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, xCommon]);
 
+  const updateTimeOption = useMemo<EChartsOption>(() => {
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
+      name,
+      type: 'line',
+      data: byTest[name].map((v) => [v.nodes, v.updateMs]),
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
+    }));
+    return {
+      title: {
+        text: '更新耗时（ms） vs 节点数',
+      },
+      tooltip: {
+        trigger: 'axis',
+      },
+      legend: {},
+      xAxis: xCommon as unknown as EChartsOption['xAxis'],
+      yAxis: {
+        type: 'value',
+        name: '更新耗时（ms）',
+      },
+      series,
+    } as EChartsOption;
+  }, [byTest, xCommon]);
+
   // 内存占用图表配置（bytes vs 节点数）
   const memOption = useMemo<EChartsOption>(() => {
-    const series: any[] = Object.keys(byTest).map((name) => ({
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, v.mem]),
-      showSymbol: false,
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
     }));
     return {
       title: {
@@ -161,11 +193,12 @@ export default function Charts({
 
   // 帧率图表配置（FPS vs 节点数），含 60FPS 参考线
   const fpsOption = useMemo<EChartsOption>(() => {
-    const series: any[] = Object.keys(byTest).map((name) => ({
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, v.fps]),
-      showSymbol: false,
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
       markLine: { data: [{ yAxis: 60 }], label: { formatter: '60FPS 基准线' } },
     }));
     return {
@@ -179,13 +212,14 @@ export default function Charts({
   }, [byTest, xCommon]);
 
   const jankOption = useMemo<EChartsOption>(() => {
-    const series: any[] = Object.keys(byTest).map((name) => ({
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, r1pLow(results, name, v.nodes).jankCount]),
-      showSymbol: false,
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
     }));
-    const yVals = series.flatMap((s: any) => s.data.map((d: any) => d[1]));
+    const yVals = series.flatMap((s) => (s.data as number[][]).map((d) => d[1]));
     const ySpan = rangeOf(yVals).span;
     return {
       title: { text: '卡顿帧（Jank）' },
@@ -199,14 +233,15 @@ export default function Charts({
 
   // 1% Low 帧率（低于最差 1% 帧的平均 FPS）
   const low1Option = useMemo<EChartsOption>(() => {
-    const series: any[] = Object.keys(byTest).map((name) => ({
+    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
       type: 'line',
       data: byTest[name].map((v) => [v.nodes, r1pLow(results, name, v.nodes).low1]),
-      showSymbol: false,
+      showSymbol: byTest[name].length === 1,
+      symbolSize: byTest[name].length === 1 ? 8 : 4,
       markLine: { data: [{ yAxis: 60 }], label: { formatter: '60FPS 基准线' } },
     }));
-    const yVals = series.flatMap((s: any) => s.data.map((d: any) => d[1]));
+    const yVals = series.flatMap((s) => (s.data as number[][]).map((d) => d[1]));
     const ySpan = rangeOf(yVals).span;
     return {
       title: { text: '1% Low 帧率（FPS）' },
@@ -229,7 +264,18 @@ export default function Charts({
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
-            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            experimentType={experimentType || 'dom_vs_widget'}
+            onToggleMode={onToggleMode}
+            onUploadBaseline={onUploadBaseline}
+          />
+        ) : null}
+      </div>
+      <div className={styles.chart} style={{ position: 'relative' }}>
+        <ReactECharts style={{ height: 320 }} option={updateTimeOption} />
+        {onToggleMode && onUploadBaseline ? (
+          <Toolbox
+            results={results}
+            experimentType={experimentType || 'dom_vs_widget'}
             onToggleMode={onToggleMode}
             onUploadBaseline={onUploadBaseline}
           />
@@ -240,7 +286,7 @@ export default function Charts({
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
-            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            experimentType={experimentType || 'dom_vs_widget'}
             onToggleMode={onToggleMode}
             onUploadBaseline={onUploadBaseline}
           />
@@ -251,7 +297,7 @@ export default function Charts({
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
-            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            experimentType={experimentType || 'dom_vs_widget'}
             onToggleMode={onToggleMode}
             onUploadBaseline={onUploadBaseline}
           />
@@ -262,7 +308,7 @@ export default function Charts({
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
-            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            experimentType={experimentType || 'dom_vs_widget'}
             onToggleMode={onToggleMode}
             onUploadBaseline={onUploadBaseline}
           />
@@ -273,7 +319,7 @@ export default function Charts({
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
-            experimentType={(experimentType as any) || 'dom_vs_widget'}
+            experimentType={experimentType || 'dom_vs_widget'}
             onToggleMode={onToggleMode}
             onUploadBaseline={onUploadBaseline}
           />

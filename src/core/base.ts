@@ -322,12 +322,25 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
           childWidget.createElement(childData);
           nextChildren.push(childWidget);
           this.bindEventsIfNeeded(childWidget, childData);
+        } else {
+          console.warn(
+            `[Build Warning] Failed to create child widget of type '${childData.type}'. ` +
+              `It might not be registered.`,
+          );
         }
       }
     }
 
     // 替换 children 引用（删除未复用的旧节点）
     this.children = nextChildren;
+
+    // Post-build validation
+    if (this.children.length !== childrenData.length) {
+      console.warn(
+        `[Build Check] Widget ${this.type}(${this.key}) expected ${childrenData.length} ` +
+          `children but got ${this.children.length}.`,
+      );
+    }
   }
 
   /**
@@ -451,13 +464,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 layout 方法
    */
   layout(constraints: BoxConstraints): Size {
-    // 若尚未构建子树，执行一次初始构建以确保布局阶段存在子节点
-    if (this.children.length === 0) {
-      const initialChildrenData = this.computeNextChildrenData();
-      if (initialChildrenData.length > 0) {
-        this.buildChildren(initialChildrenData);
-      }
+    // 验证：确保在布局前子节点已构建（若存在子节点数据）
+    const potentialChildren = this.computeNextChildrenData();
+    if (potentialChildren.length > 0 && this.children.length === 0) {
+      throw new Error(
+        `[Layout Error] Children must be built before layout. Widget: ${this.type}(${this.key}). ` +
+          `Please call createElement() or ensure build phase is completed.`,
+      );
     }
+
     // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);
 

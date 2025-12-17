@@ -6,6 +6,11 @@ import type { BoxConstraints, Offset, Size, Widget } from '@/core/base';
 type NodeRec = { index: number; key: string; size: Size; widget: Widget };
 type EdgeRec = { from: string; to: string };
 
+interface MindMapWidget extends Widget {
+  prefSide?: Side;
+  isPositioned?: boolean;
+}
+
 /**
  * 布局引擎（面向对象）
  * 负责根据模式（radial/tree/treeBalanced）计算节点位置与容器尺寸。
@@ -37,6 +42,7 @@ export class LayoutEngine {
     nodes: NodeRec[],
     edges: EdgeRec[],
     side: 'left' | 'right',
+    previousSides?: Map<string, Side>,
   ): { offsets: Offset[]; size: Size } {
     if (nodes.length === 0) {
       return {
@@ -56,9 +62,20 @@ export class LayoutEngine {
     }
 
     const hasPrefSide = mode === 'treeBalanced';
-    const prefSideByKey = hasPrefSide
+    const widgetPrefSide = hasPrefSide
       ? this.collectPrefSide(childMap.get(rootKey) || [], widgetByKey)
       : new Map<string, Side | undefined>();
+
+    const prefSideByKey = new Map<string, Side | undefined>();
+    if (hasPrefSide) {
+      // Merge: widget props > previous history
+      const children = childMap.get(rootKey) || [];
+      for (const c of children) {
+        const fromWidget = widgetPrefSide.get(c);
+        const fromHistory = previousSides?.get(c);
+        prefSideByKey.set(c, fromWidget ?? fromHistory);
+      }
+    }
 
     const { posByKey } =
       mode === 'treeBalanced'
@@ -145,8 +162,8 @@ export class LayoutEngine {
   ): Map<string, Side | undefined> {
     const prefSideByKey = new Map<string, Side | undefined>();
     for (const c of children) {
-      const w = widgetByKey.get(c) as any;
-      const ps = (w?.prefSide ?? undefined) as Side | undefined;
+      const w = widgetByKey.get(c) as unknown as MindMapWidget;
+      const ps = w?.prefSide ?? undefined;
       prefSideByKey.set(c, ps);
     }
     return prefSideByKey;
@@ -205,11 +222,11 @@ export class LayoutEngine {
     const prevByKey = new Map<string, Offset | null>();
     const anchoredByKey = new Map<string, boolean>();
     for (const n of nodes) {
-      const w = widgetByKey.get(n.key)! as any;
+      const w = widgetByKey.get(n.key)!;
       const prev =
         typeof w.getAbsolutePosition === 'function' ? (w.getAbsolutePosition() as Offset) : null;
       prevByKey.set(n.key, prev);
-      anchoredByKey.set(n.key, !!(w as any).isPositioned);
+      anchoredByKey.set(n.key, !!(w as unknown as MindMapWidget).isPositioned);
     }
     const finalNextByKey = new Map<string, Offset>();
     const deltaByKey = new Map<string, Offset>();
@@ -399,7 +416,8 @@ export class LayoutEngine {
     for (const c of left) {
       const chH = hFn(c, 1);
       const cx = 0 - (rootSize.width + spacingXOf(0));
-      const cy = yLeft;
+      const childSize = sizeByKey.get(c)!;
+      const cy = yLeft + chH / 2 - childSize.height / 2;
       levels = Math.max(
         levels,
         this.placeBalancedDepthAware(
@@ -421,7 +439,8 @@ export class LayoutEngine {
     for (const c of right) {
       const chH = hFn(c, 1);
       const cx = 0 + (rootSize.width + spacingXOf(0));
-      const cy = yRight;
+      const childSize = sizeByKey.get(c)!;
+      const cy = yRight + chH / 2 - childSize.height / 2;
       levels = Math.max(
         levels,
         this.placeBalancedDepthAware(
@@ -455,15 +474,15 @@ export class LayoutEngine {
     prefSide: Side,
     need: number,
   ): void {
-    const candidates = from
-      .map((c) => ({ c, h: hFn(c, depth), pref: prefSideByKey.get(c) }))
-      .sort((a, b) => a.h - b.h);
+    const candidates = from.map((c) => ({ c, h: hFn(c, depth), pref: prefSideByKey.get(c) }));
+    // Remove sort to preserve vertical stability (user-defined order)
+    // .sort((a, b) => a.h - b.h);
     const toMove: string[] = [];
     for (const item of candidates) {
       if (toMove.length >= need) {
         break;
       }
-      if (item.pref !== prefSide) {
+      if (item.pref !== undefined && item.pref !== prefSide) {
         toMove.push(item.c);
       }
     }
@@ -471,6 +490,11 @@ export class LayoutEngine {
       for (const item of candidates) {
         if (toMove.length >= need) {
           break;
+        }
+        // If the node specifically prefers the current side, DO NOT move it.
+        // This ensures "stickiness" (once on left, always on left).
+        if (item.pref === prefSide) {
+          continue;
         }
         if (!toMove.includes(item.c)) {
           toMove.push(item.c);
@@ -548,7 +572,8 @@ export class LayoutEngine {
     for (let i = 0; i < children.length; i++) {
       const c = children[i];
       const cx = x + dir * (size.width + spacingXOf(depth));
-      const cy = yStart;
+      const childSize = sizeByKey.get(c)!;
+      const cy = yStart + hs[i] / 2 - childSize.height / 2;
       levels = Math.max(
         levels,
         this.placeDepthAware(
@@ -601,7 +626,8 @@ export class LayoutEngine {
     for (let i = 0; i < children.length; i++) {
       const c = children[i];
       const cx = x + dir * (size.width + spacingXOf(depth));
-      const cy = yStart;
+      const childSize = sizeByKey.get(c)!;
+      const cy = yStart + hs[i] / 2 - childSize.height / 2;
       levels = Math.max(
         levels,
         this.placeBalancedDepthAware(

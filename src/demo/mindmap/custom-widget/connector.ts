@@ -57,12 +57,25 @@ export class Connector extends Widget<ConnectorProps> {
 
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    const root = this.getRoot();
-    const a = root ? this.getRectByKey(root, this.fromKey) : null;
-    const b = root ? this.getRectByKey(root, this.toKey) : null;
-    if (!a || !b) {
+    const layout = this.findAncestorLayout();
+    const root = layout || this.getRoot();
+    const rectA = root ? this.getRectByKey(root, this.fromKey) : null;
+    const rectB = root ? this.getRectByKey(root, this.toKey) : null;
+    if (!rectA || !rectB) {
       return;
     }
+    const layoutPos = layout ? layout.getAbsolutePosition() : { dx: 0, dy: 0 };
+    const a = {
+      ...rectA,
+      x: rectA.x - layoutPos.dx,
+      y: rectA.y - layoutPos.dy,
+    };
+    const b = {
+      ...rectB,
+      x: rectB.x - layoutPos.dx,
+      y: rectB.y - layoutPos.dy,
+    };
+
     const dashStr = this.dashArray || '';
     const dash = dashStr
       .split(',')
@@ -87,12 +100,24 @@ export class Connector extends Widget<ConnectorProps> {
   }
 
   public getBounds(): { x: number; y: number; width: number; height: number } | null {
-    const root = this.getRoot();
-    const a = root ? this.getRectByKey(root, this.fromKey) : null;
-    const b = root ? this.getRectByKey(root, this.toKey) : null;
-    if (!a || !b) {
+    const layout = this.findAncestorLayout();
+    const root = layout || this.getRoot();
+    const rectA = root ? this.getRectByKey(root, this.fromKey) : null;
+    const rectB = root ? this.getRectByKey(root, this.toKey) : null;
+    if (!rectA || !rectB) {
       return null;
     }
+    const layoutPos = layout ? layout.getAbsolutePosition() : { dx: 0, dy: 0 };
+    const a = {
+      ...rectA,
+      x: rectA.x - layoutPos.dx,
+      y: rectA.y - layoutPos.dy,
+    };
+    const b = {
+      ...rectB,
+      x: rectB.x - layoutPos.dx,
+      y: rectB.y - layoutPos.dy,
+    };
     const aCenterX = a.x + a.width / 2;
     const bCenterX = b.x + b.width / 2;
     const left = aCenterX <= bCenterX ? a : b;
@@ -119,6 +144,17 @@ export class Connector extends Widget<ConnectorProps> {
     const w = Math.max(maxX - minX, this.strokeWidth);
     const h = Math.max(maxY - minY, this.strokeWidth);
     return { x: minX, y: minY, width: w, height: h };
+  }
+
+  private findAncestorLayout(): Widget | null {
+    let p: Widget | null = this.parent;
+    while (p) {
+      if (p.type === CustomComponentType.MindMapLayout) {
+        return p;
+      }
+      p = p.parent;
+    }
+    return null;
   }
 
   private getRoot(): Widget | null {

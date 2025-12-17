@@ -3,6 +3,7 @@ import { Button, Modal, Space } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import CanvasReport from './components/canvas-report';
 import CompareView from './components/compare-view';
 import ControlPanel from './components/control-panel';
 import EnvPanel from './components/env-panel';
@@ -46,7 +47,42 @@ type ProgressItem = {
 /**
  * 根据布局类型生成 DOM 与 Widget 两类测试用例集合。
  */
-function listTests(caseType: TestCaseType): LoadedTest[] {
+function listTests(caseType: TestCaseType, mode: 'benchmark' | 'canvas'): LoadedTest[] {
+  // Canvas 模式：仅运行 Widget 测试，且名称简化
+  if (mode === 'canvas') {
+    if (caseType === TestCaseType.CanvasBenchmark) {
+      return [
+        {
+          name: 'Canvas-Pure',
+          create: (stage) => new WidgetPerformanceTest(stage, caseType),
+        },
+      ];
+    }
+    if (caseType === TestCaseType.Text) {
+      return [
+        {
+          name: 'Text-Widget',
+          create: (stage) => new WidgetPerformanceTest(stage, caseType, 'v1'),
+        },
+      ];
+    }
+    return [
+      {
+        name: `${caseType}-Widget`,
+        create: (stage) => new WidgetPerformanceTest(stage, caseType),
+      },
+    ];
+  }
+
+  // Benchmark 模式：保留原有对比逻辑
+  if (caseType === TestCaseType.CanvasBenchmark) {
+    return [
+      {
+        name: 'Canvas-Pure',
+        create: (stage) => new WidgetPerformanceTest(stage, caseType),
+      },
+    ];
+  }
   if (caseType === TestCaseType.Text) {
     return [
       { name: 'text-DOM', create: (stage) => new DomPerformanceTest(stage, caseType) },
@@ -54,10 +90,6 @@ function listTests(caseType: TestCaseType): LoadedTest[] {
         name: 'text-Widget-v1',
         create: (stage) => new WidgetPerformanceTest(stage, caseType, 'v1'),
       },
-      // {
-      //   name: 'text-Widget-v2',
-      //   create: (stage) => new WidgetPerformanceTest(stage, caseType, 'v2'),
-      // },
     ];
   }
   return [
@@ -166,6 +198,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   // 独立的模态框进度：避免重置外部状态面板的历史
   const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
+  const [testMode, setTestMode] = useState<'benchmark' | 'canvas'>('benchmark');
 
   const waitIfPaused = async () => {
     // 简单等待机制：暂停时阻塞流程直到恢复
@@ -192,7 +225,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       setLoading(false);
       throw new Error('stage ref not ready');
     }
-    const tests = listTests(caseType);
+    const tests = listTests(caseType, testMode);
     // 初始化外部与模态框的进度列表
     setProgressItems(
       tests.map((t) => ({
@@ -361,6 +394,8 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     thresholdPercent,
     setThresholdPercent,
     modalProgressItems,
+    testMode,
+    setTestMode,
   };
 }
 
@@ -390,9 +425,11 @@ function App() {
     setBaselineResults,
     thresholdPercent,
     modalProgressItems,
+    testMode,
+    setTestMode,
+    repeat,
+    setRepeat,
   } = useRunAll(stageRef as React.RefObject<HTMLDivElement>);
-
-  const [repeat, setRepeat] = useState<number>(3);
 
   return (
     <div className={styles.page}>
@@ -411,18 +448,24 @@ function App() {
           paused={paused}
           caseType={caseType}
           setCaseType={setCaseType}
+          testMode={testMode}
+          setTestMode={setTestMode}
         />
       </div>
-      <CompareView
-        results={results}
-        experimentType={experimentType}
-        baseline={baselineResults}
-        thresholdPercent={thresholdPercent}
-        onToggleMode={() =>
-          setExperimentType((m) => (m === 'dom_vs_widget' ? 'history' : 'dom_vs_widget'))
-        }
-        onUploadBaseline={(data) => setBaselineResults(data)}
-      />
+      {testMode === 'canvas' ? (
+        <CanvasReport results={results} />
+      ) : (
+        <CompareView
+          results={results}
+          experimentType={experimentType}
+          baseline={baselineResults}
+          thresholdPercent={thresholdPercent}
+          onToggleMode={() =>
+            setExperimentType((m) => (m === 'dom_vs_widget' ? 'history' : 'dom_vs_widget'))
+          }
+          onUploadBaseline={(data) => setBaselineResults(data)}
+        />
+      )}
       <Modal
         open={showStage}
         footer={null}

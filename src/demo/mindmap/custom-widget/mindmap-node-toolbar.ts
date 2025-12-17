@@ -193,9 +193,21 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     return false;
   }
 
+  private lastActionTime: number = 0;
+
   onPointerDown(e: InkwellEvent): boolean | void {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
+      e.stopPropagation();
+      if (e.nativeEvent) {
+        e.nativeEvent.preventDefault();
+      }
+      const now = Date.now();
+      if (now - this.lastActionTime < 100) {
+        return;
+      }
+      this.lastActionTime = now;
+
       if (hit.type === 'addAbove') {
         const key = this.getNodeKey();
         if (key) {
@@ -265,8 +277,9 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
-    const localX = (x - vp.tx) / vp.scale - node.getAbsolutePosition().dx;
-    const localY = (y - vp.ty) / vp.scale - node.getAbsolutePosition().dy;
+    const nodeAbs = node.getAbsolutePosition();
+    const localX = x - nodeAbs.dx;
+    const localY = y - nodeAbs.dy;
     const M = 2;
     for (const s of sides) {
       const pos = calculatePlusButtonPosition(

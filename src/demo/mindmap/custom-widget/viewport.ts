@@ -132,8 +132,8 @@ export class Viewport extends Widget<ViewportProps> {
     if (rect) {
       const r = this.normalizeRect(rect);
       renderer.drawRect({
-        x: r.x,
-        y: r.y,
+        x: r.x + this._contentTx,
+        y: r.y + this._contentTy,
         width: r.width,
         height: r.height,
         fill: 'rgba(24,144,255,0.12)',
@@ -168,9 +168,7 @@ export class Viewport extends Widget<ViewportProps> {
     };
   }
 
-  protected positionChild(childIndex: number, childSize: Size): Offset {
-    void childIndex;
-    void childSize;
+  protected positionChild(_childIndex: number, _childSize: Size): Offset {
     // children 层统一应用 scrollX/scrollY 的偏移
     return { dx: this._contentTx, dy: this._contentTy };
   }

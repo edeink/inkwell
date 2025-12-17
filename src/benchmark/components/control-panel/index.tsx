@@ -1,5 +1,5 @@
 import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { Button, InputNumber, Select, Space } from 'antd';
+import { Button, Checkbox, InputNumber, Select, Space, Tabs } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { TestCaseOptions } from '../../index.types';
@@ -23,6 +23,8 @@ type Props = {
   paused?: boolean;
   caseType: TestCaseType;
   setCaseType: (v: TestCaseType) => void;
+  testMode: 'benchmark' | 'canvas';
+  setTestMode: (v: 'benchmark' | 'canvas') => void;
 };
 
 /**
@@ -65,11 +67,17 @@ export default function ControlPanel({
   paused = false,
   caseType,
   setCaseType,
+  testMode,
+  setTestMode,
 }: Props) {
   const [rangeStart, setRangeStart] = useState<number>(100);
   const [rangeEnd, setRangeEnd] = useState<number>(10000);
   const [rangeStep, setRangeStep] = useState<number>(100);
   const [preset, setPreset] = useState<PresetType>(PresetType.Common);
+  const [runOnce, setRunOnce] = useState(false);
+
+  // Canvas 模式下的节点数
+  const [canvasNodeCount, setCanvasNodeCount] = useState<number>(1000);
 
   // 切换预设并同步区间与步长
   const onPresetChange = useCallback((key: PresetType) => {
@@ -97,103 +105,191 @@ export default function ControlPanel({
       if (st <= 0 || si <= 0 || ei <= 0) {
         return;
       }
-      if (si >= ei) {
+      if (si > ei) {
         return;
       }
       const list: number[] = [];
       for (let v = si; v <= ei; v += st) {
         list.push(v);
       }
+      // 如果只运行一次（si == ei），确保包含该值
+      if (list.length === 0 && si === ei) {
+        list.push(si);
+      }
       setNodeCounts(list);
     },
     [setNodeCounts],
   );
 
-  // 当区间或步长变化时，自动刷新节点列表
+  // 当配置变化时，自动刷新节点列表
   useEffect(() => {
-    updateNodeCounts(rangeStart, rangeEnd, rangeStep);
-  }, [rangeStart, rangeEnd, rangeStep, updateNodeCounts]);
+    if (testMode === 'canvas') {
+      // Canvas 模式：单次执行，固定 repeat=1，节点数为 canvasNodeCount
+      setRepeat(1);
+      updateNodeCounts(canvasNodeCount, canvasNodeCount, 1);
+    } else {
+      // Benchmark 模式：根据 runOnce 决定
+      if (runOnce) {
+        updateNodeCounts(rangeStart, rangeStart, 1);
+      } else {
+        updateNodeCounts(rangeStart, rangeEnd, rangeStep);
+      }
+    }
+  }, [
+    rangeStart,
+    rangeEnd,
+    rangeStep,
+    runOnce,
+    updateNodeCounts,
+    testMode,
+    canvasNodeCount,
+    setRepeat,
+  ]);
 
-  // 根据区间估算轮次最大值，限制在 1~10 之间，避免过长测试
+  // 根据区间估算轮次最大值，限制在 1~10 之间
   const repeatMax = useMemo(() => {
     const len = Math.max(1, Math.floor((rangeEnd - rangeStart) / Math.max(1, rangeStep)) + 1);
     return Math.min(10, Math.max(1, len));
   }, [rangeStart, rangeEnd, rangeStep]);
 
-  // 步长上限：区间跨度的约 1/5，避免刻度过于稀疏
+  // 步长上限
   const stepMax = useMemo(() => {
     const diff = Math.max(1, rangeEnd - rangeStart);
     return Math.min(10000, Math.max(1, Math.floor(diff / 5)));
   }, [rangeStart, rangeEnd]);
 
-  return (
-    <div className={styles.panel}>
-      <div className={styles.sectionTitle}>配置</div>
-      <div className={styles.section}>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>测试内容</span>
-          <Select
-            value={caseType}
-            onChange={(v) => setCaseType(v as TestCaseType)}
-            options={TestCaseOptions}
-            style={{ minWidth: 140 }}
-          />
-        </div>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>重复次数</span>
-          <InputNumber
-            className={styles.input}
-            min={1}
-            max={repeatMax}
-            value={repeat}
-            onChange={(v) => v && setRepeat(Number(v))}
-          />
-        </div>
-        <div className={styles.presetBar}>
-          <Space.Compact>
-            {PRESETS.map((p) => (
-              <Button
-                key={p.key}
-                className={styles.presetButton}
-                type={preset === p.key ? 'primary' : 'default'}
-                onClick={() => onPresetChange(p.key)}
-              >
-                {p.label}
-              </Button>
-            ))}
-          </Space.Compact>
-        </div>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>范围</span>
-          <div className={styles.control}>
-            <div className={styles.range}>
-              <InputNumber
-                className={styles.input}
-                min={1}
-                value={rangeStart}
-                onChange={(v) => v && setRangeStart(Number(v))}
-              />
-              <span className={styles.divider}>~</span>
-              <InputNumber
-                className={styles.input}
-                min={1}
-                value={rangeEnd}
-                onChange={(v) => v && setRangeEnd(Number(v))}
-              />
+  const items = [
+    {
+      key: 'benchmark',
+      label: '基准对比（DOM-React Vs Canvas-InkWell）',
+      children: (
+        <div className={styles.section}>
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>测试内容</span>
+            <Select
+              value={caseType}
+              onChange={(v) => setCaseType(v as TestCaseType)}
+              options={TestCaseOptions}
+              style={{ minWidth: 140 }}
+            />
+          </div>
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>重复次数</span>
+            <InputNumber
+              className={styles.input}
+              min={1}
+              max={repeatMax}
+              value={repeat}
+              onChange={(v) => v && setRepeat(Number(v))}
+            />
+          </div>
+          <div className={styles.presetBar}>
+            <Space.Compact>
+              {PRESETS.map((p) => (
+                <Button
+                  key={p.key}
+                  className={styles.presetButton}
+                  type={preset === p.key ? 'primary' : 'default'}
+                  onClick={() => onPresetChange(p.key)}
+                  disabled={runOnce}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </Space.Compact>
+            <div style={{ marginTop: 8 }}>
+              <Checkbox checked={runOnce} onChange={(e) => setRunOnce(e.target.checked)}>
+                仅执行一次
+              </Checkbox>
             </div>
           </div>
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>{runOnce ? '创建节点数量' : '范围'}</span>
+            <div className={styles.control}>
+              {runOnce ? (
+                <InputNumber
+                  className={styles.input}
+                  min={1}
+                  value={rangeStart}
+                  onChange={(v) => v && setRangeStart(Number(v))}
+                />
+              ) : (
+                <div className={styles.range}>
+                  <InputNumber
+                    className={styles.input}
+                    min={1}
+                    value={rangeStart}
+                    onChange={(v) => v && setRangeStart(Number(v))}
+                  />
+                  <span className={styles.divider}>~</span>
+                  <InputNumber
+                    className={styles.input}
+                    min={1}
+                    value={rangeEnd}
+                    onChange={(v) => v && setRangeEnd(Number(v))}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          {!runOnce && (
+            <div className={styles.fieldRow}>
+              <span className={styles.label}>步长</span>
+              <InputNumber
+                className={styles.input}
+                min={1}
+                max={stepMax}
+                value={rangeStep}
+                onChange={(v) => v && setRangeStep(Number(v))}
+              />
+            </div>
+          )}
         </div>
-        <div className={styles.fieldRow}>
-          <span className={styles.label}>步长</span>
-          <InputNumber
-            className={styles.input}
-            min={1}
-            max={stepMax}
-            value={rangeStep}
-            onChange={(v) => v && setRangeStep(Number(v))}
-          />
+      ),
+    },
+    {
+      key: 'canvas',
+      label: 'Canvas-Inkwell 渲染',
+      children: (
+        <div className={styles.section}>
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>测试内容</span>
+            <Select
+              value={caseType}
+              onChange={(v) => setCaseType(v as TestCaseType)}
+              // 过滤掉 DOM 相关的测试（虽然 TestCaseOptions 已经是通用描述，但这里可以进一步引导）
+              // 暂时使用全部选项，逻辑层会处理只跑 Canvas
+              options={TestCaseOptions}
+              style={{ minWidth: 140 }}
+            />
+          </div>
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>创建节点数量</span>
+            <InputNumber
+              className={styles.input}
+              min={1}
+              value={canvasNodeCount}
+              onChange={(v) => v && setCanvasNodeCount(Number(v))}
+            />
+          </div>
+          <div className={styles.hint} style={{ color: '#999', fontSize: 12, marginTop: 8 }}>
+            * 该模式下仅执行单次测试，不进行 DOM 对比
+          </div>
         </div>
-      </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className={styles.panel}>
+      <Tabs
+        activeKey={testMode}
+        onChange={(k) => setTestMode(k as 'benchmark' | 'canvas')}
+        items={items}
+        centered
+        style={{ marginBottom: 16 }}
+      />
+
       <div className={styles.section}>
         <div className={styles.actions}>
           <Button
