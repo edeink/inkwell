@@ -496,8 +496,14 @@ export class Viewport extends Widget<ViewportProps> {
   }
 
   private getWorldXY(e: InkwellEvent): { x: number; y: number } {
-    const x = (e.x - this.tx) / this.scale - this._contentTx;
-    const y = (e.y - this.ty) / this.scale - this._contentTy;
+    // 获取视口自身在屏幕上的绝对位置
+    const vpPos = this.getAbsolutePosition();
+    // 1. (e.x - vpPos.dx): 将屏幕坐标转换为视口组件内的相对坐标
+    // 2. (... - this.tx): 扣除视口自身的平移
+    // 3. (... / this.scale): 反算缩放影响，得到未缩放的坐标
+    // 4. (... - this._contentTx): 扣除内容层的滚动偏移，得到世界坐标（Content 坐标）
+    const x = (e.x - vpPos.dx - this.tx) / this.scale - this._contentTx;
+    const y = (e.y - vpPos.dy - this.ty) / this.scale - this._contentTy;
     return { x, y };
   }
 
@@ -628,10 +634,11 @@ export class Viewport extends Widget<ViewportProps> {
     const walk = (w: Widget) => {
       if (w.type === CustomComponentType.MindMapNode) {
         const p = w.getAbsolutePosition();
-        // Convert screen coordinate to content coordinate
-        // Content = (Screen - ViewportOffset - tx) / scale - contentTx
-        const cx = (p.dx - vpPos.dx - this.tx) / this.scale - this._contentTx;
-        const cy = (p.dy - vpPos.dy - this.ty) / this.scale - this._contentTy;
+        // 计算节点相对于内容层原点（Content Origin）的坐标
+        // p - vpPos: 节点相对于视口左上角的偏移
+        // - _contentTx: 扣除内容层的滚动偏移，得到在世界坐标系下的位置
+        const cx = p.dx - vpPos.dx - this._contentTx;
+        const cy = p.dy - vpPos.dy - this._contentTy;
 
         if (
           cx < r.x + r.width &&

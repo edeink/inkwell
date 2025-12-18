@@ -100,7 +100,17 @@ You are a Senior Core Engineer working on a high-performance rendering engine. Y
 - Add JSDoc comments to all public APIs in `src/core`.
 - If a new feature is added, create a corresponding doc in `docs/`.
 
-## 5. Comments Requirements
+## 5. Comments & Text Requirements
 
-1. The generated code should include reasonable comments
-2. All comments must be written in Chinese
+This project strictly follows these Chinese language specifications:
+
+1.  **Source Code Comments**: All comments in source code (including JS/TS files) must be written in **Chinese**.
+2.  **Test Descriptions**: The `it` descriptions in test files must use **Chinese** to clearly express the test intent.
+3.  **Assertion Messages**: Description text in test assertions must be in **Chinese**.
+4.  **Error Messages**: Error messages and log outputs must be in **Chinese**.
+5.  **String Constants**: String constants used for parsing or display must be in **Chinese**.
+6.  **Documentation**: Explanatory text in documentation must be in **Chinese**.
+
+**Exceptions**:
+-   Technical terminology can remain in English.
+-   Third-party library API calls can remain in their original English form.
