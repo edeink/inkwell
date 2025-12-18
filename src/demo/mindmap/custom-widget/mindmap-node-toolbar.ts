@@ -19,7 +19,7 @@ import { findWidget } from '@/core/helper/widget-selector';
 
 export interface MindMapNodeToolbarProps extends WidgetProps {
   onActive?: (key: string | null) => void;
-  onAddSibling?: (refKey: string, dir: -1 | 1) => void;
+  onAddSibling?: (refKey: string, dir: -1 | 1, side?: Side) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
   activeKey?: string | null;
 }
@@ -54,7 +54,7 @@ function calculatePlusButtonPosition(
  * - 命中与事件在本组件中处理，确保 zIndex 与响应顺序正确
  */
 export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
-  private _onAddSibling?: (refKey: string, dir: -1 | 1) => void;
+  private _onAddSibling?: (refKey: string, dir: -1 | 1, side?: Side) => void;
   private _onAddChildSide?: (refKey: string, side: Side) => void;
 
   constructor(data: MindMapNodeToolbarProps) {
@@ -120,7 +120,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     }
     const size = node.renderObject.size as Size;
     const margin = 6;
-    const sides = this.resolveSides(node, size);
+    const { allowed: sides } = this.resolveSides(node, size);
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
@@ -174,7 +174,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     }
     const size = node.renderObject.size as Size;
     const margin = 6;
-    const sides = this.resolveSides(node, size);
+    const { allowed: sides } = this.resolveSides(node, size);
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
@@ -199,9 +199,6 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
       e.stopPropagation();
-      if (e.nativeEvent) {
-        e.nativeEvent.preventDefault();
-      }
       const now = Date.now();
       if (now - this.lastActionTime < 100) {
         return;
@@ -211,12 +208,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
       if (hit.type === 'addAbove') {
         const key = this.getNodeKey();
         if (key) {
-          this._onAddSibling?.(key, -1);
+          this._onAddSibling?.(key, -1, hit.side);
         }
       } else if (hit.type === 'addBelow') {
         const key = this.getNodeKey();
         if (key) {
-          this._onAddSibling?.(key, 1);
+          this._onAddSibling?.(key, 1, hit.side);
         }
       } else if (hit.type === 'addChildLeft') {
         const key = this.getNodeKey();
@@ -258,7 +255,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   private hitToolbar(
     x: number,
     y: number,
-  ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight' } | null {
+  ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; side?: Side } | null {
     let root: Widget | null = (this as unknown as Widget) ?? null;
     while (root && root.parent) {
       root = root.parent as Widget;
@@ -273,7 +270,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     }
     const size = node.renderObject.size as Size;
     const margin = 6;
-    const sides = this.resolveSides(node, size);
+    const { allowed: sides, isLeft } = this.resolveSides(node, size);
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
@@ -297,10 +294,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
         localY <= ly + btnSize + M;
       if (inside) {
         if (s === 'top') {
-          return { type: 'addAbove' };
+          return { type: 'addAbove', side: isLeft ? Side.Left : Side.Right };
         }
         if (s === 'bottom') {
-          return { type: 'addBelow' };
+          return { type: 'addBelow', side: isLeft ? Side.Left : Side.Right };
         }
         if (s === 'left') {
           return { type: 'addChildLeft' };
@@ -313,12 +310,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     return null;
   }
 
-  private resolveSides(node: Widget, size: Size): Array<'top' | 'bottom' | 'left' | 'right'> {
+  private resolveSides(
+    node: Widget,
+    size: Size,
+  ): { allowed: Array<'top' | 'bottom' | 'left' | 'right'>; isLeft: boolean } {
     const container = (this.parent as Widget | null) ?? (this as Widget);
     const edge = findWidget(container, `Connector[toKey="${String(node.key)}"]`);
     const isRoot = !edge;
     if (isRoot) {
-      return ['left', 'right'];
+      return { allowed: ['left', 'right'], isLeft: false };
     }
     const parentContainer = this.parent;
     let parentKey: string | null = null;
@@ -350,6 +350,9 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     }
     const cxSelf = node.getAbsolutePosition().dx + size.width / 2;
     const leftSide = parentCenterX != null ? cxSelf < parentCenterX : false;
-    return leftSide ? ['top', 'bottom', 'left'] : ['top', 'bottom', 'right'];
+    return {
+      allowed: leftSide ? ['top', 'bottom', 'left'] : ['top', 'bottom', 'right'],
+      isLeft: leftSide,
+    };
   }
 }

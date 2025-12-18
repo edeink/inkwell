@@ -118,6 +118,9 @@ function createEvent(
     nativeEvent: native,
     stopPropagation() {
       stopped = true;
+      if (native && typeof native.preventDefault === 'function') {
+        native.preventDefault();
+      }
     },
     get propagationStopped() {
       return stopped;

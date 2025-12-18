@@ -94,7 +94,7 @@ class EventManagerImpl {
         }
       };
       this.globalHandlers.set(type, fn);
-      const passive = type === 'wheel' ? false : true;
+      const passive = false;
       document.addEventListener(type, fn as EventListener, { passive });
     }
     this.delegatedAttached = true;

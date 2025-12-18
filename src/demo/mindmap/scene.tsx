@@ -211,7 +211,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     return `${parentNode.title}-${index}`;
   }
 
-  private onAddSibling = (refKey: string, _dir: -1 | 1): void => {
+  private onAddSibling = (refKey: string, dir: -1 | 1, side?: Side): void => {
     const cur = (this.state as SceneState).graph;
     const parent = findParent(cur, refKey);
     if (!parent) {
@@ -220,11 +220,38 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     const title = this.generateNodeTitle(cur, parent);
     const id = `n${cur.nextId}`;
     const nextId = cur.nextId + 1;
-    const nextEdges: GraphEdge[] = [...cur.edges, { from: parent, to: id }];
+
+    const refEdgeIndex = cur.edges.findIndex((e) => e.from === parent && e.to === refKey);
+    let nextEdges: GraphEdge[];
+    const newEdge: GraphEdge = { from: parent, to: id };
+
+    if (refEdgeIndex !== -1) {
+      if (dir === -1) {
+        nextEdges = [
+          ...cur.edges.slice(0, refEdgeIndex),
+          newEdge,
+          ...cur.edges.slice(refEdgeIndex),
+        ];
+      } else {
+        nextEdges = [
+          ...cur.edges.slice(0, refEdgeIndex + 1),
+          newEdge,
+          ...cur.edges.slice(refEdgeIndex + 1),
+        ];
+      }
+    } else {
+      nextEdges = [...cur.edges, newEdge];
+    }
+
+    const newNode: GraphNode = { id, title };
+    if (side) {
+      newNode.prefSide = side;
+    }
+
     const next: GraphState = {
       ...cur,
       nextId,
-      nodes: new Map(cur.nodes).set(id, { id, title }),
+      nodes: new Map(cur.nodes).set(id, newNode),
       edges: nextEdges,
       version: cur.version + 1,
     };
