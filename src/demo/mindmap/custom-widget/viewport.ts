@@ -378,9 +378,7 @@ export class Viewport extends Widget<ViewportProps> {
     }
     // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）：延迟到 rAF 中统一处理
     const scaleDelta = we && we.deltaY < 0 ? 1.06 : 0.94;
-    const m = we as MouseEvent | undefined;
-    const cx = m?.clientX ?? 0;
-    const cy = m?.clientY ?? 0;
+    const { x: cx, y: cy } = we ? this.getLocalCoords(we) : { x: 0, y: 0 };
     const s = clampScale(this.scale * scaleDelta);
     const pendingZoom = { scale: s, cx, cy };
     requestAnimationFrame(() => {
@@ -444,6 +442,31 @@ export class Viewport extends Widget<ViewportProps> {
     return { x, y };
   }
 
+  private getLocalCoords(native: Event): { x: number; y: number } {
+    const target = native.target as Element;
+    const rect = target?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+
+    let clientX = 0;
+    let clientY = 0;
+
+    const m = native as MouseEvent;
+    if (typeof m.clientX === 'number') {
+      clientX = m.clientX;
+      clientY = m.clientY;
+    } else {
+      const t = (native as TouchEvent).changedTouches?.[0];
+      if (t) {
+        clientX = t.clientX;
+        clientY = t.clientY;
+      }
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  }
+
   zoomAt(newScale: number, cx: number, cy: number): void {
     const x = (cx - this.tx) / this.scale - this._contentTx;
     const y = (cy - this.ty) / this.scale - this._contentTy;
@@ -487,9 +510,7 @@ export class Viewport extends Widget<ViewportProps> {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const d = Math.hypot(dx, dy);
-      const m = native as MouseEvent;
-      const cx = m.clientX;
-      const cy = m.clientY;
+      const { x: cx, y: cy } = this.getLocalCoords(native);
       this.pinchState = { id1: ids[0], id2: ids[1], startD: d, startScale: this.scale, cx, cy };
       this._selectionRect = null;
       return true;
@@ -516,9 +537,7 @@ export class Viewport extends Widget<ViewportProps> {
       const dy = b.y - a.y;
       const dNow = Math.hypot(dx, dy);
       const s = clampScale(this.pinchState.startScale * (dNow / this.pinchState.startD));
-      const m = native as MouseEvent;
-      const cx = m?.clientX ?? 0;
-      const cy = m?.clientY ?? 0;
+      const { x: cx, y: cy } = native ? this.getLocalCoords(native) : { x: 0, y: 0 };
       this._onZoomAt?.(s, cx, cy);
       return true;
     }
