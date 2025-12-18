@@ -1,3 +1,8 @@
+/**
+ * 查找组件工具函数
+ * 提供类似于 DOM 的 querySelector 功能，支持按 ID、Type、属性查找组件
+ */
+
 import type { Widget } from '@/core/base';
 
 type Combinator = 'descendant' | 'child';
@@ -26,8 +31,13 @@ export interface FindOptions {
   context?: Widget | null;
 }
 
+// 缓存选择器结果，避免频繁重复查找
 const CACHE = new WeakMap<Widget, Map<string, Widget[]>>();
 
+/**
+ * 清除选择器缓存
+ * 当组件树发生变更时应当调用
+ */
 export function clearSelectorCache(root?: Widget | null): void {
   if (!root) {
     return;
@@ -35,6 +45,10 @@ export function clearSelectorCache(root?: Widget | null): void {
   CACHE.delete(root);
 }
 
+/**
+ * 判断是否为根节点（逻辑根）
+ * 即父级不存在或父级中没有指向自身的引用（如连接线）
+ */
 function isRootNode(widget: Widget | null): boolean {
   if (!widget) {
     return false;
@@ -197,18 +211,25 @@ function stepMatch(prevSet: Widget[], step: SelectorStep): Widget[] {
   return res;
 }
 
+/**
+ * 查找组件
+ * @param node 当前上下文节点，支持从任意节点开始查找
+ * @param selector 选择器字符串，支持 ID(#), Class(.), Type(Tag), Attr([])
+ * @param options 查找选项
+ * @returns 找到的组件或组件数组
+ */
 export function findWidget(
-  root: Widget | null,
+  node: Widget | null,
   selector: string,
   options: FindOptions = {},
 ): Widget | Widget[] | null {
-  if (!root || !selector) {
+  if (!node || !selector) {
     return null;
   }
   const cacheKey = selector;
-  const cacheMap = CACHE.get(root) ?? new Map<string, Widget[]>();
-  if (!CACHE.has(root)) {
-    CACHE.set(root, cacheMap);
+  const cacheMap = CACHE.get(node) ?? new Map<string, Widget[]>();
+  if (!CACHE.has(node)) {
+    CACHE.set(node, cacheMap);
   }
   if (options.multiple) {
     const hit = cacheMap.get(cacheKey);
@@ -217,7 +238,7 @@ export function findWidget(
     }
   }
   const steps = parseSelector(selector);
-  const startSet: Widget[] = [options.context ?? root];
+  const startSet: Widget[] = [options.context ?? node];
   let cur: Widget[] = startSet;
   for (const st of steps) {
     cur = stepMatch(cur, st);

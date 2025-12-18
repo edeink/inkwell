@@ -5,12 +5,12 @@ import { CustomComponentType } from './type';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
+import { findWidget } from '@/core/helper/widget-selector';
 import {
   connectorPathFromRects,
   ConnectorStyle,
   DEFAULT_CONNECTOR_OPTIONS,
 } from '@/demo/mindmap/helpers/connection-drawer';
-
 export interface ConnectorProps extends WidgetProps {
   fromKey: string;
   toKey: string;
@@ -59,10 +59,12 @@ export class Connector extends Widget<ConnectorProps> {
 
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    const layout = this.findAncestorLayout();
-    const root = layout || this.getRoot();
-    const rectA = root ? this.getRectByKey(root, this.fromKey) : null;
-    const rectB = root ? this.getRectByKey(root, this.toKey) : null;
+    const layout = findWidget(this.root, CustomComponentType.MindMapLayout) as Widget | null;
+    const nodeA = findWidget(layout, `MindMapNode#${this.fromKey}`) as Widget | null;
+    const nodeB = findWidget(layout, `MindMapNode#${this.toKey}`) as Widget | null;
+
+    const rectA = nodeA ? this.getRectFromNode(nodeA) : null;
+    const rectB = nodeB ? this.getRectFromNode(nodeB) : null;
     if (!rectA || !rectB) {
       return;
     }
@@ -103,10 +105,12 @@ export class Connector extends Widget<ConnectorProps> {
   }
 
   public getBounds(): { x: number; y: number; width: number; height: number } | null {
-    const layout = this.findAncestorLayout();
-    const root = layout || this.getRoot();
-    const rectA = root ? this.getRectByKey(root, this.fromKey) : null;
-    const rectB = root ? this.getRectByKey(root, this.toKey) : null;
+    const layout = findWidget(this.root, CustomComponentType.MindMapLayout) as Widget | null;
+    const nodeA = findWidget(layout, `MindMapNode#${this.fromKey}`) as Widget | null;
+    const nodeB = findWidget(layout, `MindMapNode#${this.toKey}`) as Widget | null;
+
+    const rectA = nodeA ? this.getRectFromNode(nodeA) : null;
+    const rectB = nodeB ? this.getRectFromNode(nodeB) : null;
     if (!rectA || !rectB) {
       return null;
     }
@@ -149,51 +153,12 @@ export class Connector extends Widget<ConnectorProps> {
     return { x: minX, y: minY, width: w, height: h };
   }
 
-  private findAncestorLayout(): Widget | null {
-    let p: Widget | null = this.parent;
-    while (p) {
-      if (p.type === CustomComponentType.MindMapLayout) {
-        return p;
-      }
-      p = p.parent;
-    }
-    return null;
-  }
-
-  private getRoot(): Widget | null {
-    let p: Widget | null = this.parent;
-    while (p && p.parent) {
-      p = p.parent;
-    }
-    return p ?? this;
-  }
-
-  private getRectByKey(
-    root: Widget,
-    key: string,
-  ): { x: number; y: number; width: number; height: number } | null {
-    const matches: Widget[] = [];
-    const walk = (w: Widget): void => {
-      if (w.key === key) {
-        matches.push(w);
-      }
-      for (const c of w.children) {
-        walk(c);
-      }
-    };
-    walk(root);
-    if (!matches.length) {
-      return null;
-    }
-    let hit: Widget = matches[0];
-    for (const m of matches) {
-      if (m.type === CustomComponentType.MindMapNode) {
-        hit = m;
-        break;
-      }
-    }
-    const p = hit.getAbsolutePosition();
-    const s = hit.renderObject.size;
+  /**
+   * 从节点实例获取绝对位置和尺寸
+   */
+  private getRectFromNode(node: Widget): { x: number; y: number; width: number; height: number } {
+    const p = node.getAbsolutePosition();
+    const s = node.renderObject.size;
     return { x: p.dx, y: p.dy, width: s.width, height: s.height };
   }
 

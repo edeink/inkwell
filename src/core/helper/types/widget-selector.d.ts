@@ -8,7 +8,7 @@ export interface FindOptions {
 }
 
 export function findWidget(
-  root: Widget | null,
+  node: Widget | null,
   selector: string,
   options?: FindOptions,
 ): Widget | Widget[] | null;

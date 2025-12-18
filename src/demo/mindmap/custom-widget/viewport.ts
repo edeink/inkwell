@@ -92,8 +92,6 @@ export class Viewport extends Widget<ViewportProps> {
   private _onSetSelectedKeys?: (keys: string[]) => void;
   private _onActiveKeyChange?: (key: string | null) => void;
   private selectAllActive: boolean = false;
-  private wheelPending: { dx: number; dy: number } | null = null;
-  private wheelRaf: number | null = null;
 
   constructor(data: ViewportProps) {
     super(data);
@@ -429,34 +427,18 @@ export class Viewport extends Widget<ViewportProps> {
     if (we && !(we.ctrlKey || we.metaKey)) {
       const dx = we.deltaX || 0;
       const dy = we.deltaY || 0;
-      // 合并多次 wheel 事件到一帧
-      const pending = this.wheelPending ?? { dx: 0, dy: 0 };
-      pending.dx = dx;
-      pending.dy = dy;
-      this.wheelPending = pending;
-      if (this.wheelRaf == null) {
-        this.wheelRaf = requestAnimationFrame(() => {
-          const p = this.wheelPending ?? { dx: 0, dy: 0 };
-          this.wheelPending = null;
-          this.wheelRaf = null;
-          // 将滚轮平移作用于 children 层偏移（世界单位需除以缩放），通过 onScroll 通知外部
-          const nextScrollX = this._contentTx + -p.dx / this.scale;
-          const nextScrollY = this._contentTy + -p.dy / this.scale;
-          this.setContentPosition(nextScrollX, nextScrollY);
-          this._onScroll?.(nextScrollX, nextScrollY);
-          this.markNeedsLayout();
-        });
-      }
+      // 将滚轮平移作用于 children 层偏移（世界单位需除以缩放），通过 onScroll 通知外部
+      const nextScrollX = this._contentTx + -dx / this.scale;
+      const nextScrollY = this._contentTy + -dy / this.scale;
+      this.setContentPosition(nextScrollX, nextScrollY);
+      this._onScroll?.(nextScrollX, nextScrollY);
       return false;
     }
-    // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）：延迟到 rAF 中统一处理
+    // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）
     const scaleDelta = we && we.deltaY < 0 ? 1.06 : 0.94;
     const { x: cx, y: cy } = we ? this.getLocalCoords(we) : { x: 0, y: 0 };
     const s = clampScale(this.scale * scaleDelta);
-    const pendingZoom = { scale: s, cx, cy };
-    requestAnimationFrame(() => {
-      this._onZoomAt?.(pendingZoom.scale, pendingZoom.cx, pendingZoom.cy);
-    });
+    this._onZoomAt?.(s, cx, cy);
     return false;
   }
 

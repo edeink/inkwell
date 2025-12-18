@@ -96,12 +96,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
 
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const node = findWidget(root, ':active') as Widget | null;
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const node = findWidget(this.root, ':active') as Widget | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!node || !vp) {
       return;
     }
@@ -150,12 +146,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   public hitTest(x: number, y: number): boolean {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const node = findWidget(root, ':active') as Widget | null;
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const node = findWidget(this.root, ':active') as Widget | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!node || !vp) {
       return false;
     }
@@ -253,7 +245,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
           this._onAddChildSide?.(key, Side.Right);
         }
       }
-      e.stopPropagation();
+      // e.stopPropagation();
     }
   }
 
@@ -262,20 +254,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     if (k === null || typeof k === 'string') {
       return k ?? null;
     }
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     return vp?.activeKey ?? null;
   }
 
   private getNodeKey(): string | null {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const n = findWidget(root, ':active') as Widget | null;
+    const n = findWidget(this.root, ':active') as Widget | null;
     return n ? (n.key as string) : null;
   }
 
@@ -283,12 +267,11 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     x: number,
     y: number,
   ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; side?: Side } | null {
-    const root = this.root;
-    const node = findWidget(root, ':active') as Widget | null;
+    const node = findWidget(this.root, ':active') as Widget | null;
     if (!node) {
       return null;
     }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!vp) {
       return null;
     }

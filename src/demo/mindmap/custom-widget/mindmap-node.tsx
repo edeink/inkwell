@@ -40,8 +40,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
     null;
   private clickCandidate: { startX: number; startY: number } | null = null;
-  private dragRaf: number | null = null;
-  private lastNativeEvent: Event | null = null;
   private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
   private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
   private activePointerId: number | null = null;
@@ -72,7 +70,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     while (root && root.parent) {
       root = root.parent as Widget;
     }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     const akFromViewport = vp?.activeKey ?? null;
     const ak = akFromProps ?? akFromViewport;
     this.active = typeof data.active === 'boolean' ? (data.active as boolean) : ak === this.key;
@@ -100,11 +98,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 区分根节点点击与可拖拽节点，记录初始位置并进入拖拽状态
    */
   onPointerDown(e: InkwellEvent): boolean | void {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!vp) {
       return;
     }
@@ -150,26 +144,13 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 请求视口进入编辑态并创建原生输入框进行文本编辑
    */
   onDblClick(e: InkwellEvent): boolean | void {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!vp) {
       return;
     }
     vp.setEditingKey(this.key);
     this.openInlineEditor(e?.nativeEvent);
     return false;
-  }
-
-  /**
-   * 从原生事件上下文请求一次重绘
-   * 通过查找关联的 Runtime 并调用 rerender 完成画布刷新
-   */
-  private requestRerenderFromNative(native?: Event): void {
-    const runtime = this.findRuntimeFromNative(native);
-    runtime?.rerender();
   }
 
   /**
@@ -289,11 +270,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 拖拽时更新偏移并节流重绘；非拖拽时维护悬停动画与命中测试
    */
   private handlePointerMove(e: { x: number; y: number; native?: Event }): void {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!vp) {
       return;
     }
@@ -305,13 +282,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const dx = worldX - this.dragState.startX;
     const dy = worldY - this.dragState.startY;
     this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
-    this.lastNativeEvent = (e?.native as Event) ?? null;
-    if (this.dragRaf == null) {
-      this.dragRaf = requestAnimationFrame(() => {
-        this.requestRerenderFromNative(this.lastNativeEvent ?? undefined);
-        this.dragRaf = null;
-      });
-    }
+    this.markDirty();
     if (this.clickCandidate) {
       const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
       if (d > 3) {
@@ -325,11 +296,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 根据是否发生明显位移决定提交拖拽结果或作为点击激活
    */
   private handlePointerUp(e: { x: number; y: number; native?: Event }): void {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     const ds = this.dragState;
     if (!vp) {
       this.dragState = null;
@@ -387,7 +354,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           }
         }
       } catch {}
-      this.requestRerenderFromNative(e?.native);
+      this.markDirty();
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
       if (this._onActive) {
@@ -396,7 +363,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         vp.setActiveKey(this.key);
       }
       this.clickCandidate = null;
-      this.requestRerenderFromNative(e?.native);
+      this.markDirty();
     }
   }
 
@@ -405,11 +372,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 以绝对定位的原生 input 与视口缩放/平移对齐，编辑完成后写回组件状态
    */
   private openInlineEditor(native?: Event): void {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     if (!vp) {
       return;
     }
@@ -434,11 +397,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     input.addEventListener('input', onInput);
     const cleanup = () => {
       input.remove();
-      let r2: Widget | null = (this as unknown as Widget) ?? null;
-      while (r2 && r2.parent) {
-        r2 = r2.parent as Widget;
-      }
-      const vp2 = findWidget(r2, 'Viewport') as Viewport | null;
+      const vp2 = findWidget(this.root, 'Viewport') as Viewport | null;
       vp2?.setEditingKey(null);
       runtime?.rerender();
     };
@@ -470,11 +429,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 判断是否为根节点（不存在指向自身的连接线）
    */
   private isRootNode(): boolean {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const edge = findWidget(root, `Connector[toKey="${String(this.key)}"]`);
+    const edge = findWidget(this.root, `Connector[toKey="${String(this.key)}"]`);
     return !edge;
   }
 
@@ -483,11 +438,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 使用 Container + Text 保持视觉效果与交互绑定，避免直接使用底层绘制方法
    */
   render() {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
     const editing = vp?.editingKey === this.key;

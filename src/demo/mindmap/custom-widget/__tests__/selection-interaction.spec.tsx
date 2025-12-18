@@ -128,7 +128,6 @@ describe('MindMap Selection & Interaction', async () => {
 
     const root = runtime.getRootWidget();
     const vp = findWidget(root, '#v') as Viewport;
-    const node = findWidget(root, '#n1') as MindMapNode;
 
     expect(vp.selectedKeys).toEqual([]);
 
