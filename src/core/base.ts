@@ -352,7 +352,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   // 挂在根节点
   public get root(): Widget | null {
-    if (this.__root) {
+    if (
+      this.__root &&
+      !this.__root
+        .parent /* 存在父节点，证明缓存错误，如在创建节点未挂载时立马调用 root，会将本节点缓存 */
+    ) {
       return this.__root;
     }
     this.__root = this.findRootFrom(this);
