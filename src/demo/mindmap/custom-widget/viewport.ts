@@ -290,6 +290,10 @@ export class Viewport extends Widget<ViewportProps> {
     if (this._activeKey === key) {
       return;
     }
+    // 激活单个节点时自动清空之前的选区状态
+    if (key) {
+      this.setSelectedKeys([]);
+    }
     this._activeKey = key ?? null;
     this._onActiveKeyChange?.(this._activeKey);
 
