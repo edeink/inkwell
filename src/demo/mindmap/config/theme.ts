@@ -20,6 +20,13 @@ export interface ThemePalette {
   minimapBackgroundColor: string;
   nodeFillColor: string;
   connectorColor: string;
+  // Node states
+  nodeActiveBorderColor: string;
+  nodeActiveFillColor: string;
+  nodeSelectedBorderColor: string;
+  nodeSelectedFillColor: string;
+  nodeHoverBorderColor: string;
+  nodeDefaultBorderColor: string;
 }
 
 /**
@@ -34,6 +41,12 @@ export interface ThemePalette {
  * @property {string} minimapBackgroundColor 小地图背景色
  * @property {string} nodeFillColor 节点填充色
  * @property {string} connectorColor 连接线颜色
+ * @property {string} nodeActiveBorderColor 节点激活边框色
+ * @property {string} nodeActiveFillColor 节点激活填充色
+ * @property {string} nodeSelectedBorderColor 节点选中边框色
+ * @property {string} nodeSelectedFillColor 节点选中填充色
+ * @property {string} nodeHoverBorderColor 节点悬停边框色
+ * @property {string} nodeDefaultBorderColor 节点默认边框色
  */
 
 /**
@@ -51,6 +64,12 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     minimapBackgroundColor: 'rgba(0,0,0,0.08)',
     nodeFillColor: 'rgba(255,255,255,0.9)',
     connectorColor: 'rgba(140,140,140,0.9)',
+    nodeActiveBorderColor: '#1677ff',
+    nodeActiveFillColor: '#e6f7ff',
+    nodeSelectedBorderColor: '#1890ff',
+    nodeSelectedFillColor: '#f0f5ff',
+    nodeHoverBorderColor: '#4096ff',
+    nodeDefaultBorderColor: '#c9c9c9',
   },
   dark: {
     primaryColor: '#1677ff',
@@ -62,6 +81,12 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     minimapBackgroundColor: 'rgba(255,255,255,0.08)',
     nodeFillColor: 'rgba(26,26,26,0.9)',
     connectorColor: 'rgba(160,160,160,0.9)',
+    nodeActiveBorderColor: '#177ddc',
+    nodeActiveFillColor: 'rgba(23,125,220,0.2)',
+    nodeSelectedBorderColor: '#177ddc',
+    nodeSelectedFillColor: 'rgba(23,125,220,0.1)',
+    nodeHoverBorderColor: '#4096ff',
+    nodeDefaultBorderColor: '#434343',
   },
 };
 

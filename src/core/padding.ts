@@ -2,8 +2,59 @@ import { Widget } from './base';
 
 import type { BoxConstraints, EdgeInsets, Offset, Size, WidgetProps } from './base';
 
+export type PaddingArray =
+  | [number]
+  | [number, number]
+  | [number, number, number]
+  | [number, number, number, number];
+
+/**
+ * Padding 属性值的联合类型
+ */
+export type PaddingValue = EdgeInsets | number | PaddingArray;
+
 export interface PaddingProps extends WidgetProps {
-  padding: EdgeInsets | number;
+  padding: PaddingValue;
+}
+
+/**
+ * 将 PaddingValue 标准化为 EdgeInsets 对象
+ * @param value 输入的 padding 值
+ * @returns 标准化的 EdgeInsets 对象
+ */
+export function resolveEdgeInsets(value: PaddingValue | undefined): EdgeInsets {
+  if (value === undefined) {
+    return { top: 0, right: 0, bottom: 0, left: 0 };
+  }
+  if (typeof value === 'number') {
+    return { top: value, right: value, bottom: value, left: value };
+  }
+  if (Array.isArray(value)) {
+    // 检查数组元素是否全部为 number
+    if (!value.every((v) => typeof v === 'number')) {
+      console.error('Padding 数组必须仅包含数字');
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+
+    switch (value.length) {
+      case 1:
+        // [all]
+        return { top: value[0], right: value[0], bottom: value[0], left: value[0] };
+      case 2:
+        // [vertical, horizontal] -> top/bottom, left/right
+        return { top: value[0], right: value[1], bottom: value[0], left: value[1] };
+      case 3:
+        // [top, horizontal, bottom] -> top, left/right, bottom
+        return { top: value[0], right: value[1], bottom: value[2], left: value[1] };
+      case 4:
+        // [top, right, bottom, left]
+        return { top: value[0], right: value[1], bottom: value[2], left: value[3] };
+      default:
+        console.error('Padding 数组长度必须在 1 到 4 之间');
+        return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+  }
+  return value;
 }
 
 /**
@@ -18,14 +69,7 @@ export class Padding extends Widget<PaddingProps> {
   }
 
   private initPaddingProperties(data: PaddingProps): void {
-    this.padding = this.normalizeEdgeInsets(data.padding);
-  }
-
-  private normalizeEdgeInsets(value: EdgeInsets | number): EdgeInsets {
-    if (typeof value === 'number') {
-      return { top: value, right: value, bottom: value, left: value };
-    }
-    return value;
+    this.padding = resolveEdgeInsets(data.padding);
   }
 
   createElement(data: PaddingProps): Widget<PaddingProps> {

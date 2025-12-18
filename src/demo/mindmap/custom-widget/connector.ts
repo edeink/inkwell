@@ -1,3 +1,5 @@
+import { getTheme } from '../config/theme';
+
 import { CustomComponentType } from './type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
@@ -26,7 +28,7 @@ export interface ConnectorProps extends WidgetProps {
 export class Connector extends Widget<ConnectorProps> {
   fromKey: string = '';
   toKey: string = '';
-  color: string = '#8c8c8c';
+  color?: string;
   strokeWidth: number = 1.5;
   style: ConnectorStyle = ConnectorStyle.Bezier;
   dashArray?: string;
@@ -39,7 +41,7 @@ export class Connector extends Widget<ConnectorProps> {
   private init(data: ConnectorProps): void {
     this.fromKey = data.fromKey;
     this.toKey = data.toKey;
-    this.color = (data.color ?? this.color) as string;
+    this.color = data.color;
     this.strokeWidth = (data.strokeWidth ?? this.strokeWidth) as number;
     this.style = (data.style ?? this.style) as ConnectorStyle;
     this.dashArray = data.dashArray;
@@ -81,7 +83,8 @@ export class Connector extends Widget<ConnectorProps> {
       .split(',')
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
-    const stroke = this.color;
+    const theme = getTheme();
+    const stroke = this.color ?? theme.connectorColor;
     const sw = this.strokeWidth;
     const aCenterX = a.x + a.width / 2;
     const bCenterX = b.x + b.width / 2;

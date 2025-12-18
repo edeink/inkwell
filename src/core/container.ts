@@ -1,6 +1,8 @@
 import { Widget } from './base';
+import { resolveEdgeInsets } from './padding';
 
 import type { BoxConstraints, BuildContext, EdgeInsets, Offset, Size, WidgetProps } from './base';
+import type { PaddingValue } from './padding';
 
 export interface BorderRadius {
   topLeft: number;
@@ -18,8 +20,8 @@ export interface Border {
 export interface ContainerProps extends WidgetProps {
   width?: number;
   height?: number;
-  padding?: EdgeInsets | number;
-  margin?: EdgeInsets | number;
+  padding?: PaddingValue;
+  margin?: PaddingValue;
   color?: string;
   border?: Border;
   borderRadius?: BorderRadius | number;
@@ -46,21 +48,11 @@ export class Container extends Widget<ContainerProps> {
   private initContainerProperties(data: ContainerProps): void {
     this.width = data.width;
     this.height = data.height;
-    this.padding = this.normalizeEdgeInsets(data.padding);
-    this.margin = this.normalizeEdgeInsets(data.margin);
+    this.padding = resolveEdgeInsets(data.padding);
+    this.margin = resolveEdgeInsets(data.margin);
     this.color = data.color;
     this.border = data.border;
     this.borderRadius = this.normalizeBorderRadius(data.borderRadius);
-  }
-
-  private normalizeEdgeInsets(value?: EdgeInsets | number): EdgeInsets | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-    if (typeof value === 'number') {
-      return { top: value, right: value, bottom: value, left: value };
-    }
-    return value;
   }
 
   private normalizeBorderRadius(value?: BorderRadius | number): BorderRadius | undefined {

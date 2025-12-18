@@ -99,3 +99,8 @@ You are a Senior Core Engineer working on a high-performance rendering engine. Y
 - Always update `README.md` if high-level setup changes.
 - Add JSDoc comments to all public APIs in `src/core`.
 - If a new feature is added, create a corresponding doc in `docs/`.
+
+## 5. Comments Requirements
+
+1. The generated code should include reasonable comments
+2. All comments must be written in Chinese

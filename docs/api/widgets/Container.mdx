@@ -35,8 +35,8 @@ title: Container
 | --- | --- | --- | --- | --- |
 | `width` | `number` | 否 | 无 | 固定宽度 |
 | `height` | `number` | 否 | 无 | 固定高度 |
-| `padding` | `number \| { top:number; right:number; bottom:number; left:number }` | 否 | 无 | 内边距，支持简写数字与对象 |
-| `margin` | `number \| { top:number; right:number; bottom:number; left:number }` | 否 | 无 | 外边距，支持简写数字与对象 |
+| `padding` | `number \| object \| number[]` | 否 | 无 | 内边距，支持数字、对象与数组简写 ([all] \| [vertical, horizontal] 等) |
+| `margin` | `number \| object \| number[]` | 否 | 无 | 外边距，支持数字、对象与数组简写 ([all] \| [vertical, horizontal] 等) |
 | `color` | `string` | 否 | 无 | 背景色 |
 | `border` | `{ width:number; color:string; style?: 'solid' \| 'dashed' \| 'dotted' }` | 否 | 无 | 边框样式 |
 | `borderRadius` | `number \| { topLeft:number; topRight:number; bottomLeft:number; bottomRight:number }` | 否 | 无 | 圆角，支持简写数字与对象 |

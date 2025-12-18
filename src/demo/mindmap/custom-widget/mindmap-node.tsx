@@ -1,5 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 
+import { getTheme } from '../config/theme';
+
 import { Connector } from './connector';
 import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
@@ -487,42 +489,49 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     }
     const vp = findWidget(root, 'Viewport') as Viewport | null;
     const st = this.state as MindMapNodeProps;
+    const theme = getTheme();
     const editing = vp?.editingKey === this.key;
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
+    const active = vp?.activeKey === this.key;
     const isDragging = !!st.dragging;
     const baseFill = editing
-      ? 'rgba(22,119,255,0.08)'
-      : selected
-        ? '#e6f7ff'
-        : isDragging
-          ? 'rgba(255,255,255,0.6)'
-          : '#ffffff';
-    const textLen = st.title ? st.title.length : 0;
-    const estTextW = Math.max(40, textLen * 9);
-    const w = estTextW + 24;
-    const h = 20 + 24;
+      ? theme.nodeActiveFillColor
+      : active
+        ? theme.nodeActiveFillColor
+        : selected
+          ? theme.nodeSelectedFillColor
+          : isDragging
+            ? theme.nodeFillColor
+            : theme.backgroundColor;
     const hover = !!st.hovering;
-    const borderColor = hover || selected ? '#1890ff' : '#1677ff';
-    const borderWidth = hover || selected ? 2 : 1.2;
+    const borderColor =
+      active || editing
+        ? theme.nodeActiveBorderColor
+        : hover
+          ? theme.nodeHoverBorderColor
+          : selected
+            ? theme.nodeSelectedBorderColor
+            : theme.nodeDefaultBorderColor;
+    const borderWidth = active || editing || selected || hover ? 2 : 1;
+
     return (
       <Container
         key={`${String(this.key)}-box`}
-        width={w}
-        height={h}
-        padding={12}
+        padding={[12, 8]}
         color={baseFill}
         border={{
           color: borderColor,
           width: borderWidth,
+          style: selected && !active && !editing ? 'dashed' : 'solid',
         }}
-        borderRadius={10}
+        borderRadius={8}
         pointerEvents={'none'}
       >
         <Text
           key={`${String(this.key)}-text`}
           text={st.title}
           fontSize={14}
-          color={'#333333'}
+          color={theme.textColor}
           textAlign={TextAlign.Left}
           textAlignVertical={TextAlignVertical.Top}
           pointerEvents={'none'}

@@ -32,11 +32,23 @@ title: Padding
 </Container>
 ```
 
+### 数组简写（CSS 风格）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Container width={300} height={120} color="#e6f4ff">
+  {/* [vertical, horizontal] */}
+  <Padding padding={[16, 32]}>
+    <Text text="数组简写 [16, 32]" />
+  </Padding>
+</Container>
+```
+
 ## 属性
 
 | 属性名 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
-| `padding` | `number \| { top:number; right:number; bottom:number; left:number }` | 是 | 无 | 内边距，支持数字简写与对象 |
+| `padding` | `number \| object \| number[]` | 是 | 无 | 内边距，支持数字、对象与数组简写 ([all] \| [vertical, horizontal] 等) |
 | `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
 
 - children 支持类型：`Single`

@@ -31,6 +31,8 @@ export interface ViewportProps extends WidgetProps {
   onRedo?: () => void;
   onDeleteSelection?: () => void;
   onSetSelectedKeys?: (keys: string[]) => void;
+  /** 激活节点变更回调 */
+  onActiveKeyChange?: (key: string | null) => void;
 }
 
 function pointerIdOf(native?: Event): number {
@@ -88,6 +90,7 @@ export class Viewport extends Widget<ViewportProps> {
   private _onRedo?: () => void;
   private _onDeleteSelection?: () => void;
   private _onSetSelectedKeys?: (keys: string[]) => void;
+  private _onActiveKeyChange?: (key: string | null) => void;
   private selectAllActive: boolean = false;
   private wheelPending: { dx: number; dy: number } | null = null;
   private wheelRaf: number | null = null;
@@ -122,6 +125,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._onRedo = data.onRedo;
     this._onDeleteSelection = data.onDeleteSelection;
     this._onSetSelectedKeys = data.onSetSelectedKeys;
+    this._onActiveKeyChange = data.onActiveKeyChange;
   }
 
   createElement(data: ViewportProps): Widget<ViewportProps> {
@@ -210,6 +214,12 @@ export class Viewport extends Widget<ViewportProps> {
     return this._collapsedKeys;
   }
 
+  /**
+   * 设置视口变换（缩放与平移）
+   * @param scale 缩放比例
+   * @param tx 水平平移
+   * @param ty 垂直平移
+   */
   setTransform(scale: number, tx: number, ty: number): void {
     const s = clampScale(scale);
     const nx = Number.isFinite(tx) ? tx : this._tx;
@@ -221,6 +231,11 @@ export class Viewport extends Widget<ViewportProps> {
     this.markNeedsLayout();
   }
 
+  /**
+   * 设置视口平移
+   * @param tx 水平平移
+   * @param ty 垂直平移
+   */
   setPosition(tx: number, ty: number): void {
     const nx = Number.isFinite(tx) ? tx : this._tx;
     const ny = Number.isFinite(ty) ? ty : this._ty;
@@ -230,22 +245,56 @@ export class Viewport extends Widget<ViewportProps> {
     this.markNeedsLayout();
   }
 
+  /**
+   * 设置视口缩放比例
+   * @param scale 缩放比例
+   */
   setScale(scale: number): void {
     this._scale = clampScale(scale);
     this._onViewChange?.({ scale: this._scale, tx: this._tx, ty: this._ty });
     this.markNeedsLayout();
   }
 
+  /**
+   * 设置选中的节点 Keys
+   * @param keys 选中节点的 Key 列表
+   */
   setSelectedKeys(keys: string[]): void {
     this._selectedKeys = Array.from(keys);
+    // 通知子节点重绘以更新选中样式
+    const root = this as unknown as Widget;
+    const update = (w: Widget): void => {
+      if (w.type === CustomComponentType.MindMapNode) {
+        w.markDirty();
+      }
+      for (const c of w.children as Widget[]) {
+        update(c);
+      }
+    };
+    for (const c of root.children) {
+      update(c);
+    }
   }
 
+  /**
+   * 设置框选矩形
+   * @param rect 框选矩形（世界坐标），null 表示无框选
+   */
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
   }
 
+  /**
+   * 设置激活的节点 Key
+   * @param key 节点 Key，null 表示取消激活
+   */
   setActiveKey(key: string | null): void {
+    if (this._activeKey === key) {
+      return;
+    }
     this._activeKey = key ?? null;
+    this._onActiveKeyChange?.(this._activeKey);
+
     const start = (this.parent as Widget) ?? (this as Widget);
     const t = findWidget(start, `#${this._activeKey ?? ''}`) as Widget | null;
     if (t) {
@@ -273,10 +322,18 @@ export class Viewport extends Widget<ViewportProps> {
     this.markDirty();
   }
 
+  /**
+   * 设置正在编辑的节点 Key
+   * @param key 节点 Key，null 表示无编辑
+   */
   setEditingKey(key: string | null): void {
     this._editingKey = key ?? null;
   }
 
+  /**
+   * 设置折叠的节点 Keys
+   * @param keys 折叠节点的 Key 列表
+   */
   setCollapsedKeys(keys: string[]): void {
     this._collapsedKeys = Array.from(keys);
   }
@@ -285,7 +342,7 @@ export class Viewport extends Widget<ViewportProps> {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
     this.pointers.set(pid, world);
-    // Ctrl/Meta + 左键：进入全选模式（不触发平移/滚动）
+
     const pe = e?.nativeEvent as PointerEvent | undefined;
     const ctrlLike = !!(pe && (pe.ctrlKey || pe.metaKey));
     const leftBtn = !!(pe && pe.buttons & 1);
@@ -298,6 +355,9 @@ export class Viewport extends Widget<ViewportProps> {
     }
     if (leftBtn && !ctrlLike) {
       this._selectionRect = { x: world.x, y: world.y, width: 0, height: 0 };
+      if (this.activeKey) {
+        this.setActiveKey(null);
+      }
       return false;
     }
     // 若满足双指捏合（pinch）启动条件，优先开始缩放交互
@@ -322,6 +382,10 @@ export class Viewport extends Widget<ViewportProps> {
     if (this._selectionRect) {
       this._selectionRect.width = world.x - this._selectionRect.x;
       this._selectionRect.height = world.y - this._selectionRect.y;
+      // 实时计算框选结果并更新
+      const r = this.normalizeRect(this._selectionRect);
+      const selected = this.collectKeysInRect(r);
+      this.setSelectedKeys(selected);
       this.markNeedsLayout();
       return false;
     }
@@ -349,8 +413,10 @@ export class Viewport extends Widget<ViewportProps> {
       const selected = new Set(this.collectKeysInRect(r));
       this.setSelectedKeys(Array.from(selected));
       this._onSetSelectedKeys?.(this._selectedKeys);
+      // 框选结束（或点击空白）时取消激活状态
+      this.setActiveKey(null);
       this.markNeedsLayout();
-      return false;
+      e.stopPropagation();
     }
   }
 
@@ -570,33 +636,39 @@ export class Viewport extends Widget<ViewportProps> {
 
   private collectKeysInRect(r: { x: number; y: number; width: number; height: number }): string[] {
     const out: string[] = [];
-    const root = this.parent;
+    // Should search within Viewport's children
+    const root = this as unknown as Widget;
+    const vpPos = this.getAbsolutePosition();
     const walk = (w: Widget) => {
-      const p = w.getAbsolutePosition();
-      const s = w.renderObject.size;
-      const isNode = w.type === CustomComponentType.MindMapNode;
-      if (
-        isNode &&
-        p.dx < r.x + r.width &&
-        p.dx + s.width > r.x &&
-        p.dy < r.y + r.height &&
-        p.dy + s.height > r.y
-      ) {
-        out.push(w.key as string);
+      if (w.type === CustomComponentType.MindMapNode) {
+        const p = w.getAbsolutePosition();
+        // Convert screen coordinate to content coordinate
+        // Content = (Screen - ViewportOffset - tx) / scale - contentTx
+        const cx = (p.dx - vpPos.dx - this.tx) / this.scale - this._contentTx;
+        const cy = (p.dy - vpPos.dy - this.ty) / this.scale - this._contentTy;
+
+        if (
+          cx < r.x + r.width &&
+          cx + w.renderObject.size.width > r.x &&
+          cy < r.y + r.height &&
+          cy + w.renderObject.size.height > r.y
+        ) {
+          out.push(w.key as string);
+        }
       }
-      for (const c of w.children) {
+      for (const c of w.children as Widget[]) {
         walk(c);
       }
     };
-    if (root) {
-      walk(root as Widget);
+    for (const c of root.children) {
+      walk(c);
     }
     return out;
   }
 
   private collectAllNodeKeys(): string[] {
     const out: string[] = [];
-    const root = this.parent;
+    const root = this as unknown as Widget;
     const walk = (w: Widget) => {
       const isNode = w.type === CustomComponentType.MindMapNode;
       if (isNode) {

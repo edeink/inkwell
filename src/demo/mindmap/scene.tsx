@@ -424,6 +424,17 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     });
   };
 
+  private onActiveKeyChange = (key: string | null): void => {
+    const s = (this.state as SceneState).graph;
+    if (s.activeKey === key) {
+      return;
+    }
+    this.setState({
+      ...this.state,
+      graph: { ...s, activeKey: key },
+    });
+  };
+
   render() {
     const s = (this.state as SceneState).graph;
     const view = (this.state as SceneState).viewState;
@@ -443,8 +454,10 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         scale={view.scale}
         tx={view.tx}
         ty={view.ty}
+        activeKey={s.activeKey}
         onScroll={this.onScroll}
         onViewChange={this.onViewChange}
+        onActiveKeyChange={this.onActiveKeyChange}
         onZoomAt={this.onZoomAt}
         onDeleteSelection={this.onDeleteSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}

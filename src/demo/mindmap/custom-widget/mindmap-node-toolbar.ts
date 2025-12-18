@@ -226,7 +226,6 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   onPointerDown(e: InkwellEvent): boolean | void {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
-      e.stopPropagation();
       const now = Date.now();
       if (now - this.lastActionTime < 100) {
         return;
