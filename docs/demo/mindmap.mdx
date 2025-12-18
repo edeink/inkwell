@@ -1,0 +1,63 @@
+---
+title: 思维导图 Demo
+sidebar_label: 思维导图
+---
+
+import { Scene } from '@mindmap/scene';
+
+# 思维导图 (Mindmap)
+
+这是一个基于 Inkwell 框架实现的思维导图示例，展示了如何使用 Inkwell 构建高性能的交互式图形应用。
+
+## 在线演示
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Scene />
+```
+
+## 功能特性
+
+该示例实现了思维导图的核心功能，包括：
+
+1.  **节点管理**
+    *   **根节点 (Root)**: 导图的中心主题。
+    *   **子节点 (Child)**: 支持无限层级的子节点扩展。
+    *   **同级节点 (Sibling)**: 支持在当前节点上方或下方添加同级节点。
+    *   **布局自动调整**: 采用 `MindMapLayout` 实现自动化的树状布局算法（`treeBalanced`），确保节点互不重叠且视觉平衡。
+
+2.  **交互操作**
+    *   **拖拽 (Drag)**: 支持拖拽节点改变位置（演示中实现了拖拽逻辑，但配合自动布局时通常用于重新排序或临时调整，具体行为取决于 `MindMapLayout` 的约束）。
+    *   **缩放与平移 (Zoom & Pan)**: 通过 `Viewport` 组件实现画布的无限漫游和缩放查看。
+    *   **选中与激活**: 点击节点进行选中，支持键盘快捷键操作（如 `Tab` 添加子节点，`Enter` 添加同级节点）。
+    *   **编辑**: 双击节点文本进行编辑。
+
+3.  **连接线 (Connector)**
+    *   使用贝塞尔曲线或折线自动连接父子节点。
+    *   样式可配置（粗细、颜色、虚线等）。
+
+## Inkwell 最佳实践
+
+本示例展示了 Inkwell 框架的几个核心概念：
+
+### 1. 组件化开发 (Widgets)
+整个导图由多个细粒度的 Widget 组合而成：
+*   `Scene`: 顶层容器，管理全局状态（GraphState）。
+*   `MindMapNode`: 自定义 Widget，封装了节点的绘制（Container + Text）和交互逻辑（事件处理）。
+*   `Connector`: 用于绘制连接线。
+
+### 2. 状态管理
+使用 `StatefulWidget` (`Scene`) 来管理整个图的数据结构（Nodes & Edges）。当数据变化时，通过 `setState` 触发重建，Inkwell 的 Diff 算法会高效更新视图。
+
+### 3. 自定义布局 (Custom Layout)
+`MindMapLayout` 是一个自定义布局组件，它通过重写 `performLayout` 方法，实现了复杂的树形结构排版算法。这展示了 Inkwell 强大的布局扩展能力。
+
+### 4. 高性能渲染
+得益于 Canvas 渲染和 Inkwell 的脏矩形检测机制，即使在节点数量较多时，也能保持流畅的帧率。
+
+## 代码结构
+
+*   `src/demo/mindmap/scene.tsx`: 场景入口，定义数据状态和渲染逻辑。
+*   `src/demo/mindmap/custom-widget/mindmap-node.tsx`: 节点组件实现。
+*   `src/demo/mindmap/custom-widget/mindmap-layout.ts`: 布局算法实现。
+*   `src/demo/mindmap/custom-widget/connector.ts`: 连接线实现。

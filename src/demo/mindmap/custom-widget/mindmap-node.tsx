@@ -114,8 +114,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     }
     const worldX = (e.x - vp.tx) / vp.scale;
     const worldY = (e.y - vp.ty) / vp.scale;
-    const pos = this.getAbsolutePosition();
-    this.dragState = { startX: worldX, startY: worldY, origDx: pos.dx, origDy: pos.dy };
+    const offset = this.renderObject.offset || { dx: 0, dy: 0 };
+    this.dragState = { startX: worldX, startY: worldY, origDx: offset.dx, origDy: offset.dy };
     this.clickCandidate = { startX: e.x, startY: e.y };
     this.detachWindowPointerListeners();
     this.attachWindowPointerListeners(e.nativeEvent);

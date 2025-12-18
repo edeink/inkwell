@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '@mindmap': path.resolve(__dirname, 'src/demo/mindmap'),
       '@theme-original/CodeBlock': path.resolve(
         __dirname,
         'src/docusaurus/theme/CodeBlock/__tests__/stubs/OriginalCodeBlock.tsx',

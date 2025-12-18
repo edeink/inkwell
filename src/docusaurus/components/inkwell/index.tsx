@@ -1,4 +1,5 @@
 import * as Babel from '@babel/standalone';
+import { Scene } from '@mindmap/scene';
 import classnames from 'classnames';
 import React from 'react';
 
@@ -127,6 +128,7 @@ export default function Inkwell({
           'Editor',
           'DevTools',
           'InkConsole',
+          'Scene',
           'canvasId',
           ...Object.keys(Core),
           `${compiled}; return Template;`,
@@ -138,16 +140,17 @@ export default function Inkwell({
           Runtime,
           DevTools,
           ink,
+          Scene,
           canvasId,
           ...Object.values(Core),
         );
         await editor.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
-      } catch (e: any) {
-        onError?.(e?.stack ?? String(e));
+      } catch (e: unknown) {
+        onError?.((e as Error)?.stack ?? String(e));
       }
     },
-    [canvasId, cleanup, compile, width, height, onError, onSuccess],
+    [canvasId, cleanup, compile, onError, onSuccess],
   );
 
   React.useEffect(() => {

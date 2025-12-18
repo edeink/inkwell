@@ -39,6 +39,12 @@ export default {
     },
     {
       type: 'category',
+      label: 'Demo 例子',
+      collapsed: true,
+      items: ['demo/mindmap'],
+    },
+    {
+      type: 'category',
       label: '其他资源',
       collapsed: true,
       items: ['meta/faq', 'meta/test-overview', 'meta/test-component'],
