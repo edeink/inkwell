@@ -170,6 +170,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
+
+    const nodeAbs = node.getAbsolutePosition();
+    const localX = x - nodeAbs.dx;
+    const localY = y - nodeAbs.dy;
+    const M = 2;
+
     for (const s of sides) {
       const pos = calculatePlusButtonPosition(
         s,
@@ -177,12 +183,42 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
         { width: btnSize, height: btnSize },
         margin,
       );
-      const inside = x >= pos.x && y >= pos.y && x <= pos.x + btnSize && y <= pos.y + btnSize;
+      const lx = pos.x - nodeRect.x;
+      const ly = pos.y - nodeRect.y;
+      const inside =
+        localX >= lx - M &&
+        localY >= ly - M &&
+        localX <= lx + btnSize + M &&
+        localY <= ly + btnSize + M;
       if (inside) {
         return true;
       }
     }
     return false;
+  }
+
+  private transformToNodeLocal(
+    x: number,
+    y: number,
+    node: Widget,
+    vp: Viewport,
+  ): { x: number; y: number } {
+    const nodeAbs = node.getAbsolutePosition();
+    const vpOffset = vp.renderObject.offset;
+    const vpTx = vp.tx;
+    const vpTy = vp.ty;
+    const scale = vp.scale;
+
+    const contentX = (x - vpOffset.dx - vpTx) / scale;
+    const contentY = (y - vpOffset.dy - vpTy) / scale;
+
+    const nodeOffsetX = nodeAbs.dx - vpOffset.dx;
+    const nodeOffsetY = nodeAbs.dy - vpOffset.dy;
+
+    return {
+      x: contentX - nodeOffsetX,
+      y: contentY - nodeOffsetY,
+    };
   }
 
   private lastActionTime: number = 0;
@@ -248,10 +284,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     x: number,
     y: number,
   ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; side?: Side } | null {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
+    const root = this.root;
     const node = findWidget(root, ':active') as Widget | null;
     if (!node) {
       return null;
@@ -266,9 +299,9 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const pNode = node.getAbsolutePosition();
     const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
     const btnSize = 20;
-    const nodeAbs = node.getAbsolutePosition();
-    const localX = x - nodeAbs.dx;
-    const localY = y - nodeAbs.dy;
+    const localP = this.transformToNodeLocal(x, y, node, vp);
+    const localX = localP.x;
+    const localY = localP.y;
     const M = 2;
     for (const s of sides) {
       const pos = calculatePlusButtonPosition(

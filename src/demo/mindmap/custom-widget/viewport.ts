@@ -24,6 +24,8 @@ export interface ViewportProps extends WidgetProps {
   scrollY?: number;
   // 新增事件：滚动更新回调，外部据此更新 scrollX/scrollY
   onScroll?: (scrollX: number, scrollY: number) => void;
+  // 新增事件：视图变换回调（缩放/平移）
+  onViewChange?: (view: { scale: number; tx: number; ty: number }) => void;
   onZoomAt?: (scale: number, cx: number, cy: number) => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -80,6 +82,7 @@ export class Viewport extends Widget<ViewportProps> {
   } | null = null;
   private pointers: Map<number, { x: number; y: number }> = new Map();
   private _onScroll?: (scrollX: number, scrollY: number) => void;
+  private _onViewChange?: (view: { scale: number; tx: number; ty: number }) => void;
   private _onZoomAt?: (scale: number, cx: number, cy: number) => void;
   private _onUndo?: () => void;
   private _onRedo?: () => void;
@@ -113,6 +116,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._contentTx = (data.scrollX ?? this._contentTx) as number;
     this._contentTy = (data.scrollY ?? this._contentTy) as number;
     this._onScroll = data.onScroll;
+    this._onViewChange = data.onViewChange;
     this._onZoomAt = data.onZoomAt;
     this._onUndo = data.onUndo;
     this._onRedo = data.onRedo;
@@ -213,6 +217,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._scale = s;
     this._tx = nx;
     this._ty = ny;
+    this._onViewChange?.({ scale: s, tx: nx, ty: ny });
     this.markNeedsLayout();
   }
 
@@ -221,11 +226,13 @@ export class Viewport extends Widget<ViewportProps> {
     const ny = Number.isFinite(ty) ? ty : this._ty;
     this._tx = nx;
     this._ty = ny;
+    this._onViewChange?.({ scale: this._scale, tx: nx, ty: ny });
     this.markNeedsLayout();
   }
 
   setScale(scale: number): void {
     this._scale = clampScale(scale);
+    this._onViewChange?.({ scale: this._scale, tx: this._tx, ty: this._ty });
     this.markNeedsLayout();
   }
 

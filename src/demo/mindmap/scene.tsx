@@ -73,7 +73,7 @@ interface SceneProps extends WidgetProps {
   width?: number;
   height?: number;
 }
-type SceneState = { graph: GraphState };
+type SceneState = { graph: GraphState; viewState: { scale: number; tx: number; ty: number } };
 
 /**
  * 创建 Mindmap 场景
@@ -90,7 +90,10 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
 
   constructor(data: SceneProps) {
     super(data);
-    this.state = { graph: makeInitialState() };
+    this.state = {
+      graph: makeInitialState(),
+      viewState: { scale: 1, tx: 0, ty: 0 },
+    };
   }
 
   private getViewport(): ViewportCls | null {
@@ -414,8 +417,16 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
   };
   private shouldCenter = true;
 
+  private onViewChange = (view: { scale: number; tx: number; ty: number }): void => {
+    this.setState({
+      ...this.state,
+      viewState: view,
+    });
+  };
+
   render() {
     const s = (this.state as SceneState).graph;
+    const view = (this.state as SceneState).viewState;
     const width = (this.props as SceneProps).width ?? 800;
     const height = (this.props as SceneProps).height ?? 600;
     const { elements, toolbar } = this.renderGraphCached(s, {
@@ -427,12 +438,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     return (
       <Viewport
         key="v"
-        scale={1}
-        tx={0}
-        ty={0}
         width={width}
         height={height}
+        scale={view.scale}
+        tx={view.tx}
+        ty={view.ty}
         onScroll={this.onScroll}
+        onViewChange={this.onViewChange}
         onZoomAt={this.onZoomAt}
         onDeleteSelection={this.onDeleteSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}

@@ -55,6 +55,14 @@ import { Scene } from '@mindmap/scene';
 ### 4. 高性能渲染
 得益于 Canvas 渲染和 Inkwell 的脏矩形检测机制，即使在节点数量较多时，也能保持流畅的帧率。
 
+### 5. 缩放兼容性 (Scale Compatibility)
+在实现交互组件（如 `MindMapNodeToolbar`）时，需要注意坐标系统的转换。
+- **屏幕坐标 (Screen Coordinates)**: 用户点击或触摸的原始坐标。
+- **世界坐标 (World Coordinates)**: 画布内容的坐标。
+- **本地坐标 (Local Coordinates)**: 组件内部的坐标。
+
+当 Viewport 发生缩放或平移时，屏幕坐标需要经过逆变换才能正确映射到组件的本地坐标。示例中通过 `transformToNodeLocal` 等方法确保了工具栏按钮在任何缩放比例下都能精准响应点击。
+
 ## 代码结构
 
 *   `src/demo/mindmap/scene.tsx`: 场景入口，定义数据状态和渲染逻辑。
