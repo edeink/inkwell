@@ -10,7 +10,6 @@ import { ConnectorStyle } from './helpers/connection-drawer';
 import type { Viewport as ViewportCls } from './custom-widget/viewport';
 import type { WidgetProps } from '@/core/base';
 import type Runtime from '@/runtime';
-import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import { StatefulWidget, Widget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -86,8 +85,8 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     NodeId,
     { title: string; prefSide?: Side; activeKey: NodeId | null; active: boolean }
   > = new Map();
-  private nodeElementCache: Map<NodeId, JSXElement> = new Map();
-  private edgeElementCache: Map<string, JSXElement> = new Map();
+  private nodeElementCache: Map<NodeId, WidgetProps> = new Map();
+  private edgeElementCache: Map<string, WidgetProps> = new Map();
 
   constructor(data: SceneProps) {
     super(data);
@@ -314,6 +313,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     },
   ) {
     const ids = new Set<string>();
+    // ... (keep existing logic)
     for (const id of state.nodes.keys()) {
       ids.add(id);
     }
@@ -332,7 +332,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         this.edgeElementCache.delete(k);
       }
     }
-    const nodes: JSXElement[] = [];
+    const nodes: WidgetProps[] = [];
     for (const [id, n] of state.nodes.entries()) {
       const props = {
         title: n.title,
@@ -359,13 +359,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
             onActive={handlers.onActive}
             onMoveNode={handlers.onMoveNode}
           />
-        ) as unknown as JSXElement;
+        );
         this.nodePropsCache.set(id, props);
         this.nodeElementCache.set(id, el!);
       }
       nodes.push(el!);
     }
-    const edges: JSXElement[] = [];
+    const edges: WidgetProps[] = [];
     for (const e of state.edges) {
       const k = `e-${e.from}-${e.to}`;
       let el = this.edgeElementCache.get(k);
@@ -393,17 +393,15 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         activeKey={state.activeKey}
       />
     );
-    return [...nodes, ...edges, toolbar];
+    return { elements: [...nodes, ...edges], toolbar };
   }
 
   private onLayout = (size: { width: number; height: number }) => {
+    // ...
     const vp = this.getViewport();
     if (!vp) {
       return;
     }
-    // 仅在首次加载或显式重置时居中 (可以通过状态控制，这里简单实现首次居中逻辑：如果 tx/ty 为 0)
-    // 但 tx/ty 可能被用户滚动回 0。
-    // 更好的方式是使用一个标志位
     if (this.shouldCenter) {
       const { width, height } = this.props as SceneProps;
       const vw = width ?? 800;
@@ -420,7 +418,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     const s = (this.state as SceneState).graph;
     const width = (this.props as SceneProps).width ?? 800;
     const height = (this.props as SceneProps).height ?? 600;
-    const children = this.renderGraphCached(s, {
+    const { elements, toolbar } = this.renderGraphCached(s, {
       onActive: this.onActive,
       onMoveNode: this.onMoveNode,
       onAddSibling: this.onAddSibling,
@@ -447,7 +445,8 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
           version={s.version}
           onLayout={this.onLayout}
         >
-          {children}
+          {toolbar}
+          {elements}
         </MindMapLayout>
       </Viewport>
     );

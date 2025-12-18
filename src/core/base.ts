@@ -621,4 +621,33 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const h = this.renderObject.size.height;
     return x >= pos.dx && y >= pos.dy && x <= pos.dx + w && y <= pos.dy + h;
   }
+
+  /**
+   * 递归命中测试
+   */
+  public visitHitTest(x: number, y: number): Widget | null {
+    if (this.pointerEvents === 'none') {
+      return this.hitTestChildren(x, y);
+    }
+    if (!this.hitTest(x, y)) {
+      return null;
+    }
+    const child = this.hitTestChildren(x, y);
+    if (child) {
+      return child;
+    }
+    return this;
+  }
+
+  protected hitTestChildren(x: number, y: number): Widget | null {
+    // 倒序遍历（高 zIndex 优先）
+    const children = this.children.slice().sort((a, b) => b.zIndex - a.zIndex);
+    for (const child of children) {
+      const res = child.visitHitTest(x, y);
+      if (res) {
+        return res;
+      }
+    }
+    return null;
+  }
 }

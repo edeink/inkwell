@@ -78,16 +78,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   protected performLayout(): Size {
-    let root: Widget | null = (this as unknown as Widget) ?? null;
-    while (root && root.parent) {
-      root = root.parent as Widget;
-    }
-    const vp = findWidget(root, 'Viewport') as Viewport | null;
-    if (vp) {
-      return { width: vp.width, height: vp.height } as Size;
-    }
-    const node = findWidget(root, ':active') as Widget | null;
-    return node ? (node.renderObject.size as Size) : ({ width: 0, height: 0 } as Size);
+    const parent = this.parent;
+    return parent ? (parent.renderObject.size as Size) : ({ width: 0, height: 0 } as Size);
   }
 
   protected getConstraintsForChild(

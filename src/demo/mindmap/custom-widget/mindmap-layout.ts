@@ -1,6 +1,7 @@
 import { LayoutEngine } from './layout-engine';
 import { CustomComponentType, Side } from './type';
 
+import type { Viewport } from './viewport';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -27,6 +28,28 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
   private lastSignature: string | null = null;
   private lastSize: Size | null = null;
   private lastSides = new Map<string, Side>();
+
+  public visitHitTest(x: number, y: number): Widget | null {
+    let wx = x;
+    let wy = y;
+    const vp = this.parent as Viewport;
+    if (typeof vp.scale === 'number' && typeof vp.tx === 'number') {
+      const s = vp.scale || 1;
+      const tx = vp.tx || 0;
+      const ty = vp.ty || 0;
+      wx = (x - tx) / s;
+      wy = (y - ty) / s;
+    }
+
+    const child = this.hitTestChildren(wx, wy);
+    if (child) {
+      return child;
+    }
+    if (this.hitTest(wx, wy)) {
+      return this;
+    }
+    return null;
+  }
 
   constructor(data: MindMapLayoutProps) {
     super(data);

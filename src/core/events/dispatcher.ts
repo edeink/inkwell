@@ -13,7 +13,6 @@
  * - 处理器返回 false 或调用 e.stopPropagation() 均会终止后续传播。
  * - 键盘事件以根节点为目标进行分发。
  */
-import { hitTest } from './hit-test';
 import { EventRegistry } from './registry';
 import { EventPhase, type EventType, type InkwellEvent } from './types';
 
@@ -21,6 +20,13 @@ import type { Widget } from '@/core/base';
 import type Runtime from '@/runtime';
 
 let currentRuntime: Runtime | null = null;
+
+function hitTest(root: Widget | null, x: number, y: number): Widget | null {
+  if (!root) {
+    return null;
+  }
+  return root.visitHitTest(x, y);
+}
 
 /**
  * 类方法解析：为给定事件类型与阶段生成可能的类方法名称列表
