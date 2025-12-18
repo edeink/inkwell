@@ -48,6 +48,7 @@ export async function buildTextWidgetSceneV2(
 
   const tBuild0 = performance.now();
   const root = (await WidgetRegistry.createWidget(json))!; // use same path as prev for fairness
+  root.createElement(json);
   const tBuild1 = performance.now();
 
   const constraints = {

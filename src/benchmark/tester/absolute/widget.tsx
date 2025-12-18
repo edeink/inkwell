@@ -54,6 +54,7 @@ export async function buildAbsoluteWidgetScene(
 
   const tBuild0 = performance.now();
   const root = WidgetRegistry.createWidget(json)!;
+  root.createElement(json);
   const tBuild1 = performance.now();
 
   const constraints: BoxConstraints = {
