@@ -35,11 +35,56 @@ export class MindmapController {
     this.viewTy = viewport.ty;
     this.view = new ViewModule(this, onViewChange);
     this.onViewChangeCb = onViewChange ?? null;
+
+    // Subscribe to viewport events
+    this.viewport.addViewChangeListener((v) => {
+      this.viewScale = v.scale;
+      this.viewTx = v.tx;
+      this.viewTy = v.ty;
+      this.view.syncFromViewport();
+    });
+    this.viewport.addScrollListener((cx, cy) => {
+      this.view.syncFromViewport();
+    });
+
     this.layoutModule = new LayoutModule(this);
     this.layoutModule.attach();
     this.interaction = new InteractionModule(this, this.view);
     this.interaction.attach();
     MindmapController.byRuntime.set(runtime, this);
+    (runtime as unknown as { __mindmapController: MindmapController }).__mindmapController = this;
+  }
+
+  get contentTx(): number {
+    return this.viewport.getContentPosition().tx;
+  }
+
+  get contentTy(): number {
+    return this.viewport.getContentPosition().ty;
+  }
+
+  notifyViewChange(): void {
+    this.view.notifyListeners();
+  }
+
+  // Layout notification
+  private layoutListeners: Set<() => void> = new Set();
+
+  dispatchLayoutChange(): void {
+    this.layoutListeners.forEach((fn) => fn());
+  }
+
+  addLayoutChangeListener(fn: () => void): () => void {
+    this.layoutListeners.add(fn);
+    return () => this.layoutListeners.delete(fn);
+  }
+
+  loadGraph(data: unknown): void {
+    const root = this.runtime.getRootWidget();
+    // 假设 root 是 Scene 或者有一个方法 setGraphData
+    if (root && typeof (root as unknown as { setGraphData: unknown }).setGraphData === 'function') {
+      (root as unknown as { setGraphData: (d: unknown) => void }).setGraphData(data);
+    }
   }
 
   registerPlugin(plugin: ControllerPlugin): void {

@@ -34,6 +34,14 @@ export class ViewModule {
     return this._ty;
   }
 
+  syncFromViewport(): void {
+    const vp = this.controller.viewport as Viewport;
+    this._scale = vp.scale;
+    this._tx = vp.tx;
+    this._ty = vp.ty;
+    this.notifyListeners();
+  }
+
   setPosition(tx: number, ty: number): void {
     this._tx = tx;
     this._ty = ty;
@@ -68,6 +76,10 @@ export class ViewModule {
     const vp = this.controller.viewport as Viewport;
     vp.setTransform(this._scale, this._tx, this._ty);
     this.resetCanvasTransform();
+    this.notifyListeners();
+  }
+
+  notifyListeners(): void {
     this.onViewChange?.(this._scale, this._tx, this._ty);
     for (const fn of this.listeners) {
       try {
@@ -76,7 +88,7 @@ export class ViewModule {
     }
     this.dispatchViewChangeEvent();
     try {
-      vp.markNeedsLayout();
+      this.controller.viewport.markNeedsLayout();
     } catch {}
     try {
       const ctx = this.controller.getPluginContext();

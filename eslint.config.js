@@ -69,9 +69,10 @@ export default tseslint.config([
     // 测试覆盖：*.spec.tsx 文件中关闭 no-explicit-any
     // 原因：测试场景常需要快速构造、模拟与断言对象，使用 any 可提升可读性与编写效率
     // 适用范围：仅匹配所有路径下的 *.spec.tsx 文件，不影响生产代码
-    files: ['**/*.spec.tsx', '**/*.spec.ts'],
+    files: ['**/*.spec.tsx', '**/*.spec.ts', '**/*.test.tsx', '**/*.test.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      'max-len': 'off',
     },
   },
 ]);

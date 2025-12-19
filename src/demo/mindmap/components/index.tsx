@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { SCALE_CONFIG } from '../config/constants';
+import { MindmapContext } from '../context';
 import { MindmapController } from '../controller/index';
+import { Viewport } from '../custom-widget/viewport';
 import { runApp } from '../scene';
 
 import ErrorBoundary from './error-boundary';
@@ -9,6 +10,7 @@ import Minimap from './minimap';
 import Toolbar from './toolbar';
 import ZoomBar from './zoom-bar';
 
+import { findWidget } from '@/core/helper/widget-selector';
 import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
 
@@ -90,35 +92,19 @@ export default function MindmapComponent({
       }
       const runtime = runtimeRef.current!;
       runApp(runtime!, size);
-      // const root = runtime.getRootWidget();
-      // const vp = findViewport(root);
-      // if (vp) {
-      //   const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
-      //   setController(ctrl);
-      //   setZoom(vp.scale);
-      // }
+      const root = runtime.getRootWidget();
+      const vp = findWidget(root, 'Viewport') as Viewport | null;
+      if (vp) {
+        const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
+        setController(ctrl);
+        setZoom(vp.scale);
+      }
     })().catch((e) => console.error('Render mindmap failed:', e));
 
     return () => {
       setController(null);
     };
   }, [canvasContainerId, size, background, backgroundAlpha]);
-
-  useEffect(() => {
-    const el = document.getElementById(canvasContainerId);
-    if (!el) {
-      return;
-    }
-    const onViewChange = (e: Event) => {
-      const detail = (e as CustomEvent<{ scale: number; tx: number; ty: number }>).detail;
-      const s = detail?.scale;
-      if (typeof s === 'number') {
-        setZoom(s);
-      }
-    };
-    el.addEventListener('inkwell:viewchange', onViewChange as EventListener);
-    return () => el.removeEventListener('inkwell:viewchange', onViewChange as EventListener);
-  }, [canvasContainerId]);
 
   useEffect(() => {
     // 组件卸载时销毁 Runtime，释放资源
@@ -134,28 +120,19 @@ export default function MindmapComponent({
 
   return (
     <ErrorBoundary>
-      <div ref={hostRef} className={`mindmapHost ${className ?? ''}`} style={style}>
-        <div id={canvasContainerId} className="canvasContainer" />
-        {runtimeRef.current && controller && (
-          <Minimap
-            runtime={runtimeRef.current}
-            viewport={controller.viewport}
-            controller={controller}
-          />
-        )}
-        <ZoomBar
-          value={zoom}
-          min={SCALE_CONFIG.MIN_SCALE}
-          max={SCALE_CONFIG.MAX_SCALE}
-          step={0.01}
-          onChange={(s) => {
-            setZoom(s);
-            controller?.zoomAt(s, size.width / 2, size.height / 2);
-          }}
-        />
-        <Toolbar runtime={runtimeRef.current} width={size.width} height={size.height} />
-        <DevTools />
-      </div>
+      <MindmapContext.Provider value={controller}>
+        <div ref={hostRef} className={`mindmapHost ${className ?? ''}`} style={style}>
+          <div id={canvasContainerId} className="canvasContainer" />
+          {runtimeRef.current && controller && (
+            <>
+              <Minimap />
+              <ZoomBar />
+              <Toolbar />
+            </>
+          )}
+          <DevTools />
+        </div>
+      </MindmapContext.Provider>
     </ErrorBoundary>
   );
 }

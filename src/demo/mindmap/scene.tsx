@@ -107,12 +107,12 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
   }
 
   private onScroll = (scrollX: number, scrollY: number): void => {
-    const vp = this.getViewport();
-    if (!vp) {
-      return;
+    // 通知 Controller 视图变更（因为 Viewport 内容偏移改变了）
+    // @ts-expect-error runtime extension
+    const ctrl = this.runtime.__mindmapController;
+    if (ctrl && typeof ctrl.notifyViewChange === 'function') {
+      ctrl.notifyViewChange();
     }
-    vp.setContentPosition(scrollX, scrollY);
-    vp.markNeedsLayout();
   };
 
   private onZoomAt = (scale: number, cx: number, cy: number): void => {
@@ -122,6 +122,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     }
     vp.zoomAt(scale, cx, cy);
     vp.markNeedsLayout();
+
+    // 通知 Controller 视图变更
+    // @ts-expect-error runtime extension
+    const ctrl = this.runtime.__mindmapController;
+    if (ctrl && typeof ctrl.notifyViewChange === 'function') {
+      ctrl.notifyViewChange();
+    }
   };
 
   // onRenderComplete 移除：统一由基类调度下一 Tick
@@ -400,7 +407,26 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
   }
 
   private onLayout = (size: { width: number; height: number }) => {
-    // ...
+    // 通知 Controller 布局更新
+    if (this.runtime) {
+      // 动态导入避免循环依赖，或使用全局/WeakMap查找
+      // 假设 MindmapController 挂在 Runtime 上或通过某种方式可访问
+      // 这里我们使用自定义事件或者查找 Controller
+      // 由于 Controller.byRuntime 是静态的，我们可以尝试访问
+      // 但为了避免导入 Controller 类（可能导致循环依赖），我们这里先暂时不通过 Controller
+      // 而是通过 dispatchEvent 发送事件？
+      // 或者，Scene 不直接依赖 Controller。
+      // 反过来，Controller 可以 hook into Scene？
+      // 让我们看看 MindmapController 是否可以注册到 Runtime。
+    }
+
+    // 尝试获取 Controller 并通知
+    // @ts-expect-error runtime extension
+    const ctrl = this.runtime.__mindmapController;
+    if (ctrl && typeof ctrl.dispatchLayoutChange === 'function') {
+      ctrl.dispatchLayoutChange();
+    }
+
     const vp = this.getViewport();
     if (!vp) {
       return;
@@ -415,6 +441,44 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       this.shouldCenter = false;
     }
   };
+
+  public setGraphData(data: {
+    nodes: Array<{ key: string; title: string; parent?: string }>;
+    edges: Array<{ from: string; to: string }>;
+    activeKey?: string | null;
+  }) {
+    const nodes = new Map<string, GraphNode>();
+    let maxId = 0;
+
+    data.nodes.forEach((n) => {
+      nodes.set(n.key, { id: n.key, title: n.title });
+      // 尝试解析 ID 中的数字以更新 nextId
+      const match = n.key.match(/\d+$/);
+      if (match) {
+        const idNum = parseInt(match[0], 10);
+        if (!isNaN(idNum) && idNum > maxId) {
+          maxId = idNum;
+        }
+      }
+    });
+
+    const nextId = maxId > 0 ? maxId + 1 : 1000;
+
+    const newState: GraphState = {
+      nodes,
+      edges: data.edges,
+      activeKey: data.activeKey ?? null,
+      version: (this.state as SceneState).graph.version + 1,
+      nextId,
+    };
+
+    this.setState({ graph: newState });
+
+    // 重置视图位置到中心？或者保持不变？
+    // 应该让 Viewport 重新布局
+    this.shouldCenter = true;
+  }
+
   private shouldCenter = true;
 
   private onViewChange = (view: { scale: number; tx: number; ty: number }): void => {

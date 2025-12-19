@@ -3,25 +3,34 @@ import { InputNumber, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SCALE_CONFIG } from '../../config/constants';
+import { useMindmapController } from '../../context';
+import { useMindmapView } from '../../hooks/use-mindmap-view';
 
 import { quantize } from './helper';
 import styles from './index.module.less';
 
 interface ZoomBarProps {
-  value: number;
   min?: number;
   max?: number;
   step?: number;
-  onChange: (value: number) => void;
 }
 
 export default function ZoomBar({
-  value,
   min = SCALE_CONFIG.MIN_SCALE,
   max = SCALE_CONFIG.MAX_SCALE,
   step = 0.01,
-  onChange,
 }: ZoomBarProps) {
+  const controller = useMindmapController();
+  const viewState = useMindmapView();
+  const value = viewState.scale;
+
+  const onChange = useCallback(
+    (v: number) => {
+      controller.viewport.setScale(v);
+    },
+    [controller],
+  );
+
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const percent = Math.round(value * 100);

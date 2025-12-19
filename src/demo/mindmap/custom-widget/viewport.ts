@@ -93,9 +93,39 @@ export class Viewport extends Widget<ViewportProps> {
   private _onActiveKeyChange?: (key: string | null) => void;
   private selectAllActive: boolean = false;
 
+  private _onViewChangeListeners: Set<(view: { scale: number; tx: number; ty: number }) => void> =
+    new Set();
+  private _onScrollListeners: Set<(scrollX: number, scrollY: number) => void> = new Set();
+
   constructor(data: ViewportProps) {
     super(data);
     this.init(data);
+    if (data.onViewChange) {
+      this._onViewChangeListeners.add(data.onViewChange);
+    }
+    if (data.onScroll) {
+      this._onScrollListeners.add(data.onScroll);
+    }
+  }
+
+  addViewChangeListener(fn: (view: { scale: number; tx: number; ty: number }) => void): () => void {
+    this._onViewChangeListeners.add(fn);
+    return () => this._onViewChangeListeners.delete(fn);
+  }
+
+  addScrollListener(fn: (scrollX: number, scrollY: number) => void): () => void {
+    this._onScrollListeners.add(fn);
+    return () => this._onScrollListeners.delete(fn);
+  }
+
+  private notifyViewChange(scale: number, tx: number, ty: number) {
+    this._onViewChange?.({ scale, tx, ty });
+    this._onViewChangeListeners.forEach((fn) => fn({ scale, tx, ty }));
+  }
+
+  private notifyScroll(scrollX: number, scrollY: number) {
+    this._onScroll?.(scrollX, scrollY);
+    this._onScrollListeners.forEach((fn) => fn(scrollX, scrollY));
   }
 
   private init(data: ViewportProps): void {
@@ -225,7 +255,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._scale = s;
     this._tx = nx;
     this._ty = ny;
-    this._onViewChange?.({ scale: s, tx: nx, ty: ny });
+    this.notifyViewChange(s, nx, ny);
     this.markNeedsLayout();
   }
 
@@ -239,7 +269,7 @@ export class Viewport extends Widget<ViewportProps> {
     const ny = Number.isFinite(ty) ? ty : this._ty;
     this._tx = nx;
     this._ty = ny;
-    this._onViewChange?.({ scale: this._scale, tx: nx, ty: ny });
+    this.notifyViewChange(this._scale, nx, ny);
     this.markNeedsLayout();
   }
 
@@ -249,7 +279,7 @@ export class Viewport extends Widget<ViewportProps> {
    */
   setScale(scale: number): void {
     this._scale = clampScale(scale);
-    this._onViewChange?.({ scale: this._scale, tx: this._tx, ty: this._ty });
+    this.notifyViewChange(this._scale, this._tx, this._ty);
     this.markNeedsLayout();
   }
 
@@ -477,19 +507,16 @@ export class Viewport extends Widget<ViewportProps> {
       const nextScrollX = this._contentTx - 20 / this.scale;
       const nextScrollY = this._contentTy;
       this.setContentPosition(nextScrollX, nextScrollY);
-      this._onScroll?.(nextScrollX, nextScrollY);
       this.markNeedsLayout();
     } else if (ke.key === 'ArrowUp') {
       const nextScrollX = this._contentTx;
       const nextScrollY = this._contentTy + 20 / this.scale;
       this.setContentPosition(nextScrollX, nextScrollY);
-      this._onScroll?.(nextScrollX, nextScrollY);
       this.markNeedsLayout();
     } else if (ke.key === 'ArrowDown') {
       const nextScrollX = this._contentTx;
       const nextScrollY = this._contentTy - 20 / this.scale;
       this.setContentPosition(nextScrollX, nextScrollY);
-      this._onScroll?.(nextScrollX, nextScrollY);
       this.markNeedsLayout();
     }
     return false;
@@ -549,6 +576,7 @@ export class Viewport extends Widget<ViewportProps> {
     const ny = Number.isFinite(ty) ? ty : this._contentTy;
     this._contentTx = nx;
     this._contentTy = ny;
+    this.notifyScroll(nx, ny);
     this.markNeedsLayout();
   }
 
