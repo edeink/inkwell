@@ -67,7 +67,7 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeActiveBorderColor: '#1677ff',
     nodeActiveFillColor: '#e6f7ff',
     nodeSelectedBorderColor: '#1890ff',
-    nodeSelectedFillColor: '#f0f5ff',
+    nodeSelectedFillColor: '#D6E1FC',
     nodeHoverBorderColor: '#4096ff',
     nodeDefaultBorderColor: '#c9c9c9',
   },

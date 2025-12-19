@@ -3,6 +3,7 @@
 import { getTheme } from '../config/theme';
 
 import { Connector } from './connector';
+import { MindMapNodeTextEditor } from './mindmap-node-text-editor';
 import { CustomComponentType, Side } from './type';
 import { Viewport } from './viewport';
 
@@ -25,6 +26,7 @@ export interface MindMapNodeProps extends WidgetProps {
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
   onMoveNode?: (key: string, dx: number, dy: number) => void;
+  isEditing?: boolean;
 }
 
 /**
@@ -40,6 +42,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
     null;
   private clickCandidate: { startX: number; startY: number } | null = null;
+  private dragRaf: number | null = null;
+  private lastNativeEvent: Event | null = null;
   private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
   private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
   private activePointerId: number | null = null;
@@ -59,7 +63,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 从节点数据推导初始标题文本与拖拽标记
    */
   private initialState(data: MindMapNodeProps): MindMapNodeProps {
-    return { title: data.title || '', dragging: false, hovering: false };
+    return { title: data.title || '', dragging: false, hovering: false, isEditing: false };
   }
 
   private init(data: MindMapNodeProps): void {
@@ -149,7 +153,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       return;
     }
     vp.setEditingKey(this.key);
-    this.openInlineEditor(e?.nativeEvent);
+    this.setState({ isEditing: true });
     return false;
   }
 
@@ -282,7 +286,13 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const dx = worldX - this.dragState.startX;
     const dy = worldY - this.dragState.startY;
     this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
-    this.markDirty();
+    this.lastNativeEvent = (e?.native as Event) ?? null;
+    if (this.dragRaf == null) {
+      this.dragRaf = requestAnimationFrame(() => {
+        this.runtime?.rerender();
+        this.dragRaf = null;
+      });
+    }
     if (this.clickCandidate) {
       const d = Math.hypot(e.x - this.clickCandidate.startX, e.y - this.clickCandidate.startY);
       if (d > 3) {
@@ -368,60 +378,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   }
 
   /**
-   * 打开内联文本编辑器
-   * 以绝对定位的原生 input 与视口缩放/平移对齐，编辑完成后写回组件状态
-   */
-  private openInlineEditor(native?: Event): void {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
-    if (!vp) {
-      return;
-    }
-    const pos = this.getAbsolutePosition();
-    const runtime = this.findRuntimeFromNative(native);
-    const container = runtime?.getContainer() ?? document.body;
-    const input = document.createElement('input');
-    input.type = 'text';
-    const st = this.state as MindMapNodeProps;
-    input.value = st.title || '';
-    input.style.position = 'absolute';
-    input.style.left = `${Math.round(vp.tx + pos.dx * vp.scale)}px`;
-    input.style.top = `${Math.round(vp.ty + pos.dy * vp.scale)}px`;
-    input.style.opacity = '0';
-    container.appendChild(input);
-    input.focus();
-    input.select();
-    const onInput = () => {
-      const v = input.value;
-      this.setState({ title: v } as Partial<MindMapNodeProps>);
-    };
-    input.addEventListener('input', onInput);
-    const cleanup = () => {
-      input.remove();
-      const vp2 = findWidget(this.root, 'Viewport') as Viewport | null;
-      vp2?.setEditingKey(null);
-      runtime?.rerender();
-    };
-    const confirm = () => {
-      const v = input.value;
-      this.setState({ title: v } as Partial<MindMapNodeProps>);
-      cleanup();
-    };
-    const cancel = () => {
-      cleanup();
-    };
-    input.addEventListener('keydown', (ke) => {
-      if (ke.key === 'Enter') {
-        confirm();
-      } else if (ke.key === 'Escape') {
-        cancel();
-      }
-    });
-    input.addEventListener('blur', () => {
-      confirm();
-    });
-  }
-
-  /**
    * 向上查找所属视口组件
    */
 
@@ -441,7 +397,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const vp = findWidget(this.root, 'Viewport') as Viewport | null;
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
-    const editing = vp?.editingKey === this.key;
+    const editing = !!st.isEditing;
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
     const active = vp?.activeKey === this.key;
     const isDragging = !!st.dragging;
@@ -465,6 +421,40 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             : theme.nodeDefaultBorderColor;
     const borderWidth = active || editing || selected || hover ? 2 : 1;
 
+    const content = editing ? (
+      <MindMapNodeTextEditor
+        key="editor"
+        text={st.title}
+        fontSize={14}
+        color={theme.textColor}
+        onChange={(val) => {
+          this.setState({ title: val });
+        }}
+        onFinish={(val) => {
+          this.setState({ title: val, isEditing: false });
+          if (vp?.editingKey === this.key) {
+            vp.setEditingKey(null);
+          }
+        }}
+        onCancel={() => {
+          this.setState({ isEditing: false });
+          if (vp?.editingKey === this.key) {
+            vp.setEditingKey(null);
+          }
+        }}
+      />
+    ) : (
+      <Text
+        key={`${String(this.key)}-text`}
+        text={st.title}
+        fontSize={14}
+        color={theme.textColor}
+        textAlign={TextAlign.Left}
+        textAlignVertical={TextAlignVertical.Top}
+        pointerEvents={'none'}
+      />
+    );
+
     return (
       <Container
         key={`${String(this.key)}-box`}
@@ -478,15 +468,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         borderRadius={8}
         pointerEvents={'none'}
       >
-        <Text
-          key={`${String(this.key)}-text`}
-          text={st.title}
-          fontSize={14}
-          color={theme.textColor}
-          textAlign={TextAlign.Left}
-          textAlignVertical={TextAlignVertical.Top}
-          pointerEvents={'none'}
-        />
+        {content}
       </Container>
     );
   }

@@ -296,20 +296,51 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   /**
+   * 销毁组件
+   * 当组件被移除时调用，用于清理副作用（如 DOM 元素、定时器等）
+   */
+  dispose(): void {
+    // 默认无操作，子类可覆盖
+  }
+
+  /**
    * 构建子组件
    */
   protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
     const byKey = new Map<string, Widget>();
+    // 这里简单实现：优先 key，无 key 则不复用（当前逻辑）。
+    const prevNoKey: Widget[] = [];
+
     for (const c of prev) {
-      byKey.set(c.key, c);
+      if (c.data.key) {
+        byKey.set(c.key, c);
+      } else {
+        prevNoKey.push(c);
+      }
     }
+
     const nextChildren: Widget[] = [];
+    const reused = new Set<Widget>();
+
     for (const childData of childrenData) {
-      const k = String(childData.key ?? '');
-      const reuse = k ? (byKey.get(k) ?? null) : null;
+      const k = childData.key ? String(childData.key) : null;
+      let reuse: Widget | null = null;
+
+      if (k) {
+        reuse = byKey.get(k) ?? null;
+      } else if (prevNoKey.length > 0) {
+        // 尝试复用第一个同类型的无 key 节点
+        const idx = prevNoKey.findIndex((w) => w.type === childData.type);
+        if (idx !== -1) {
+          reuse = prevNoKey[idx];
+          prevNoKey.splice(idx, 1);
+        }
+      }
+
       if (reuse && reuse.type === childData.type) {
         // 复用已有节点：合并已有动态数据以保留增量更新结果
+        reused.add(reuse);
         const merged = { ...reuse.data, ...childData };
         reuse.createElement(merged as TData);
         reuse.parent = this;
@@ -328,6 +359,13 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
               `It might not be registered.`,
           );
         }
+      }
+    }
+
+    // 销毁未复用的旧节点
+    for (const c of prev) {
+      if (!reused.has(c)) {
+        c.dispose();
       }
     }
 
