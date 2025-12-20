@@ -152,34 +152,80 @@ export class Text extends Widget<TextProps> {
         descent,
       };
     } else {
+      // 实现类似 word-wrap: break-word 的逻辑
+      // 1. 按空格分割单词
+      // 2. 尝试将单词放入当前行
+      // 3. 如果单词过长（超过 maxWidth），则强制拆分单词
       const words = this.text.split(' ');
       let currentLine = '';
       const maxLines = this.maxLines || Infinity;
+
       for (let i = 0; i < words.length && lines.length < maxLines; i++) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + words[i];
+        const word = words[i];
+        const spacing = currentLine ? ' ' : '';
+        const testLine = currentLine + spacing + word;
         const testWidth = ctx.measureText(testLine).width;
+
         if (testWidth <= maxWidth) {
           currentLine = testLine;
         } else {
+          // 当前行已有内容，先换行
           if (currentLine) {
             lines.push(currentLine);
-            currentLine = words[i];
+            currentLine = '';
+            // 如果达到最大行数，停止
+            if (lines.length >= maxLines) {
+              break;
+            }
+          }
+
+          // 检查单词本身是否超过 maxWidth
+          const wordWidth = ctx.measureText(word).width;
+          if (wordWidth <= maxWidth) {
+            currentLine = word;
           } else {
-            lines.push(words[i]);
+            // 单词过长，需要强制拆分 (break-word)
+            const chars = Array.from(word);
+            let subLine = '';
+            for (let j = 0; j < chars.length; j++) {
+              const char = chars[j];
+              const testSubLine = subLine + char;
+              if (ctx.measureText(testSubLine).width <= maxWidth) {
+                subLine = testSubLine;
+              } else {
+                lines.push(subLine);
+                subLine = char;
+                if (lines.length >= maxLines) {
+                  break;
+                }
+              }
+            }
+            if (lines.length < maxLines) {
+              currentLine = subLine;
+            } else {
+              // 已经达到最大行数，最后一部分被丢弃或用于 overflow 处理
+              currentLine = subLine; // 暂存，后面会被 push 或处理 overflow
+            }
           }
         }
       }
+
       if (currentLine && lines.length < maxLines) {
         lines.push(currentLine);
       }
+
       if (lines.length >= maxLines && this.overflow === 'ellipsis') {
         const lastLineIndex = maxLines - 1;
+        // 简单处理：重新取最后一行内容并尝试截断
+        // 注意：上面的逻辑可能导致最后一行是不完整的，这里简化处理
         let lastLine = lines[lastLineIndex];
+        // 如果 lastLine 本身就超过了（理论上不会，除非 force break 逻辑有问题），截断
         while (ctx.measureText(lastLine + '...').width > maxWidth && lastLine.length > 0) {
           lastLine = lastLine.slice(0, -1);
         }
         lines[lastLineIndex] = lastLine + '...';
       }
+
       this.textMetrics = {
         width: maxWidth,
         height: Math.max(constraints.minHeight, lines.length * lineHeightPx),

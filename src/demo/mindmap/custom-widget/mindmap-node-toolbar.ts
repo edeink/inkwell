@@ -224,6 +224,9 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
       }
       this.lastActionTime = now;
 
+      // 视口智能调整：预测新节点位置并确保可见
+      this.optimizeViewportForNewNode(hit);
+
       if (hit.type === 'addAbove') {
         const key = this.getNodeKey();
         if (key) {
@@ -247,6 +250,118 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
       }
       // e.stopPropagation();
     }
+  }
+
+  /**
+   * 优化视口偏移：仅在新增节点超出可视区域时调整
+   * 确保新节点及激活后的工具栏都能完整显示
+   */
+  private optimizeViewportForNewNode(hit: {
+    type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight';
+    side?: Side;
+  }): void {
+    const node = findWidget(this.root, ':active') as Widget | null;
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    if (!node || !vp || !vp.width || !vp.height) {
+      return;
+    }
+
+    const size = node.renderObject.size as Size;
+    const pNode = node.getAbsolutePosition();
+    // 转换到相对于 Viewport 内容层的坐标（消除 tx/ty 和 scale 的影响，但这里 getAbsolutePosition 已经是屏幕坐标）
+    // 我们需要的是相对于 Viewport 内容原点的坐标，即 World Coordinates
+    // vp.tx/ty 是视口平移，scale 是缩放
+    // WorldX = (ScreenX - tx) / scale
+    // WorldY = (ScreenY - ty) / scale
+
+    // 当前节点的世界坐标
+    const worldX = (pNode.dx - vp.tx) / vp.scale;
+    const worldY = (pNode.dy - vp.ty) / vp.scale;
+    const worldW = size.width;
+    const worldH = size.height;
+
+    // 预估新节点的位置和尺寸（假设新节点尺寸与当前节点相近或稍小，因是空文本）
+    // 垂直间距估算：节点高度 + 间距(约30px)
+    // 水平间距估算：节点宽度 + 间距(约100px)
+    const spacingY = 50;
+    const spacingX = 150;
+    const newNodeH = 40; // 空节点高度预估
+    const newNodeW = 100; // 空节点宽度预估
+
+    let targetX = worldX;
+    let targetY = worldY;
+    const targetW = newNodeW;
+    const targetH = newNodeH;
+
+    switch (hit.type) {
+      case 'addAbove':
+        targetY = worldY - spacingY;
+        targetX = worldX; // 简化假设对齐
+        break;
+      case 'addBelow':
+        targetY = worldY + worldH + spacingY / 2; // 向下添加
+        break;
+      case 'addChildLeft':
+        targetX = worldX - spacingX;
+        targetY = worldY; // 简化假设居中
+        break;
+      case 'addChildRight':
+        targetX = worldX + worldW + spacingX / 3;
+        targetY = worldY;
+        break;
+    }
+
+    // 预估 Toolbar 的位置（在节点上方或下方，约 30px 空间）
+    // 我们需要确保 targetRect + padding 能显示
+    const padding = 60; // 包含 Toolbar 和边距
+    const safeRect = {
+      x: targetX - padding,
+      y: targetY - padding,
+      w: targetW + padding * 2,
+      h: targetH + padding * 2,
+    };
+
+    // 当前视口可视区域（世界坐标）
+    const viewX = -vp.tx / vp.scale;
+    const viewY = -vp.ty / vp.scale;
+    const viewW = vp.width / vp.scale;
+    const viewH = vp.height / vp.scale;
+
+    // 检查是否在可视区域内
+    const isVisible =
+      safeRect.x >= viewX &&
+      safeRect.y >= viewY &&
+      safeRect.x + safeRect.w <= viewX + viewW &&
+      safeRect.y + safeRect.h <= viewY + viewH;
+
+    if (isVisible) {
+      return; // 无需调整
+    }
+
+    // 计算需要的偏移量
+    let newViewX = viewX;
+    let newViewY = viewY;
+
+    // 水平调整
+    if (safeRect.x < viewX) {
+      newViewX = safeRect.x;
+    } else if (safeRect.x + safeRect.w > viewX + viewW) {
+      newViewX = safeRect.x + safeRect.w - viewW;
+    }
+
+    // 垂直调整
+    if (safeRect.y < viewY) {
+      newViewY = safeRect.y;
+    } else if (safeRect.y + safeRect.h > viewY + viewH) {
+      newViewY = safeRect.y + safeRect.h - viewH;
+    }
+
+    // 应用新的视口偏移
+    // tx = -viewX * scale
+    const newTx = -newViewX * vp.scale;
+    const newTy = -newViewY * vp.scale;
+
+    vp.setPosition(newTx, newTy);
   }
 
   private getActiveKey(): string | null {

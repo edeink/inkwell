@@ -27,6 +27,13 @@ export interface ThemePalette {
   nodeSelectedFillColor: string;
   nodeHoverBorderColor: string;
   nodeDefaultBorderColor: string;
+  // Placeholder styles
+  placeholder: {
+    textColor: string;
+    fontSize: number;
+    textAlign: string;
+    lineHeight: number;
+  };
 }
 
 /**
@@ -70,6 +77,12 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeSelectedFillColor: '#D6E1FC',
     nodeHoverBorderColor: '#4096ff',
     nodeDefaultBorderColor: '#c9c9c9',
+    placeholder: {
+      textColor: '#999999',
+      fontSize: 14,
+      textAlign: 'left',
+      lineHeight: 1.5,
+    },
   },
   dark: {
     primaryColor: '#1677ff',
@@ -87,6 +100,12 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeSelectedFillColor: 'rgba(23,125,220,0.1)',
     nodeHoverBorderColor: '#4096ff',
     nodeDefaultBorderColor: '#434343',
+    placeholder: {
+      textColor: 'rgba(255, 255, 255, 0.45)',
+      fontSize: 14,
+      textAlign: 'left',
+      lineHeight: 1.5,
+    },
   },
 };
 

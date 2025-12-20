@@ -16,6 +16,7 @@ function buildSimpleTree(): { root: Widget; inner: Widget } {
   );
   const data = compileElement(el);
   const root = WidgetRegistry.createWidget(data)!;
+  root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0];
   return { root, inner };

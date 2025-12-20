@@ -9,6 +9,7 @@ import { ConnectorStyle } from './helpers/connection-drawer';
 
 import type { Viewport as ViewportCls } from './custom-widget/viewport';
 import type { WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/events';
 import type Runtime from '@/runtime';
 
 import { StatefulWidget, Widget } from '@/core';
@@ -202,22 +203,11 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     this.setState({ graph: next });
   };
 
-  private generateNodeTitle(state: GraphState, parentId: string): string {
-    const parentNode = state.nodes.get(parentId);
-    if (!parentNode) {
-      return '新节点';
+  onKeyDown(e: InkwellEvent): boolean | void {
+    const vp = this.getViewport();
+    if (vp) {
+      return vp.onKeyDown(e);
     }
-    let count = 0;
-    for (const e of state.edges) {
-      if (e.from === parentId) {
-        count++;
-      }
-    }
-    const index = count + 1;
-    if (parentId === 'root') {
-      return `节点 ${index}`;
-    }
-    return `${parentNode.title}-${index}`;
   }
 
   private onAddSibling = (refKey: string, dir: -1 | 1, side?: Side): void => {
@@ -226,7 +216,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     if (!parent) {
       return;
     }
-    const title = this.generateNodeTitle(cur, parent);
+    const title = '';
     const id = `n${cur.nextId}`;
     const nextId = cur.nextId + 1;
 
@@ -266,11 +256,17 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     };
     this.setState({ graph: next });
     this.onActive(id);
+
+    // 自动进入编辑模式
+    const vp = this.getViewport();
+    if (vp) {
+      vp.setEditingKey(id);
+    }
   };
 
   private onAddChildSide = (refKey: string, side: Side): void => {
     const cur = (this.state as SceneState).graph;
-    const title = this.generateNodeTitle(cur, refKey);
+    const title = '';
     const id = `n${cur.nextId}`;
     const nextId = cur.nextId + 1;
     const next: GraphState = {
@@ -281,6 +277,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       version: cur.version + 1,
     };
     this.setState({ graph: next });
+    this.onActive(id);
+
+    // 自动进入编辑模式
+    const vp = this.getViewport();
+    if (vp) {
+      vp.setEditingKey(id);
+    }
   };
 
   private onMoveNode = (key: string, dx: number, dy: number): void => {
@@ -366,6 +369,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
             activeKey={state.activeKey}
             active={state.activeKey === id}
             prefSide={n.prefSide}
+            cursor="pointer"
             onActive={handlers.onActive}
             onMoveNode={handlers.onMoveNode}
           />
@@ -398,6 +402,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     const toolbar = (
       <MindMapNodeToolbar
         key="toolbar"
+        cursor="pointer"
         onAddSibling={handlers.onAddSibling}
         onAddChildSide={handlers.onAddChildSide}
         activeKey={state.activeKey}

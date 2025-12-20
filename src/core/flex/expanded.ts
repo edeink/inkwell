@@ -1,6 +1,5 @@
 import { Widget } from '../base';
-
-import { FlexFit, type FlexProperties } from './type';
+import { FlexFit, type FlexProperties } from '../type';
 
 import type { BoxConstraints, Offset, Size, WidgetProps } from '../base';
 

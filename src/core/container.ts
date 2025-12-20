@@ -1,25 +1,16 @@
 import { Widget } from './base';
 import { resolveEdgeInsets } from './padding';
 
-import type { BoxConstraints, BuildContext, EdgeInsets, Offset, Size, WidgetProps } from './base';
-import type { PaddingValue } from './padding';
-
-export interface BorderRadius {
-  topLeft: number;
-  topRight: number;
-  bottomLeft: number;
-  bottomRight: number;
-}
-
-export interface Border {
-  width: number;
-  color: string;
-  style?: 'solid' | 'dashed' | 'dotted';
-}
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from './base';
+import type { Border, BorderRadius, EdgeInsets, PaddingValue } from './type';
 
 export interface ContainerProps extends WidgetProps {
   width?: number;
   height?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
   padding?: PaddingValue;
   margin?: PaddingValue;
   color?: string;
@@ -34,6 +25,10 @@ export interface ContainerProps extends WidgetProps {
 export class Container extends Widget<ContainerProps> {
   width?: number;
   height?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
   padding?: EdgeInsets;
   margin?: EdgeInsets;
   color?: string;
@@ -48,11 +43,19 @@ export class Container extends Widget<ContainerProps> {
   private initContainerProperties(data: ContainerProps): void {
     this.width = data.width;
     this.height = data.height;
+    this.minWidth = data.minWidth;
+    this.maxWidth = data.maxWidth;
+    this.minHeight = data.minHeight;
+    this.maxHeight = data.maxHeight;
     this.padding = resolveEdgeInsets(data.padding);
     this.margin = resolveEdgeInsets(data.margin);
     this.color = data.color;
     this.border = data.border;
     this.borderRadius = this.normalizeBorderRadius(data.borderRadius);
+    // 更新光标配置
+    if (data.cursor !== undefined) {
+      this.cursor = data.cursor;
+    }
   }
 
   private normalizeBorderRadius(value?: BorderRadius | number): BorderRadius | undefined {
@@ -156,8 +159,14 @@ export class Container extends Widget<ContainerProps> {
     }
 
     // 确保满足约束条件
-    width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
-    height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
+    // 结合组件自身的 min/max 约束与父级传递的 constraints
+    const minWidth = Math.max(constraints.minWidth, this.minWidth ?? 0);
+    const maxWidth = Math.min(constraints.maxWidth, this.maxWidth ?? Infinity);
+    const minHeight = Math.max(constraints.minHeight, this.minHeight ?? 0);
+    const maxHeight = Math.min(constraints.maxHeight, this.maxHeight ?? Infinity);
+
+    width = Math.max(minWidth, Math.min(width!, maxWidth));
+    height = Math.max(minHeight, Math.min(height!, maxHeight));
 
     return { width, height };
   }
@@ -172,6 +181,18 @@ export class Container extends Widget<ContainerProps> {
     const totalHorizontal = marginHorizontal + paddingHorizontal;
     const totalVertical = marginVertical + paddingVertical;
 
+    // 计算有效的自身约束
+    const selfMinWidth = Math.max(0, (this.minWidth ?? 0) - totalHorizontal);
+    const selfMaxWidth = Math.max(0, (this.maxWidth ?? Infinity) - totalHorizontal);
+    const selfMinHeight = Math.max(0, (this.minHeight ?? 0) - totalVertical);
+    const selfMaxHeight = Math.max(0, (this.maxHeight ?? Infinity) - totalVertical);
+
+    // 父级约束减去内边距/外边距
+    const parentMinWidth = Math.max(0, constraints.minWidth - totalHorizontal);
+    const parentMaxWidth = Math.max(0, constraints.maxWidth - totalHorizontal);
+    const parentMinHeight = Math.max(0, constraints.minHeight - totalVertical);
+    const parentMaxHeight = Math.max(0, constraints.maxHeight - totalVertical);
+
     // 如果指定了固定尺寸，子组件的约束基于固定尺寸
     if (this.width !== undefined && this.height !== undefined) {
       const childWidth = Math.max(0, this.width - totalHorizontal);
@@ -185,12 +206,12 @@ export class Container extends Widget<ContainerProps> {
       };
     }
 
-    // 否则，传递调整后的约束
+    // 否则，传递调整后的约束（交集）
     return {
-      minWidth: Math.max(0, constraints.minWidth - totalHorizontal),
-      maxWidth: Math.max(0, constraints.maxWidth - totalHorizontal),
-      minHeight: Math.max(0, constraints.minHeight - totalVertical),
-      maxHeight: Math.max(0, constraints.maxHeight - totalVertical),
+      minWidth: Math.max(parentMinWidth, selfMinWidth),
+      maxWidth: Math.min(parentMaxWidth, selfMaxWidth),
+      minHeight: Math.max(parentMinHeight, selfMinHeight),
+      maxHeight: Math.min(parentMaxHeight, selfMaxHeight),
     };
   }
 

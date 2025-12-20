@@ -26,6 +26,7 @@ describe('模块解析与事件系统（路径别名验证）', () => {
     expect(data.type).toBe('Container');
 
     const root = WidgetRegistry.createWidget(data)!;
+    root.createElement(data);
     root.layout(createBoxConstraints());
     const leaf = root.children[0];
 

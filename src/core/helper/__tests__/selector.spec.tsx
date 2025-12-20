@@ -81,6 +81,7 @@ function buildTree() {
   );
   const json = compileElement(el);
   const root = WidgetRegistry.createWidget(json)!;
+  root.createElement(json);
   root.layout({ minWidth: 0, minHeight: 0, maxWidth: 800, maxHeight: 600 });
   return root;
 }

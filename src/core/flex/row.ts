@@ -1,6 +1,5 @@
 import { Widget } from '../base';
-
-import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from './type';
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '../type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '../base';
 

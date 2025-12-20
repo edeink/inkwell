@@ -1,17 +1,7 @@
 import { Widget } from './base';
 
-import type { BoxConstraints, EdgeInsets, Offset, Size, WidgetProps } from './base';
-
-export type PaddingArray =
-  | [number]
-  | [number, number]
-  | [number, number, number]
-  | [number, number, number, number];
-
-/**
- * Padding 属性值的联合类型
- */
-export type PaddingValue = EdgeInsets | number | PaddingArray;
+import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
+import type { EdgeInsets, PaddingValue } from './type';
 
 export interface PaddingProps extends WidgetProps {
   padding: PaddingValue;

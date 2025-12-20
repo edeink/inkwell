@@ -29,6 +29,7 @@ interface EditorState {
   selectionStart: number;
   selectionEnd: number;
   isFocused: boolean;
+  cursorVisible: boolean;
   measureCtx: CanvasRenderingContext2D | null;
   [key: string]: unknown;
 }
@@ -43,11 +44,13 @@ interface EditorState {
  * - 移除了 React 生命周期方法，改为框架原生的 constructor/dispose 机制。
  * - 修复了光标跳转和选区事件冒泡问题。
  * - 增强了输入框同步逻辑。
+ * - 新增光标闪烁动画。
  */
 export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorProps, EditorState> {
   private input: HTMLInputElement | null = null;
   private measureCanvas: HTMLCanvasElement | null = null;
   private isDragging: boolean = false;
+  private cursorTimer: number | null = null;
 
   constructor(props: MindMapNodeTextEditorProps) {
     super(props);
@@ -56,6 +59,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       selectionStart: 0,
       selectionEnd: props.text.length, // 默认全选
       isFocused: true,
+      cursorVisible: true,
       measureCtx: null,
     };
     this.initMeasureContext();
@@ -63,6 +67,8 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.createHiddenInput();
     // 初始同步
     this.updateInputState();
+    // 启动光标闪烁定时器
+    this.startCursorTimer();
   }
 
   private get typedProps(): MindMapNodeTextEditorProps {
@@ -79,11 +85,29 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
   }
 
+  private startCursorTimer() {
+    if (typeof window !== 'undefined' && this.cursorTimer === null) {
+      this.cursorTimer = window.setInterval(() => {
+        if (this.state.isFocused) {
+          this.setState({ cursorVisible: !this.state.cursorVisible });
+        }
+      }, 500);
+    }
+  }
+
+  private stopCursorTimer() {
+    if (this.cursorTimer !== null) {
+      window.clearInterval(this.cursorTimer);
+      this.cursorTimer = null;
+    }
+  }
+
   /**
    * 销毁组件时清理资源
    * 必须在 src/core/base.ts 中正确调用 dispose
    */
   dispose() {
+    this.stopCursorTimer();
     if (this.input) {
       this.input.removeEventListener('input', this.handleInput);
       this.input.removeEventListener('keydown', this.handleKeyDown);
@@ -429,14 +453,15 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       ) : null;
 
     // 光标线
-    // 可添加闪烁动画，暂且实心
-    const showCursor = st.isFocused;
+    // 添加闪烁动画
+    // 全选或有选区时不显示光标
+    const showCursor = st.isFocused && st.cursorVisible && minS === maxS;
     const cursor = showCursor ? (
       <Positioned
         key="cursor"
-        left={cursorX - 1} // 居中显示
+        left={cursorX} // 居中显示
         top={0}
-        width={2}
+        width={1}
         height={fontSize * 1.2}
       >
         <Container color={theme.textColor} />
@@ -450,6 +475,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
         onPointerMove={this.onPointerMove}
         onPointerUp={this.onPointerUp}
         onDblClick={this.onDblClick}
+        cursor={'text'}
       >
         {selectionRect}
         <Text

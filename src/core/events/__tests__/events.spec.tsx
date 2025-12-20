@@ -24,6 +24,7 @@ function buildTree(
   );
   const data = compileElement(el);
   const root = WidgetRegistry.createWidget(data)!;
+  root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0];
   const leaf = inner.children[0];

@@ -21,7 +21,7 @@ import type Runtime from '@/runtime';
 
 let currentRuntime: Runtime | null = null;
 
-function hitTest(root: Widget | null, x: number, y: number): Widget | null {
+export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
   if (!root) {
     return null;
   }
@@ -206,6 +206,23 @@ export function dispatchAt(
   const root = runtime.getRootWidget?.() ?? null;
   const isKeyboard = type === 'keydown' || type === 'keyup' || type === 'keypress';
   const target = isKeyboard ? root : hitTest(root, x, y);
+
+  // 处理鼠标光标样式
+  if ((type === 'mousemove' || type === 'pointermove') && canvas) {
+    let cursor = 'default';
+    let cur: Widget | null = target;
+    while (cur) {
+      if (cur.cursor) {
+        cursor = cur.cursor;
+        break;
+      }
+      cur = cur.parent;
+    }
+    if (canvas.style.cursor !== cursor) {
+      canvas.style.cursor = cursor;
+    }
+  }
+
   if (!target || !root) {
     currentRuntime = null;
     return;

@@ -1,11 +1,10 @@
 import type { JSXElement } from './jsx-runtime';
-import type { EventHandler, EventType } from '@/core/events/types';
 import type { ComponentData } from '@/runtime';
 
-import { Widget, type WidgetProps } from '@/core/base';
+import { Widget } from '@/core/base';
 import { EventRegistry } from '@/core/events';
 import { WidgetRegistry, widgetRegistry } from '@/core/registry';
-import { ComponentType } from '@/core/type';
+import { ComponentType, type EventHandler, type EventType, type WidgetProps } from '@/core/type';
 
 /**
  * JSX 编译器：将自定义 JSX 运行时元素转换为 ComponentData JSON

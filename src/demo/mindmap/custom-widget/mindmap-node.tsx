@@ -425,6 +425,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       <MindMapNodeTextEditor
         key="editor"
         text={st.title}
+        placeholder="输入文本"
         fontSize={14}
         color={theme.textColor}
         onChange={(val) => {
@@ -446,11 +447,14 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     ) : (
       <Text
         key={`${String(this.key)}-text`}
-        text={st.title}
-        fontSize={14}
-        color={theme.textColor}
-        textAlign={TextAlign.Left}
+        text={st.title || '输入文本'}
+        fontSize={st.title ? 14 : theme.placeholder.fontSize}
+        color={st.title ? theme.textColor : theme.placeholder.textColor}
+        textAlign={
+          st.title ? TextAlign.Left : (theme.placeholder.textAlign as TextAlign) || TextAlign.Left
+        }
         textAlignVertical={TextAlignVertical.Top}
+        lineHeight={st.title ? undefined : theme.placeholder.lineHeight}
         pointerEvents={'none'}
       />
     );
@@ -466,6 +470,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           style: selected && !active && !editing ? 'dashed' : 'solid',
         }}
         borderRadius={8}
+        minWidth={80}
+        maxWidth={650}
         pointerEvents={'none'}
       >
         {content}

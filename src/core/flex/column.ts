@@ -1,7 +1,7 @@
 import { Widget } from '../base';
+import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from '../type';
 
 import { createRenderFlexUnboundedError } from './errors';
-import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from './type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '../base';
 

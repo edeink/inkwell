@@ -62,6 +62,7 @@ function buildTree(
   );
   const data = compileElement(el);
   const root = WidgetRegistry.createWidget(data) as CustomWidget;
+  root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0] as CustomWidget;
   const leaf = inner.children[0] as CustomWidget;
@@ -142,6 +143,7 @@ describe('事件系统（类方法）', () => {
       </Container>,
     );
     const rootAttr = WidgetRegistry.createWidget(dataAttr)!;
+    rootAttr.createElement(dataAttr);
     rootAttr.layout(createBoxConstraints());
     const leafAttr = rootAttr.children[0] as CustomWidget;
     const posAttr = leafAttr.getAbsolutePosition();

@@ -1,5 +1,3 @@
-import { type IRenderer } from '../renderer/IRenderer';
-
 import { toEventType } from './events/helper';
 import { EventRegistry } from './events/registry';
 import {
@@ -11,22 +9,33 @@ import {
 } from './helper/transform';
 import { WidgetRegistry } from './registry';
 
-import type { EventHandler, WidgetEventHandler } from './events/types';
-import type { FlexProperties } from './flex/type';
+import type {
+  BoxConstraints,
+  BuildContext,
+  CursorType,
+  EventHandler,
+  FlexProperties,
+  Offset,
+  RenderObject,
+  Size,
+  WidgetEventHandler,
+  WidgetProps,
+} from './type';
 import type Runtime from '@/runtime';
 
-// JSX 编译得到的属性
-export interface WidgetProps extends WidgetEventHandler {
-  key?: string;
-  type?: string; // TODO 此方法需要移除？
-  flex?: FlexProperties;
-  zIndex?: number;
-  pointerEvents?: 'auto' | 'none';
-  // JSX 编译传入的 data 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
-  children?: WidgetProps[];
-  // 其它未知的属性
-  [key: string]: unknown;
-}
+export type {
+  BoxConstraints,
+  BuildContext,
+  Constraints,
+  CursorType,
+  FlexProperties,
+  Offset,
+  RenderObject,
+  Size,
+  WidgetConstructor,
+  WidgetEventHandler,
+  WidgetProps,
+} from './type';
 
 // 内置的属性
 export interface WidgetCompactProps extends Omit<WidgetProps, 'children'>, WidgetEventHandler {
@@ -34,52 +43,7 @@ export interface WidgetCompactProps extends Omit<WidgetProps, 'children'>, Widge
   children?: Widget[];
 }
 
-export interface Constraints {
-  minWidth?: number;
-  maxWidth?: number;
-  minHeight?: number;
-  maxHeight?: number;
-  [key: string]: number | undefined;
-}
-
-export interface Size {
-  width: number;
-  height: number;
-}
-
-export interface Offset {
-  dx: number;
-  dy: number;
-}
-
-export interface BoxConstraints extends Constraints {
-  minWidth: number;
-  maxWidth: number;
-  minHeight: number;
-  maxHeight: number;
-}
-
-export interface EdgeInsets {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
-
-export interface RenderObject {
-  offset: Offset;
-  size: Size;
-  [key: string]: unknown;
-}
-
-export interface BuildContext {
-  renderer: IRenderer; // 渲染器实例
-  worldMatrix?: [number, number, number, number, number, number];
-  [key: string]: unknown;
-}
-
 // 构造器类型：约束 Widget 的数据类型与返回实例类型保持一致
-export type WidgetConstructor<T extends WidgetProps = WidgetProps> = new (data: T) => Widget<T>;
 
 /**
  * 创建默认的盒约束
@@ -125,6 +89,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   };
   zIndex: number = 0;
   pointerEvents: 'auto' | 'none' = 'auto';
+  cursor?: CursorType;
 
   // 根节点
   private __root: Widget | null = null;
@@ -154,6 +119,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (pe0 === 'none' || pe0 === 'auto') {
       this.pointerEvents = pe0;
     }
+    this.cursor = data.cursor;
   }
 
   public shallowDiff(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
@@ -455,6 +421,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (pe === 'none' || pe === 'auto') {
       this.pointerEvents = pe;
     }
+    this.cursor = nextData.cursor;
 
     // 初始构建或 children 差异/需要更新时执行子树增量重建
     if (nextChildrenData.length > 0) {

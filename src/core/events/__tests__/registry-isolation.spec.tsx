@@ -24,6 +24,7 @@ function buildTreeWithRuntime(rt: any) {
   const data = compileElement(el);
   EventRegistry.setCurrentRuntime(null);
   const root = WidgetRegistry.createWidget(data)!;
+  root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0];
   const leaf = inner.children[0];
