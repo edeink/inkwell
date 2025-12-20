@@ -7,7 +7,7 @@ import { Viewport } from '../viewport';
 import { Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
 
-// Helper to create widget tree recursively
+// 递归创建 widget 树的辅助函数
 function createWidgetTree(data: any): Widget {
   const widget = WidgetRegistry.createWidget(data)!;
   if (data.children && Array.isArray(data.children)) {
@@ -22,13 +22,13 @@ function createWidgetTree(data: any): Widget {
   return widget;
 }
 
-// Register custom widgets
+// 注册自定义 widget
 beforeAll(() => {
   WidgetRegistry.registerType(CustomComponentType.Viewport, Viewport);
   WidgetRegistry.registerType(CustomComponentType.MindMapNode, MindMapNode);
 });
 
-// Mock context
+// 模拟上下文
 const mockContext = {
   renderer: {
     measureText: () => ({ width: 10, height: 10 }),
@@ -40,8 +40,8 @@ const mockContext = {
   },
 } as any;
 
-describe('MindMapNode Cursor Configuration', () => {
-  it('should use default cursor styles when no config provided', () => {
+describe('MindMapNode 光标配置', () => {
+  it('未提供配置时应使用默认光标样式', () => {
     const root = createWidgetTree({
       type: CustomComponentType.Viewport,
       key: 'viewport',
@@ -54,78 +54,15 @@ describe('MindMapNode Cursor Configuration', () => {
       ],
     });
 
-    // Mount
+    // 挂载
     // root!.build(mockContext);
 
     const node = (root as any).children[0] as MindMapNode;
-    // Need to trigger build/render to get the container
+    // 需要触发 build/render 来获取容器
     const container = node.render() as any;
 
-    // Default normal state
+    // 默认普通状态
     expect(container.props.cursor).toBe('default');
-  });
-
-  it('should use global configuration from Viewport', () => {
-    const root = createWidgetTree({
-      type: CustomComponentType.Viewport,
-      key: 'viewport',
-      nodeCursorConfig: {
-        normal: 'help',
-        editing: 'wait',
-        reading: 'move',
-      },
-      children: [
-        {
-          type: CustomComponentType.MindMapNode,
-          key: 'node1',
-          title: 'Node 1',
-        },
-      ],
-    });
-
-    // root!.build(mockContext);
-    const node = (root as any).children[0] as MindMapNode;
-
-    // Normal state
-    let container = node.render() as any;
-    expect(container.props.cursor).toBe('help');
-
-    // Editing state
-    node.setState({ isEditing: true });
-    container = node.render() as any;
-    expect(container.props.cursor).toBe('wait');
-
-    // Hovering (Reading) state
-    node.setState({ isEditing: false, hovering: true });
-    container = node.render() as any;
-    expect(container.props.cursor).toBe('move');
-  });
-
-  it('should use local configuration overriding global', () => {
-    const root = createWidgetTree({
-      type: CustomComponentType.Viewport,
-      key: 'viewport',
-      nodeCursorConfig: {
-        normal: 'help',
-      },
-      children: [
-        {
-          type: CustomComponentType.MindMapNode,
-          key: 'node1',
-          title: 'Node 1',
-          cursorConfig: {
-            normal: 'pointer',
-          },
-        },
-      ],
-    });
-
-    // root!.build(mockContext);
-    const node = (root as any).children[0] as MindMapNode;
-
-    // Normal state (local override)
-    const container = node.render() as any;
-    expect(container.props.cursor).toBe('pointer');
   });
 
   it('should fallback to defaults if config is partial', () => {

@@ -4,14 +4,14 @@ import { EventManager } from '../manager';
 
 import type Runtime from '@/runtime';
 
-describe('EventManager Passive Listeners', () => {
+describe('EventManager 被动监听器', () => {
   const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
 
   afterEach(() => {
     addEventListenerSpy.mockClear();
   });
 
-  it('should register touchstart and touchmove with passive: false', () => {
+  it('应以 passive: false 注册 touchstart 和 touchmove', () => {
     const canvas = document.createElement('canvas');
     canvas.dataset.inkwellId = 'test-canvas';
 
@@ -32,7 +32,7 @@ describe('EventManager Passive Listeners', () => {
     expect(touchMoveCall).toBeDefined();
     expect(touchMoveCall?.[2]).toEqual({ passive: false });
 
-    // Wheel should also be passive: false
+    // wheel 事件也应为 passive: false
     const wheelCall = addEventListenerSpy.mock.calls.find((call) => call[0] === 'wheel');
     expect(wheelCall).toBeDefined();
     expect(wheelCall?.[2]).toEqual({ passive: false });

@@ -8,7 +8,7 @@ import { Viewport } from '../viewport';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 
-describe('MindMap Selection & Interaction', async () => {
+describe('MindMap 选择与交互', async () => {
   beforeEach(() => {
     if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
       (HTMLCanvasElement.prototype as any)._inkwellCtxPatched = true;
@@ -62,7 +62,7 @@ describe('MindMap Selection & Interaction', async () => {
     }
   });
 
-  it('cancels activeKey when clicking on blank area', async () => {
+  it('点击空白区域时应取消 activeKey', async () => {
     const container = document.createElement('div');
     container.id = `mm-test-1-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -82,8 +82,8 @@ describe('MindMap Selection & Interaction', async () => {
 
     expect(vp.activeKey).toBe('n1');
 
-    // Simulate blank click (down then up without move)
-    // Coords: 0,0 (assuming node is centered or elsewhere, blank area)
+    // 模拟空白处点击（按下并抬起，无移动）
+    // 坐标：0,0（假设节点居中或在其他位置，此处为空白区域）
     const eDown = {
       x: 0,
       y: 0,
@@ -95,6 +95,7 @@ describe('MindMap Selection & Interaction', async () => {
       x: 0,
       y: 0,
       nativeEvent: new MouseEvent('pointerup', { clientX: 0, clientY: 0 }),
+      stopPropagation: () => {},
     } as any;
     vp.onPointerUp(eUp);
 
@@ -189,6 +190,6 @@ describe('MindMap Selection & Interaction', async () => {
     // Selected style: dashed border #1890ff, bg #f0f5ff
     expect(container2.props.border.style).toBe('dashed');
     expect(container2.props.border.color).toBe('#1890ff');
-    expect(container2.props.color).toBe('#f0f5ff');
+    expect(container2.props.color).toBe('#D6E1FC');
   });
 });

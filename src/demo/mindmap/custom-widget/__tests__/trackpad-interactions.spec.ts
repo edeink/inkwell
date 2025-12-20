@@ -8,13 +8,13 @@ function createVP() {
   return new Viewport({ type: 'Viewport', key: 'v', scale: 1, tx: 0, ty: 0 } as any);
 }
 
-describe('Trackpad interactions', () => {
+describe('触控板交互', () => {
   let vp: Viewport;
   beforeEach(() => {
     vp = createVP();
   });
 
-  it('single-finger drag (pointer) does not pan viewport', () => {
+  it('单指拖拽 (pointer) 不应平移视口', () => {
     const origTx = vp.tx;
     const origTy = vp.ty;
     vp.onPointerDown({ x: 100, y: 100, nativeEvent: { buttons: 1 } } as unknown as InkwellEvent);
@@ -23,7 +23,7 @@ describe('Trackpad interactions', () => {
     expect(vp.ty).toBe(origTy);
   });
 
-  it('two-finger wheel scroll pans diagonally and smooth via rAF', () => {
+  it('双指滚轮滚动应通过 rAF 实现平滑对角平移', () => {
     const spy = vi.fn();
     vp.createElement({ type: 'Viewport', key: 'v', onScroll: spy } as any);
     const raf = globalThis.requestAnimationFrame;
@@ -43,7 +43,7 @@ describe('Trackpad interactions', () => {
     globalThis.requestAnimationFrame = raf;
   });
 
-  it('ctrl/meta + left mouse enters select-all and prevents pan', () => {
+  it('ctrl/meta + 左键点击应进入全选模式并阻止平移', () => {
     vp.onPointerDown({
       x: 0,
       y: 0,

@@ -27,6 +27,11 @@ export interface MindMapNodeProps extends WidgetProps {
   onAddChildSide?: (refKey: string, side: Side) => void;
   onMoveNode?: (key: string, dx: number, dy: number) => void;
   isEditing?: boolean;
+  cursorConfig?: {
+    normal?: string;
+    editing?: string;
+    reading?: string;
+  };
 }
 
 /**
@@ -421,6 +426,16 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             : theme.nodeDefaultBorderColor;
     const borderWidth = active || editing || selected || hover ? 2 : 1;
 
+    // Calculate cursor
+    const localConfig = this.data.cursorConfig || {};
+    const state = editing ? 'editing' : hover ? 'reading' : 'normal';
+    const defaults: Record<string, string> = {
+      normal: 'default',
+      editing: 'text',
+      reading: 'pointer',
+    };
+    const cursor = localConfig[state] || defaults[state] || 'default';
+
     const content = editing ? (
       <MindMapNodeTextEditor
         key="editor"
@@ -473,6 +488,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         minWidth={80}
         maxWidth={650}
         pointerEvents={'none'}
+        cursor={cursor}
       >
         {content}
       </Container>

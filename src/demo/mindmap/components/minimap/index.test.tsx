@@ -1,7 +1,7 @@
 import { act } from 'react-dom/test-utils';
 import { afterEach, describe, it, vi } from 'vitest';
 
-// Mock context
+// 模拟上下文
 const mockController = {
   viewScale: 1,
   viewport: {
@@ -27,7 +27,7 @@ vi.mock('../../context', () => ({
   useMindmapController: () => mockController,
 }));
 
-// Mock theme
+// 模拟主题
 vi.mock('../../config/theme', () => ({
   useThemePalette: () => ({
     minimapBackgroundColor: '#f0f0f0',
@@ -37,7 +37,7 @@ vi.mock('../../config/theme', () => ({
   }),
 }));
 
-// Mock helpers that use complex logic if necessary
+// 模拟可能使用复杂逻辑的辅助函数（如果需要）
 vi.mock('../utils', async () => {
   const actual = await vi.importActual('../utils');
   return {
@@ -46,7 +46,7 @@ vi.mock('../utils', async () => {
   };
 });
 
-describe('Minimap Component', () => {
+describe('Minimap 组件测试', () => {
   let container: HTMLDivElement | null = null;
 
   let root: any = null;

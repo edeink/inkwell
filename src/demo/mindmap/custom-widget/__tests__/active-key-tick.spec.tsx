@@ -11,7 +11,7 @@ import type { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 
-describe('activeKey tick order and propagation', async () => {
+describe('activeKey tick 顺序和传播', async () => {
   beforeEach(() => {
     if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
       (HTMLCanvasElement.prototype as any)._inkwellCtxPatched = true;
@@ -50,7 +50,7 @@ describe('activeKey tick order and propagation', async () => {
     }
   });
 
-  it('rebuilds with build/layout/paint when activeKey changes', async () => {
+  it('activeKey 变更时应触发 build/layout/paint 重建', async () => {
     const container = document.createElement('div');
     container.id = `mm-tick-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);

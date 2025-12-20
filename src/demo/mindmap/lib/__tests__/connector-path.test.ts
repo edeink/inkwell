@@ -11,8 +11,8 @@ import {
 const A = { x: 10, y: 10, width: 120, height: 40 };
 const B = { x: 260, y: 180, width: 120, height: 40 };
 
-describe('connectorPathFromRects', () => {
-  it('bezier equals specialized bezierRoute with defaults', () => {
+describe('connectorPathFromRects 连接线路径生成', () => {
+  it('贝塞尔曲线应与使用默认参数的 bezierRoute 结果一致', () => {
     const pts1 = connectorPathFromRects(A, B, {
       style: ConnectorStyle.Bezier,
       samples: DEFAULT_CONNECTOR_OPTIONS.samples,
@@ -35,7 +35,7 @@ describe('connectorPathFromRects', () => {
     );
   });
 
-  it('elbow equals specialized elbowRoute when radius=0', () => {
+  it('当半径为0时，直角折线应与 elbowRoute 结果一致', () => {
     const pts1 = connectorPathFromRects(A, B, {
       style: ConnectorStyle.Elbow,
       margin: 0,
@@ -49,7 +49,7 @@ describe('connectorPathFromRects', () => {
     );
   });
 
-  it('elbowRounded produces more points and rounded corners', () => {
+  it('圆角折线应生成更多点并产生圆角', () => {
     const pts = connectorPathFromRects(A, B, {
       style: ConnectorStyle.ElbowRounded,
       margin: DEFAULT_CONNECTOR_OPTIONS.margin,

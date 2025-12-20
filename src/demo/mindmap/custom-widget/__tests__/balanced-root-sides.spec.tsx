@@ -38,7 +38,7 @@ async function makeScene(runtime: Runtime, count: number) {
   await runtime.renderFromJSX(scene as any);
 }
 
-describe('Balanced root sides distribution', () => {
+describe('Balanced root sides 分布测试', () => {
   let container: HTMLDivElement;
   let runtime: Runtime;
 
@@ -91,7 +91,7 @@ describe('Balanced root sides distribution', () => {
     runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
   });
 
-  it('even number children split equally', async () => {
+  it('偶数个子节点应平均分割', async () => {
     await makeScene(runtime, 4);
     const root = runtime.getRootWidget();
     const rootNode = findWidget(root, '#root') as Widget;
@@ -110,7 +110,7 @@ describe('Balanced root sides distribution', () => {
     expect(left).toBe(right);
   });
 
-  it('odd number children differ by at most 1', async () => {
+  it('奇数个子节点数量差不应超过 1', async () => {
     await makeScene(runtime, 5);
     const root = runtime.getRootWidget();
     const rootNode = findWidget(root, '#root') as Widget;
@@ -129,7 +129,7 @@ describe('Balanced root sides distribution', () => {
     expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
   });
 
-  it('three children split 2-1', async () => {
+  it('三个子节点应分为 2-1 分布', async () => {
     await makeScene(runtime, 3);
     const root = runtime.getRootWidget();
     const rootNode = findWidget(root, '#root') as Widget;

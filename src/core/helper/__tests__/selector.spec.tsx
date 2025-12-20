@@ -86,26 +86,26 @@ function buildTree() {
   return root;
 }
 
-describe('widget-selector', () => {
-  it('findViewport works', () => {
+describe('Widget 选择器', () => {
+  it('findViewport 正常工作', () => {
     const root = buildTree();
     const vp = findWidget(root, 'Viewport') as Widget | null;
     expect(vp?.type).toBe('Viewport');
   });
 
-  it('findByKey works', () => {
+  it('findByKey 正常工作', () => {
     const root = buildTree();
     const n2 = findWidget(root, '#n2') as Widget | null;
     expect(n2?.type).toBe('NodeStub');
   });
 
-  it('getActiveNode works', () => {
+  it('getActiveNode 正常工作', () => {
     const root = buildTree();
     const act = findWidget(root, ':active') as Widget | null;
     expect(act?.key).toBe('n2');
   });
 
-  it('isRootNode detects no incoming edge', () => {
+  it('isRootNode 检测无入边', () => {
     const root = buildTree();
     const edgeToN1 = findWidget(root, 'Connector[toKey="n1"]');
     const edgeToN2 = findWidget(root, 'Connector[toKey="n2"]');
@@ -113,7 +113,7 @@ describe('widget-selector', () => {
     expect(edgeToN2 != null).toBe(true);
   });
 
-  it('CSS-like selector: id, class, attr, child and descendant', () => {
+  it('类 CSS 选择器：id、class、attr、child 和后代', () => {
     const root = buildTree();
     const byId = findWidget(root, '#n2');
     expect((byId as any)?.key).toBe('n2');
@@ -131,7 +131,7 @@ describe('widget-selector', () => {
     expect(chainDesc.map((w) => w.key)).toEqual(['n1', 'n2']);
   });
 
-  it('caches results for multiple queries', () => {
+  it('对多次查询缓存结果', () => {
     const root = buildTree();
     clearSelectorCache(root);
     const a = findWidget(root, 'Viewport > Node', { multiple: true }) as Widget[];

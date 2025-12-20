@@ -16,7 +16,7 @@ vi.mock('../../../custom-widget/viewport');
 vi.mock('@/runtime');
 vi.mock('../../../controller');
 
-describe('Minimap Integration Tests', () => {
+describe('Minimap 集成测试', () => {
   let runtime: Runtime;
   let viewport: Viewport;
   let controller: MindmapController;

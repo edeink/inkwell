@@ -5,31 +5,31 @@ import { MindMapNodeTextEditor } from '../mindmap-node-text-editor';
 import { Container } from '@/core/container';
 import { Positioned } from '@/core/positioned';
 
-// Mock canvas context for text measurement
+// 模拟 canvas 上下文用于文本测量
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   measureText: vi.fn(() => ({ width: 10 })),
   font: '',
 })) as any;
 
-describe('MindMap Cursor & Editor', () => {
-  it('Container should update cursor property when props change', () => {
+describe('MindMap 光标与编辑器', () => {
+  it('Container 属性变更时应更新 cursor', () => {
     const container = new Container({ type: 'Container', cursor: 'default' });
     expect(container.cursor).toBe('default');
 
-    // Simulate update
+    // 模拟更新
     container.createElement({ type: 'Container', cursor: 'pointer' });
     expect(container.cursor).toBe('pointer');
   });
 
-  it('MindMapNodeTextEditor should render 1px cursor', () => {
+  it('MindMapNodeTextEditor 应渲染 1px 光标', () => {
     const editor = new MindMapNodeTextEditor({ type: 'MindMapNodeTextEditor', text: 'Hello' });
-    // Force measure context
+    // 强制测量上下文
     (editor as any).state.measureCtx = {
       measureText: () => ({ width: 10 }),
       font: '',
     };
 
-    // Collapse selection to show cursor
+    // 折叠选区以显示光标
     editor.setState({
       selectionStart: 5,
       selectionEnd: 5,
@@ -37,11 +37,11 @@ describe('MindMap Cursor & Editor', () => {
       cursorVisible: true,
     } as any);
 
-    // Render
+    // 渲染
     const stack = editor.render();
     const children = (stack as any).props.children;
-    // Children: [selectionRect, Text, cursor]
-    // Cursor is likely the last one
+    // 子元素: [selectionRect, Text, cursor]
+    // 光标可能是最后一个
     const cursorPositioned = children[2];
 
     expect(cursorPositioned).not.toBeNull();
@@ -51,13 +51,13 @@ describe('MindMap Cursor & Editor', () => {
     }
   });
 
-  it('MindMapNodeTextEditor should hide cursor when text is selected', () => {
+  it('文本选中时 MindMapNodeTextEditor 应隐藏光标', () => {
     const editor = new MindMapNodeTextEditor({ type: 'MindMapNodeTextEditor', text: 'Hello' });
 
-    // Simulate selection (minS !== maxS)
+    // 模拟选中 (minS !== maxS)
     editor.setState({
       selectionStart: 0,
-      selectionEnd: 5, // Select all
+      selectionEnd: 5, // 全选
       isFocused: true,
       cursorVisible: true,
     } as any);
@@ -69,10 +69,10 @@ describe('MindMap Cursor & Editor', () => {
     expect(cursorPositioned).toBeNull();
   });
 
-  it('MindMapNodeTextEditor should show cursor when selection is collapsed', () => {
+  it('选区折叠时 MindMapNodeTextEditor 应显示光标', () => {
     const editor = new MindMapNodeTextEditor({ type: 'MindMapNodeTextEditor', text: 'Hello' });
 
-    // Simulate collapsed selection
+    // 模拟折叠选区
     editor.setState({
       selectionStart: 5,
       selectionEnd: 5,

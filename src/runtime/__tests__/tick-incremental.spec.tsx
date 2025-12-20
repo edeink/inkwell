@@ -60,8 +60,8 @@ class StubRenderer implements IRenderer {
   drawImage(): void {}
 }
 
-describe('Runtime tick incremental rebuild', () => {
-  it('avoids initialize on rebuild and calls update', async () => {
+describe('运行时 tick 增量重建', () => {
+  it('重建时避免重新初始化并调用 update', async () => {
     const container = document.createElement('div');
     container.id = 'stage-stub';
     container.style.width = '400px';
@@ -69,7 +69,7 @@ describe('Runtime tick incremental rebuild', () => {
     document.body.appendChild(container);
 
     const rt = await Runtime.create('stage-stub', { renderer: 'canvas2d' });
-    // inject stub renderer
+    // 注入 stub 渲染器
     (rt as unknown as { renderer: IRenderer | null }).renderer = new StubRenderer();
 
     const el = <Container key="root" width={200} height={100} />;

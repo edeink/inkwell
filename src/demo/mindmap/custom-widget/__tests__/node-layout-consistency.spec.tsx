@@ -42,7 +42,7 @@ async function createSceneWithoutToolbar(width: number, height: number, runtime:
   await runtime.renderFromJSX(scene);
 }
 
-describe('MindMapNode layout stability and active position', () => {
+describe('MindMapNode 布局稳定性与激活位置', () => {
   let containerA: HTMLDivElement;
   let containerB: HTMLDivElement;
   let runtimeA: Runtime;
@@ -101,7 +101,7 @@ describe('MindMapNode layout stability and active position', () => {
     runtimeB = await Runtime.create(containerB.id, { backgroundAlpha: 0 });
   });
 
-  it('node position is consistent with and without toolbar', async () => {
+  it('节点位置在有无工具栏时应保持一致', async () => {
     await createSceneWithToolbar(800, 600, runtimeA);
     await createSceneWithoutToolbar(800, 600, runtimeB);
     const rootA = runtimeA.getRootWidget();
@@ -114,7 +114,7 @@ describe('MindMapNode layout stability and active position', () => {
     expect(Math.abs(pa.dy - pb.dy)).toBeLessThan(1);
   });
 
-  it('node absolute position stable on active state', async () => {
+  it('激活状态下节点绝对位置应保持稳定', async () => {
     await createSceneWithToolbar(800, 600, runtimeA);
     const rootA = runtimeA.getRootWidget();
     const vp = findWidget(rootA, 'Viewport') as Widget;

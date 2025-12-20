@@ -20,7 +20,7 @@ describe('ButtonElement 渲染与递归编译', () => {
     expect(String(child.key)).toBe('counter-btn');
   });
 
-  it('嵌套组件递归处理，结构保持', () => {
+  it('嵌套组件递归处理，结构保持完整', () => {
     const json = compileElement(
       <Center>
         <Button />

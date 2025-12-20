@@ -10,7 +10,7 @@ import type { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 
-describe('MindMapNode click activation without move', async () => {
+describe('MindMapNode 无移动点击激活测试', async () => {
   beforeEach(() => {
     if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
       (HTMLCanvasElement.prototype as any)._inkwellCtxPatched = true;
@@ -55,7 +55,7 @@ describe('MindMapNode click activation without move', async () => {
       } as any;
     }
   });
-  it('triggers onActive when no pointer move occurred', async () => {
+  it('未发生指针移动时应触发 onActive', async () => {
     const container = document.createElement('div');
     container.id = `mm-node-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);

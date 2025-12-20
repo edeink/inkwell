@@ -18,14 +18,14 @@ class TestChild extends Widget {
 WidgetRegistry.registerType('TestContainer', TestContainer);
 WidgetRegistry.registerType('TestChild', TestChild);
 
-describe('Layout Separation Logic', () => {
-  it('should throw if children are not built before layout', () => {
+describe('布局分离逻辑', () => {
+  it('如果在布局前未构建子节点则应抛出错误', () => {
     const rootData: WidgetProps = {
       type: 'TestContainer',
       children: [{ type: 'TestChild' }],
     };
 
-    // Create widget without building children (createElement not called)
+    // 创建 Widget 但未构建子节点（未调用 createElement）
     const root = WidgetRegistry.createWidget(rootData)!;
 
     expect(root.children.length).toBe(0);
@@ -37,14 +37,14 @@ describe('Layout Separation Logic', () => {
     }).toThrowError(/Children must be built before layout/);
   });
 
-  it('should pass if children are built before layout', () => {
+  it('如果在布局前已构建子节点则应通过', () => {
     const rootData: WidgetProps = {
       type: 'TestContainer',
       children: [{ type: 'TestChild' }],
     };
 
     const root = WidgetRegistry.createWidget(rootData)!;
-    root.createElement(rootData); // Build children explicitly
+    root.createElement(rootData); // 显式构建子节点
 
     expect(root.children.length).toBe(1);
 
@@ -54,10 +54,10 @@ describe('Layout Separation Logic', () => {
     expect(root.renderObject.size).toEqual({ width: 100, height: 100 });
   });
 
-  it('should handle empty subtrees correctly', () => {
+  it('应正确处理空子树', () => {
     const rootData: WidgetProps = {
       type: 'TestContainer',
-      children: [], // Explicitly empty children
+      children: [], // 显式设置空子节点
     };
 
     const root = WidgetRegistry.createWidget(rootData)!;
@@ -66,16 +66,16 @@ describe('Layout Separation Logic', () => {
     expect(root.children.length).toBe(0);
 
     const constraints = createBoxConstraints();
-    // Should not throw, as there are no children expected to be built
+    // 不应抛出错误，因为没有预期需要构建的子节点
     root.layout(constraints);
 
     expect(root.renderObject.size).toEqual({ width: 100, height: 100 });
   });
 
-  it('should handle single node correctly', () => {
+  it('应正确处理单节点', () => {
     const rootData: WidgetProps = {
       type: 'TestContainer',
-      // No children property implies empty or leaf
+      // 无 children 属性意味着为空或叶节点
     };
 
     const root = WidgetRegistry.createWidget(rootData)!;
@@ -89,11 +89,11 @@ describe('Layout Separation Logic', () => {
     expect(root.renderObject.size).toEqual({ width: 100, height: 100 });
   });
 
-  it('should maintain layout performance for deep trees', () => {
+  it('应在深层树中保持布局性能', () => {
     const depth = 1000;
     let current: WidgetProps = { type: 'TestChild' };
 
-    // Create deep tree
+    // 创建深层树
     for (let i = 0; i < depth; i++) {
       current = {
         type: 'TestContainer',
@@ -108,8 +108,8 @@ describe('Layout Separation Logic', () => {
     root.layout(createBoxConstraints());
     const end = performance.now();
 
-    // Layout for 1000 nodes should be very fast (sub-10ms usually)
-    // We set a conservative limit to detect massive regressions (e.g. exponential complexity)
+    // 1000 个节点的布局应非常快（通常低于 10ms）
+    // 设置保守限制以检测重大性能回退（如指数复杂度）
     expect(end - start).toBeLessThan(50);
   });
 });

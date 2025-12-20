@@ -16,8 +16,8 @@ function createFakeRuntime(): Runtime {
   return fake as Runtime;
 }
 
-describe('plugin registration', () => {
-  it('registers and unregisters plugins correctly', () => {
+describe('插件注册', () => {
+  it('正确注册和注销插件', () => {
     const runtime = createFakeRuntime();
     const viewport = new Viewport({ type: 'Viewport', key: 'vp' });
     const controller = new MindmapController(runtime, viewport);

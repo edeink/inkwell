@@ -11,7 +11,7 @@ import { Viewport } from '../viewport';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-// Mock canvas context for paint tests
+// 模拟用于绘制测试的 canvas 上下文
 const mockContext = {
   save: vi.fn(),
   restore: vi.fn(),
@@ -25,10 +25,10 @@ const mockContext = {
   measureText: () => ({ width: 10 }),
 } as any;
 
-describe('MindMap Fixes Verification', () => {
-  // Issue 1: Scroll Synchronization
-  it('Issue 1: Connector and Node should have consistent coordinates under Viewport', () => {
-    // Setup a Viewport with MindMapLayout, Node, and Connector
+describe('MindMap 修复验证', () => {
+  // 问题 1: 滚动同步
+  it('问题 1: Viewport 下 Connector 和 Node 坐标应一致', () => {
+    // 设置包含 MindMapLayout、Node 和 Connector 的 Viewport
     const rootEl = (
       <Viewport key="vp" width={800} height={600}>
         <MindMapLayout key="layout">
@@ -42,23 +42,23 @@ describe('MindMap Fixes Verification', () => {
     const data = compileElement(rootEl);
     const root = WidgetRegistry.createWidget(data)!;
 
-    // Simulate build and layout
-    // Note: This is a simplified simulation. In real app, Runtime handles this.
-    // We manually layout to populate RenderObjects.
+    // 模拟构建和布局
+    // 注意：这是一个简化的模拟。在实际应用中，Runtime 会处理这些。
+    // 我们手动布局以填充 RenderObjects。
 
-    // ... verification logic would go here.
-    // For now, we assume the test setup is complex and focus on the fix logic.
-    // Ideally, we'd check that Connector's calculated start/end points match
-    // Node's layout offset relative to the Viewport content.
+    // ... 验证逻辑将在这里。
+    // 目前，我们假设测试设置很复杂，重点关注修复逻辑。
+    // 理想情况下，我们将检查 Connector 计算的起点/终点是否匹配
+    // 相对于 Viewport 内容的 Node 布局偏移。
   });
 
-  // Issue 2: Layout Centering
-  it('Issue 2: Root node should be centered initially', () => {
-    // We will verify the logic in MindMapLayout or Scene
+  // 问题 2: 布局居中
+  it('Issue 2: 根节点初始应居中', () => {
+    // 我们将验证 MindMapLayout 或 Scene 中的逻辑
   });
 
-  // Issue 3: Event Penetration
-  it('Issue 3: Toolbar button click should stop propagation', () => {
+  // 问题 3: 事件穿透
+  it('问题 3: 工具栏按钮点击应停止传播', () => {
     const toolbar = new MindMapNodeToolbar({
       type: 'MindMapNodeToolbar',
       key: 'tb',
@@ -76,20 +76,20 @@ describe('MindMap Fixes Verification', () => {
       target: toolbar,
     } as any;
 
-    // Simulate hit on add button
-    // Need to inspect Toolbar implementation to know where the button is.
-    // Assuming we can mock or control hit testing.
+    // 模拟点击添加按钮
+    // 需要检查 Toolbar 实现以了解按钮位置。
+    // 假设我们可以模拟或控制命中测试。
   });
 
-  // Issue 4: Layout Collision
-  it('Issue 4: LayoutEngine should detect and resolve collisions', () => {
+  // 问题 4: 布局碰撞
+  it('Issue 4: LayoutEngine 应检测并解决碰撞', () => {
     const engine = new LayoutEngine(40, 20);
-    // Scenario: Root -> A, B. A has a large child A1.
-    // A (height 50) -> A1 (height 1000).
-    // B (height 50).
-    // A's subtree height = 1000.
-    // B should be placed below A such that they don't overlap.
-    // Overlap condition: A's bottom (A.y + 1000/2) < B's top (B.y - 50/2).
+    // 场景：Root -> A, B。A 有一个大子节点 A1。
+    // A (高度 50) -> A1 (高度 1000)。
+    // B (高度 50)。
+    // A 的子树高度 = 1000。
+    // B 应放置在 A 下方，以避免重叠。
+    // 重叠条件：A 的底部 (A.y + 1000/2) < B 的顶部 (B.y - 50/2)。
 
     const nodes = [
       { index: 0, key: 'root', size: { width: 100, height: 50 }, widget: {} as any },
@@ -105,32 +105,32 @@ describe('MindMap Fixes Verification', () => {
 
     const { offsets } = engine.compute(
       { minWidth: 0, maxWidth: 1000, minHeight: 0, maxHeight: 1000 },
-      'tree', // Use 'tree' (side tree) mode which calls computeSideTreeDepthAware -> placeDepthAware
+      'tree', // 使用 'tree' (侧树) 模式
       nodes,
       edges,
       'right',
     );
 
-    // Offsets are returned in order of nodes index.
+    // 偏移量按节点索引顺序返回。
     const rootPos = offsets[0];
     const posA = offsets[1];
     const posB = offsets[2];
     const posA1 = offsets[3];
 
-    // Check A and B spacing
-    // A is centered in its subtree (height 1000).
-    // B is centered in its subtree (height 50).
-    // Distance between A and B should be at least (1000 + 50) / 2 + gap?
-    // Wait, the logic I implemented:
-    // yStart (Block Top)
+    // 检查 A 和 B 的间距
+    // A 在其子树中垂直居中 (高度 1000)。
+    // B 在其子树中垂直居中 (高度 50)。
+    // A 和 B 之间的距离至少应为 (1000 + 50) / 2 + 间隙？
+    // 等等，我实现的逻辑：
+    // yStart (块顶部)
 
-    // Engine constructor(spacingX, spacingY, nodeSpacing). I passed (40, 20). So gap = 20?
-    // No, LayoutEngine constructor arguments are spacingX, spacingY.
-    // Wait, let's check LayoutEngine source for nodeSpacing default.
-    // It seems nodeSpacing is passed as function or number.
+    // Engine 构造函数(spacingX, spacingY, nodeSpacing)。我传入 (40, 20)。所以间隙 = 20？
+    // 不，LayoutEngine 构造函数参数是 spacingX, spacingY。
+    // 等等，让我们检查 LayoutEngine 源码中的 nodeSpacing 默认值。
+    // 似乎 nodeSpacing 作为函数或数字传递。
 
-    // A.y should be around 0 relative to parent center?
-    // Let's just check relative position.
+    // 相对于父中心，A.y 应该在 0 左右？
+    // 让我们只检查相对位置。
     expect(posB.dy).toBeGreaterThan(posA.dy);
 
     const dist = posB.dy - posA.dy;
@@ -139,17 +139,17 @@ describe('MindMap Fixes Verification', () => {
 
     expect(dist).toBeGreaterThanOrEqual(expectedMinDist);
 
-    // Check A1 position relative to A
-    // A1 should be centered on A vertically?
-    // In tree layout, A1 is child of A.
-    // The CENTERS should be aligned.
+    // 检查 A1 相对于 A 的位置
+    // A1 应该在垂直方向上以 A 为中心？
+    // 在树形布局中，A1 是 A 的子节点。
+    // 中心点应对齐。
     const centerA = posA.dy + 50 / 2;
     const centerA1 = posA1.dy + 1000 / 2;
     expect(Math.abs(centerA - centerA1)).toBeLessThan(1);
   });
 
-  // Issue 5: Layout Stability
-  it('Issue 5: Layout should preserve side and vertical order', () => {
+  // 问题 5: 布局稳定性
+  it('问题 5: 布局应保持侧边和垂直顺序', () => {
     const engine = new LayoutEngine(40, 20);
     const nodes1 = [
       { index: 0, key: 'root', size: { width: 100, height: 50 }, widget: {} as any },
@@ -161,7 +161,7 @@ describe('MindMap Fixes Verification', () => {
       { from: 'root', to: '2' },
     ];
 
-    // First run
+    // 第一次运行
     const res1 = engine.compute(
       { minWidth: 0, maxWidth: 1000, minHeight: 0, maxHeight: 1000 },
       'treeBalanced',
@@ -170,24 +170,24 @@ describe('MindMap Fixes Verification', () => {
       'right',
     );
 
-    // Assume 1 goes Left, 2 goes Right (or vice versa depending on implementation)
-    // Let's capture the sides.
+    // 假设 1 在左，2 在右 (或反之)
+    // 让我们捕获侧边。
     const sides = new Map<string, any>();
     const rootOff1 = res1.offsets[0];
     const off1 = res1.offsets[1];
     const off2 = res1.offsets[2];
 
-    // Helper to determine side
+    // 确定侧边的辅助函数
     const getSide = (off: any, rootOff: any) => (off.dx < rootOff.dx ? 'left' : 'right');
 
     sides.set('1', getSide(off1, rootOff1));
     sides.set('2', getSide(off2, rootOff1));
 
-    // Second run: Add node 3 to node 1.
+    // 第二次运行：向节点 1 添加节点 3。
     // 1 -> 3.
-    // This increases height of 1's subtree.
-    // If unstable, 1 might move to the other side to balance.
-    // But we pass 'previousSides'.
+    // 这增加了 1 的子树高度。
+    // 如果不稳定，1 可能会移动到另一侧以平衡。
+    // 但我们传入 'previousSides'。
 
     const nodes2 = [
       ...nodes1,
@@ -195,7 +195,7 @@ describe('MindMap Fixes Verification', () => {
     ];
     const edges2 = [...edges1, { from: '1', to: '3' }];
 
-    // Pass sides to compute
+    // 传入侧边进行计算
     const prevSidesMap = new Map();
     prevSidesMap.set('1', sides.get('1'));
     prevSidesMap.set('2', sides.get('2'));
@@ -213,7 +213,7 @@ describe('MindMap Fixes Verification', () => {
     const newOff1 = res2.offsets[1];
     const newOff2 = res2.offsets[2];
 
-    // Verify sides are preserved
+    // 验证侧边是否保持不变
     expect(getSide(newOff1, rootOff2)).toBe(sides.get('1'));
     expect(getSide(newOff2, rootOff2)).toBe(sides.get('2'));
   });

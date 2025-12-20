@@ -6,7 +6,7 @@ import { Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-describe('Cursor Configuration', () => {
+describe('光标配置', () => {
   it('应该在初始化时正确设置 cursor 属性', () => {
     const el = <Container cursor="pointer" />;
     const data = compileElement(el);
@@ -38,8 +38,8 @@ describe('Cursor Configuration', () => {
   });
 
   it('模拟 dispatcher 中的 cursor 解析逻辑 (冒泡查找)', () => {
-    // Parent has cursor, child has none -> should use parent's
-    // Parent has cursor, child has cursor -> should use child's
+    // 父节点有光标，子节点无 -> 应使用父节点光标
+    // 父节点有光标，子节点有光标 -> 应使用子节点光标
 
     const parentEl = <Container cursor="move" />;
     const parentData = compileElement(parentEl);
@@ -51,7 +51,7 @@ describe('Cursor Configuration', () => {
 
     child.parent = parent;
 
-    // Logic from dispatcher.ts
+    // 模拟 dispatcher.ts 中的逻辑
     function resolveCursor(target: Widget | null): string {
       let cursor = 'default';
       let cur = target;

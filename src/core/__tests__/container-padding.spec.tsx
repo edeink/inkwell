@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { Container, type ContainerProps } from '../container';
-import { type PaddingArray } from '../padding';
 
-describe('Container Padding/Margin Array Support', () => {
+describe('Container Padding/Margin 数组支持', () => {
   it('应支持 padding 为数组类型', () => {
     const props: ContainerProps = {
       type: 'Container',
-      padding: [10, 20], // [vertical, horizontal]
+      padding: [10, 20], // [垂直, 水平]
     };
     const container = new Container(props);
     expect(container.padding).toEqual({ top: 10, right: 20, bottom: 10, left: 20 });
@@ -16,7 +15,7 @@ describe('Container Padding/Margin Array Support', () => {
   it('应支持 margin 为数组类型', () => {
     const props: ContainerProps = {
       type: 'Container',
-      margin: [5, 15, 25, 35], // [top, right, bottom, left]
+      margin: [5, 15, 25, 35], // [上, 右, 下, 左]
     };
     const container = new Container(props);
     expect(container.margin).toEqual({ top: 5, right: 15, bottom: 25, left: 35 });

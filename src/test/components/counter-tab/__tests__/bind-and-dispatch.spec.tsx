@@ -9,7 +9,7 @@ import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('Stateful Template 事件绑定', () => {
-  it('Container onClick 通过 JSON 绑定后已注册到指定运行时', () => {
+  it('Container onClick 通过 JSON 绑定后应注册到指定运行时', () => {
     const json = compileElement(<Template />);
     const root = WidgetRegistry.createWidget(json)!;
     root.createElement(root.data);
