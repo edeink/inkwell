@@ -173,7 +173,7 @@ export class MindmapController {
   private dispatchViewChangeEvent(): void {
     const raw = this.runtime.getRenderer()?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
-    const target: EventTarget | null = canvas ?? this.runtime.getContainer();
+    const target: EventTarget | null = canvas ?? this.runtime.container;
     try {
       target?.dispatchEvent(
         new CustomEvent('inkwell:viewchange', {
@@ -186,7 +186,7 @@ export class MindmapController {
   private dispatchActiveChangeEvent(key: string | null): void {
     const raw = this.runtime.getRenderer()?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
-    const target: EventTarget | null = canvas ?? this.runtime.getContainer();
+    const target: EventTarget | null = canvas ?? this.runtime.container;
     try {
       target?.dispatchEvent(
         new CustomEvent('inkwell:activechange', {

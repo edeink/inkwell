@@ -58,7 +58,7 @@ export default function Inkwell({
     () => instanceId ?? `ink-canvas-${Math.random().toString(36).slice(2)}`,
     [instanceId],
   );
-  const editorRef = React.useRef<Runtime | null>(null);
+  const runtimeRef = React.useRef<Runtime | null>(null);
   const previewRef = React.useRef<HTMLDivElement | null>(null);
   const debounceTimerRef = React.useRef<number | null>(null);
   const lastSizeRef = React.useRef<{ w: number; h: number } | null>(null);
@@ -68,11 +68,11 @@ export default function Inkwell({
       window.clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
-    if (editorRef.current) {
+    if (runtimeRef.current) {
       try {
-        editorRef.current.destroy();
+        runtimeRef.current.destroy();
       } catch {}
-      editorRef.current = null;
+      runtimeRef.current = null;
     }
     const el = document.getElementById(canvasId);
     if (el) {
@@ -119,8 +119,8 @@ export default function Inkwell({
         if (!src || !src.trim()) {
           return;
         }
-        const editor = await Runtime.create(canvasId, { backgroundAlpha: 0 });
-        editorRef.current = editor;
+        const runtime = await Runtime.create(canvasId, { backgroundAlpha: 0 });
+        runtimeRef.current = runtime;
         const compiled = compile(src);
         const fn = new Function(
           'createElement',
@@ -144,7 +144,7 @@ export default function Inkwell({
           canvasId,
           ...Object.values(Core),
         );
-        await editor.renderTemplate(tplFn as () => JSXElement);
+        await runtime.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
       } catch (e: unknown) {
         onError?.((e as Error)?.stack ?? String(e));
@@ -179,11 +179,11 @@ export default function Inkwell({
         window.clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = window.setTimeout(() => {
-        if (!editorRef.current) {
+        if (!runtimeRef.current) {
           return;
         }
         try {
-          editorRef.current.rebuild();
+          runtimeRef.current.rebuild();
         } catch {}
       }, 300);
     });

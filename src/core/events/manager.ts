@@ -172,8 +172,8 @@ class EventManagerImpl {
   bind(runtime: Runtime): void {
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-    const canvas = raw?.canvas ?? runtime.getContainer()?.querySelector('canvas') ?? null;
-    const container = runtime.getContainer?.() ?? null;
+    const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
+    const container = runtime.container ?? null;
     if (!canvas) {
       return;
     }

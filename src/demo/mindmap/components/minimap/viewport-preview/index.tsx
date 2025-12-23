@@ -286,7 +286,7 @@ export default function ViewportPreview({
     // Canvas sizing handled in draw()
     scheduleDraw();
     const host =
-      runtime.getContainer() || document.getElementById(runtime.getCanvasId() || '') || undefined;
+      runtime.container || document.getElementById(runtime.getCanvasId() || '') || undefined;
 
     // Listen to layout changes (add/move nodes)
     const offLayout = controller.addLayoutChangeListener(() => scheduleDraw());

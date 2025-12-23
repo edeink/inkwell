@@ -43,7 +43,8 @@ export interface ComponentData {
  */
 export default class Runtime {
   private renderer: IRenderer | null = null;
-  private container: HTMLElement | null = null;
+  private _container: HTMLElement | null = null;
+  private _canvas: HTMLCanvasElement | null = null;
   private rootWidget: Widget | null = null;
   private oomErrorCount: number = 0;
   private lastOomToastAt: number = 0;
@@ -72,7 +73,7 @@ export default class Runtime {
   }
 
   private async init(containerId: string, options: RuntimeOptions): Promise<void> {
-    this.container = this.initContainer(containerId);
+    this._container = this.initContainer(containerId);
     this.renderer = this.createRenderer(options.renderer || 'canvas2d');
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
     this.initEvent();
@@ -118,7 +119,7 @@ export default class Runtime {
     options: RuntimeOptions = {},
     size?: { width: number; height: number },
   ): Promise<void> {
-    if (!this.renderer || !this.container) {
+    if (!this.renderer || !this._container) {
       return;
     }
 
@@ -127,14 +128,15 @@ export default class Runtime {
       resolution: options.resolution ?? LOCAL_RESOLUTION.get() ?? 4,
       background: options.background ?? 0x000000,
       backgroundAlpha: options.backgroundAlpha ?? 0,
-      width: size?.width ?? this.container.clientWidth,
-      height: size?.height ?? this.container.clientHeight,
+      width: size?.width ?? this._container.clientWidth,
+      height: size?.height ?? this._container.clientHeight,
     };
 
-    await this.renderer.initialize(this.container, rendererOptions);
+    await this.renderer.initialize(this._container, rendererOptions);
     const raw = this.renderer.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
-    if (canvas && this.container) {
+    if (canvas && this._container) {
+      this._canvas = canvas;
       if (!this.canvasId) {
         this.canvasId = Runtime.generateUUID();
       }
@@ -142,7 +144,7 @@ export default class Runtime {
       Runtime.canvasRegistry.set(this.canvasId, {
         canvas,
         runtime: this,
-        container: this.container,
+        container: this._container,
       });
       EventManager.bind(this);
     }
@@ -161,8 +163,12 @@ export default class Runtime {
     return this.renderer;
   }
 
-  getContainer(): HTMLElement | null {
-    return this.container;
+  get container(): HTMLElement | null {
+    return this._container;
+  }
+
+  get canvas(): HTMLCanvasElement | null {
+    return this._canvas;
   }
 
   getRootWidget(): Widget | null {
@@ -202,7 +208,7 @@ export default class Runtime {
    * @param options 编辑器配置
    */
   switchRenderer(rendererType: string, options: RuntimeOptions = {}): void {
-    if (!this.container) {
+    if (!this._container) {
       return;
     }
 
@@ -316,7 +322,7 @@ export default class Runtime {
    * @param jsonData JSON组件数据
    */
   async renderFromJSON(jsonData: ComponentData): Promise<void> {
-    if (!this.renderer || !this.container) {
+    if (!this.renderer || !this._container) {
       console.warn('Runtime 未初始化');
       return;
     }
@@ -325,7 +331,7 @@ export default class Runtime {
       EventRegistry.setCurrentRuntime(this);
       this.rootWidget = this.parseComponentData(jsonData);
       if (this.rootWidget) {
-        this.rootWidget.__runtime = this;
+        this.rootWidget.runtime = this;
         this.rootWidget.createElement(this.rootWidget.data);
       }
 
@@ -347,7 +353,7 @@ export default class Runtime {
       console.error('渲染错误:', error);
 
       // 在页面上显示错误信息
-      if (this.container) {
+      if (this._container) {
         const errorDiv = document.createElement('div');
         errorDiv.style.cssText = `
           position: absolute;
@@ -369,13 +375,13 @@ export default class Runtime {
         errorDiv.textContent = error instanceof Error ? error.message : String(error);
 
         // 清除之前的错误信息
-        const existingError = this.container.querySelector('.flutter-error');
+        const existingError = this._container.querySelector('.flutter-error');
         if (existingError) {
           existingError.remove();
         }
 
         errorDiv.className = 'flutter-error';
-        this.container.appendChild(errorDiv);
+        this._container.appendChild(errorDiv);
       }
 
       // 重新抛出错误以便调试
@@ -600,7 +606,7 @@ export default class Runtime {
       return;
     }
     this.lastOomToastAt = now;
-    const host = this.container ?? document.body;
+    const host = this._container ?? document.body;
     const toast = document.createElement('div');
     toast.style.cssText = `
       position: fixed;
@@ -638,7 +644,7 @@ export default class Runtime {
       this.renderer.destroy();
       this.renderer = null;
     }
-    this.container = null;
+    this._container = null;
     this.rootWidget = null;
     if (this.canvasId) {
       EventManager.unbind(this);

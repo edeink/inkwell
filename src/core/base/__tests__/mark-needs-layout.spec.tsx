@@ -37,7 +37,7 @@ function attachFakeRuntime(root: Widget, onRebuild: () => void): { runtime: Runt
       });
     }),
   } as unknown as Runtime;
-  root.__runtime = runtime;
+  root.runtime = runtime;
   return { runtime };
 }
 
@@ -56,7 +56,7 @@ describe('markNeedsLayout 基本与传播', () => {
 
   it('向上递归标记父节点', () => {
     const { root, inner } = buildSimpleTree();
-    root.__runtime = { scheduleUpdate: () => void 0 } as unknown as Runtime;
+    root.runtime = { scheduleUpdate: () => void 0 } as unknown as Runtime;
     inner.markNeedsLayout();
     expect((inner as unknown as { _needsLayout: boolean })._needsLayout).toBe(true);
     expect((root as unknown as { _needsLayout: boolean })._needsLayout).toBe(true);
@@ -85,7 +85,7 @@ describe('markNeedsLayout 基本与传播', () => {
         requestAnimationFrame(() => runtime.rebuild());
       }),
     } as unknown as Runtime;
-    root.__runtime = runtime;
+    root.runtime = runtime;
     inner.markDirty();
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => requestAnimationFrame(() => r(null)));

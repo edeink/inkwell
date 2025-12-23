@@ -84,9 +84,10 @@ describe('Minimap 集成测试', () => {
     (runtime as unknown as { getRootWidget: () => null }).getRootWidget = vi
       .fn()
       .mockReturnValue(null);
-    (runtime as unknown as { getContainer: () => HTMLDivElement }).getContainer = vi
-      .fn()
-      .mockReturnValue(container);
+    Object.defineProperty(runtime, 'container', {
+      get: () => container,
+      configurable: true,
+    });
     (runtime as unknown as { getCanvasId: () => string }).getCanvasId = vi
       .fn()
       .mockReturnValue('test-canvas');

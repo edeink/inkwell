@@ -97,8 +97,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   // 根节点
   private __root: Widget | null = null;
-  // 运行时挂载点
-  public __runtime?: Runtime;
+  // 运行时实例
+  private _runtime?: Runtime;
   protected _needsLayout: boolean = false;
   protected _dirty: boolean = true;
   protected _disposed: boolean = false;
@@ -408,12 +408,28 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   // 挂在运行时
-  public get runtime() {
-    if (this.__runtime) {
-      return this.__runtime;
+  /**
+   * 获取关联的运行时实例
+   * 如果当前节点没有直接绑定运行时，会尝试从根节点获取
+   */
+  public get runtime(): Runtime | undefined {
+    if (this._runtime) {
+      return this._runtime;
     }
-    this.__runtime = this.root?.__runtime;
-    return this.__runtime;
+    // 尝试从根节点获取（避免递归调用 getter 导致死循环，直接访问私有变量）
+    const root = this.root;
+    if (root && root !== this) {
+      this._runtime = root._runtime;
+    }
+    return this._runtime;
+  }
+
+  /**
+   * 设置运行时实例
+   * 通常仅由 Runtime 类在根节点上调用
+   */
+  public set runtime(value: Runtime | undefined) {
+    this._runtime = value;
   }
 
   /**

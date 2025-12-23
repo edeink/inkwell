@@ -28,13 +28,13 @@ function buildFlexJSX(count: number) {
 /**
  * 编译、构建、布局并初始化渲染器，完成绘制后统计耗时。
  * @param stageEl 舞台元素
- * @param editor 编辑器实例
+ * @param runtime 编辑器实例
  * @param count 节点数量
  * @returns Timings（构建/布局/绘制耗时）
  */
 export async function buildFlexWidgetScene(
   stageEl: HTMLElement,
-  editor: Runtime,
+  runtime: Runtime,
   count: number,
 ): Promise<Timings> {
   const tCompile0 = performance.now();
@@ -59,8 +59,8 @@ export async function buildFlexWidgetScene(
   root.layout(constraints);
   const tLayout1 = performance.now();
 
-  const renderer = editor.getRenderer() ?? new Canvas2DRenderer();
-  const container = editor.getContainer()!;
+  const renderer = runtime.getRenderer() ?? new Canvas2DRenderer();
+  const container = runtime.container!;
   const scrollLayer = document.createElement('div');
   scrollLayer.style.cssText = 'position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto;';
   container.appendChild(scrollLayer);

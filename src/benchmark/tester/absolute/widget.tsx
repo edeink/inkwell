@@ -36,13 +36,13 @@ function buildAbsoluteJSX(count: number, W: number, H: number) {
 /**
  * 编译 JSX → JSON，构建 Widget 树，布局并初始化渲染器，执行绘制并等待下一次绘制完成。
  * @param stageEl 舞台元素
- * @param editor 编辑器实例
+ * @param runtime 编辑器实例
  * @param count 节点数量
  * @returns Timings（构建/布局/绘制耗时）
  */
 export async function buildAbsoluteWidgetScene(
   stageEl: HTMLElement,
-  editor: Runtime,
+  runtime: Runtime,
   count: number,
 ): Promise<Timings> {
   const tCompile0 = performance.now();
@@ -67,8 +67,8 @@ export async function buildAbsoluteWidgetScene(
   root.layout(constraints);
   const tLayout1 = performance.now();
 
-  const renderer = editor.getRenderer() ?? new Canvas2DRenderer();
-  const container = editor.getContainer()!;
+  const renderer = runtime.getRenderer() ?? new Canvas2DRenderer();
+  const container = runtime.container!;
   const opts: RendererOptions = {
     width: Math.max(stageW, 100),
     height: Math.max(stageH, 100),

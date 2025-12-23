@@ -75,7 +75,7 @@ export function useMouseInteraction({
     ov.setActive(active);
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-    const canvas = raw?.canvas ?? runtime.getContainer()?.querySelector('canvas') ?? null;
+    const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
 
     let lastEvent: MouseEvent | null = null;
     let raf = 0;
@@ -121,7 +121,7 @@ export function useMouseInteraction({
         } catch {}
         const rendererNow = runtime?.getRenderer();
         const rawNow = rendererNow?.getRawInstance?.() as CanvasRenderingContext2D | null;
-        const canvasEl = rawNow?.canvas ?? runtime?.getContainer()?.querySelector('canvas');
+        const canvasEl = rawNow?.canvas ?? runtime?.container?.querySelector('canvas');
         if (!canvasEl) {
           ov.highlight(null);
           return;

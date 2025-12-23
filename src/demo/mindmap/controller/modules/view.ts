@@ -146,7 +146,7 @@ export class ViewModule {
       .getRenderer()
       ?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
-    const target: EventTarget | null = canvas ?? this.controller.runtime.getContainer();
+    const target: EventTarget | null = canvas ?? this.controller.runtime.container;
     try {
       target?.dispatchEvent(
         new CustomEvent('inkwell:viewchange', {
@@ -161,7 +161,7 @@ export class ViewModule {
       .getRenderer()
       ?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
-    const target: EventTarget | null = canvas ?? this.controller.runtime.getContainer();
+    const target: EventTarget | null = canvas ?? this.controller.runtime.container;
     try {
       target?.dispatchEvent(
         new CustomEvent('inkwell:activechange', {

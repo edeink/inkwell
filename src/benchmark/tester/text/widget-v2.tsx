@@ -62,7 +62,7 @@ export async function buildTextWidgetSceneV2(
   const tLayout1 = performance.now();
 
   const renderer = runtime.getRenderer() ?? new Canvas2DRenderer();
-  const container = runtime.getContainer()!;
+  const container = runtime.container!;
   const opts = {
     width: Math.max(stageW, 100),
     height: Math.max(stageH, 100),

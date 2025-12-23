@@ -131,7 +131,7 @@ describe('Counter Render Count', () => {
     // 挂载 Template
     const root = new Template({ type: 'Template' });
     (runtime as any).rootWidget = root;
-    root.__runtime = runtime;
+    root.runtime = runtime;
     root.createElement(root.data); // 初始构建
 
     // 初始渲染计数

@@ -181,7 +181,7 @@ export function dispatchAt(
   currentRuntime = runtime;
   const renderer = runtime.getRenderer();
   const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-  const canvas = raw?.canvas ?? runtime.getContainer()?.querySelector('canvas') ?? null;
+  const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
   if (!canvas) {
     currentRuntime = null;
     return;
@@ -241,7 +241,7 @@ export function dispatchToTree(
 ): void {
   const prevRuntime = currentRuntime;
   try {
-    const rt = (root as unknown as { __runtime?: Runtime | null }).__runtime ?? null;
+    const rt = root.runtime ?? null;
     currentRuntime = rt;
   } catch {
     currentRuntime = null;

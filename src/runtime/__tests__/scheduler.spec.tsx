@@ -93,7 +93,7 @@ describe('Runtime Scheduler (调度器)', () => {
     root.createElement(root.data);
     (runtime as any).rootWidget = root;
     if ((runtime as any).rootWidget) {
-      (runtime as any).rootWidget.__runtime = runtime;
+      (runtime as any).rootWidget.runtime = runtime;
     }
   });
 
@@ -209,9 +209,7 @@ describe('Runtime Scheduler (调度器)', () => {
 
     // 限制为 10 次
     expect(rebuildSpy).toHaveBeenCalledTimes(10);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Maximum rebuild depth exceeded'),
-    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Inkwell: 超过最大重建深度。'));
   });
 
   it('异常情况下应正确重置调度状态', async () => {
@@ -229,7 +227,7 @@ describe('Runtime Scheduler (调度器)', () => {
 
     // 检查是否捕获并记录了错误
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Layout update failed'),
+      expect.stringContaining('布局更新失败:'),
       expect.any(Error),
     );
 

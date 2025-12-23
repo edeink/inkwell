@@ -96,7 +96,7 @@ describe('Viewport Selection Rect', () => {
       width: 800,
       height: 600,
     });
-    viewport.__runtime = runtime;
+    viewport.runtime = runtime;
     runtime.rootWidget = viewport;
 
     // Initial layout

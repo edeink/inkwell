@@ -203,7 +203,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       const rt = this.findRuntimeFromNative(native);
       const renderer = rt?.getRenderer?.();
       const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-      const canvas = raw?.canvas ?? rt?.getContainer()?.querySelector('canvas') ?? null;
+      const canvas = raw?.canvas ?? rt?.container?.querySelector('canvas') ?? null;
       if (!canvas) {
         return null;
       }

@@ -67,7 +67,7 @@ export default function Toolbar({ runtime, width, height }: Props) {
     let w = width ?? 0;
     let h = height ?? 0;
     try {
-      const container = runtime?.getContainer();
+      const container = runtime?.container;
       if (container) {
         w = container.clientWidth;
         h = container.clientHeight;

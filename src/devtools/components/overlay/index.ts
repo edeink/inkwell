@@ -24,7 +24,7 @@ export default class Overlay {
   }
 
   mount(): void {
-    const container = this.editor.getContainer();
+    const container = this.editor.container;
     if (!container) {
       return;
     }
@@ -78,7 +78,7 @@ export default class Overlay {
 
   highlight(widget: Widget | null): void {
     try {
-      const container = this.editor.getContainer();
+      const container = this.editor.container;
       const renderer = this.editor.getRenderer();
       const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
       const canvas = raw?.canvas ?? container?.querySelector('canvas') ?? null;
@@ -95,7 +95,7 @@ export default class Overlay {
       const offsetX = canvasRect.left - containerRect.left;
       const offsetY = canvasRect.top - containerRect.top;
 
-      const wm = (widget as any).getWorldMatrix?.() as
+      const wm = widget.getWorldMatrix?.() as
         | [number, number, number, number, number, number]
         | undefined;
       const bounds = isConnectorLike(widget) ? widget.getBounds() : null;
@@ -171,7 +171,7 @@ export default class Overlay {
     try {
       const renderer = this.editor.getRenderer();
       const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-      const canvas = raw?.canvas ?? this.editor.getContainer()?.querySelector('canvas') ?? null;
+      const canvas = raw?.canvas ?? this.editor.container?.querySelector('canvas') ?? null;
       if (canvas) {
         this.mo = new MutationObserver(() => this.highlight(this.getCurrent?.() ?? null));
         this.mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
@@ -213,7 +213,7 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   }
   let found: Widget | null = null;
   function dfs(node: Widget): void {
-    const wm = (node as any).getWorldMatrix?.() as
+    const wm = node.getWorldMatrix?.() as
       | [number, number, number, number, number, number]
       | undefined;
     const bounds = isConnectorLike(node) ? node.getBounds() : null;

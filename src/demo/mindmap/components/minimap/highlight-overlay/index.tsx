@@ -78,7 +78,7 @@ export default function HighlightOverlay({
       canvas.height = pixelH;
     }
 
-    const container = runtime.getContainer();
+    const container = runtime.container;
     const cW = container?.clientWidth || 1;
     const cH = container?.clientHeight || 1;
     const vs = viewStateRef.current;
@@ -187,7 +187,7 @@ export default function HighlightOverlay({
       const wx = (localX - fit.ox) / fit.s;
       const wy = (localY - fit.oy) / fit.s;
 
-      const container = runtime.getContainer();
+      const container = runtime.container;
       const W = container?.clientWidth || 1;
       const H = container?.clientHeight || 1;
       const s = controller.viewScale;
@@ -250,7 +250,7 @@ export default function HighlightOverlay({
       const localY = e.clientY - rect.top;
 
       const vs = viewStateRef.current;
-      const container = runtime.getContainer();
+      const container = runtime.container;
       const cW = container?.clientWidth || 1;
       const cH = container?.clientHeight || 1;
 
