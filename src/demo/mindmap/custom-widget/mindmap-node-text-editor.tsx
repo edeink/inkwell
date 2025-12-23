@@ -70,6 +70,8 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.updateInputState();
     // 启动光标闪烁定时器
     this.startCursorTimer();
+    // 启动位置同步循环
+    this.startInputPositionLoop();
   }
 
   private get typedProps(): MindMapNodeTextEditorProps {
@@ -110,12 +112,106 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.startCursorTimer();
   }
 
+  private _rafId: number | null = null;
+
+  private startInputPositionLoop() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const loop = () => {
+      this.updateInputPosition();
+      this._rafId = window.requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  private stopInputPositionLoop() {
+    if (this._rafId !== null) {
+      window.cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+  }
+
+  private updateInputPosition() {
+    if (!this.input || !this.root) {
+      return;
+    }
+
+    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    if (!vp) {
+      return;
+    }
+
+    // 尝试获取 Runtime 容器位置
+    const runtime = this.root.runtime;
+    let containerRect = { left: 0, top: 0 };
+
+    if (runtime) {
+      const container = runtime.container;
+      if (container && container.getBoundingClientRect) {
+        const rect = container.getBoundingClientRect();
+        containerRect = { left: rect.left, top: rect.top };
+      }
+    }
+
+    // 寻找 Node 容器 (MindMapNode 渲染的 Container)
+    const nodeContainer = this.parent;
+    if (!nodeContainer) {
+      return;
+    }
+
+    let absX = 0;
+    let absY = 0;
+    let curr: Widget | null = nodeContainer;
+    let foundVp = false;
+    let safety = 0;
+
+    while (curr && safety < 100) {
+      if (curr === vp) {
+        foundVp = true;
+        break;
+      }
+      if (curr.renderObject && curr.renderObject.offset) {
+        absX += curr.renderObject.offset.dx;
+        absY += curr.renderObject.offset.dy;
+      }
+      curr = curr.parent;
+      safety++;
+    }
+
+    if (!foundVp) {
+      return;
+    }
+
+    const scale = vp.scale;
+    const tx = vp.tx;
+    const ty = vp.ty;
+
+    // 节点尺寸 (未缩放)
+    const nodeWidth = nodeContainer.renderObject.size.width;
+    const nodeHeight = nodeContainer.renderObject.size.height;
+
+    // 计算 Canvas 坐标
+    const canvasLeft = absX * scale + tx;
+    // 定位到节点左下角
+    const canvasBottom = (absY + nodeHeight) * scale + ty;
+
+    const screenLeft = containerRect.left + canvasLeft;
+    const screenTop = containerRect.top + canvasBottom;
+
+    this.input.style.left = `${screenLeft}px`;
+    this.input.style.top = `${screenTop}px`;
+    this.input.style.width = `${nodeWidth * scale}px`;
+    this.input.style.height = '0px';
+  }
+
   /**
    * 销毁组件时清理资源
    * 必须在 src/core/base.ts 中正确调用 dispose
    */
   dispose() {
     this.stopCursorTimer();
+    this.stopInputPositionLoop();
     if (this.input) {
       this.input.removeEventListener('input', this.handleInput);
       this.input.removeEventListener('keydown', this.handleKeyDown);
