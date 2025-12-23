@@ -76,14 +76,12 @@ export enum TestCaseType {
   Absolute = 'absolute',
   Flex = 'flex',
   Text = 'text',
-  CanvasBenchmark = 'canvas-benchmark', // New specialized test case
 }
 
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
   { label: '盒子绝对布局测试', value: TestCaseType.Absolute },
   { label: '文字渲染测试', value: TestCaseType.Text },
   { label: '流式布局测试', value: TestCaseType.Flex },
-  { label: '纯渲染性能测试', value: TestCaseType.CanvasBenchmark },
 ];
 
 export enum TestStatus {

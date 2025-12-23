@@ -1,7 +1,6 @@
 import Runtime from '../../runtime';
 import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
 import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
-import { runCanvasBenchmark } from '../tester/canvas-benchmark/widget';
 import { buildFlexWidgetScene } from '../tester/flex/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
 import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
@@ -66,9 +65,6 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     this.clearCanvas();
     const runtime = await this.createRuntimeForStage(this.ctx.stageEl);
     switch (this.caseType) {
-      case TestCaseType.CanvasBenchmark:
-        this.lastTimings = await runCanvasBenchmark(this.ctx.stageEl, runtime, targetCount);
-        break;
       case TestCaseType.Flex:
         this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;

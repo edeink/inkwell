@@ -74,15 +74,6 @@ function listTests(caseType: TestCaseType, mode: 'benchmark' | 'canvas'): Loaded
     ];
   }
 
-  // Benchmark 模式：保留原有对比逻辑
-  if (caseType === TestCaseType.CanvasBenchmark) {
-    return [
-      {
-        name: 'Canvas-Pure',
-        create: (stage) => new WidgetPerformanceTest(stage, caseType),
-      },
-    ];
-  }
   if (caseType === TestCaseType.Text) {
     return [
       { name: 'text-DOM', create: (stage) => new DomPerformanceTest(stage, caseType) },

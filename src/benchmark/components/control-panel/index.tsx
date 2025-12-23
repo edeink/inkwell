@@ -1,5 +1,5 @@
 import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { Button, Checkbox, InputNumber, Select, Space, Tabs } from 'antd';
+import { Button, InputNumber, Select, Space, Tabs } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { TestCaseOptions } from '../../index.types';
@@ -161,7 +161,7 @@ export default function ControlPanel({
   const items = [
     {
       key: 'benchmark',
-      label: '基准对比（DOM-React Vs Canvas-InkWell）',
+      label: 'React Vs InkWell',
       children: (
         <div className={styles.section}>
           <div className={styles.fieldRow}>
@@ -191,65 +191,48 @@ export default function ControlPanel({
                   className={styles.presetButton}
                   type={preset === p.key ? 'primary' : 'default'}
                   onClick={() => onPresetChange(p.key)}
-                  disabled={runOnce}
                 >
                   {p.label}
                 </Button>
               ))}
             </Space.Compact>
-            <div style={{ marginTop: 8 }}>
-              <Checkbox checked={runOnce} onChange={(e) => setRunOnce(e.target.checked)}>
-                仅执行一次
-              </Checkbox>
-            </div>
           </div>
           <div className={styles.fieldRow}>
-            <span className={styles.label}>{runOnce ? '创建节点数量' : '范围'}</span>
+            <span className={styles.label}>范围</span>
             <div className={styles.control}>
-              {runOnce ? (
+              <div className={styles.range}>
                 <InputNumber
                   className={styles.input}
                   min={1}
                   value={rangeStart}
                   onChange={(v) => v && setRangeStart(Number(v))}
                 />
-              ) : (
-                <div className={styles.range}>
-                  <InputNumber
-                    className={styles.input}
-                    min={1}
-                    value={rangeStart}
-                    onChange={(v) => v && setRangeStart(Number(v))}
-                  />
-                  <span className={styles.divider}>~</span>
-                  <InputNumber
-                    className={styles.input}
-                    min={1}
-                    value={rangeEnd}
-                    onChange={(v) => v && setRangeEnd(Number(v))}
-                  />
-                </div>
-              )}
+                <span className={styles.divider}>~</span>
+                <InputNumber
+                  className={styles.input}
+                  min={1}
+                  value={rangeEnd}
+                  onChange={(v) => v && setRangeEnd(Number(v))}
+                />
+              </div>
             </div>
           </div>
-          {!runOnce && (
-            <div className={styles.fieldRow}>
-              <span className={styles.label}>步长</span>
-              <InputNumber
-                className={styles.input}
-                min={1}
-                max={stepMax}
-                value={rangeStep}
-                onChange={(v) => v && setRangeStep(Number(v))}
-              />
-            </div>
-          )}
+          <div className={styles.fieldRow}>
+            <span className={styles.label}>步长</span>
+            <InputNumber
+              className={styles.input}
+              min={1}
+              max={stepMax}
+              value={rangeStep}
+              onChange={(v) => v && setRangeStep(Number(v))}
+            />
+          </div>
         </div>
       ),
     },
     {
       key: 'canvas',
-      label: 'Canvas-Inkwell 渲染',
+      label: 'Inkwell 渲染',
       children: (
         <div className={styles.section}>
           <div className={styles.fieldRow}>
