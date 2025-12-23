@@ -1,5 +1,14 @@
 import { SCALE_CONFIG } from '../config/constants';
 
+import { DeleteCommand, RedoCommand, UndoCommand } from './shortcut/commands/history';
+import {
+  MoveDownCommand,
+  MoveLeftCommand,
+  MoveRightCommand,
+  MoveUpCommand,
+} from './shortcut/commands/navigation';
+import { PreventBrowserZoomCommand } from './shortcut/commands/system';
+import { ShortcutManager } from './shortcut/manager';
 import { CustomComponentType } from './type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
@@ -93,12 +102,16 @@ export class Viewport extends Widget<ViewportProps> {
   private _onActiveKeyChange?: (key: string | null) => void;
   private selectAllActive: boolean = false;
 
+  private shortcutManager: ShortcutManager;
+
   private _onViewChangeListeners: Set<(view: { scale: number; tx: number; ty: number }) => void> =
     new Set();
   private _onScrollListeners: Set<(scrollX: number, scrollY: number) => void> = new Set();
 
   constructor(data: ViewportProps) {
     super(data);
+    this.shortcutManager = new ShortcutManager();
+    this.registerDefaultShortcuts();
     this.init(data);
     if (data.onViewChange) {
       this._onViewChangeListeners.add(data.onViewChange);
@@ -154,6 +167,29 @@ export class Viewport extends Widget<ViewportProps> {
     this._onDeleteSelection = data.onDeleteSelection;
     this._onSetSelectedKeys = data.onSetSelectedKeys;
     this._onActiveKeyChange = data.onActiveKeyChange;
+  }
+
+  private registerDefaultShortcuts() {
+    this.shortcutManager.register(UndoCommand);
+    this.shortcutManager.register(RedoCommand);
+    this.shortcutManager.register(DeleteCommand);
+    this.shortcutManager.register(MoveLeftCommand);
+    this.shortcutManager.register(MoveRightCommand);
+    this.shortcutManager.register(MoveUpCommand);
+    this.shortcutManager.register(MoveDownCommand);
+    this.shortcutManager.register(PreventBrowserZoomCommand);
+  }
+
+  public undo(): void {
+    this._onUndo?.();
+  }
+
+  public redo(): void {
+    this._onRedo?.();
+  }
+
+  public deleteSelection(): void {
+    this._onDeleteSelection?.();
   }
 
   createElement(data: ViewportProps): Widget<ViewportProps> {
@@ -482,44 +518,17 @@ export class Viewport extends Widget<ViewportProps> {
     if (!ke) {
       return;
     }
-    const ctrlKey = ke.ctrlKey || ke.metaKey;
-    if (ctrlKey && ke.key.toLowerCase() === 'z' && !ke.shiftKey) {
-      this._onUndo?.();
-    } else if (
-      (ctrlKey && ke.key.toLowerCase() === 'y') ||
-      (ctrlKey && ke.shiftKey && ke.key.toLowerCase() === 'z')
-    ) {
-      this._onRedo?.();
-    } else if (ctrlKey && (ke.key === '+' || ke.key === '-' || ke.key === '=' || ke.key === '0')) {
-      ke.preventDefault();
-    } else if (ke.key === 'Delete' || ke.key === 'Backspace') {
-      const editing = this.editingKey;
-      if (editing) {
-        return false;
-      }
-      this._onDeleteSelection?.();
-    } else if (ke.key === 'ArrowLeft') {
-      const nextScrollX = this._contentTx + 20 / this.scale;
-      const nextScrollY = this._contentTy;
-      this.setContentPosition(nextScrollX, nextScrollY);
-      this._onScroll?.(nextScrollX, nextScrollY);
-      this.markNeedsLayout();
-    } else if (ke.key === 'ArrowRight') {
-      const nextScrollX = this._contentTx - 20 / this.scale;
-      const nextScrollY = this._contentTy;
-      this.setContentPosition(nextScrollX, nextScrollY);
-      this.markNeedsLayout();
-    } else if (ke.key === 'ArrowUp') {
-      const nextScrollX = this._contentTx;
-      const nextScrollY = this._contentTy + 20 / this.scale;
-      this.setContentPosition(nextScrollX, nextScrollY);
-      this.markNeedsLayout();
-    } else if (ke.key === 'ArrowDown') {
-      const nextScrollX = this._contentTx;
-      const nextScrollY = this._contentTy - 20 / this.scale;
-      this.setContentPosition(nextScrollX, nextScrollY);
-      this.markNeedsLayout();
+
+    const handled = this.shortcutManager.handle({
+      viewport: this,
+      event: e,
+      nativeEvent: ke,
+    });
+
+    if (handled) {
+      return false;
     }
+
     return false;
   }
 
