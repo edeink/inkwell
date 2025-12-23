@@ -23,7 +23,6 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@types/classnames": "^2.3.1",
     "@babel/standalone": "^7.26.3",
     "@docusaurus/core": "^3.2.1",
     "@docusaurus/preset-classic": "^3.2.1",
@@ -32,9 +31,11 @@
     "@docusaurus/tsconfig": "^3.9.2",
     "@docusaurus/types": "^3.9.2",
     "@eslint/js": "^9.33.0",
+    "@types/classnames": "^2.3.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/coverage-v8": "2.1.9",
     "antd": "^5.29.0",
     "baseline-browser-mapping": "^2.8.31",
     "css-loader": "^6.10.0",

@@ -310,6 +310,7 @@ export class Viewport extends Widget<ViewportProps> {
    */
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
+    this.markNeedsLayout();
   }
 
   /**

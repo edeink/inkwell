@@ -88,6 +88,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
+  depth: number = 0;
   pointerEvents: 'auto' | 'none' = 'auto';
   cursor?: CursorType;
 
@@ -180,7 +181,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       return;
     }
     this._needsLayout = true;
-    this._dirty = true;
     let p: Widget | null = this.parent;
     while (p) {
       if (!p._needsLayout) {
@@ -219,6 +219,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   public rebuild(): boolean {
+    if (!this._dirty) {
+      return false;
+    }
+
+    // 假设所有的 props 变更都被 buildChildren 消费
+    const stateChanged = this.didStateChange();
+    // 移除错误的早期返回，因为 props 或 children 变更也需要重建
+    // if (!stateChanged) {
+    //   this._dirty = false;
+    //   return false;
+    // }
+
     const prevData = this.data;
     const prevChildrenData = Array.isArray(prevData.children)
       ? (prevData.children as WidgetProps[])
@@ -228,10 +240,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
     const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
     const propsChanged = this.shallowDiff(this.props, { ...prevData, children: nextChildrenData });
-    const stateChanged = this.didStateChange();
 
     const hasActualUpdate = needInitialBuild || childrenChanged || propsChanged || stateChanged;
     if (!hasActualUpdate) {
+      this._dirty = false;
       return false;
     }
 
@@ -244,6 +256,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const nextProps = { ...prevData, children: this.children };
     this.data = nextProps;
     this.props = nextProps;
+    this._dirty = false;
     return true;
   }
 
@@ -474,13 +487,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   layout(constraints: BoxConstraints): Size {
     // 验证：确保在布局前子节点已构建（若存在子节点数据）
-    const potentialChildren = this.computeNextChildrenData();
-    if (potentialChildren.length > 0 && this.children.length === 0) {
-      throw new Error(
-        `[Layout Error] Children must be built before layout. Widget: ${this.type}(${this.key}). ` +
-          `Please call createElement() or ensure build phase is completed.`,
-      );
-    }
+    // 此处移除原有的 potentialChildren 检查，因为它会触发 StatelessWidget.render() 导致多余的渲染
 
     // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);

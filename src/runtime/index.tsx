@@ -224,10 +224,19 @@ export default class Runtime {
         }
       }
     }
+
+    // 如果有挂起的 RAF，取消它，因为我们要立即执行了
+    if (this.__layoutRaf !== null) {
+      cancelAnimationFrame(this.__layoutRaf);
+      this.__layoutRaf = null;
+      this.__layoutScheduled = false;
+    }
+
     if (!this.rootWidget || !this.renderer) {
       return;
     }
     if (this.dirtyWidgets.size === 0) {
+      // 如果没有脏节点，可能需要全量重绘或检查 root
       this.dirtyWidgets.add(this.rootWidget);
     }
     this.rebuild();
@@ -238,16 +247,43 @@ export default class Runtime {
       return;
     }
     this.dirtyWidgets.add(widget);
+    this.ensureLayoutScheduled();
+  }
+
+  private ensureLayoutScheduled() {
     if (!this.__layoutScheduled) {
       this.__layoutScheduled = true;
       this.__layoutRaf = requestAnimationFrame(async () => {
         try {
-          await this.rebuild();
-        } finally {
-          this.__layoutScheduled = false;
-          this.__layoutRaf = null;
+          await this.flushUpdates();
+        } catch (error) {
+          console.error('Layout update failed:', error);
         }
       });
+    }
+  }
+
+  private async flushUpdates() {
+    try {
+      let loops = 0;
+      // 循环处理，直到没有脏节点（防止更新丢失）
+      // 设置最大轮数避免死循环
+      while (this.dirtyWidgets.size > 0 && loops < 10) {
+        await this.rebuild();
+        loops++;
+      }
+      if (loops >= 10) {
+        console.warn('Inkwell: Maximum rebuild depth exceeded.');
+        this.dirtyWidgets.clear();
+      }
+    } finally {
+      this.__layoutScheduled = false;
+      this.__layoutRaf = null;
+
+      // 双重保险：如果 finally 执行时又有新节点（极少见情况），再次调度
+      if (this.dirtyWidgets.size > 0) {
+        this.ensureLayoutScheduled();
+      }
     }
   }
 
