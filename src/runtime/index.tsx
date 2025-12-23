@@ -236,7 +236,7 @@ export default class Runtime {
       return;
     }
     if (this.dirtyWidgets.size === 0) {
-      // 如果没有脏节点，可能需要全量重绘或检查 root
+      // 若无脏节点，默认检查 rootWidget（防止空 tick 调用）
       this.dirtyWidgets.add(this.rootWidget);
     }
     this.rebuild();
@@ -257,7 +257,7 @@ export default class Runtime {
         try {
           await this.flushUpdates();
         } catch (error) {
-          console.error('Layout update failed:', error);
+          console.error('布局更新失败:', error);
         }
       });
     }
@@ -273,7 +273,7 @@ export default class Runtime {
         loops++;
       }
       if (loops >= 10) {
-        console.warn('Inkwell: Maximum rebuild depth exceeded.');
+        console.warn('Inkwell: 超过最大重建深度。');
         this.dirtyWidgets.clear();
       }
     } finally {
@@ -317,7 +317,7 @@ export default class Runtime {
    */
   async renderFromJSON(jsonData: ComponentData): Promise<void> {
     if (!this.renderer || !this.container) {
-      console.warn('Runtime not initialized');
+      console.warn('Runtime 未初始化');
       return;
     }
 
@@ -410,7 +410,7 @@ export default class Runtime {
       const ext = createExternalWidget(data.type, data);
       return ext;
     } catch (error) {
-      console.error('Failed to create widget:', error, data);
+      console.error('创建组件失败:', error, data);
       return null;
     }
   }
@@ -487,9 +487,23 @@ export default class Runtime {
     }
     const dirtyList = Array.from(this.dirtyWidgets);
     this.dirtyWidgets.clear();
+
+    // Sort by depth to ensure parents update before children
+    dirtyList.sort((a, b) => a.depth - b.depth);
+
     let hasAnyUpdate = false;
     if (dirtyList.length > 0) {
       for (const w of dirtyList) {
+        // If the widget was added to dirtyWidgets during this rebuild (e.g. by parent update),
+        // remove it to prevent double render in next frame
+        if (this.dirtyWidgets.has(w)) {
+          this.dirtyWidgets.delete(w);
+        }
+
+        if (w.isDisposed()) {
+          continue;
+        }
+
         const changed = w.rebuild();
         const dirtyFlag = w.isLayoutDirty();
         const widgetDirty = w.isDirty();

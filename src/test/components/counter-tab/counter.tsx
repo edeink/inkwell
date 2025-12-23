@@ -1,33 +1,53 @@
 /** @jsxImportSource @/utils/compiler */
-
 import { Button } from './button';
 
-import type { WidgetProps } from '@/core/base';
-import type { InkwellEvent } from '@/core/events';
-
-import { Center, Container, Row, Text } from '@/core';
-import { MainAxisSize } from '@/core/flex/type';
-import { StatefulWidget } from '@/core/state/stateful';
-import { TextAlign, TextAlignVertical } from '@/core/text';
+import {
+  Center,
+  Container,
+  MainAxisSize,
+  Row,
+  StatefulWidget,
+  Text,
+  TextAlign,
+  TextAlignVertical,
+  type InkwellEvent,
+  type WidgetProps,
+} from '@/core';
 
 interface TemplateProps extends WidgetProps {}
 
-export class Template extends StatefulWidget<TemplateProps> {
+interface TemplateState {
+  count: number;
+  tips: string;
+  [key: string]: unknown;
+}
+
+export class Template extends StatefulWidget<TemplateProps, TemplateState> {
+  private btnRef: Button | null = null;
+
   constructor(data: TemplateProps) {
     super(data);
-    this.state = { count: 0, tips: '+1' };
+    this.state = {
+      count: 0,
+      tips: '+1',
+    };
   }
 
   private onInc = (_e: InkwellEvent): void => {
-    const cur = (this.state as { count: number }).count;
+    console.log('[Counter] onInc called');
+    const cur = this.state.count;
     this.setState({ count: cur + 1 });
+    // 触发子组件更新
+    if (this.btnRef) {
+      this.btnRef.changeColor();
+    }
   };
 
   render() {
+    console.log('[Counter] render called');
     return (
       <Row key="counter-root" spacing={16} mainAxisSize={MainAxisSize.Max}>
-        {/* 片段 1 */}
-        <Button onClick={this.onInc}>
+        <Button ref={(r: unknown) => (this.btnRef = r as Button)} onClick={this.onInc}>
           <Text
             key="counter-btn-text-02"
             text={String(this.state.tips)}
@@ -58,10 +78,10 @@ export class Template extends StatefulWidget<TemplateProps> {
           </Center>
         </Container>
         <Text
-          key="counter-value"
-          text={String((this.state as { count: number }).count)}
-          fontSize={28}
-          color={'#2c3e50'}
+          key="counter-text"
+          text={`Count: ${this.state.count}`}
+          fontSize={24}
+          color="#333333"
         />
       </Row>
     );

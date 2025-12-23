@@ -92,7 +92,7 @@ export function compileElement(element: AnyElement): ComponentData {
 
   const data: ComponentData = {
     type: componentType,
-    key: key ?? `${componentType}-${Math.random().toString(36).slice(2, 11)}`,
+    key: key,
   } as ComponentData;
 
   const p = (props ?? {}) as Record<string, unknown>;

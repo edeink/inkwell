@@ -11,7 +11,7 @@
     "test": "vitest run",
     "benchmark": "vite --open /src/benchmark/index.html",
     "dev": "vite --open /src/demo/mindmap/index.html",
-    "doc": "docusaurus start",
+    "doc": "docusaurus start -p 3001",
     "doc:build": "docusaurus build",
     "doc:serve": "docusaurus serve",
     "precommit": "lint-staged"

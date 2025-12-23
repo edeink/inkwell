@@ -19,11 +19,11 @@ export class WidgetRegistry {
     data: TData,
   ): Widget<TData> | null {
     if (!data) {
-      console.error('createWidget: data is null or undefined');
+      console.error('createWidget: 组件数据为空或未定义');
       return null;
     }
     if (!data.type) {
-      console.error('createWidget: data.type is missing', data);
+      console.error('createWidget: 组件数据缺少 type 属性', data);
       return null;
     }
 

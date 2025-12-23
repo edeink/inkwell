@@ -202,9 +202,14 @@ export type CursorType =
   | 'zoom-out'
   | 'none';
 
+export interface Ref<T = unknown> {
+  current: T | null;
+}
+
 // JSX 编译得到的属性
 export interface WidgetProps extends WidgetEventHandler {
   key?: string;
+  ref?: Ref<unknown> | ((instance: unknown) => void);
   type?: string; // TODO 此方法需要移除？
   flex?: FlexProperties;
   zIndex?: number;

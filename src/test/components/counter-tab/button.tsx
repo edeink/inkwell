@@ -1,28 +1,51 @@
 /** @jsxImportSource @/utils/compiler */
-
-import type { WidgetProps } from '@/core/base';
-import type { EventHandler } from '@/core/events';
-
-import { Container, Row, Text } from '@/core';
-import { StatefulWidget } from '@/core/state/stateful';
-import { TextAlign, TextAlignVertical } from '@/core/text';
+import {
+  Container,
+  MainAxisAlignment,
+  Row,
+  StatefulWidget,
+  Text,
+  TextAlign,
+  TextAlignVertical,
+  type InkwellEvent,
+  type WidgetProps,
+} from '@/core';
 
 interface ButtonProps extends WidgetProps {
-  onClick?: EventHandler;
+  onClick?: (e: InkwellEvent) => void;
 }
 
-export class Button extends StatefulWidget<ButtonProps> {
+interface ButtonState {
+  color: string;
+  [key: string]: unknown;
+}
+
+export class Button extends StatefulWidget<ButtonProps, ButtonState> {
+  state: ButtonState = {
+    color: '#1677ff',
+  };
+
+  changeColor() {
+    const cur = this.state.color;
+    const colors = ['#1677ff', '#52c41a', '#faad14', '#f5222d'];
+    const nextColor = colors[(colors.indexOf(cur) + 1) % colors.length];
+    this.setState({
+      color: nextColor,
+    });
+  }
+
   render() {
+    console.log('[Button] render called');
     return (
       <Container
         key="counter-btn"
         width={180}
         height={48}
-        color={'#1677ff'}
+        color={this.state.color}
         borderRadius={8}
         onClick={this.props.onClick}
       >
-        <Row>
+        <Row mainAxisAlignment={MainAxisAlignment.Center}>
           <Text
             key="counter-btn-text-01"
             text="点击"

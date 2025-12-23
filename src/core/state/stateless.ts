@@ -15,10 +15,11 @@ export abstract class StatelessWidget<
   }
 
   createElement(data: TData): Widget<TData> {
-    // TODO 这里的结构很奇怪
+    // 无状态组件在创建时直接渲染并编译子节点
     this.props = { ...data, children: data.children ?? [] } as unknown as WidgetCompactProps;
     const childrenData = compileElement(this.render());
     super.createElement({ ...data, children: [childrenData] });
+    this._dirty = false;
     return this;
   }
 

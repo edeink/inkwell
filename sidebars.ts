@@ -12,6 +12,7 @@ export default {
       collapsed: false,
       items: [
         'advanced/lifecycle',
+        'advanced/update-mechanism',
         'advanced/custom-widget',
         'advanced/events',
         'advanced/devtools',

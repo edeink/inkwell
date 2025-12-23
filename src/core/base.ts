@@ -16,6 +16,7 @@ import type {
   EventHandler,
   FlexProperties,
   Offset,
+  Ref,
   RenderObject,
   Size,
   WidgetEventHandler,
@@ -30,6 +31,7 @@ export type {
   CursorType,
   FlexProperties,
   Offset,
+  Ref,
   RenderObject,
   Size,
   WidgetConstructor,
@@ -83,14 +85,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   props: WidgetCompactProps;
   // base 不维护状态
   flex: FlexProperties; // 添加flex属性
+  depth: number = 0;
   renderObject: RenderObject = {
     offset: { dx: 0, dy: 0 },
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
-  depth: number = 0;
   pointerEvents: 'auto' | 'none' = 'auto';
   cursor?: CursorType;
+  ref?: Ref<unknown> | ((instance: unknown) => void);
 
   // 根节点
   private __root: Widget | null = null;
@@ -98,14 +101,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   public __runtime?: Runtime;
   protected _needsLayout: boolean = false;
   protected _dirty: boolean = true;
+  protected _disposed: boolean = false;
   private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
   constructor(data: TData) {
     if (!data) {
-      throw new Error('Widget data cannot be null or undefined');
+      throw new Error('组件数据不能为空');
     }
     if (!data.type) {
-      throw new Error('Widget data must have a type property');
+      throw new Error('组件数据必须包含 type 属性');
     }
 
     this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
@@ -121,6 +125,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       this.pointerEvents = pe0;
     }
     this.cursor = data.cursor;
+    this.ref = data.ref;
+  }
+
+  public exposeMethods(methods: Record<string, unknown>) {
+    if (!this.ref) {
+      return;
+    }
+    if (typeof this.ref === 'function') {
+      this.ref(methods);
+    } else if (this.ref && typeof this.ref === 'object') {
+      this.ref.current = methods;
+    }
   }
 
   public shallowDiff(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
@@ -195,6 +211,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       | Runtime
       | { scheduleUpdate?: (w: Widget) => void; tick?: (ws?: Widget[]) => void }
       | null;
+
     if (rt && 'scheduleUpdate' in rt && typeof rt.scheduleUpdate === 'function') {
       rt.scheduleUpdate(this);
       return;
@@ -225,11 +242,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     // 假设所有的 props 变更都被 buildChildren 消费
     const stateChanged = this.didStateChange();
-    // 移除错误的早期返回，因为 props 或 children 变更也需要重建
-    // if (!stateChanged) {
-    //   this._dirty = false;
-    //   return false;
-    // }
 
     const prevData = this.data;
     const prevChildrenData = Array.isArray(prevData.children)
@@ -279,7 +291,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 当组件被移除时调用，用于清理副作用（如 DOM 元素、定时器等）
    */
   dispose(): void {
-    // 默认无操作，子类可覆盖
+    this._disposed = true;
+  }
+
+  public isDisposed(): boolean {
+    return this._disposed;
   }
 
   /**
@@ -288,7 +304,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
     const byKey = new Map<string, Widget>();
-    // 这里简单实现：优先 key，无 key 则不复用（当前逻辑）。
+    // 简单实现：优先匹配 key，无 key 则尝试按类型复用
     const prevNoKey: Widget[] = [];
 
     for (const c of prev) {
@@ -323,19 +339,20 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         const merged = { ...reuse.data, ...childData };
         reuse.createElement(merged as TData);
         reuse.parent = this;
+        reuse.depth = this.depth + 1;
         nextChildren.push(reuse);
         this.bindEventsIfNeeded(reuse, childData);
       } else {
         const childWidget = this.createChildWidget(childData);
         if (childWidget) {
           childWidget.parent = this;
+          childWidget.depth = this.depth + 1;
           childWidget.createElement(childData);
           nextChildren.push(childWidget);
           this.bindEventsIfNeeded(childWidget, childData);
         } else {
           console.warn(
-            `[Build Warning] Failed to create child widget of type '${childData.type}'. ` +
-              `It might not be registered.`,
+            `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
           );
         }
       }
@@ -354,8 +371,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // Post-build validation
     if (this.children.length !== childrenData.length) {
       console.warn(
-        `[Build Check] Widget ${this.type}(${this.key}) expected ${childrenData.length} ` +
-          `children but got ${this.children.length}.`,
+        `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个` +
+          `子节点，但实际得到 ${this.children.length} 个。`,
       );
     }
   }
@@ -371,8 +388,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   public get root(): Widget | null {
     if (
       this.__root &&
-      !this.__root
-        .parent /* 存在父节点，证明缓存错误，如在创建节点未挂载时立马调用 root，会将本节点缓存 */
+      !this.__root.parent /* 若存在父节点，说明缓存失效（如在节点创建但未挂载时访问了 root） */
     ) {
       return this.__root;
     }
@@ -443,6 +459,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     } else if (this.children.length > 0) {
       this.children = [];
       this.markNeedsLayout();
+    }
+
+    // 处理 ref 绑定
+    if (this.ref) {
+      if (typeof this.ref === 'function') {
+        this.ref(this);
+      } else if (typeof this.ref === 'object') {
+        this.ref.current = this;
+      }
     }
 
     // 更新自身 props 引用

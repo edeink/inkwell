@@ -12,5 +12,7 @@ export { SizedBox } from './sized-box';
 export { Stack } from './stack';
 export { StatefulWidget } from './state/stateful';
 export { StatelessWidget } from './state/stateless';
-export { Text } from './text';
+export { Text, TextAlign, TextAlignVertical } from './text';
+export * from './type';
+export type { Ref } from './type';
 export { Wrap } from './wrap';
