@@ -30,7 +30,6 @@ interface EditorState {
   selectionEnd: number;
   isFocused: boolean;
   cursorVisible: boolean;
-  measureCtx: CanvasRenderingContext2D | null;
   [key: string]: unknown;
 }
 
@@ -45,12 +44,15 @@ interface EditorState {
  * - 修复了光标跳转和选区事件冒泡问题。
  * - 增强了输入框同步逻辑。
  * - 新增光标闪烁动画。
+ * - 使用 Text 组件的 line getter 获取精确的布局信息，支持多行文本的光标和选区。
  */
 export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorProps, EditorState> {
   private input: HTMLInputElement | null = null;
   private measureCanvas: HTMLCanvasElement | null = null;
+  private measureCtx: CanvasRenderingContext2D | null = null;
   private isDragging: boolean = false;
   private cursorTimer: number | null = null;
+  private textWidgetRef: Text | null = null;
 
   constructor(props: MindMapNodeTextEditorProps) {
     super(props);
@@ -60,7 +62,6 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       selectionEnd: props.text.length, // 默认全选
       isFocused: true,
       cursorVisible: true,
-      measureCtx: null,
     };
     this.initMeasureContext();
     // 初始化副作用：创建隐藏输入框
@@ -78,10 +79,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   private initMeasureContext() {
     if (typeof document !== 'undefined') {
       this.measureCanvas = document.createElement('canvas');
-      const ctx = this.measureCanvas.getContext('2d');
-      if (ctx) {
-        this.setState({ measureCtx: ctx });
-      }
+      this.measureCtx = this.measureCanvas.getContext('2d');
     }
   }
 
@@ -100,6 +98,16 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       window.clearInterval(this.cursorTimer);
       this.cursorTimer = null;
     }
+  }
+
+  private resetCursorBlink() {
+    // 保持光标可见
+    if (!this.state.cursorVisible) {
+      this.setState({ cursorVisible: true });
+    }
+    // 重置定时器：先停止，再重新启动
+    this.stopCursorTimer();
+    this.startCursorTimer();
   }
 
   /**
@@ -194,9 +202,95 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       selectionEnd: target.selectionEnd || 0,
     });
     this.typedProps.onChange?.(target.value);
+    this.resetCursorBlink();
   };
 
+  private handleVerticalCursorMove(direction: 'up' | 'down', e: KeyboardEvent) {
+    if (!this.textWidgetRef || !this.textWidgetRef.lines || this.textWidgetRef.lines.length === 0) {
+      return;
+    }
+
+    e.preventDefault();
+
+    const lines = this.textWidgetRef.lines;
+    const currentCursor = this.state.selectionEnd;
+
+    // 找到包含当前光标的行
+    let lineIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      // 这里的判定需要与 getCursorInfoAtIndex 保持一致
+      if (currentCursor >= lines[i].startIndex && currentCursor <= lines[i].endIndex) {
+        lineIndex = i;
+        break;
+      }
+    }
+
+    // 兜底逻辑：如果未找到（例如在最后），默认为最后一行
+    if (lineIndex === -1) {
+      if (lines.length > 0 && currentCursor >= lines[lines.length - 1].endIndex) {
+        lineIndex = lines.length - 1;
+      } else {
+        lineIndex = 0;
+      }
+    }
+
+    let newIndex = currentCursor;
+
+    if (direction === 'up') {
+      if (lineIndex > 0) {
+        // 上一行
+        const prevLine = lines[lineIndex - 1];
+        const currInfo = this.getCursorInfoAtIndex(currentCursor);
+        // 目标 Y：上一行中心
+        const targetY = prevLine.y + prevLine.height / 2;
+        // 保持 X 坐标寻找对应索引
+        newIndex = this.getIndexAtPoint(currInfo.x, targetY);
+      } else {
+        // 第一行，跳转到行首
+        newIndex = 0;
+      }
+    } else {
+      if (lineIndex < lines.length - 1) {
+        // 下一行
+        const nextLine = lines[lineIndex + 1];
+        const currInfo = this.getCursorInfoAtIndex(currentCursor);
+        // 目标 Y：下一行中心
+        const targetY = nextLine.y + nextLine.height / 2;
+        newIndex = this.getIndexAtPoint(currInfo.x, targetY);
+      } else {
+        // 最后一行，跳转到行尾
+        newIndex = this.state.text.length;
+      }
+    }
+
+    // 更新状态
+    this.setState({
+      selectionStart: newIndex,
+      selectionEnd: newIndex,
+    });
+
+    // 同步 input
+    if (this.input) {
+      try {
+        this.input.setSelectionRange(newIndex, newIndex);
+      } catch (err) {
+        // ignore
+      }
+    }
+    this.resetCursorBlink();
+  }
+
   private handleKeyDown = (e: KeyboardEvent) => {
+    this.resetCursorBlink();
+    if (e.key === 'ArrowUp') {
+      this.handleVerticalCursorMove('up', e);
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      this.handleVerticalCursorMove('down', e);
+      return;
+    }
+
     if (e.key === 'Enter') {
       this.finishEditing();
     } else if (e.key === 'Escape') {
@@ -251,53 +345,170 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   }
 
   private measureTextWidth(text: string): number {
-    const st = this.state;
-    if (!st.measureCtx) {
+    if (!this.measureCtx) {
       return 0;
     }
-    st.measureCtx.font = this.getFontString();
-    return st.measureCtx.measureText(text).width;
+    this.measureCtx.font = this.getFontString();
+    return this.measureCtx.measureText(text).width;
   }
 
-  private getXAtIndex(index: number): number {
-    const st = this.state;
-    const text = st.text;
-    if (index <= 0) {
-      return 0;
+  private getCursorInfoAtIndex(index: number): { x: number; y: number; height: number } {
+    const defaultInfo = { x: 0, y: 0, height: this.typedProps.fontSize || 14 };
+
+    // 如果没有 ref 或者 metrics 尚未计算（首次渲染），回退到估算
+    if (!this.textWidgetRef || !this.textWidgetRef.lines || this.textWidgetRef.lines.length === 0) {
+      // 简单的单行估算
+      const x = this.measureTextWidth(this.state.text.substring(0, index));
+      return { ...defaultInfo, x };
     }
-    if (index > text.length) {
-      index = text.length;
+
+    const lines = this.textWidgetRef.lines;
+
+    // 找到包含该 index 的行
+    // 注意：index 可能等于 text.length（光标在最后）
+    let targetLine = lines[0];
+    for (const line of lines) {
+      if (index >= line.startIndex && index <= line.endIndex) {
+        targetLine = line;
+        break;
+      }
     }
-    const sub = text.substring(0, index);
-    return this.measureTextWidth(sub);
+
+    // 如果找不到（比如 index 超出范围），取最后一行
+    if (!targetLine && lines.length > 0) {
+      targetLine = lines[lines.length - 1];
+    }
+
+    if (!targetLine) {
+      return defaultInfo;
+    }
+
+    // 在行内计算 X 偏移
+    // 需要截取行内文本：从 line.startIndex 到 index
+    const subText = this.state.text.substring(targetLine.startIndex, index);
+    const subWidth = this.measureTextWidth(subText);
+
+    return {
+      x: targetLine.x + subWidth,
+      y: targetLine.y,
+      height: targetLine.height,
+    };
   }
 
-  private getIndexAtX(x: number): number {
-    const st = this.state;
-    const text = st.text;
-    if (x <= 0) {
+  private getSelectionRects(
+    start: number,
+    end: number,
+  ): { x: number; y: number; width: number; height: number }[] {
+    if (start === end) {
+      return [];
+    }
+    if (!this.textWidgetRef || !this.textWidgetRef.lines) {
+      return [];
+    }
+
+    const min = Math.min(start, end);
+    const max = Math.max(start, end);
+    const rects: { x: number; y: number; width: number; height: number }[] = [];
+
+    const lines = this.textWidgetRef.lines;
+
+    for (const line of lines) {
+      // 判断该行是否在选区范围内
+      // 选区区间 [min, max)
+      // 行区间 [line.startIndex, line.endIndex]
+
+      // 计算该行与选区的交集
+      const lineStart = line.startIndex;
+      const lineEnd = line.endIndex; // line.text.length includes trailing spaces/chars?
+
+      const intersectStart = Math.max(min, lineStart);
+      const intersectEnd = Math.min(max, lineEnd);
+
+      if (intersectStart < intersectEnd) {
+        // 有交集，计算矩形
+        const preText = this.state.text.substring(lineStart, intersectStart);
+        const selText = this.state.text.substring(intersectStart, intersectEnd);
+
+        const preWidth = this.measureTextWidth(preText);
+        const selWidth = this.measureTextWidth(selText);
+
+        rects.push({
+          x: line.x + preWidth,
+          y: line.y,
+          width: selWidth,
+          height: line.height,
+        });
+      }
+    }
+
+    return rects;
+  }
+
+  private getIndexAtPoint(x: number, y: number): number {
+    if (!this.textWidgetRef || !this.textWidgetRef.lines) {
       return 0;
     }
 
-    let bestIndex = 0;
-    let minDiff = Math.abs(x);
+    const lines = this.textWidgetRef.lines;
 
-    // 简单扫描查找最近的光标位置
-    // 优化：对于长文本可以二分查找，这里假设节点文本较短
-    for (let i = 0; i <= text.length; i++) {
-      const w = this.getXAtIndex(i);
-      const diff = Math.abs(x - w);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestIndex = i;
+    // 1. 找到 Y 坐标对应的行
+    let targetLine = null;
+
+    // 简单的线性查找，假设行是按 Y 排序的
+    for (const line of lines) {
+      if (y >= line.y && y < line.y + line.height) {
+        targetLine = line;
+        break;
+      }
+    }
+
+    // 如果点击在上方，取第一行；下方，取最后一行
+    if (!targetLine) {
+      if (y < lines[0].y) {
+        targetLine = lines[0];
+      } else if (y > lines[lines.length - 1].y + lines[lines.length - 1].height) {
+        targetLine = lines[lines.length - 1];
       } else {
-        // 宽度单调增加，如果 diff 开始增加，说明已经过了最佳点
-        if (w > x) {
-          break;
+        // 在行之间的空隙？找最近的
+        let minDiff = Infinity;
+        for (const line of lines) {
+          const diff = Math.min(Math.abs(y - line.y), Math.abs(y - (line.y + line.height)));
+          if (diff < minDiff) {
+            minDiff = diff;
+            targetLine = line;
+          }
         }
       }
     }
-    return bestIndex;
+
+    if (!targetLine) {
+      return 0;
+    } // 如果 lines > 0，这种情况不应发生
+
+    // 2. 在行内找到 X 坐标对应的索引
+    // 相对行的 X
+    const relX = x - targetLine.x;
+
+    // 类似 getIndexAtX 的逻辑，但在行范围内
+    const lineText = targetLine.text;
+    const startIndex = targetLine.startIndex;
+
+    let bestOffset = 0;
+    let minDiff = Math.abs(relX);
+
+    for (let i = 0; i <= lineText.length; i++) {
+      const sub = lineText.substring(0, i);
+      const w = this.measureTextWidth(sub);
+      const diff = Math.abs(relX - w);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestOffset = i;
+      } else if (w > relX) {
+        break;
+      }
+    }
+
+    return startIndex + bestOffset;
   }
 
   // --- 指针事件 ---
@@ -346,12 +557,13 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.isDragging = true;
     const pt = this.getLocalPoint(e);
     if (pt) {
-      const index = this.getIndexAtX(pt.x);
+      const index = this.getIndexAtPoint(pt.x, pt.y);
       this.setState({
         selectionStart: index,
         selectionEnd: index,
         isFocused: true,
       });
+      this.resetCursorBlink();
 
       // 聚焦输入框并设置光标
       if (this.input) {
@@ -380,7 +592,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     const pt = this.getLocalPoint(e);
     if (pt) {
-      const index = this.getIndexAtX(pt.x);
+      const index = this.getIndexAtPoint(pt.x, pt.y);
       const st = this.state;
       if (index !== st.selectionEnd) {
         this.setState({
@@ -430,43 +642,37 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     const theme = getTheme();
     const fontSize = this.typedProps.fontSize || 14;
 
-    // 计算几何信息
-    const minS = Math.min(selectionStart, selectionEnd);
-    const maxS = Math.max(selectionStart, selectionEnd);
-
-    const startX = this.getXAtIndex(minS);
-    const endX = this.getXAtIndex(maxS);
-    const cursorX = this.getXAtIndex(selectionEnd);
-
     // 选区矩形
-    const selectionRect =
-      minS !== maxS ? (
-        <Positioned
-          key="selection"
-          left={startX}
-          top={0}
-          width={endX - startX}
-          height={fontSize * 1.2} // 近似行高
-        >
-          <Container color={theme.nodeSelectedFillColor} />
-        </Positioned>
-      ) : null;
-
-    // 光标线
-    // 添加闪烁动画
-    // 全选或有选区时不显示光标
-    const showCursor = st.isFocused && st.cursorVisible && minS === maxS;
-    const cursor = showCursor ? (
+    const selectionRects = this.getSelectionRects(selectionStart, selectionEnd);
+    const selectionWidgets = selectionRects.map((rect, i) => (
       <Positioned
-        key="cursor"
-        left={cursorX} // 居中显示
-        top={0}
-        width={1}
-        height={fontSize * 1.2}
+        key={`selection-${i}`}
+        left={rect.x}
+        top={rect.y}
+        width={rect.width}
+        height={rect.height}
       >
-        <Container color={theme.textColor} />
+        <Container color={theme.nodeTextSelectionFillColor} />
       </Positioned>
-    ) : null;
+    ));
+
+    // 光标
+    const showCursor = st.isFocused && st.cursorVisible && selectionStart === selectionEnd;
+    let cursor = null;
+    if (showCursor) {
+      const cursorInfo = this.getCursorInfoAtIndex(selectionEnd);
+      cursor = (
+        <Positioned
+          key="cursor"
+          left={cursorInfo.x}
+          top={cursorInfo.y}
+          width={1}
+          height={cursorInfo.height}
+        >
+          <Container color={theme.textColor} />
+        </Positioned>
+      );
+    }
 
     return (
       <Stack
@@ -477,12 +683,13 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
         onDblClick={this.onDblClick}
         cursor={'text'}
       >
-        {selectionRect}
+        {selectionWidgets}
         <Text
+          ref={(ref) => (this.textWidgetRef = ref as Text | null)}
           text={text}
           fontSize={fontSize}
           color={this.typedProps.color}
-          textAlign={TextAlign.Left}
+          textAlign={this.typedProps.textAlign || TextAlign.Left}
           textAlignVertical={TextAlignVertical.Top}
         />
         {cursor}

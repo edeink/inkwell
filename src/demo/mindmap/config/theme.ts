@@ -27,6 +27,10 @@ export interface ThemePalette {
   nodeSelectedFillColor: string;
   nodeHoverBorderColor: string;
   nodeDefaultBorderColor: string;
+  // Edit state
+  nodeEditBorderColor: string;
+  nodeEditFillColor: string;
+  nodeTextSelectionFillColor: string;
   // Placeholder styles
   placeholder: {
     textColor: string;
@@ -54,6 +58,9 @@ export interface ThemePalette {
  * @property {string} nodeSelectedFillColor 节点选中填充色
  * @property {string} nodeHoverBorderColor 节点悬停边框色
  * @property {string} nodeDefaultBorderColor 节点默认边框色
+ * @property {string} nodeEditBorderColor 节点编辑边框色
+ * @property {string} nodeEditFillColor 节点编辑填充色
+ * @property {string} nodeTextSelectionFillColor 节点文本选区填充色
  */
 
 /**
@@ -71,12 +78,15 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     minimapBackgroundColor: 'rgba(0,0,0,0.08)',
     nodeFillColor: 'rgba(255,255,255,0.9)',
     connectorColor: 'rgba(140,140,140,0.9)',
-    nodeActiveBorderColor: '#1677ff',
-    nodeActiveFillColor: '#e6f7ff',
-    nodeSelectedBorderColor: '#1890ff',
-    nodeSelectedFillColor: '#D6E1FC',
+    nodeActiveBorderColor: '#69b1ff',
+    nodeActiveFillColor: 'rgba(22, 119, 255, 0.10)',
+    nodeSelectedBorderColor: '#c9c9c9',
+    nodeSelectedFillColor: 'rgba(22, 119, 255, 0.05)',
     nodeHoverBorderColor: '#4096ff',
     nodeDefaultBorderColor: '#c9c9c9',
+    nodeEditBorderColor: '#1677ff',
+    nodeEditFillColor: 'rgba(22, 119, 255, 0.15)',
+    nodeTextSelectionFillColor: 'rgba(22, 119, 255, 0.3)',
     placeholder: {
       textColor: '#999999',
       fontSize: 14,
@@ -95,11 +105,14 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeFillColor: 'rgba(26,26,26,0.9)',
     connectorColor: 'rgba(160,160,160,0.9)',
     nodeActiveBorderColor: '#177ddc',
-    nodeActiveFillColor: 'rgba(23,125,220,0.2)',
-    nodeSelectedBorderColor: '#177ddc',
-    nodeSelectedFillColor: 'rgba(23,125,220,0.1)',
+    nodeActiveFillColor: 'rgba(23, 125, 220, 0.2)',
+    nodeSelectedBorderColor: '#434343',
+    nodeSelectedFillColor: 'rgba(23, 125, 220, 0.1)',
     nodeHoverBorderColor: '#4096ff',
     nodeDefaultBorderColor: '#434343',
+    nodeEditBorderColor: '#1677ff',
+    nodeEditFillColor: 'rgba(23, 125, 220, 0.3)',
+    nodeTextSelectionFillColor: 'rgba(23, 125, 220, 0.4)',
     placeholder: {
       textColor: 'rgba(255, 255, 255, 0.45)',
       fontSize: 14,

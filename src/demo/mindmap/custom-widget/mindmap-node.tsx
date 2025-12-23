@@ -48,7 +48,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     null;
   private clickCandidate: { startX: number; startY: number } | null = null;
   private dragRaf: number | null = null;
-  private lastNativeEvent: Event | null = null;
   private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
   private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
   private activePointerId: number | null = null;
@@ -291,7 +290,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const dx = worldX - this.dragState.startX;
     const dy = worldY - this.dragState.startY;
     this.renderObject.offset = { dx: this.dragState.origDx + dx, dy: this.dragState.origDy + dy };
-    this.lastNativeEvent = (e?.native as Event) ?? null;
     if (this.dragRaf == null) {
       this.dragRaf = requestAnimationFrame(() => {
         this.runtime?.rerender();
@@ -407,7 +405,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const active = vp?.activeKey === this.key;
     const isDragging = !!st.dragging;
     const baseFill = editing
-      ? theme.nodeActiveFillColor
+      ? theme.nodeEditFillColor
       : active
         ? theme.nodeActiveFillColor
         : selected
@@ -416,8 +414,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             ? theme.nodeFillColor
             : theme.backgroundColor;
     const hover = !!st.hovering;
-    const borderColor =
-      active || editing
+    const borderColor = editing
+      ? theme.nodeEditBorderColor
+      : active
         ? theme.nodeActiveBorderColor
         : hover
           ? theme.nodeHoverBorderColor

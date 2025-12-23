@@ -59,6 +59,18 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical.Center,
 };
 
+export interface TextLineMetrics {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  baseline: number;
+  startIndex: number;
+  endIndex: number;
+  letterSpacing: number;
+}
+
 export class Text extends Widget<TextProps> {
   text: string = '';
   fontSize: number = 16;
@@ -85,9 +97,75 @@ export class Text extends Widget<TextProps> {
     width: number;
     height: number;
     lines?: string[];
+    lineWidths?: number[];
+    lineIndices?: { start: number; end: number }[];
     ascent: number;
     descent: number;
-  } = { width: 0, height: 0, lines: [], ascent: 0, descent: 0 };
+  } = { width: 0, height: 0, lines: [], lineWidths: [], lineIndices: [], ascent: 0, descent: 0 };
+
+  get lines(): TextLineMetrics[] {
+    const {
+      lines,
+      lineWidths,
+      lineIndices,
+      ascent,
+      descent,
+      height: contentHeight,
+    } = this.textMetrics;
+    if (!lines || lines.length === 0) {
+      return [];
+    }
+
+    const size = this.renderObject
+      ? this.renderObject.size
+      : { width: this.textMetrics.width, height: this.textMetrics.height };
+    const fontSize = this.fontSize || DefaultStyle.fontSize;
+    const rawLineHeight = this.lineHeight ?? this.height ?? fontSize;
+    const lineHeightPx = Math.max(fontSize, rawLineHeight);
+
+    const vertical = this.textAlignVertical || TextAlignVertical.Top;
+    const outerTopOffset =
+      vertical === TextAlignVertical.Top
+        ? 0
+        : vertical === TextAlignVertical.Bottom
+          ? Math.max(0, size.height - contentHeight)
+          : Math.max(0, (size.height - contentHeight) / 2);
+
+    const leadingTop = Math.max(0, lineHeightPx - (ascent + descent)) / 2;
+    // 第一行的基准 Y 坐标（行框顶部，非基线）
+    const startY = outerTopOffset;
+
+    const horiz = this.textAlign || DefaultStyle.textAlign;
+
+    return lines.map((text, i) => {
+      const w = lineWidths?.[i] ?? 0;
+      const indices = lineIndices?.[i] ?? { start: 0, end: 0 };
+
+      let x = 0;
+      if (horiz === TextAlign.Left) {
+        x = 0;
+      } else if (horiz === TextAlign.Center) {
+        x = (size.width - w) / 2;
+      } else if (horiz === TextAlign.Right) {
+        x = size.width - w;
+      }
+
+      const lineTop = startY + i * lineHeightPx;
+      const baseline = lineTop + leadingTop + ascent;
+
+      return {
+        text,
+        x,
+        y: lineTop,
+        width: w,
+        height: lineHeightPx,
+        baseline,
+        startIndex: indices.start,
+        endIndex: indices.end,
+        letterSpacing: 0,
+      };
+    });
+  }
 
   constructor(data: TextProps) {
     super(data);
@@ -120,11 +198,27 @@ export class Text extends Widget<TextProps> {
     return this;
   }
 
+  private lastLayoutConstraints: BoxConstraints | null = null;
+  private lastLayoutHash: string = '';
+
+  private getLayoutHash(constraints: BoxConstraints): string {
+    return `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-${this.lineHeight}-${this.textAlign}-${this.textAlignVertical}-${this.maxLines}-${this.overflow}-${constraints.minWidth}-${constraints.maxWidth}-${constraints.minHeight}-${constraints.maxHeight}`;
+  }
+
   private calculateTextMetrics(constraints: BoxConstraints): void {
+    const hash = this.getLayoutHash(constraints);
+    if (this.lastLayoutConstraints && this.lastLayoutHash === hash) {
+      return;
+    }
+    this.lastLayoutHash = hash;
+    this.lastLayoutConstraints = constraints;
+
     const fontSize = this.fontSize || DefaultStyle.fontSize;
     const rawLineHeight = this.lineHeight ?? this.height ?? fontSize;
     const lineHeightPx = Math.max(fontSize, rawLineHeight);
     const lines: string[] = [];
+    const lineWidths: number[] = [];
+    const lineIndices: { start: number; end: number }[] = [];
     const maxWidth = constraints.maxWidth;
     const ctx = Text.measureCtx;
     if (!ctx) {
@@ -141,6 +235,8 @@ export class Text extends Widget<TextProps> {
 
     if (maxWidth === Infinity || textWidth <= maxWidth) {
       lines.push(this.text);
+      lineWidths.push(textWidth);
+      lineIndices.push({ start: 0, end: this.text.length });
       this.textMetrics = {
         width: Math.max(
           constraints.minWidth,
@@ -148,6 +244,8 @@ export class Text extends Widget<TextProps> {
         ),
         height: Math.max(constraints.minHeight, lineHeightPx),
         lines,
+        lineWidths,
+        lineIndices,
         ascent,
         descent,
       };
@@ -158,10 +256,21 @@ export class Text extends Widget<TextProps> {
       // 3. 如果单词过长（超过 maxWidth），则强制拆分单词
       const words = this.text.split(' ');
       let currentLine = '';
+      let currentLineStart = 0;
+      let charCursor = 0; // 记录原始文本中的位置
+
       const maxLines = this.maxLines || Infinity;
 
       for (let i = 0; i < words.length && lines.length < maxLines; i++) {
         const word = words[i];
+        // 如果不是第一个单词，我们需要跳过一个空格
+        if (i > 0) {
+          charCursor++;
+        }
+
+        const wordStart = charCursor;
+        charCursor += word.length;
+
         const spacing = currentLine ? ' ' : '';
         const testLine = currentLine + spacing + word;
         const testWidth = ctx.measureText(testLine).width;
@@ -172,7 +281,16 @@ export class Text extends Widget<TextProps> {
           // 当前行已有内容，先换行
           if (currentLine) {
             lines.push(currentLine);
+            lineWidths.push(ctx.measureText(currentLine).width);
+            lineIndices.push({
+              start: currentLineStart,
+              end: currentLineStart + currentLine.length,
+            });
+
             currentLine = '';
+            // 新行从当前单词开始
+            currentLineStart = wordStart;
+
             // 如果达到最大行数，停止
             if (lines.length >= maxLines) {
               break;
@@ -183,10 +301,13 @@ export class Text extends Widget<TextProps> {
           const wordWidth = ctx.measureText(word).width;
           if (wordWidth <= maxWidth) {
             currentLine = word;
+            currentLineStart = wordStart;
           } else {
             // 单词过长，需要强制拆分 (break-word)
             const chars = Array.from(word);
             let subLine = '';
+            let subLineStart = wordStart;
+
             for (let j = 0; j < chars.length; j++) {
               const char = chars[j];
               const testSubLine = subLine + char;
@@ -194,7 +315,14 @@ export class Text extends Widget<TextProps> {
                 subLine = testSubLine;
               } else {
                 lines.push(subLine);
+                lineWidths.push(ctx.measureText(subLine).width);
+                lineIndices.push({ start: subLineStart, end: subLineStart + subLine.length });
+
                 subLine = char;
+                // subLine 现在是单个字符，所以起始位置增加前一个 subLine 的长度
+                // 更新 subLineStart 位置，加上前一个片段的长度
+                subLineStart = subLineStart + (testSubLine.length - 1);
+
                 if (lines.length >= maxLines) {
                   break;
                 }
@@ -202,9 +330,10 @@ export class Text extends Widget<TextProps> {
             }
             if (lines.length < maxLines) {
               currentLine = subLine;
+              currentLineStart = subLineStart;
             } else {
               // 已经达到最大行数，最后一部分被丢弃或用于 overflow 处理
-              currentLine = subLine; // 暂存，后面会被 push 或处理 overflow
+              currentLine = subLine; // 暂存
             }
           }
         }
@@ -212,24 +341,33 @@ export class Text extends Widget<TextProps> {
 
       if (currentLine && lines.length < maxLines) {
         lines.push(currentLine);
+        lineWidths.push(ctx.measureText(currentLine).width);
+        lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
       }
 
       if (lines.length >= maxLines && this.overflow === 'ellipsis') {
         const lastLineIndex = maxLines - 1;
         // 简单处理：重新取最后一行内容并尝试截断
-        // 注意：上面的逻辑可能导致最后一行是不完整的，这里简化处理
         let lastLine = lines[lastLineIndex];
-        // 如果 lastLine 本身就超过了（理论上不会，除非 force break 逻辑有问题），截断
+        // 需要重新测量宽度并更新指标
         while (ctx.measureText(lastLine + '...').width > maxWidth && lastLine.length > 0) {
           lastLine = lastLine.slice(0, -1);
         }
         lines[lastLineIndex] = lastLine + '...';
+        lineWidths[lastLineIndex] = ctx.measureText(lines[lastLineIndex]).width;
+        // 省略号截断时，简单更新结束索引，虽然无法精确映射到原始文本，但保持区间连续性
+        // 我们不严格更新索引，因为这是视觉上的截断
+        const originalEnd = lineIndices[lastLineIndex].end;
+        // 尝试缩短范围
+        lineIndices[lastLineIndex].end = lineIndices[lastLineIndex].start + lastLine.length;
       }
 
       this.textMetrics = {
         width: maxWidth,
         height: Math.max(constraints.minHeight, lines.length * lineHeightPx),
         lines,
+        lineWidths,
+        lineIndices,
         ascent,
         descent,
       };
