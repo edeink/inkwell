@@ -1,3 +1,5 @@
+import { DeleteNodeCommand } from './edit';
+
 import type { ShortcutCommand, ShortcutContext } from '../types';
 
 /**
@@ -41,7 +43,8 @@ export const DeleteCommand: ShortcutCommand = {
       // 正在编辑时不触发删除
       return false;
     }
-    viewport.deleteSelection();
+    const cmd = new DeleteNodeCommand(viewport);
+    viewport.historyManager.execute(cmd);
     return true;
   },
 };

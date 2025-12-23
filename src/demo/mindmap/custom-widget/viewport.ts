@@ -8,9 +8,12 @@ import {
   MoveUpCommand,
 } from './shortcut/commands/navigation';
 import { PreventBrowserZoomCommand } from './shortcut/commands/system';
+import { ViewportTransformCommand } from './shortcut/commands/view';
+import { HistoryManager } from './shortcut/history/manager';
 import { ShortcutManager } from './shortcut/manager';
 import { CustomComponentType } from './type';
 
+import type { SelectionData } from '../types';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
@@ -38,7 +41,8 @@ export interface ViewportProps extends WidgetProps {
   onZoomAt?: (scale: number, cx: number, cy: number) => void;
   onUndo?: () => void;
   onRedo?: () => void;
-  onDeleteSelection?: () => void;
+  onDeleteSelection?: () => SelectionData | void;
+  onRestoreSelection?: (data: SelectionData) => void;
   onSetSelectedKeys?: (keys: string[]) => void;
   /** 激活节点变更回调 */
   onActiveKeyChange?: (key: string | null) => void;
@@ -97,12 +101,14 @@ export class Viewport extends Widget<ViewportProps> {
   private _onZoomAt?: (scale: number, cx: number, cy: number) => void;
   private _onUndo?: () => void;
   private _onRedo?: () => void;
-  private _onDeleteSelection?: () => void;
+  private _onDeleteSelection?: () => SelectionData | void;
+  private _onRestoreSelection?: (data: SelectionData) => void;
   private _onSetSelectedKeys?: (keys: string[]) => void;
   private _onActiveKeyChange?: (key: string | null) => void;
   private selectAllActive: boolean = false;
 
   private shortcutManager: ShortcutManager;
+  public historyManager: HistoryManager;
 
   private _onViewChangeListeners: Set<(view: { scale: number; tx: number; ty: number }) => void> =
     new Set();
@@ -111,6 +117,7 @@ export class Viewport extends Widget<ViewportProps> {
   constructor(data: ViewportProps) {
     super(data);
     this.shortcutManager = new ShortcutManager();
+    this.historyManager = new HistoryManager();
     this.registerDefaultShortcuts();
     this.init(data);
     if (data.onViewChange) {
@@ -165,6 +172,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._onUndo = data.onUndo;
     this._onRedo = data.onRedo;
     this._onDeleteSelection = data.onDeleteSelection;
+    this._onRestoreSelection = data.onRestoreSelection;
     this._onSetSelectedKeys = data.onSetSelectedKeys;
     this._onActiveKeyChange = data.onActiveKeyChange;
   }
@@ -180,16 +188,62 @@ export class Viewport extends Widget<ViewportProps> {
     this.shortcutManager.register(PreventBrowserZoomCommand);
   }
 
-  public undo(): void {
-    this._onUndo?.();
+  public async undo(): Promise<void> {
+    const success = await this.historyManager.undo();
+    if (!success) {
+      this._onUndo?.();
+    }
   }
 
-  public redo(): void {
-    this._onRedo?.();
+  public async redo(): Promise<void> {
+    const success = await this.historyManager.redo();
+    if (!success) {
+      this._onRedo?.();
+    }
   }
 
-  public deleteSelection(): void {
-    this._onDeleteSelection?.();
+  public zoomIn(): void {
+    const cx = (this.width || 0) / 2;
+    const cy = (this.height || 0) / 2;
+    const scale = clampScale(this.scale * 1.2);
+    this.executeZoom(scale, cx, cy);
+  }
+
+  public zoomOut(): void {
+    const cx = (this.width || 0) / 2;
+    const cy = (this.height || 0) / 2;
+    const scale = clampScale(this.scale / 1.2);
+    this.executeZoom(scale, cx, cy);
+  }
+
+  public resetZoom(): void {
+    const cx = (this.width || 0) / 2;
+    const cy = (this.height || 0) / 2;
+    this.executeZoom(1, cx, cy);
+  }
+
+  private executeZoom(targetScale: number, cx: number, cy: number) {
+    // 计算新的 tx, ty
+    const x = (cx - this.tx) / this.scale - this._contentTx;
+    const y = (cy - this.ty) / this.scale - this._contentTy;
+    const s = targetScale;
+    const tx = cx - (this._contentTx + x) * s;
+    const ty = cy - (this._contentTy + y) * s;
+
+    const cmd = new ViewportTransformCommand(
+      this,
+      { scale: this.scale, tx: this.tx, ty: this.ty },
+      { scale: s, tx, ty },
+    );
+    this.historyManager.execute(cmd);
+  }
+
+  public deleteSelection(): SelectionData | void {
+    return this._onDeleteSelection?.();
+  }
+
+  public restoreSelection(data: SelectionData): void {
+    this._onRestoreSelection?.(data);
   }
 
   createElement(data: ViewportProps): Widget<ViewportProps> {
@@ -526,6 +580,7 @@ export class Viewport extends Widget<ViewportProps> {
     });
 
     if (handled) {
+      e.stopPropagation();
       return false;
     }
 

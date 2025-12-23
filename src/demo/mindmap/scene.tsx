@@ -8,6 +8,7 @@ import { Viewport } from './custom-widget/viewport';
 import { ConnectorStyle } from './helpers/connection-drawer';
 
 import type { Viewport as ViewportCls } from './custom-widget/viewport';
+import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from './types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 import type Runtime from '@/runtime';
@@ -15,20 +16,6 @@ import type Runtime from '@/runtime';
 import { StatefulWidget, Widget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
 
-type NodeId = string;
-type GraphNode = {
-  id: NodeId;
-  title: string;
-  prefSide?: Side;
-};
-type GraphEdge = { from: NodeId; to: NodeId };
-export type GraphState = {
-  nodes: Map<NodeId, GraphNode>;
-  edges: GraphEdge[];
-  activeKey: NodeId | null;
-  version: number;
-  nextId: number;
-};
 function makeInitialState(): GraphState {
   const nodes: GraphNode[] = [
     { id: 'root', title: '主题' },
@@ -134,7 +121,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
 
   // onRenderComplete 移除：统一由基类调度下一 Tick
 
-  private onDeleteSelection = (): void => {
+  private onDeleteSelection = (): SelectionData | void => {
     const vp = this.getViewport();
     const cur = (this.state as SceneState).graph;
     if (!vp) {
@@ -171,16 +158,61 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         dfs(k);
       }
     }
+
+    // 收集被删除的数据
+    const deletedNodes: GraphNode[] = [];
     const nextNodes = new Map(cur.nodes);
     for (const k of Array.from(toDelete)) {
-      nextNodes.delete(k);
+      const node = nextNodes.get(k);
+      if (node) {
+        deletedNodes.push(node);
+        nextNodes.delete(k);
+      }
     }
-    const nextEdges = cur.edges.filter((e) => !toDelete.has(e.from) && !toDelete.has(e.to));
+
+    const deletedEdges: GraphEdge[] = [];
+    const nextEdges: GraphEdge[] = [];
+    for (const e of cur.edges) {
+      if (toDelete.has(e.from) || toDelete.has(e.to)) {
+        deletedEdges.push(e);
+      } else {
+        nextEdges.push(e);
+      }
+    }
+
     const next: GraphState = {
       ...cur,
       nodes: nextNodes,
       edges: nextEdges,
       activeKey: null,
+      version: cur.version + 1,
+    };
+    this.setState({ graph: next });
+
+    return {
+      nodes: deletedNodes,
+      edges: deletedEdges,
+    };
+  };
+
+  private onRestoreSelection = (data: SelectionData): void => {
+    if (!data || !data.nodes || !data.edges) {
+      return;
+    }
+    const cur = (this.state as SceneState).graph;
+    const nextNodes = new Map(cur.nodes);
+    for (const node of data.nodes) {
+      nextNodes.set(node.id, node);
+    }
+    const nextEdges = [...cur.edges, ...data.edges];
+
+    // 简单的去重（针对 edge）
+    // 实际场景中可能需要更复杂的合并逻辑
+
+    const next: GraphState = {
+      ...cur,
+      nodes: nextNodes,
+      edges: nextEdges,
       version: cur.version + 1,
     };
     this.setState({ graph: next });
@@ -529,6 +561,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
         onActiveKeyChange={this.onActiveKeyChange}
         onZoomAt={this.onZoomAt}
         onDeleteSelection={this.onDeleteSelection}
+        onRestoreSelection={this.onRestoreSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}
       >
         <MindMapLayout

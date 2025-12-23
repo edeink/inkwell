@@ -8,7 +8,7 @@ export const MoveLeftCommand: ShortcutCommand = {
   execute: ({ viewport }: ShortcutContext) => {
     const { tx, ty } = viewport.getContentPosition();
     const scale = viewport.scale;
-    viewport.setContentPosition(tx + MOVE_STEP / scale, ty);
+    viewport.setContentPosition(tx - MOVE_STEP / scale, ty);
     return true;
   },
 };
@@ -19,7 +19,7 @@ export const MoveRightCommand: ShortcutCommand = {
   execute: ({ viewport }: ShortcutContext) => {
     const { tx, ty } = viewport.getContentPosition();
     const scale = viewport.scale;
-    viewport.setContentPosition(tx - MOVE_STEP / scale, ty);
+    viewport.setContentPosition(tx + MOVE_STEP / scale, ty);
     return true;
   },
 };
@@ -30,7 +30,7 @@ export const MoveUpCommand: ShortcutCommand = {
   execute: ({ viewport }: ShortcutContext) => {
     const { tx, ty } = viewport.getContentPosition();
     const scale = viewport.scale;
-    viewport.setContentPosition(tx, ty + MOVE_STEP / scale);
+    viewport.setContentPosition(tx, ty - MOVE_STEP / scale);
     return true;
   },
 };
@@ -41,7 +41,7 @@ export const MoveDownCommand: ShortcutCommand = {
   execute: ({ viewport }: ShortcutContext) => {
     const { tx, ty } = viewport.getContentPosition();
     const scale = viewport.scale;
-    viewport.setContentPosition(tx, ty - MOVE_STEP / scale);
+    viewport.setContentPosition(tx, ty + MOVE_STEP / scale);
     return true;
   },
 };
