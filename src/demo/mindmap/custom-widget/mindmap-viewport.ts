@@ -78,8 +78,8 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
   private _tx: number = 0;
   private _ty: number = 0;
   // children 层偏移（世界坐标），用于将平移作用于子元素而非视口自身
-  private _contentTx: number = 0;
-  private _contentTy: number = 0;
+  private _scrollX: number = 0;
+  private _scrollY: number = 0;
   private _selectedKeys: string[] = [];
   private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
   width?: number;
@@ -164,8 +164,8 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     this._activeKey = (data.activeKey ?? this._activeKey) as string | null;
     this._editingKey = (data.editingKey ?? this._editingKey) as string | null;
     this._collapsedKeys = (data.collapsedKeys ?? this._collapsedKeys) as string[];
-    this._contentTx = (data.scrollX ?? this._contentTx) as number;
-    this._contentTy = (data.scrollY ?? this._contentTy) as number;
+    this._scrollX = (data.scrollX ?? this._scrollX) as number;
+    this._scrollY = (data.scrollY ?? this._scrollY) as number;
     this._onScroll = data.onScroll;
     this._onViewChange = data.onViewChange;
     this._onZoomAt = data.onZoomAt;
@@ -224,11 +224,11 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
 
   private executeZoom(targetScale: number, cx: number, cy: number) {
     // 计算新的 tx, ty
-    const x = (cx - this.tx) / this.scale - this._contentTx;
-    const y = (cy - this.ty) / this.scale - this._contentTy;
+    const x = (cx - this.tx) / this.scale + this._scrollX;
+    const y = (cy - this.ty) / this.scale + this._scrollY;
     const s = targetScale;
-    const tx = cx - (this._contentTx + x) * s;
-    const ty = cy - (this._contentTy + y) * s;
+    const tx = cx - (x - this._scrollX) * s;
+    const ty = cy - (y - this._scrollY) * s;
 
     const cmd = new ViewportTransformCommand(
       this,
@@ -258,8 +258,8 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     if (rect) {
       const r = this.normalizeRect(rect);
       renderer.drawRect({
-        x: r.x + this._contentTx,
-        y: r.y + this._contentTy,
+        x: r.x - this._scrollX,
+        y: r.y - this._scrollY,
         width: r.width,
         height: r.height,
         fill: 'rgba(24,144,255,0.12)',
@@ -296,7 +296,7 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
 
   protected positionChild(_childIndex: number, _childSize: Size): Offset {
     // children 层统一应用 scrollX/scrollY 的偏移
-    return { dx: this._contentTx, dy: this._contentTy };
+    return { dx: -this._scrollX, dy: -this._scrollY };
   }
 
   private normalizeRect(r: { x: number; y: number; width: number; height: number }) {
@@ -553,10 +553,10 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
       const dx = we.deltaX || 0;
       const dy = we.deltaY || 0;
       // 将滚轮平移作用于 children 层偏移（世界单位需除以缩放），通过 onScroll 通知外部
-      const nextScrollX = this._contentTx + -dx / this.scale;
-      const nextScrollY = this._contentTy + -dy / this.scale;
-      this.setContentPosition(nextScrollX, nextScrollY);
-      this._onScroll?.(nextScrollX, nextScrollY);
+      // 滚动偏移量增加意味着向右/下滚动
+      const nextScrollX = this._scrollX + dx / this.scale;
+      const nextScrollY = this._scrollY + dy / this.scale;
+      this.scrollTo(nextScrollX, nextScrollY);
       return false;
     }
     // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）
@@ -593,9 +593,9 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     // 1. (e.x - vpPos.dx): 将屏幕坐标转换为视口组件内的相对坐标
     // 2. (... - this.tx): 扣除视口自身的平移
     // 3. (... / this.scale): 反算缩放影响，得到未缩放的坐标
-    // 4. (... - this._contentTx): 扣除内容层的滚动偏移，得到世界坐标（Content 坐标）
-    const x = (e.x - vpPos.dx - this.tx) / this.scale - this._contentTx;
-    const y = (e.y - vpPos.dy - this.ty) / this.scale - this._contentTy;
+    // 4. (... + this._scrollX): 加上内容层的滚动偏移，得到世界坐标（Content 坐标）
+    const x = (e.x - vpPos.dx - this.tx) / this.scale + this._scrollX;
+    const y = (e.y - vpPos.dy - this.ty) / this.scale + this._scrollY;
     return { x, y };
   }
 
@@ -625,31 +625,43 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
   }
 
   zoomAt(newScale: number, cx: number, cy: number): void {
-    const x = (cx - this.tx) / this.scale - this._contentTx;
-    const y = (cy - this.ty) / this.scale - this._contentTy;
+    const x = (cx - this.tx) / this.scale + this._scrollX;
+    const y = (cy - this.ty) / this.scale + this._scrollY;
     const s = clampScale(newScale);
-    const tx = cx - (this._contentTx + x) * s;
-    const ty = cy - (this._contentTy + y) * s;
+    const tx = cx - (x - this._scrollX) * s;
+    const ty = cy - (y - this._scrollY) * s;
     this.setTransform(s, tx, ty);
   }
 
   /**
-   * 设置 children 层滚动偏移
+   * 滚动到指定位置
+   * @param x 滚动水平偏移
+   * @param y 滚动垂直偏移
    */
-  setContentPosition(tx: number, ty: number): void {
-    const nx = Number.isFinite(tx) ? tx : this._contentTx;
-    const ny = Number.isFinite(ty) ? ty : this._contentTy;
-    this._contentTx = nx;
-    this._contentTy = ny;
+  scrollTo(x: number, y: number): void {
+    const nx = Number.isFinite(x) ? x : this._scrollX;
+    const ny = Number.isFinite(y) ? y : this._scrollY;
+    this._scrollX = nx;
+    this._scrollY = ny;
     this.notifyScroll(nx, ny);
     this.markNeedsLayout();
   }
 
   /**
-   * 获取 children 层滚动偏移
+   * 滚动偏移量
+   * @param dx 水平滚动增量
+   * @param dy 垂直滚动增量
    */
-  getContentPosition(): { tx: number; ty: number } {
-    return { tx: this._contentTx, ty: this._contentTy };
+  scrollBy(dx: number, dy: number): void {
+    this.scrollTo(this._scrollX + dx, this._scrollY + dy);
+  }
+
+  get scrollX(): number {
+    return this._scrollX;
+  }
+
+  get scrollY(): number {
+    return this._scrollY;
   }
 
   /**
@@ -729,9 +741,9 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
         const p = w.getAbsolutePosition();
         // 计算节点相对于内容层原点（Content Origin）的坐标
         // p - vpPos: 节点相对于视口左上角的偏移
-        // - _contentTx: 扣除内容层的滚动偏移，得到在世界坐标系下的位置
-        const cx = p.dx - vpPos.dx - this._contentTx;
-        const cy = p.dy - vpPos.dy - this._contentTy;
+        // ... + this._scrollX: 加上滚动偏移，得到世界坐标
+        const cx = p.dx - vpPos.dx + this._scrollX;
+        const cy = p.dy - vpPos.dy + this._scrollY;
 
         if (
           cx < r.x + r.width &&

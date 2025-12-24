@@ -474,7 +474,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       const vh = height ?? 600;
       const tx = (vw - size.width) / 2;
       const ty = (vh - size.height) / 2;
-      vp.setContentPosition(tx, ty);
+      vp.scrollTo(-tx, -ty);
       this.shouldCenter = false;
     }
   };

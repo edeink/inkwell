@@ -55,12 +55,12 @@ export class MindmapController {
     (runtime as unknown as { __mindmapController: MindmapController }).__mindmapController = this;
   }
 
-  get contentTx(): number {
-    return this.viewport.getContentPosition().tx;
+  get scrollX(): number {
+    return this.viewport.scrollX;
   }
 
-  get contentTy(): number {
-    return this.viewport.getContentPosition().ty;
+  get scrollY(): number {
+    return this.viewport.scrollY;
   }
 
   notifyViewChange(): void {

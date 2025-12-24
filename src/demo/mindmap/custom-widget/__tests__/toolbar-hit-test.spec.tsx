@@ -12,8 +12,8 @@ class MockViewport extends Widget {
   scale: number = 1;
   tx: number = 0;
   ty: number = 0;
-  _contentTx: number = 0;
-  _contentTy: number = 0;
+  _scrollX: number = 0;
+  _scrollY: number = 0;
 
   constructor(props: WidgetProps) {
     super({ ...props, type: CustomComponentType.MindMapViewport });

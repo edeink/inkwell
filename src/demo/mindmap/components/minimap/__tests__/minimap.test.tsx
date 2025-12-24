@@ -51,7 +51,10 @@ describe('Minimap 集成测试', () => {
     });
 
     viewport.getAbsolutePosition = vi.fn().mockReturnValue({ dx: 0, dy: 0 });
-    viewport.getContentPosition = vi.fn().mockReturnValue({ tx: 0, ty: 0 });
+    // viewport.getContentPosition = vi.fn().mockReturnValue({ tx: 0, ty: 0 }); // Removed
+    Object.defineProperty(viewport, 'scrollX', { value: 0, writable: true });
+    Object.defineProperty(viewport, 'scrollY', { value: 0, writable: true });
+
     viewport.addViewChangeListener = vi.fn().mockImplementation((cb) => {
       return () => {};
     });
@@ -66,8 +69,8 @@ describe('Minimap 集成测试', () => {
     controller.viewScale = 1;
     controller.viewTx = 0;
     controller.viewTy = 0;
-    Object.defineProperty(controller, 'contentTx', { get: () => 0 });
-    Object.defineProperty(controller, 'contentTy', { get: () => 0 });
+    Object.defineProperty(controller, 'scrollX', { get: () => 0 });
+    Object.defineProperty(controller, 'scrollY', { get: () => 0 });
 
     // 模拟控制器方法
     controller.addViewChangeListener = vi.fn().mockImplementation((cb) => {

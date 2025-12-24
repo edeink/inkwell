@@ -21,16 +21,16 @@ export function computeViewportRect(
   viewScale: number,
   viewTx: number,
   viewTy: number,
-  contentTx: number,
-  contentTy: number,
+  scrollX: number,
+  scrollY: number,
   fit: Fit,
 ): { x: number; y: number; width: number; height: number } {
   // 将屏幕坐标 (0,0) 映射到节点空间。
-  // 屏幕坐标 = (节点坐标 + 内容偏移) * 缩放比例 + 视图平移
-  // 节点坐标 = (屏幕坐标 - 视图平移) / 缩放比例 - 内容偏移
+  // 屏幕坐标 = (节点坐标 - scroll) * 缩放比例 + 视图平移
+  // 节点坐标 = (屏幕坐标 - 视图平移) / 缩放比例 + scroll
 
-  const x0 = (0 - viewTx) / viewScale - contentTx;
-  const y0 = (0 - viewTy) / viewScale - contentTy;
+  const x0 = (0 - viewTx) / viewScale + scrollX;
+  const y0 = (0 - viewTy) / viewScale + scrollY;
   const vw = containerW / viewScale;
   const vh = containerH / viewScale;
 

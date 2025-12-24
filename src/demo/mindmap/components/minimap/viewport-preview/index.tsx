@@ -64,8 +64,8 @@ export default function ViewportPreview({
           const p = w.getAbsolutePosition();
           const s = w.renderObject.size;
           // 将屏幕坐标转换为世界坐标
-          const worldX = (p.dx - vpPos.dx - viewport.tx) / viewport.scale - controller.contentTx;
-          const worldY = (p.dy - vpPos.dy - viewport.ty) / viewport.scale - controller.contentTy;
+          const worldX = (p.dx - vpPos.dx - viewport.tx) / viewport.scale + controller.scrollX;
+          const worldY = (p.dy - vpPos.dy - viewport.ty) / viewport.scale + controller.scrollY;
 
           out.push({
             x: worldX,
@@ -97,8 +97,8 @@ export default function ViewportPreview({
           const s = w.renderObject.size;
           // 将屏幕坐标转换为世界坐标
           rectByKey.set(w.key, {
-            x: (p.dx - vpPos.dx - viewport.tx) / viewport.scale - controller.contentTx,
-            y: (p.dy - vpPos.dy - viewport.ty) / viewport.scale - controller.contentTy,
+            x: (p.dx - vpPos.dx - viewport.tx) / viewport.scale + controller.scrollX,
+            y: (p.dy - vpPos.dy - viewport.ty) / viewport.scale + controller.scrollY,
             width: s.width,
             height: s.height,
           });

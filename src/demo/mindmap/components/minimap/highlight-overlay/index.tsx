@@ -45,8 +45,8 @@ export default function HighlightOverlay({
     scale: controller.viewScale,
     tx: controller.viewTx,
     ty: controller.viewTy,
-    contentTx: controller.contentTx,
-    contentTy: controller.contentTy,
+    scrollX: controller.scrollX,
+    scrollY: controller.scrollY,
   });
 
   const clear = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -83,16 +83,7 @@ export default function HighlightOverlay({
     const cH = container?.clientHeight || 1;
     const vs = viewStateRef.current;
 
-    const rect = computeViewportRect(
-      cW,
-      cH,
-      vs.scale,
-      vs.tx,
-      vs.ty,
-      vs.contentTx,
-      vs.contentTy,
-      fit,
-    );
+    const rect = computeViewportRect(cW, cH, vs.scale, vs.tx, vs.ty, vs.scrollX, vs.scrollY, fit);
     const key = [
       rect.x.toFixed(1),
       rect.y.toFixed(1),
@@ -155,8 +146,8 @@ export default function HighlightOverlay({
       scale: controller.viewScale,
       tx: controller.viewTx,
       ty: controller.viewTy,
-      contentTx: controller.contentTx,
-      contentTy: controller.contentTy,
+      scrollX: controller.scrollX,
+      scrollY: controller.scrollY,
     };
     scheduleDraw();
 
@@ -165,8 +156,8 @@ export default function HighlightOverlay({
         scale,
         tx,
         ty,
-        contentTx: controller.contentTx,
-        contentTy: controller.contentTy,
+        scrollX: controller.scrollX,
+        scrollY: controller.scrollY,
       };
       scheduleDraw();
     });
@@ -197,12 +188,12 @@ export default function HighlightOverlay({
       // 图表坐标中的视口中心是 (wx, wy)。
       // 屏幕中心是 (W/2, H/2)。
       // 视图变换：screenX = graphX * s + tx
-      // 但现在我们有 contentTx：screenX = (graphX + contentTx) * s + tx
-      // W/2 = (wx + contentTx) * s + tx  =>  tx = W/2 - (wx + contentTx) * s
+      // 但现在我们有 scrollX：screenX = (graphX - scrollX) * s + tx
+      // W/2 = (wx - scrollX) * s + tx  =>  tx = W/2 - (wx - scrollX) * s
 
       const vs = viewStateRef.current;
-      const tx = W / 2 - (wx + vs.contentTx) * s;
-      const ty = H / 2 - (wy + vs.contentTy) * s;
+      const tx = W / 2 - (wx - vs.scrollX) * s;
+      const ty = H / 2 - (wy - vs.scrollY) * s;
 
       // 注意：Math.round 是可选的，但有利于像素对齐
       controller.setViewPosition(tx, ty);
@@ -260,8 +251,8 @@ export default function HighlightOverlay({
         vs.scale,
         vs.tx,
         vs.ty,
-        vs.contentTx,
-        vs.contentTy,
+        vs.scrollX,
+        vs.scrollY,
         fit,
       );
 
@@ -304,9 +295,26 @@ export default function HighlightOverlay({
         const s = vs.scale;
 
         // 反向计算视图平移量
-        // newTx = -scale * [ (newRectX - fit.ox) / fit.s + contentTx ]
-        const newTx = -s * ((newRectX - fit.ox) / fit.s + vs.contentTx);
-        const newTy = -s * ((newRectY - fit.oy) / fit.s + vs.contentTy);
+        // newTx = -scale * [ (newRectX - fit.ox) / fit.s - scrollX ]
+        // Wait, screenX = (nodeX - scrollX) * s + tx
+        // When dragging the rect, we are effectively changing tx (or scrollX?)
+        // The dragging moves the viewport window over the map.
+        // If we move the rect to the right (newRectX increases), it means we want to see area to the right.
+        // This usually means reducing tx (moving content left) or increasing scrollX.
+        // Here we are setting ViewPosition (tx, ty).
+
+        // Rect X corresponds to viewport left edge in map space.
+        // MapX = (newRectX - fit.ox) / fit.s
+        // MapX is the world coordinate of the left edge of the viewport.
+        // Screen Left (0) = (MapX - scrollX) * s + tx
+        // 0 = (MapX - scrollX) * s + tx
+        // tx = -(MapX - scrollX) * s
+
+        const mapX = (newRectX - fit.ox) / fit.s;
+        const mapY = (newRectY - fit.oy) / fit.s;
+
+        const newTx = -(mapX - vs.scrollX) * s;
+        const newTy = -(mapY - vs.scrollY) * s;
 
         controller.setViewPosition(newTx, newTy);
         scheduleDraw();

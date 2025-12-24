@@ -43,10 +43,9 @@ describe('触控板交互', () => {
       y: 100,
       nativeEvent: { deltaX: 10, deltaY: 20 },
     } as unknown as InkwellEvent);
-    expect(spy).toHaveBeenCalledWith(-10, -20);
-    const contentPos = vp.getContentPosition();
-    expect(contentPos.tx).toBeCloseTo(-10, 6);
-    expect(contentPos.ty).toBeCloseTo(-20, 6);
+    expect(spy).toHaveBeenCalledWith(10, 20);
+    expect(vp.scrollX).toBeCloseTo(10, 6);
+    expect(vp.scrollY).toBeCloseTo(20, 6);
     globalThis.requestAnimationFrame = raf;
   });
 

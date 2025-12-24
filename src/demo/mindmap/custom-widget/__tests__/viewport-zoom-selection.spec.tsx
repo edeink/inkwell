@@ -94,14 +94,15 @@ describe('Viewport 缩放选择测试', async () => {
     // 节点在“内容空间”中的预期位置是 nodeOffset。
     // 下面计算节点在“绝对”坐标系下的位置
     const nodeAbs = node.getAbsolutePosition();
+    const vpPos = vp.getAbsolutePosition();
 
     // 模拟覆盖该节点的框选操作。
     // 用户在屏幕坐标系点击。
     // 我们需要计算对应于该节点的屏幕坐标。
 
     // 屏幕 X = Viewport.x + tx + scale * (contentTx + NodeX)
-    const screenX = vp.tx + vp.scale * (vp.getContentPosition().tx + nodeOffset.dx);
-    const screenY = vp.ty + vp.scale * (vp.getContentPosition().ty + nodeOffset.dy);
+    const screenX = vpPos.dx + vp.tx + vp.scale * (nodeOffset.dx - vp.scrollX);
+    const screenY = vpPos.dy + vp.ty + vp.scale * (nodeOffset.dy - vp.scrollY);
 
     const nodeW = node.renderObject.size.width;
     const nodeH = node.renderObject.size.height;
@@ -152,8 +153,9 @@ describe('Viewport 缩放选择测试', async () => {
 
     const nodeOffset = node.renderObject.offset;
     // 计算预期的屏幕位置
-    const screenX = vp.tx + vp.scale * (vp.getContentPosition().tx + nodeOffset.dx);
-    const screenY = vp.ty + vp.scale * (vp.getContentPosition().ty + nodeOffset.dy);
+    const vpPos = vp.getAbsolutePosition();
+    const screenX = vpPos.dx + vp.tx + vp.scale * (nodeOffset.dx - vp.scrollX);
+    const screenY = vpPos.dy + vp.ty + vp.scale * (nodeOffset.dy - vp.scrollY);
     const nodeW = node.renderObject.size.width;
     const nodeH = node.renderObject.size.height;
 
@@ -199,8 +201,9 @@ describe('Viewport 缩放选择测试', async () => {
     const node = findWidget(root, '#n1') as MindMapNode;
 
     const nodeOffset = node.renderObject.offset;
-    const screenX = vp.tx + vp.scale * (vp.getContentPosition().tx + nodeOffset.dx);
-    const screenY = vp.ty + vp.scale * (vp.getContentPosition().ty + nodeOffset.dy);
+    const vpPos = vp.getAbsolutePosition();
+    const screenX = vpPos.dx + vp.tx + vp.scale * (nodeOffset.dx - vp.scrollX);
+    const screenY = vpPos.dy + vp.ty + vp.scale * (nodeOffset.dy - vp.scrollY);
     const nodeW = node.renderObject.size.width;
     const nodeH = node.renderObject.size.height;
 

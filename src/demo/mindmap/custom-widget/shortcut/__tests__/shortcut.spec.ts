@@ -25,8 +25,8 @@ describe('ShortcutSystem', () => {
       },
       _editingKey: null,
       scale: 1,
-      getContentPosition: vi.fn().mockReturnValue({ tx: 0, ty: 0 }),
-      setContentPosition: vi.fn(),
+      scrollBy: vi.fn(),
+      scrollTo: vi.fn(),
       historyManager: {
         execute: vi.fn((cmd) => cmd.execute()),
       },
@@ -103,19 +103,19 @@ describe('ShortcutSystem', () => {
 
     // Left
     handle(createEvent('ArrowLeft'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(-20, 0); // 0 - 20/1
+    expect(viewportMock.scrollBy).toHaveBeenCalledWith(-20, 0);
 
     // Right
     handle(createEvent('ArrowRight'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(20, 0);
+    expect(viewportMock.scrollBy).toHaveBeenCalledWith(20, 0);
 
     // Up
     handle(createEvent('ArrowUp'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, -20);
+    expect(viewportMock.scrollBy).toHaveBeenCalledWith(0, -20);
 
     // Down
     handle(createEvent('ArrowDown'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, 20);
+    expect(viewportMock.scrollBy).toHaveBeenCalledWith(0, 20);
   });
 
   it('应当阻止浏览器默认缩放行为', () => {

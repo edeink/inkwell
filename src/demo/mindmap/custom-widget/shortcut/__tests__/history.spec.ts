@@ -70,8 +70,8 @@ describe('Viewport Zoom & Undo/Redo', () => {
       zoomOut: MindMapViewport.prototype.zoomOut,
       resetZoom: MindMapViewport.prototype.resetZoom,
       executeZoom: (MindMapViewport.prototype as any).executeZoom,
-      _contentTx: 0,
-      _contentTy: 0,
+      _scrollX: 0,
+      _scrollY: 0,
     } as any;
 
     // Bind methods to mock instance

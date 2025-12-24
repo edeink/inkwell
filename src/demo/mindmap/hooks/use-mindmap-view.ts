@@ -6,8 +6,8 @@ export interface MindmapViewState {
   scale: number;
   tx: number;
   ty: number;
-  contentTx: number;
-  contentTy: number;
+  scrollX: number;
+  scrollY: number;
 }
 
 export function useMindmapView(): MindmapViewState {
@@ -16,8 +16,8 @@ export function useMindmapView(): MindmapViewState {
     scale: controller.viewScale,
     tx: controller.viewTx,
     ty: controller.viewTy,
-    contentTx: controller.contentTx,
-    contentTy: controller.contentTy,
+    scrollX: controller.scrollX,
+    scrollY: controller.scrollY,
   });
 
   useEffect(() => {
@@ -26,8 +26,8 @@ export function useMindmapView(): MindmapViewState {
       scale: controller.viewScale,
       tx: controller.viewTx,
       ty: controller.viewTy,
-      contentTx: controller.contentTx,
-      contentTy: controller.contentTy,
+      scrollX: controller.scrollX,
+      scrollY: controller.scrollY,
     });
 
     // 监听视图变更（缩放、平移 x、平移 y）
@@ -38,8 +38,8 @@ export function useMindmapView(): MindmapViewState {
         tx,
         ty,
         // 同时更新内容位置，以防在没有事件的情况下发生变化（如果我们修复了控制器，这种情况不太可能发生）
-        contentTx: controller.contentTx,
-        contentTy: controller.contentTy,
+        scrollX: controller.scrollX,
+        scrollY: controller.scrollY,
       }));
     });
 
