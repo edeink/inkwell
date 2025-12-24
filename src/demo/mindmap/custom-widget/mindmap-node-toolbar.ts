@@ -8,8 +8,8 @@
  */
 
 import { Connector } from './connector';
+import { MindMapViewport } from './mindmap-viewport';
 import { CustomComponentType, Side } from './type';
-import { Viewport } from './viewport';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
@@ -97,7 +97,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const node = findWidget(this.root, ':active') as Widget | null;
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!node || !vp) {
       return;
     }
@@ -147,7 +150,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
 
   public hitTest(x: number, y: number): boolean {
     const node = findWidget(this.root, ':active') as Widget | null;
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!node || !vp) {
       return false;
     }
@@ -193,7 +199,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     x: number,
     y: number,
     node: Widget,
-    vp: Viewport,
+    vp: MindMapViewport,
   ): { x: number; y: number } {
     const nodeAbs = node.getAbsolutePosition();
     const vpOffset = vp.renderObject.offset;
@@ -261,7 +267,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     side?: Side;
   }): void {
     const node = findWidget(this.root, ':active') as Widget | null;
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!node || !vp || !vp.width || !vp.height) {
       return;
     }
@@ -369,7 +378,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     if (k === null || typeof k === 'string') {
       return k ?? null;
     }
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     return vp?.activeKey ?? null;
   }
 
@@ -386,7 +398,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     if (!node) {
       return null;
     }
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return null;
     }
@@ -437,7 +452,10 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     size: Size,
   ): { allowed: Array<'top' | 'bottom' | 'left' | 'right'>; isLeft: boolean } {
     const container = (this.parent as Widget | null) ?? (this as Widget);
-    const edge = findWidget(container, `Connector[toKey="${String(node.key)}"]`);
+    const edge = findWidget(
+      container,
+      `${CustomComponentType.Connector}[toKey="${String(node.key)}"]`,
+    );
     const isRoot = !edge;
     if (isRoot) {
       return { allowed: ['left', 'right'], isLeft: false };

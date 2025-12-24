@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
 import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import type { Widget } from '@/core/base';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-
 describe('activeKey tick 顺序和传播', async () => {
   beforeEach(() => {
     if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
@@ -57,18 +57,25 @@ describe('activeKey tick 顺序和传播', async () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="n1" title="节点 1" />
           <MindMapNode key="n2" title="节点 2" />
           <MindMapNodeToolbar key="toolbar" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Widget;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as Widget;
 
     const spyRebuild = vi.spyOn(runtime as any, 'rebuild');
     const spyCalc = vi.spyOn(runtime as any, 'calculateLayout');
@@ -94,7 +101,7 @@ describe('activeKey tick 顺序和传播', async () => {
     expect(orders[1]).toBeGreaterThan(orders[0]);
     expect(orders[2]).toBeGreaterThan(orders[1]);
 
-    const n1 = findWidget(root, '#n1') as Widget;
+    const n1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as Widget;
     expect((n1 as any).active).toBe(true);
     const activeNode = findWidget(root, ':active') as Widget | null;
     expect(activeNode?.key).toBe('n1');

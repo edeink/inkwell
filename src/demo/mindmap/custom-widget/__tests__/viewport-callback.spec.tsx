@@ -1,18 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Viewport, type ViewportProps } from '../viewport';
+import { MindMapViewport, type MindMapViewportProps } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
-describe('Viewport 回调测试', () => {
+describe('MindMapViewport 回调测试', () => {
   it('变换发生时应调用 onViewChange', () => {
     const onViewChange = vi.fn();
-    const props: ViewportProps = {
-      type: 'Viewport',
+    const props: MindMapViewportProps = {
+      type: CustomComponentType.MindMapViewport,
       scale: 1,
       tx: 0,
       ty: 0,
       onViewChange,
     };
-    const vp = new Viewport(props);
+    const vp = new MindMapViewport(props);
 
     // 1. 设置变换
     vp.setTransform(2, 100, 100);

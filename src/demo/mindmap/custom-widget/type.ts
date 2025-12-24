@@ -8,13 +8,12 @@
  * 用于在运行时注册与识别思维导图相关的自定义组件类型，
  * 与核心组件类型并行存在，不与 `ComponentType` 混用。
  */
-export const enum CustomComponentType {
-  Viewport = 'Viewport',
+export enum CustomComponentType {
+  MindMapViewport = 'MindMapViewport',
   MindMapNode = 'MindMapNode',
   MindMapLayout = 'MindMapLayout',
   Connector = 'Connector',
   MindMapNodeToolbar = 'MindMapNodeToolbar',
-  MindMapNodeToolbarLayer = 'MindMapNodeToolbarLayer',
 }
 
 export const enum Side {

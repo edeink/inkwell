@@ -5,7 +5,8 @@ import { ConnectorStyle } from '../../helpers/connection-drawer';
 import { Connector } from '../connector';
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import { dispatchToTree, hitTest } from '@/core/events';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -64,18 +65,25 @@ describe('window级指针事件监听与清理', () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
           <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, 'Viewport') as any;
-    const node1 = findWidget(root, '#n1') as any;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as any;
+    const node1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({
@@ -104,18 +112,25 @@ describe('window级指针事件监听与清理', () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
           <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, 'Viewport') as any;
-    const node1 = findWidget(root, '#n1') as any;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as any;
+    const node1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({
@@ -149,17 +164,24 @@ describe('window级指针事件监听与清理', () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
           <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, 'Viewport') as any;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as any;
     const node1 = findWidget(root, '#n1') as any;
 
     const p = node1.getAbsolutePosition();
@@ -208,18 +230,25 @@ describe('window级指针事件监听与清理', () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode key="root" title="主题" />
           <MindMapNode key="n1" title="分支 1" />
           <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, 'Viewport') as any;
-    const node1 = findWidget(root, '#n1') as any;
+    const vp = findWidget(root, CustomComponentType.MindMapViewport) as any;
+    const node1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as any;
 
     const p = node1.getAbsolutePosition();
     const toCanvas = (wx: number, wy: number) => ({

@@ -5,7 +5,8 @@ import { ConnectorStyle } from '../../helpers/connection-drawer';
 import { Connector } from '../connector';
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import type { Widget } from '@/core/base';
 
@@ -29,11 +30,18 @@ async function makeScene(runtime: Runtime, count: number) {
     );
   }
   const scene = (
-    <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+    <MindMapViewport
+      key={CustomComponentType.MindMapViewport}
+      scale={1}
+      tx={0}
+      ty={0}
+      width={800}
+      height={600}
+    >
       <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
         {nodes}
       </MindMapLayout>
-    </Viewport>
+    </MindMapViewport>
   );
   await runtime.renderFromJSX(scene as any);
 }
@@ -94,12 +102,12 @@ describe('Balanced root sides 分布测试', () => {
   it('偶数个子节点应平均分割', async () => {
     await makeScene(runtime, 4);
     const root = runtime.getRootWidget();
-    const rootNode = findWidget(root, '#root') as Widget;
+    const rootNode = findWidget(root, `${CustomComponentType.MindMapNode}#root`) as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 4; i++) {
-      const n = findWidget(root, `#c${i}`) as Widget;
+      const n = findWidget(root, `${CustomComponentType.MindMapNode}#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;
@@ -113,12 +121,12 @@ describe('Balanced root sides 分布测试', () => {
   it('奇数个子节点数量差不应超过 1', async () => {
     await makeScene(runtime, 5);
     const root = runtime.getRootWidget();
-    const rootNode = findWidget(root, '#root') as Widget;
+    const rootNode = findWidget(root, `${CustomComponentType.MindMapNode}#root`) as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 5; i++) {
-      const n = findWidget(root, `#c${i}`) as Widget;
+      const n = findWidget(root, `${CustomComponentType.MindMapNode}#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;
@@ -132,12 +140,12 @@ describe('Balanced root sides 分布测试', () => {
   it('三个子节点应分为 2-1 分布', async () => {
     await makeScene(runtime, 3);
     const root = runtime.getRootWidget();
-    const rootNode = findWidget(root, '#root') as Widget;
+    const rootNode = findWidget(root, `${CustomComponentType.MindMapNode}#root`) as Widget;
     const pr = (rootNode as any).getAbsolutePosition();
     let left = 0,
       right = 0;
     for (let i = 0; i < 3; i++) {
-      const n = findWidget(root, `#c${i}`) as Widget;
+      const n = findWidget(root, `${CustomComponentType.MindMapNode}#c${i}`) as Widget;
       const p = (n as any).getAbsolutePosition();
       if (p.dx < pr.dx) {
         left++;

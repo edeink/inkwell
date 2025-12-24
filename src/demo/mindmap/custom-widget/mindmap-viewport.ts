@@ -20,7 +20,7 @@ import type { InkwellEvent } from '@/core/events';
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 
-export interface ViewportProps extends WidgetProps {
+export interface MindMapViewportProps extends WidgetProps {
   scale?: number;
   tx?: number;
   ty?: number;
@@ -73,7 +73,7 @@ function clampScale(s: number): number {
  * - 管理选中、悬停、编辑状态并通过回调与外部控制器通信
  * - 统一将屏幕坐标转换为世界坐标以便命中测试与框选
  */
-export class Viewport extends Widget<ViewportProps> {
+export class MindMapViewport extends Widget<MindMapViewportProps> {
   private _scale: number = 1;
   private _tx: number = 0;
   private _ty: number = 0;
@@ -114,7 +114,7 @@ export class Viewport extends Widget<ViewportProps> {
     new Set();
   private _onScrollListeners: Set<(scrollX: number, scrollY: number) => void> = new Set();
 
-  constructor(data: ViewportProps) {
+  constructor(data: MindMapViewportProps) {
     super(data);
     this.shortcutManager = new ShortcutManager();
     this.historyManager = new HistoryManager();
@@ -148,7 +148,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._onScrollListeners.forEach((fn) => fn(scrollX, scrollY));
   }
 
-  private init(data: ViewportProps): void {
+  private init(data: MindMapViewportProps): void {
     this._scale = (data.scale ?? this._scale) as number;
     this._tx = (data.tx ?? this._tx) as number;
     this._ty = (data.ty ?? this._ty) as number;
@@ -246,7 +246,7 @@ export class Viewport extends Widget<ViewportProps> {
     this._onRestoreSelection?.(data);
   }
 
-  createElement(data: ViewportProps): Widget<ViewportProps> {
+  createElement(data: MindMapViewportProps): Widget<MindMapViewportProps> {
     super.createElement(data);
     this.init(data);
     return this;

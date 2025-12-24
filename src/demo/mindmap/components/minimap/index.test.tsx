@@ -1,6 +1,8 @@
 import { act } from 'react-dom/test-utils';
 import { afterEach, describe, it, vi } from 'vitest';
 
+import { CustomComponentType } from '../../custom-widget/type';
+
 // 模拟上下文
 const mockController = {
   viewScale: 1,
@@ -11,7 +13,7 @@ const mockController = {
   },
   runtime: {
     getRootWidget: () => ({
-      type: 'Viewport',
+      type: CustomComponentType.MindMapViewport,
       children: [],
       renderObject: { size: { width: 800, height: 600 } },
       getAbsolutePosition: () => ({ dx: 0, dy: 0 }),

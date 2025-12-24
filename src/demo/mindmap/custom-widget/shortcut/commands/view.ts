@@ -1,9 +1,9 @@
-import type { Viewport } from '../../viewport';
+import type { MindMapViewport } from '../../mindmap-viewport';
 import type { Command } from '../history/types';
 
 export class ViewportTransformCommand implements Command {
   constructor(
-    private viewport: Viewport,
+    private viewport: MindMapViewport,
     private prev: { scale: number; tx: number; ty: number },
     private next: { scale: number; tx: number; ty: number },
     public label: string = 'View Transform',

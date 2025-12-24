@@ -99,8 +99,14 @@ export class Connector extends Widget<ConnectorProps> {
 
   private getPathPoints(): { x: number; y: number }[] | null {
     const layout = findWidget(this.root, CustomComponentType.MindMapLayout) as Widget | null;
-    const nodeA = findWidget(layout, `MindMapNode#${this.fromKey}`) as Widget | null;
-    const nodeB = findWidget(layout, `MindMapNode#${this.toKey}`) as Widget | null;
+    const nodeA = findWidget(
+      layout,
+      `${CustomComponentType.MindMapNode}#${this.fromKey}`,
+    ) as Widget | null;
+    const nodeB = findWidget(
+      layout,
+      `${CustomComponentType.MindMapNode}#${this.toKey}`,
+    ) as Widget | null;
 
     const rectA = nodeA ? this.getRectFromNode(nodeA) : null;
     const rectB = nodeB ? this.getRectFromNode(nodeB) : null;

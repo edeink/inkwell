@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { Viewport, type ViewportProps } from '../viewport';
+import { MindMapViewport, type MindMapViewportProps } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
-describe('Viewport 状态保持', () => {
+describe('MindMapViewport 状态保持', () => {
   it('更新时若 scale 为 undefined 应保持原有 scale', () => {
-    // 1. 创建初始 Viewport
-    const props1: ViewportProps = {
-      type: 'Viewport',
+    // 1. 创建初始 MindMapViewport
+    const props1: MindMapViewportProps = {
+      type: CustomComponentType.MindMapViewport,
       scale: 1,
       tx: 0,
       ty: 0,
     };
-    const vp = new Viewport(props1);
+    const vp = new MindMapViewport(props1);
 
     // 验证初始状态
     expect(vp.scale).toBe(1);
@@ -23,8 +24,8 @@ describe('Viewport 状态保持', () => {
 
     // 3. 模拟重新渲染（Scene 通过框架调用 createElement）
     // 框架调用：existingWidget.createElement(newProps)
-    const props2: ViewportProps = {
-      type: 'Viewport',
+    const props2: MindMapViewportProps = {
+      type: CustomComponentType.MindMapViewport,
       // scale, tx, ty 未定义
       width: 800,
       height: 600,

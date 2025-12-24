@@ -68,6 +68,7 @@ When working in `src/core`:
 - **Widgets**: Must extend `StatelessWidget`, `StatefulWidget`, or `RenderObjectWidget`.
 - **Naming**: PascalCase for Widget classes (e.g., `Container`, `Row`).
 - **Performance**: Avoid unnecessary object allocations in `build` or `paint` methods.
+- **Component Lookup**: ALWAYS use `CustomComponentType` enum for `findWidget` selectors and `key` generation. NEVER use hardcoded strings like `'#MyWidget'`.
 
 
 ## 4. Comments & Text Requirements

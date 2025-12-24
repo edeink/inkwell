@@ -16,7 +16,7 @@ class MockViewport extends Widget {
   _contentTy: number = 0;
 
   constructor(props: WidgetProps) {
-    super({ ...props, type: 'Viewport' });
+    super({ ...props, type: CustomComponentType.MindMapViewport });
     this.renderObject.offset = { dx: 0, dy: 0 };
     this.renderObject.size = { width: 800, height: 600 };
   }
@@ -68,7 +68,7 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
 
     // Toolbar 需要 activeKey 匹配 node
     toolbar = new MindMapNodeToolbar({
-      type: 'MindMapNodeToolbar',
+      type: CustomComponentType.MindMapNodeToolbar,
       activeKey: 'node-1',
       // 模拟回调
       onAddSibling: onAddSiblingSpy,
@@ -85,6 +85,9 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
 
     // 设置 Node 位置（相对于 Viewport 未缩放）
     node.renderObject.offset = { dx: 100, dy: 100 };
+
+    // 手动设置 Toolbar 大小（因为没有运行布局）
+    toolbar.renderObject.size = { width: 800, height: 600 };
   });
 
   // 测试布局坐标下的 hitTest（假设框架在调用 hitTest 前转换坐标）

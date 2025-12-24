@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { MindMapNode } from '../mindmap-node';
+import { MindMapViewport } from '../mindmap-viewport';
 import { CustomComponentType } from '../type';
-import { Viewport } from '../viewport';
 
 import { Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
@@ -24,7 +24,7 @@ function createWidgetTree(data: any): Widget {
 
 // 注册自定义 widget
 beforeAll(() => {
-  WidgetRegistry.registerType(CustomComponentType.Viewport, Viewport);
+  WidgetRegistry.registerType(CustomComponentType.MindMapViewport, MindMapViewport);
   WidgetRegistry.registerType(CustomComponentType.MindMapNode, MindMapNode);
 });
 
@@ -43,7 +43,7 @@ const mockContext = {
 describe('MindMapNode 光标配置', () => {
   it('未提供配置时应使用默认光标样式', () => {
     const root = createWidgetTree({
-      type: CustomComponentType.Viewport,
+      type: CustomComponentType.MindMapViewport,
       key: 'viewport',
       children: [
         {
@@ -67,7 +67,7 @@ describe('MindMapNode 光标配置', () => {
 
   it('should fallback to defaults if config is partial', () => {
     const root = createWidgetTree({
-      type: CustomComponentType.Viewport,
+      type: CustomComponentType.MindMapViewport,
       key: 'viewport',
       children: [
         {

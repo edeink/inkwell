@@ -218,11 +218,11 @@ function stepMatch(prevSet: Widget[], step: SelectorStep): Widget[] {
  * @param options 查找选项
  * @returns 找到的组件或组件数组
  */
-export function findWidget(
+export function findWidget<T = Widget>(
   node: Widget | null,
   selector: string,
   options: FindOptions = {},
-): Widget | Widget[] | null {
+): T | T[] | null {
   if (!node || !selector) {
     return null;
   }
@@ -234,7 +234,7 @@ export function findWidget(
   if (options.multiple) {
     const hit = cacheMap.get(cacheKey);
     if (hit) {
-      return hit.slice();
+      return hit.slice() as unknown as T[];
     }
   }
   const steps = parseSelector(selector);
@@ -248,9 +248,9 @@ export function findWidget(
   }
   if (options.multiple) {
     cacheMap.set(cacheKey, cur);
-    return cur;
+    return cur as unknown as T[];
   }
-  return cur[0] ?? null;
+  return (cur[0] ?? null) as unknown as T | null;
 }
 
 export default {

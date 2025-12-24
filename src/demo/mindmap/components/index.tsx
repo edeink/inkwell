@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { MindmapContext } from '../context';
 import { MindmapController } from '../controller/index';
-import { Viewport } from '../custom-widget/viewport';
+import { MindMapViewport } from '../custom-widget/mindmap-viewport';
+import { CustomComponentType } from '../custom-widget/type';
 import { runApp } from '../scene';
 
 import ErrorBoundary from './error-boundary';
@@ -93,7 +94,10 @@ export default function MindmapComponent({
       const runtime = runtimeRef.current!;
       runApp(runtime!, size);
       const root = runtime.getRootWidget();
-      const vp = findWidget(root, 'Viewport') as Viewport | null;
+      const vp = findWidget<MindMapViewport>(
+        root,
+        CustomComponentType.MindMapViewport,
+      ) as MindMapViewport | null;
       if (vp) {
         const ctrl = new MindmapController(runtime, vp, (s) => setZoom(s));
         setController(ctrl);
@@ -127,7 +131,7 @@ export default function MindmapComponent({
             <>
               <Minimap />
               <ZoomBar />
-              <Toolbar />
+              <Toolbar runtime={runtimeRef.current} />
             </>
           )}
           <DevTools />

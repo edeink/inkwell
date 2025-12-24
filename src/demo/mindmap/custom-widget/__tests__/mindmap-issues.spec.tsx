@@ -6,7 +6,8 @@ import { LayoutEngine } from '../layout-engine';
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
 import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
@@ -30,13 +31,13 @@ describe('MindMap 修复验证', () => {
   it('问题 1: Viewport 下 Connector 和 Node 坐标应一致', () => {
     // 设置包含 MindMapLayout、Node 和 Connector 的 Viewport
     const rootEl = (
-      <Viewport key="vp" width={800} height={600}>
+      <MindMapViewport key={CustomComponentType.MindMapViewport} width={800} height={600}>
         <MindMapLayout key="layout">
           <MindMapNode key="node1" id="root" title="Root" />
           <MindMapNode key="node2" id="child" title="Child" />
           <Connector key="conn" fromKey="root" toKey="child" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
 
     const data = compileElement(rootEl);
@@ -60,7 +61,7 @@ describe('MindMap 修复验证', () => {
   // 问题 3: 事件穿透
   it('问题 3: 工具栏按钮点击应停止传播', () => {
     const toolbar = new MindMapNodeToolbar({
-      type: 'MindMapNodeToolbar',
+      type: CustomComponentType.MindMapNodeToolbar,
       key: 'tb',
       nodeId: 'n1',
       x: 0,

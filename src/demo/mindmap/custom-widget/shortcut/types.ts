@@ -1,4 +1,4 @@
-import type { Viewport } from '../viewport';
+import type { MindMapViewport } from '../mindmap-viewport';
 import type { InkwellEvent } from '@/core/events';
 
 /**
@@ -6,7 +6,7 @@ import type { InkwellEvent } from '@/core/events';
  */
 export interface ShortcutContext {
   /** 视口实例 */
-  viewport: Viewport;
+  viewport: MindMapViewport;
   /** Inkwell 事件 */
   event: InkwellEvent;
   /** 原生键盘事件 */

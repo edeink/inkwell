@@ -3,11 +3,11 @@ import { Connector } from './custom-widget/connector';
 import { MindMapLayout } from './custom-widget/mindmap-layout';
 import { MindMapNode } from './custom-widget/mindmap-node';
 import { MindMapNodeToolbar } from './custom-widget/mindmap-node-toolbar';
-import { Side } from './custom-widget/type';
-import { Viewport } from './custom-widget/viewport';
+import { MindMapViewport } from './custom-widget/mindmap-viewport';
+import { CustomComponentType, Side } from './custom-widget/type';
 import { ConnectorStyle } from './helpers/connection-drawer';
 
-import type { Viewport as ViewportCls } from './custom-widget/viewport';
+import type { MindMapViewport as MindMapViewportCls } from './custom-widget/mindmap-viewport';
 import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from './types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
@@ -84,14 +84,14 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     };
   }
 
-  private getViewport(): ViewportCls | null {
+  private getViewport(): MindMapViewportCls | null {
     const rt = this.runtime;
     if (!rt) {
       return null;
     }
     const rtx = rt as Runtime;
     const root = typeof rtx.getRootWidget === 'function' ? rtx.getRootWidget() : null;
-    return findWidget(root, '#v') as ViewportCls | null;
+    return findWidget(root, `#${CustomComponentType.MindMapViewport}`) as MindMapViewportCls | null;
   }
 
   private onScroll = (scrollX: number, scrollY: number): void => {
@@ -330,11 +330,11 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       return;
     }
     let wrapper = null;
-    if (target.type === 'MindMapNodeToolbar') {
+    if (target.type === CustomComponentType.MindMapNodeToolbar) {
       wrapper = target;
-    } else if (target.type === 'MindMapNode') {
+    } else if (target.type === CustomComponentType.MindMapNode) {
       const p = target.parent;
-      if (p && p.type === 'MindMapNodeToolbar') {
+      if (p && p.type === CustomComponentType.MindMapNodeToolbar) {
         wrapper = p;
       } else {
         wrapper = target;
@@ -548,8 +548,8 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
       onAddChildSide: this.onAddChildSide,
     });
     return (
-      <Viewport
-        key="v"
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
         width={width}
         height={height}
         scale={view.scale}
@@ -575,7 +575,7 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
           {toolbar}
           {elements}
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
   }
 }

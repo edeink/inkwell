@@ -6,7 +6,8 @@ import { Connector } from '../connector';
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
 import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import type { Widget } from '@/core/base';
 
@@ -17,27 +18,41 @@ import Runtime from '@/runtime';
 
 async function createSceneWithToolbar(width: number, height: number, runtime: Runtime) {
   const scene = (
-    <Viewport key="v" scale={1} tx={0} ty={0} width={width} height={height}>
+    <MindMapViewport
+      key={CustomComponentType.MindMapViewport}
+      scale={1}
+      tx={0}
+      ty={0}
+      width={width}
+      height={height}
+    >
       <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
         <MindMapNode key="root" title="主题" />
         <MindMapNode key="n1" title="分支 1" />
         <MindMapNodeToolbar key="toolbar" />
         <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
       </MindMapLayout>
-    </Viewport>
+    </MindMapViewport>
   );
   await runtime.renderFromJSX(scene as any);
 }
 
 async function createSceneWithoutToolbar(width: number, height: number, runtime: Runtime) {
   const scene = (
-    <Viewport key="v" scale={1} tx={0} ty={0} width={width} height={height}>
+    <MindMapViewport
+      key={CustomComponentType.MindMapViewport}
+      scale={1}
+      tx={0}
+      ty={0}
+      width={width}
+      height={height}
+    >
       <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
         <MindMapNode key="root" title="主题" />
         <MindMapNode key="n1" title="分支 1" />
         <Connector key="e-root-n1" fromKey="root" toKey="n1" style={ConnectorStyle.Elbow} />
       </MindMapLayout>
-    </Viewport>
+    </MindMapViewport>
   );
   await runtime.renderFromJSX(scene);
 }
@@ -106,8 +121,8 @@ describe('MindMapNode 布局稳定性与激活位置', () => {
     await createSceneWithoutToolbar(800, 600, runtimeB);
     const rootA = runtimeA.getRootWidget();
     const rootB = runtimeB.getRootWidget();
-    const nodeA = findWidget(rootA, '#n1') as Widget;
-    const nodeB = findWidget(rootB, '#n1') as Widget;
+    const nodeA = findWidget(rootA, `${CustomComponentType.MindMapNode}#n1`) as Widget;
+    const nodeB = findWidget(rootB, `${CustomComponentType.MindMapNode}#n1`) as Widget;
     const pa = nodeA.getAbsolutePosition();
     const pb = nodeB.getAbsolutePosition();
     expect(Math.abs(pa.dx - pb.dx)).toBeLessThan(1);
@@ -117,8 +132,8 @@ describe('MindMapNode 布局稳定性与激活位置', () => {
   it('激活状态下节点绝对位置应保持稳定', async () => {
     await createSceneWithToolbar(800, 600, runtimeA);
     const rootA = runtimeA.getRootWidget();
-    const vp = findWidget(rootA, 'Viewport') as Widget;
-    const nodeA = findWidget(rootA, '#n1') as Widget;
+    const vp = findWidget(rootA, `#${CustomComponentType.MindMapViewport}`) as MindMapViewport;
+    const nodeA = findWidget(rootA, `${CustomComponentType.MindMapNode}#n1`) as Widget;
     const p0 = nodeA.getAbsolutePosition();
     (vp as any).setActiveKey?.('n1');
     const p1 = nodeA.getAbsolutePosition();

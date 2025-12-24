@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
@@ -63,11 +64,18 @@ describe('Viewport 缩放选择测试', async () => {
     // 设置：视口缩放2倍。MindMapLayout 负责布局节点。
     // 我们假设 Node1 会位于某个偏移位置。
     const scene = (
-      <Viewport key="v" scale={2} tx={100} ty={100} width={800} height={600}>
-        <MindMapLayout key="layout">
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={2}
+        tx={100}
+        ty={100}
+        width={800}
+        height={600}
+      >
+        <MindMapLayout key={CustomComponentType.MindMapLayout}>
           <MindMapNode key="n1" title="Node 1" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
@@ -75,12 +83,12 @@ describe('Viewport 缩放选择测试', async () => {
     runtime.rerender();
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as MindMapViewport;
     const node = findWidget(root, '#n1') as MindMapNode;
 
     // 获取节点的计算位置（布局偏移）
     const nodeOffset = node.renderObject.offset; // 相对于 MindMapLayout
-    const layout = findWidget(root, 'MindMapLayout') as MindMapLayout;
+    const layout = findWidget(root, CustomComponentType.MindMapLayout) as MindMapLayout;
     // layoutOffset 相对于 Viewport (contentTx, contentTy)
 
     // 节点在“内容空间”中的预期位置是 nodeOffset。
@@ -129,17 +137,17 @@ describe('Viewport 缩放选择测试', async () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={0.5} tx={50} ty={50} width={800} height={600}>
+      <MindMapViewport key="v" scale={0.5} tx={50} ty={50} width={800} height={600}>
         <MindMapLayout key="layout">
           <MindMapNode key="n1" title="Node 1" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     runtime.rerender();
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, '#v') as MindMapViewport;
     const node = findWidget(root, '#n1') as MindMapNode;
 
     const nodeOffset = node.renderObject.offset;
@@ -177,17 +185,17 @@ describe('Viewport 缩放选择测试', async () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1.5} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport key="v" scale={1.5} tx={0} ty={0} width={800} height={600}>
         <MindMapLayout key="layout">
           <MindMapNode key="n1" title="Node 1" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
     runtime.rerender();
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, '#v') as MindMapViewport;
     const node = findWidget(root, '#n1') as MindMapNode;
 
     const nodeOffset = node.renderObject.offset;

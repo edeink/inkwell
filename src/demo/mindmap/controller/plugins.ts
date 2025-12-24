@@ -1,10 +1,10 @@
 import type { MindmapController } from './index';
-import type { Viewport } from '../custom-widget/viewport';
+import type { MindMapViewport } from '../custom-widget/mindmap-viewport';
 import type Runtime from '@/runtime';
 
 export type ControllerPluginHookContext = {
   runtime: Runtime;
-  viewport: Viewport;
+  viewport: MindMapViewport;
   controller: MindmapController;
 };
 

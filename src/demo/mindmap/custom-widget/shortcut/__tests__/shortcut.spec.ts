@@ -1,16 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { UndoCommand, RedoCommand, DeleteCommand } from '../commands/history';
+import { DeleteCommand, RedoCommand, UndoCommand } from '../commands/history';
 import {
+  MoveDownCommand,
   MoveLeftCommand,
   MoveRightCommand,
   MoveUpCommand,
-  MoveDownCommand,
 } from '../commands/navigation';
 import { PreventBrowserZoomCommand } from '../commands/system';
 import { ShortcutManager } from '../manager';
-
-import type { Viewport } from '../../viewport';
 
 describe('ShortcutSystem', () => {
   let manager: ShortcutManager;
@@ -29,6 +27,12 @@ describe('ShortcutSystem', () => {
       scale: 1,
       getContentPosition: vi.fn().mockReturnValue({ tx: 0, ty: 0 }),
       setContentPosition: vi.fn(),
+      historyManager: {
+        execute: vi.fn((cmd) => cmd.execute()),
+      },
+      zoomIn: vi.fn(),
+      zoomOut: vi.fn(),
+      resetZoom: vi.fn(),
     };
   });
 
@@ -99,19 +103,19 @@ describe('ShortcutSystem', () => {
 
     // Left
     handle(createEvent('ArrowLeft'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(20, 0); // 0 + 20/1
+    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(-20, 0); // 0 - 20/1
 
     // Right
     handle(createEvent('ArrowRight'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(-20, 0);
+    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(20, 0);
 
     // Up
     handle(createEvent('ArrowUp'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, 20);
+    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, -20);
 
     // Down
     handle(createEvent('ArrowDown'));
-    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, -20);
+    expect(viewportMock.setContentPosition).toHaveBeenCalledWith(0, 20);
   });
 
   it('应当阻止浏览器默认缩放行为', () => {

@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Connector } from '../connector';
 import { MindMapNode } from '../mindmap-node';
+import { MindMapViewport } from '../mindmap-viewport';
 import { CustomComponentType } from '../type';
-import { Viewport } from '../viewport';
 
 import { Widget, type BoxConstraints, type Size } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -34,7 +34,7 @@ class MockMindMapLayout extends Widget {
 
 // 注册自定义 widget
 beforeAll(() => {
-  WidgetRegistry.registerType(CustomComponentType.Viewport, Viewport);
+  WidgetRegistry.registerType(CustomComponentType.MindMapViewport, MindMapViewport);
   WidgetRegistry.registerType(CustomComponentType.MindMapNode, MindMapNode);
   WidgetRegistry.registerType(CustomComponentType.MindMapLayout, MockMindMapLayout);
   WidgetRegistry.registerType(CustomComponentType.Connector, Connector);
@@ -43,7 +43,7 @@ beforeAll(() => {
 describe('Connector 光标配置', () => {
   const buildTestTree = () => {
     const root = createWidgetTree({
-      type: CustomComponentType.Viewport,
+      type: CustomComponentType.MindMapViewport,
       key: 'viewport',
       children: [
         {
@@ -72,16 +72,16 @@ describe('Connector 光标配置', () => {
     });
 
     // 手动设置布局位置用于命中测试
-    const node1 = findWidget(root, 'MindMapNode#node1') as Widget;
+    const node1 = findWidget(root, `${CustomComponentType.MindMapNode}#node1`) as Widget;
     node1.renderObject.offset = { dx: 0, dy: 0 };
     node1.renderObject.size = { width: 100, height: 50 };
 
-    const node2 = findWidget(root, 'MindMapNode#node2') as Widget;
+    const node2 = findWidget(root, `${CustomComponentType.MindMapNode}#node2`) as Widget;
     node2.renderObject.offset = { dx: 200, dy: 0 }; // 直线
     node2.renderObject.size = { width: 100, height: 50 };
 
     // 布局本身通常需要位置 0,0
-    const layout = findWidget(root, 'MindMapLayout#layout') as Widget;
+    const layout = findWidget(root, `${CustomComponentType.MindMapLayout}#layout`) as Widget;
     layout.renderObject.offset = { dx: 0, dy: 0 };
 
     return root;
@@ -89,7 +89,7 @@ describe('Connector 光标配置', () => {
 
   it('应在线条上正确进行命中测试', () => {
     const root = buildTestTree();
-    const conn = findWidget(root, 'Connector#conn1') as Connector;
+    const conn = findWidget(root, `${CustomComponentType.Connector}#conn1`) as Connector;
 
     // Node1 中心: 50, 25
     // Node2 中心: 250, 25

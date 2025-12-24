@@ -1,6 +1,7 @@
 import { SCALE_CONFIG } from '../../config/constants';
+import { CustomComponentType } from '../../custom-widget/type';
 
-import type { Viewport } from '../../custom-widget/viewport';
+import type { MindMapViewport } from '../../custom-widget/mindmap-viewport';
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';
 
@@ -17,7 +18,7 @@ export class ViewModule {
     onViewChange?: (scale: number, tx: number, ty: number) => void,
   ) {
     this.controller = controller;
-    const vp = controller.viewport as Viewport;
+    const vp = controller.viewport as MindMapViewport;
     this._scale = vp.scale;
     this._tx = vp.tx;
     this._ty = vp.ty;
@@ -35,7 +36,7 @@ export class ViewModule {
   }
 
   syncFromViewport(): void {
-    const vp = this.controller.viewport as Viewport;
+    const vp = this.controller.viewport as MindMapViewport;
     this._scale = vp.scale;
     this._tx = vp.tx;
     this._ty = vp.ty;
@@ -73,7 +74,7 @@ export class ViewModule {
   }
 
   apply(): void {
-    const vp = this.controller.viewport as Viewport;
+    const vp = this.controller.viewport as MindMapViewport;
     vp.setTransform(this._scale, this._tx, this._ty);
     this.resetCanvasTransform();
     this.notifyListeners();
@@ -121,7 +122,7 @@ export class ViewModule {
     }
     const pos = widget.getAbsolutePosition();
     const sz = widget.renderObject.size;
-    const isNode = widget.type === 'MindMapNode';
+    const isNode = widget.type === CustomComponentType.MindMapNode;
     if (isNode && x >= pos.dx && y >= pos.dy && x <= pos.dx + sz.width && y <= pos.dy + sz.height) {
       return widget;
     }

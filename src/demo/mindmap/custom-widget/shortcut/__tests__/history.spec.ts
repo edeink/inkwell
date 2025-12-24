@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Viewport } from '../../viewport';
+import { MindMapViewport } from '../../mindmap-viewport';
 import { PreventBrowserZoomCommand } from '../commands/system';
-import { ViewportTransformCommand } from '../commands/view';
 import { HistoryManager } from '../history/manager';
 
 describe('HistoryManager', () => {
@@ -67,10 +66,10 @@ describe('Viewport Zoom & Undo/Redo', () => {
         this.ty = y;
       }),
       historyManager: new HistoryManager(),
-      zoomIn: Viewport.prototype.zoomIn,
-      zoomOut: Viewport.prototype.zoomOut,
-      resetZoom: Viewport.prototype.resetZoom,
-      executeZoom: (Viewport.prototype as any).executeZoom,
+      zoomIn: MindMapViewport.prototype.zoomIn,
+      zoomOut: MindMapViewport.prototype.zoomOut,
+      resetZoom: MindMapViewport.prototype.resetZoom,
+      executeZoom: (MindMapViewport.prototype as any).executeZoom,
       _contentTx: 0,
       _contentTy: 0,
     } as any;

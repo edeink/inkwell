@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MindmapContext } from '../../../context';
 import { MindmapController } from '../../../controller';
-import { Viewport } from '../../../custom-widget/viewport';
+import { MindMapViewport } from '../../../custom-widget/mindmap-viewport';
 import Minimap from '../index';
 
 import type { Root } from 'react-dom/client';
@@ -12,13 +12,13 @@ import type { Root } from 'react-dom/client';
 import Runtime from '@/runtime';
 
 // 模拟依赖
-vi.mock('../../../custom-widget/viewport');
+vi.mock('../../../custom-widget/mindmap-viewport');
 vi.mock('@/runtime');
 vi.mock('../../../controller');
 
 describe('Minimap 集成测试', () => {
   let runtime: Runtime;
-  let viewport: Viewport;
+  let viewport: MindMapViewport;
   let controller: MindmapController;
   let container: HTMLDivElement;
   let root: Root;
@@ -36,10 +36,10 @@ describe('Minimap 集成测试', () => {
     document.body.appendChild(container);
     root = createRoot(container);
 
-    // 设置模拟
+    // 模拟设置
     // 通过转换为 any 或使用 Object.create 绕过私有构造函数
     runtime = Object.create(Runtime.prototype);
-    viewport = Object.create(Viewport.prototype);
+    viewport = Object.create(MindMapViewport.prototype);
 
     // 模拟视口方法和属性
     // 使用 defineProperty 定义只读属性

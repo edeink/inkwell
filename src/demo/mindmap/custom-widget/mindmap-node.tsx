@@ -4,10 +4,10 @@ import { getTheme } from '../config/theme';
 
 import { Connector } from './connector';
 import { MindMapNodeTextEditor } from './mindmap-node-text-editor';
+import { MindMapViewport } from './mindmap-viewport';
 import { CustomComponentType, Side } from './type';
-import { Viewport } from './viewport';
 
-import type { WidgetProps } from '@/core/base';
+import type { CursorType, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
 import { Container, Text } from '@/core';
@@ -78,7 +78,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     while (root && root.parent) {
       root = root.parent as Widget;
     }
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     const akFromViewport = vp?.activeKey ?? null;
     const ak = akFromProps ?? akFromViewport;
     this.active = typeof data.active === 'boolean' ? (data.active as boolean) : ak === this.key;
@@ -106,7 +109,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 区分根节点点击与可拖拽节点，记录初始位置并进入拖拽状态
    */
   onPointerDown(e: InkwellEvent): boolean | void {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return;
     }
@@ -152,7 +158,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 请求视口进入编辑态并创建原生输入框进行文本编辑
    */
   onDblClick(e: InkwellEvent): boolean | void {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return;
     }
@@ -278,7 +287,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 拖拽时更新偏移并节流重绘；非拖拽时维护悬停动画与命中测试
    */
   private handlePointerMove(e: { x: number; y: number; native?: Event }): void {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return;
     }
@@ -309,7 +321,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 根据是否发生明显位移决定提交拖拽结果或作为点击激活
    */
   private handlePointerUp(e: { x: number; y: number; native?: Event }): void {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     const ds = this.dragState;
     if (!vp) {
       this.dragState = null;
@@ -397,7 +412,10 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 使用 Container + Text 保持视觉效果与交互绑定，避免直接使用底层绘制方法
    */
   render() {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
     const editing = !!st.isEditing;
@@ -426,14 +444,14 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const borderWidth = active || editing || selected || hover ? 2 : 1;
 
     // Calculate cursor
-    const localConfig = this.data.cursorConfig || {};
+    const localConfig: Record<string, string> = this.data.cursorConfig || {};
     const state = editing ? 'editing' : hover ? 'reading' : 'normal';
     const defaults: Record<string, string> = {
       normal: 'default',
       editing: 'text',
       reading: 'pointer',
     };
-    const cursor = localConfig[state] || defaults[state] || 'default';
+    const cursor = (localConfig[state] || defaults[state] || 'default') as CursorType;
 
     const content = editing ? (
       <MindMapNodeTextEditor

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { Viewport } from '../../custom-widget/viewport';
+import { MindMapViewport } from '../../custom-widget/mindmap-viewport';
+import { CustomComponentType } from '../../custom-widget/type';
 import { MindmapController } from '../index';
 
 import type { ControllerPlugin } from '../plugins';
@@ -19,7 +20,7 @@ function createFakeRuntime(): Runtime {
 describe('插件注册', () => {
   it('正确注册和注销插件', () => {
     const runtime = createFakeRuntime();
-    const viewport = new Viewport({ type: 'Viewport', key: 'vp' });
+    const viewport = new MindMapViewport({ type: CustomComponentType.MindMapViewport, key: 'vp' });
     const controller = new MindmapController(runtime, viewport);
 
     let attached = 0;

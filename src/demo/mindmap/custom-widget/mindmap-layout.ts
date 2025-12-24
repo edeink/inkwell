@@ -1,7 +1,7 @@
 import { LayoutEngine } from './layout-engine';
 import { CustomComponentType, Side } from './type';
 
-import type { Viewport } from './viewport';
+import type { MindMapViewport } from './mindmap-viewport';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
@@ -32,7 +32,7 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
   public visitHitTest(x: number, y: number): Widget | null {
     let wx = x;
     let wy = y;
-    const vp = this.parent as Viewport;
+    const vp = this.parent as MindMapViewport;
     if (typeof vp.scale === 'number' && typeof vp.tx === 'number') {
       const s = vp.scale || 1;
       const tx = vp.tx || 0;

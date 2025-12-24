@@ -1,5 +1,5 @@
 import type { SelectionData } from '../../../types';
-import type { Viewport } from '../../viewport';
+import type { MindMapViewport } from '../../mindmap-viewport';
 import type { Command } from '../history/types';
 
 export interface DeletedData {
@@ -11,7 +11,7 @@ export interface DeletedData {
 export class DeleteNodeCommand implements Command {
   private deletedData: DeletedData | null = null;
 
-  constructor(private viewport: Viewport) {}
+  constructor(private viewport: MindMapViewport) {}
 
   execute(): void {
     const payload = this.viewport.deleteSelection();

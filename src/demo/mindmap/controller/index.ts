@@ -1,4 +1,4 @@
-import { Viewport } from '../custom-widget/viewport';
+import { MindMapViewport } from '../custom-widget/mindmap-viewport';
 
 import { EventsModule } from './modules/events';
 import { HistoryModule } from './modules/history';
@@ -12,7 +12,7 @@ import Runtime from '@/runtime';
 
 export class MindmapController {
   runtime: Runtime;
-  viewport: Viewport;
+  viewport: MindMapViewport;
   viewScale: number;
   viewTx: number;
   viewTy: number;
@@ -25,7 +25,7 @@ export class MindmapController {
 
   constructor(
     runtime: Runtime,
-    viewport: Viewport,
+    viewport: MindMapViewport,
     onViewChange?: (scale: number, tx: number, ty: number) => void,
   ) {
     this.runtime = runtime;
@@ -201,7 +201,7 @@ export type Controller = MindmapController;
 
 export function createController(
   runtime: Runtime,
-  viewport: Viewport,
+  viewport: MindMapViewport,
   onViewChange?: (scale: number, tx: number, ty: number) => void,
 ): MindmapController {
   return new MindmapController(runtime, viewport, onViewChange);

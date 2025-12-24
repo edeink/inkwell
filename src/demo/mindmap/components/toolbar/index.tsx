@@ -4,11 +4,12 @@ import React, { useCallback, useMemo, useRef } from 'react';
 
 import { Connector } from '../../custom-widget/connector';
 import { MindMapNode } from '../../custom-widget/mindmap-node';
+import { CustomComponentType } from '../../custom-widget/type';
 
 import styles from './index.module.less';
 
 import type { MindMapLayout } from '../../custom-widget/mindmap-layout';
-import type { Viewport } from '../../custom-widget/viewport';
+import type { MindMapViewport } from '../../custom-widget/mindmap-viewport';
 import type Runtime from '@/runtime';
 
 import { findWidget } from '@/core/helper/widget-selector';
@@ -29,8 +30,11 @@ function collectGraph(runtime: Runtime): {
   if (!root) {
     return { nodes: [], edges: [], activeKey: null, viewportSize: null };
   }
-  const vp = findWidget(root, '#v') as Viewport | null;
-  const layout = findWidget(root, '#layout-root') as MindMapLayout | null;
+  const vp = findWidget<MindMapViewport>(
+    root,
+    CustomComponentType.MindMapViewport,
+  ) as MindMapViewport | null;
+  const layout = findWidget(root, CustomComponentType.MindMapLayout) as MindMapLayout | null;
   const nodes: Array<{ key: string; title: string; prefSide?: 'left' | 'right' }> = [];
   const edges: Array<{ from: string; to: string }> = [];
   const activeKey: string | null = vp?.activeKey ?? null;

@@ -2,7 +2,8 @@
 
 import { getTheme } from '../config/theme';
 
-import { Viewport } from './viewport';
+import { MindMapViewport } from './mindmap-viewport';
+import { CustomComponentType } from './type';
 
 import type { InkwellEvent } from '@/core/events';
 
@@ -137,7 +138,10 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       return;
     }
 
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return;
     }
@@ -611,7 +615,10 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
   // 事件坐标转换为组件局部坐标
   private getLocalPoint(e: InkwellEvent): { x: number; y: number } | null {
-    const vp = findWidget(this.root, 'Viewport') as Viewport | null;
+    const vp = findWidget<MindMapViewport>(
+      this.root,
+      CustomComponentType.MindMapViewport,
+    ) as MindMapViewport | null;
     if (!vp) {
       return null;
     }

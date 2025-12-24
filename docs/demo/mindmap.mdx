@@ -63,6 +63,20 @@ import { Scene } from '@mindmap/scene';
 
 当 Viewport 发生缩放或平移时，屏幕坐标需要经过逆变换才能正确映射到组件的本地坐标。示例中通过 `transformToNodeLocal` 等方法确保了工具栏按钮在任何缩放比例下都能精准响应点击。
 
+### 6. 类型安全的组件查找 (Type-Safe Component Lookup)
+在大型应用中，通过字符串查找组件（`findWidget`）容易出错且难以维护。本项目强制使用枚举（Enum）来管理组件类型。
+- **定义**: 在 `type.ts` 中定义 `CustomComponentType` 枚举。
+- **使用**: 在 `findWidget` 和 `key` 属性中统一使用枚举值，严禁硬编码字符串（如 `'#MindMapViewport'`）。
+- **示例**:
+  ```typescript
+  // ❌ 错误：硬编码字符串
+  findWidget(root, '#MindMapViewport');
+  
+  // ✅ 正确：使用枚举
+  import { CustomComponentType } from './type';
+  findWidget(root, `#${CustomComponentType.MindMapViewport}`);
+  ```
+
 ## 代码结构
 
 *   `src/demo/mindmap/scene.tsx`: 场景入口，定义数据状态和渲染逻辑。

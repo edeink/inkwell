@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Viewport } from '../viewport';
+import { MindMapNode } from '../mindmap-node';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
-import { Widget } from '@/core/base';
 import Runtime from '@/runtime';
-
 // Mock Canvas2DRenderer
 const mockDrawRect = vi.fn();
 const mockSave = vi.fn();
@@ -85,14 +85,14 @@ vi.mock('@/runtime', async (importOriginal) => {
 });
 
 describe('Viewport Selection Rect', () => {
-  let runtime;
-  let viewport;
+  let runtime: any;
+  let viewport: any;
 
   beforeEach(async () => {
     runtime = await Runtime.create('test-container');
-    viewport = new Viewport({
-      key: 'viewport',
-      type: 'Viewport',
+    viewport = new MindMapViewport({
+      key: CustomComponentType.MindMapViewport,
+      type: CustomComponentType.MindMapViewport,
       width: 800,
       height: 600,
     });
@@ -161,11 +161,15 @@ describe('Viewport Selection Rect', () => {
 
   it('should select items inside the rect', () => {
     // Setup a child node
-    const child = new Widget({ key: 'node-1', type: 'MindMapNode' });
+    const child = new MindMapNode({
+      key: 'node-1',
+      title: 'Node 1',
+      type: CustomComponentType.MindMapNode,
+    });
     child.renderObject = {
       offset: { dx: 150, dy: 150 }, // Inside 100,100 -> 200,200 rect
       size: { width: 50, height: 50 },
-    };
+    } as any;
 
     // We need to attach child to viewport
     viewport.children = [child];

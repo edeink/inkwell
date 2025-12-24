@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import type { Widget } from '@/core/base';
 
@@ -65,7 +66,14 @@ describe('MindMapNode 无移动点击激活测试', async () => {
     let moveCalled = 0;
     let vpRef: any = null;
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced" spacingX={48} spacingY={48}>
           <MindMapNode
             key="n1"
@@ -81,13 +89,13 @@ describe('MindMapNode 无移动点击激活测试', async () => {
             }}
           />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
     const root = runtime.getRootWidget();
-    const node = findWidget(root, '#n1') as Widget;
-    const vp = findWidget(root, '#v') as Widget;
+    const node = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as Widget;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as Widget;
     vpRef = vp;
 
     const e = {

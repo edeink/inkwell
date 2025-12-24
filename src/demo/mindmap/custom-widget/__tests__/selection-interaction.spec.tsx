@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MindMapLayout } from '../mindmap-layout';
 import { MindMapNode } from '../mindmap-node';
-import { Viewport } from '../viewport';
+import { MindMapViewport } from '../mindmap-viewport';
+import { CustomComponentType } from '../type';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
@@ -69,16 +70,24 @@ describe('MindMap 选择与交互', async () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600} activeKey="n1">
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+        activeKey="n1"
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced">
           <MindMapNode key="n1" title="Node 1" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as MindMapViewport;
 
     expect(vp.activeKey).toBe('n1');
 
@@ -116,11 +125,18 @@ describe('MindMap 选择与交互', async () => {
     // We'll force a layout first.
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600}>
+      <MindMapViewport
+        key={CustomComponentType.MindMapViewport}
+        scale={1}
+        tx={0}
+        ty={0}
+        width={800}
+        height={600}
+      >
         <MindMapLayout key="layout-root" layout="treeBalanced">
           <MindMapNode key="n1" title="Node 1" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
@@ -128,7 +144,7 @@ describe('MindMap 选择与交互', async () => {
     runtime.rerender();
 
     const root = runtime.getRootWidget();
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as MindMapViewport;
 
     expect(vp.selectedKeys).toEqual([]);
 
@@ -157,12 +173,12 @@ describe('MindMap 选择与交互', async () => {
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
     const scene = (
-      <Viewport key="v" scale={1} tx={0} ty={0} width={800} height={600} activeKey="n1">
+      <MindMapViewport key="v" scale={1} tx={0} ty={0} width={800} height={600} activeKey="n1">
         <MindMapLayout key="layout-root" layout="treeBalanced">
           <MindMapNode key="n1" title="Node 1" />
           <MindMapNode key="n2" title="Node 2" />
         </MindMapLayout>
-      </Viewport>
+      </MindMapViewport>
     );
     await runtime.renderFromJSX(scene as any);
 
@@ -172,13 +188,13 @@ describe('MindMap 选择与交互', async () => {
     // Check render output for active node
     const rendered1 = node1.render();
     const container1 = rendered1 as any;
-    // Active style: border width 2, color #1677ff, bg #e6f7ff
+    // Active style: border width 2, color #69b1ff, bg rgba(22, 119, 255, 0.10)
     expect(container1.props.border.width).toBe(2);
-    expect(container1.props.border.color).toBe('#1677ff');
-    expect(container1.props.color).toBe('#e6f7ff');
+    expect(container1.props.border.color).toBe('#69b1ff');
+    expect(container1.props.color).toBe('rgba(22, 119, 255, 0.10)');
 
     // Make n2 selected via Viewport
-    const vp = findWidget(root, '#v') as Viewport;
+    const vp = findWidget(root, '#v') as MindMapViewport;
     vp.setSelectedKeys(['n2']);
     // Viewport setSelectedKeys marks dirty, need to re-render to see effect in node's render()
     // but here we can just call node.render() again to check logic since it reads vp properties directly.
@@ -187,9 +203,9 @@ describe('MindMap 选择与交互', async () => {
     const rendered2 = node2.render();
     const container2 = rendered2 as any;
 
-    // Selected style: dashed border #1890ff, bg #f0f5ff
+    // Selected style: dashed border #c9c9c9, bg rgba(22, 119, 255, 0.05)
     expect(container2.props.border.style).toBe('dashed');
-    expect(container2.props.border.color).toBe('#1890ff');
-    expect(container2.props.color).toBe('#D6E1FC');
+    expect(container2.props.border.color).toBe('#c9c9c9');
+    expect(container2.props.color).toBe('rgba(22, 119, 255, 0.05)');
   });
 });

@@ -7,10 +7,11 @@ import { Container } from '@/core';
 import { Widget as BaseWidget } from '@/core/base';
 import { clearSelectorCache, findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
-import { Viewport } from '@/demo/mindmap/custom-widget/viewport';
+import { MindMapViewport } from '@/demo/mindmap/custom-widget/mindmap-viewport';
+import { CustomComponentType } from '@/demo/mindmap/custom-widget/type';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-class ViewportStub extends BaseWidget<{
+class MindMapViewportStub extends BaseWidget<{
   key: string;
   width?: number;
   height?: number;
@@ -65,18 +66,18 @@ class ConnectorStub extends BaseWidget<{ key: string; fromKey: string; toKey: st
   protected paintSelf(): void {}
 }
 
-WidgetRegistry.registerType('Viewport', ViewportStub);
+WidgetRegistry.registerType(CustomComponentType.MindMapViewport, MindMapViewportStub);
 WidgetRegistry.registerType('Node', NodeStub);
 WidgetRegistry.registerType('Connector', ConnectorStub);
 
 function buildTree() {
   const el = (
     <Container key="root" width={400} height={300}>
-      <Viewport key="v" width={400} height={300} scale={2} tx={10} ty={20}>
+      <MindMapViewport key="v" width={400} height={300} scale={2} tx={10} ty={20}>
         <NodeStub key="n1" title="A" className="widget-class" data-type="node" />
         <ConnectorStub key="e12" fromKey="n1" toKey="n2" />
         <NodeStub key="n2" title="B" active={true} />
-      </Viewport>
+      </MindMapViewport>
     </Container>
   );
   const json = compileElement(el);
@@ -89,8 +90,8 @@ function buildTree() {
 describe('Widget 选择器', () => {
   it('findViewport 正常工作', () => {
     const root = buildTree();
-    const vp = findWidget(root, 'Viewport') as Widget | null;
-    expect(vp?.type).toBe('Viewport');
+    const vp = findWidget(root, CustomComponentType.MindMapViewport) as Widget | null;
+    expect(vp?.type).toBe(CustomComponentType.MindMapViewport);
   });
 
   it('findByKey 正常工作', () => {
@@ -124,18 +125,22 @@ describe('Widget 选择器', () => {
     const byAttr = findWidget(root, '[data-type="node"]');
     expect((byAttr as any)?.key).toBe('n1');
 
-    const chainChild = findWidget(root, 'ViewportStub > NodeStub', { multiple: true }) as Widget[];
+    const chainChild = findWidget(root, 'MindMapViewportStub > NodeStub', {
+      multiple: true,
+    }) as Widget[];
     expect(chainChild.map((w) => w.key)).toEqual(['n1', 'n2']);
 
-    const chainDesc = findWidget(root, 'ViewportStub NodeStub', { multiple: true }) as Widget[];
+    const chainDesc = findWidget(root, 'MindMapViewportStub NodeStub', {
+      multiple: true,
+    }) as Widget[];
     expect(chainDesc.map((w) => w.key)).toEqual(['n1', 'n2']);
   });
 
   it('对多次查询缓存结果', () => {
     const root = buildTree();
     clearSelectorCache(root);
-    const a = findWidget(root, 'Viewport > Node', { multiple: true }) as Widget[];
-    const b = findWidget(root, 'Viewport > Node', { multiple: true }) as Widget[];
+    const a = findWidget(root, 'MindMapViewport > Node', { multiple: true }) as Widget[];
+    const b = findWidget(root, 'MindMapViewport > Node', { multiple: true }) as Widget[];
     expect(a.map((w) => w.key)).toEqual(b.map((w) => w.key));
   });
 });
