@@ -77,6 +77,10 @@ export class Template extends StatefulWidget<TemplateProps, TemplateState> {
             />
           </Center>
         </Container>
+
+        {/* Functional Button (New) */}
+        <FunctionalButton onClick={this.onInc} />
+
         <Text
           key="counter-text"
           text={`Count: ${this.state.count}`}
@@ -86,4 +90,29 @@ export class Template extends StatefulWidget<TemplateProps, TemplateState> {
       </Row>
     );
   }
+}
+
+// 函数式组件定义
+function FunctionalButton(props: { onClick: (e: InkwellEvent) => void }) {
+  return (
+    <Container
+      key="functional-btn"
+      width={180}
+      height={48}
+      color={'#722ed1'} // Purple to distinguish
+      borderRadius={8}
+      onClick={props.onClick}
+    >
+      <Center>
+        <Text
+          key="functional-btn-text"
+          text="Func Btn +1"
+          fontSize={16}
+          color="#ffffff"
+          textAlign={TextAlign.Center}
+          textAlignVertical={TextAlignVertical.Center}
+        />
+      </Center>
+    </Container>
+  );
 }

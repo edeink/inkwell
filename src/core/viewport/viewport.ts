@@ -1,7 +1,14 @@
-import type { BoxConstraints, Offset, Size, WidgetProps } from '@/core/base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
+import {
+  applySteps,
+  composeSteps,
+  IDENTITY_MATRIX,
+  multiply,
+  type TransformStep,
+} from '@/core/helper/transform';
 
 export interface ViewportProps extends WidgetProps {
   scale?: number;
@@ -71,7 +78,7 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     return this;
   }
 
-  // --- Getters ---
+  // --- 属性获取 ---
 
   get scale(): number {
     return this._scale;
@@ -94,6 +101,12 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
   get height(): number {
     return this._height || 0;
   }
+
+  /**
+   * 获取视口在屏幕上的绝对位置
+   * 用于将屏幕坐标转换为视口内坐标
+   */
+  // getAbsolutePosition() moved to bottom to match Offset return type implementation
 
   // --- Listeners ---
 
@@ -203,6 +216,65 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
 
   // --- Layout & Painting ---
 
+  applyPaintTransform(child: Widget, transform: number[]): void {
+    const s = this._scale;
+    const tx = this._tx;
+    const ty = this._ty;
+
+    const a = transform[0];
+    const b = transform[1];
+    const c = transform[2];
+    const d = transform[3];
+    const x = transform[4];
+    const y = transform[5];
+
+    transform[0] = a * s;
+    transform[1] = b * s;
+    transform[2] = c * s;
+    transform[3] = d * s;
+    transform[4] = a * tx + c * ty + x;
+    transform[5] = b * tx + d * ty + y;
+
+    super.applyPaintTransform(child, transform);
+  }
+
+  /**
+   * 绘制组件自身
+   */
+  paint(context: BuildContext): void {
+    // 1. Apply Self Transform (Position in Parent)
+    const steps = this.getSelfTransformSteps();
+    const local = composeSteps(steps);
+    const prev = context.worldMatrix ?? IDENTITY_MATRIX;
+    const next = multiply(prev, local);
+    this._worldMatrix = next;
+
+    context.renderer?.save?.();
+    applySteps(context.renderer, steps);
+
+    // 2. Paint Self (Background, Scrollbars, etc.)
+    this.paintSelf({ ...context, worldMatrix: next });
+
+    // 3. Apply View Transform (Scale, Tx, Ty) for Children
+    // Matrix Order: T * S * p (Scale first, then Translate)
+    const viewSteps: TransformStep[] = [
+      { t: 'translate', x: this._tx, y: this._ty },
+      { t: 'scale', sx: this._scale, sy: this._scale },
+    ];
+
+    applySteps(context.renderer, viewSteps);
+    const viewLocal = composeSteps(viewSteps);
+    const childMatrix = multiply(next, viewLocal);
+
+    // 4. Paint Children
+    const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
+    for (const child of children) {
+      child.paint({ ...context, worldMatrix: childMatrix });
+    }
+
+    context.renderer?.restore?.();
+  }
+
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const childMaxW = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.width)) : 0;
     const childMaxH = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.height)) : 0;
@@ -239,17 +311,6 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
   }
 
   // --- Helper Methods ---
-
-  public getAbsolutePosition(): Offset {
-    // 简单实现，可能需要配合 renderObject
-    if (this.renderObject) {
-      // 这里假设 renderObject 已经被计算
-      // 但 Widget 本身没有 getAbsolutePosition 方法，通常需要遍历父级
-      // 这里我们先留空或依赖外部调用
-      return { dx: 0, dy: 0 }; // Placeholder
-    }
-    return { dx: 0, dy: 0 };
-  }
 
   // 将屏幕坐标转换为世界坐标（内容坐标）
   public getWorldXY(e: { x: number; y: number } | InkwellEvent): { x: number; y: number } {

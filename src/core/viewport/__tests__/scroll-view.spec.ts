@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScrollView } from '../scroll-view';
 
-import { Size } from '@/core/base';
+import type { Size } from '@/core/base';
 
 describe('ScrollView', () => {
   beforeEach(() => {

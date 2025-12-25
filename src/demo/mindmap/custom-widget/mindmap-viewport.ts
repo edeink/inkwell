@@ -16,7 +16,6 @@ import { CustomComponentType } from './type';
 import type { SelectionData } from '../types';
 import type { BuildContext } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
-import type { TransformStep } from '@/core/helper/transform';
 
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -126,11 +125,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   // --- 重写 Viewport 方法以集成 HistoryManager ---
 
-  protected getSelfTransformSteps(): TransformStep[] {
-    const steps = super.getSelfTransformSteps();
-    steps.push({ t: 'translate', x: this._tx, y: this._ty });
-    steps.push({ t: 'scale', sx: this._scale, sy: this._scale });
-    return steps;
+  public getWorldXY(e: { x: number; y: number } | InkwellEvent): { x: number; y: number } {
+    return super.getWorldXY(e);
   }
 
   /**

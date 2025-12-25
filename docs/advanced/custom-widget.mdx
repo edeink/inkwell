@@ -64,11 +64,45 @@ export class Button extends StatefulWidget<ButtonProps> {
 
 ### 优势
 - **开发效率高**：利用现有组件快速搭建。
-- **自动布局**：无需手动计算尺寸和位置，依赖 Flex 布局系统。
+- 自动布局：无需手动计算尺寸和位置，依赖 Flex 布局系统。
 
 ---
 
-## 2. 自定义渲染方式 (`paintSelf` 方法)
+## 2. 函数式组件 (Functional Component)
+
+这是最轻量级的组件定义方式，适用于无状态的纯展示型组件封装。
+
+### 适用场景
+- 简单的 UI 片段复用。
+- 只有 Props 没有 State 的组件。
+- 拆分大型 `render` 函数。
+
+### 实现方式
+定义一个接收 `props` 并返回 JSX 的函数。
+
+### 代码示例：Section 组件
+
+```tsx
+const Section = ({ title, children }: { title: string; children: any }) => (
+  <Column spacing={12}>
+    <Text text={title} fontSize={20} fontWeight="bold" />
+    <Container padding={16} color="#FFFFFF">
+      {children}
+    </Container>
+  </Column>
+);
+
+// 使用
+<Section title="Hello">
+  <Text text="World" />
+</Section>
+```
+
+**注意**：函数式组件在编译阶段会被展开为它返回的 Widget 树，因此在运行时它不会作为独立的 Widget 存在于树中（类似于内联展开）。
+
+---
+
+## 3. 自定义渲染方式 (`paintSelf` 方法)
 
 当你需要完全控制绘制逻辑，或者需要绘制标准组件无法实现的图形（如图表、仪表盘、自定义形状）时，使用此方式。
 

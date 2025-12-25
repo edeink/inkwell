@@ -33,6 +33,10 @@ export class Row extends Widget<RowProps> {
    * 初始化Row特有属性
    */
   private initRowProperties(data: RowProps): void {
+    // 默认开启点击穿透
+    if (data.skipEvent === undefined) {
+      this.skipEvent = true;
+    }
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
     this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;
     this.mainAxisSize = data.mainAxisSize || MainAxisSize.Max;

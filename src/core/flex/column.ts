@@ -35,6 +35,10 @@ export class Column extends Widget<ColumnProps> {
    * 初始化Column特有属性
    */
   private initColumnProperties(data: ColumnProps): void {
+    // 默认开启点击穿透
+    if (data.skipEvent === undefined) {
+      this.skipEvent = true;
+    }
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
     this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;
     this.mainAxisSize = data.mainAxisSize || MainAxisSize.Max;

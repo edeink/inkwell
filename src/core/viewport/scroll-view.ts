@@ -291,12 +291,17 @@ export class ScrollView extends Viewport {
   }
 
   onPointerDown(e: InkwellEvent) {
+    const ne = e.nativeEvent as PointerEvent;
+    // PC端使用滚轮滚动，禁用鼠标拖拽
+    if (ne.pointerType === 'mouse') {
+      return;
+    }
+
     e.stopPropagation();
     this._pointerDown = true;
     this._isInteracting = true;
 
     // 记录初始触摸位置
-    const ne = e.nativeEvent as PointerEvent;
     this._lastX = ne.clientX;
     this._lastY = ne.clientY;
 
@@ -339,12 +344,15 @@ export class ScrollView extends Viewport {
     if (!we) {
       return;
     }
-    e.stopPropagation(); // 阻止事件冒泡，防止父级滚动
 
     const dx = we.deltaX;
     const dy = we.deltaY;
 
-    this.processScroll(dx, dy);
+    // 只有在发生实际滚动时才阻止冒泡
+    // 如果已到达边界且未开启弹性（或弹性处理未消耗），则允许冒泡给父级
+    if (this.processScroll(dx, dy)) {
+      e.stopPropagation();
+    }
   }
 
   /**

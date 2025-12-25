@@ -4,7 +4,9 @@ import {
   applySteps,
   composeSteps,
   IDENTITY_MATRIX,
+  invert,
   multiply,
+  transformPoint,
   type TransformStep,
 } from './helper/transform';
 import { WidgetRegistry } from './registry';
@@ -16,6 +18,7 @@ import type {
   EventHandler,
   FlexProperties,
   Offset,
+  PointerEvents,
   Ref,
   RenderObject,
   Size,
@@ -31,6 +34,7 @@ export type {
   CursorType,
   FlexProperties,
   Offset,
+  PointerEvents,
   Ref,
   RenderObject,
   Size,
@@ -91,7 +95,20 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
-  pointerEvents: 'auto' | 'none' = 'auto';
+  /**
+   * 是否跳过事件检测 (点击穿透)
+   * 如果为 true，则该组件不响应点击，但事件会传递给子组件
+   */
+  skipEvent: boolean = false;
+  /**
+   * 指针事件控制
+   * 类似于 CSS pointer-events
+   */
+  pointerEvent: PointerEvents = 'auto';
+  /**
+   * @deprecated 请使用 pointerEvent
+   */
+  pointerEvents: PointerEvents = 'auto';
   cursor?: CursorType;
   ref?: Ref<unknown> | ((instance: unknown) => void);
 
@@ -103,7 +120,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected _isBuilt: boolean = false;
   protected _dirty: boolean = true;
   protected _disposed: boolean = false;
-  private _worldMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
+  protected _worldMatrix?: [number, number, number, number, number, number];
 
   constructor(data: TData) {
     if (!data) {
@@ -121,10 +138,13 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.props = { ...data, children: [] /** 未初始化 */ };
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
-    const pe0 = data.pointerEvents;
-    if (pe0 === 'none' || pe0 === 'auto') {
-      this.pointerEvents = pe0;
-    }
+
+    this.skipEvent = !!data.skipEvent;
+    // 优先使用 pointerEvent，其次 pointerEvents，默认为 auto
+    const pe = data.pointerEvent ?? data.pointerEvents ?? 'auto';
+    this.pointerEvent = pe;
+    this.pointerEvents = pe;
+
     this.cursor = data.cursor;
     this.ref = data.ref;
   }
@@ -372,7 +392,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 替换 children 引用（删除未复用的旧节点）
     this.children = nextChildren;
 
-    // Post-build validation
+    // 构建后验证
     if (this.children.length !== childrenData.length) {
       console.warn(
         `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个` +
@@ -441,7 +461,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 如果是创建子元素，请调用createChildWidget
    */
   createElement(data: TData): Widget {
-    // [Debug] Lifecycle tracking
+    // [调试] 生命周期追踪
     if (this.type.includes('MindMap') || this.type === 'Scene') {
       console.debug(`[Lifecycle] createElement: ${this.type} (${this.key})`);
     }
@@ -472,10 +492,12 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.data = nextData;
     this.zIndex = typeof nextData.zIndex === 'number' ? (nextData.zIndex as number) : this.zIndex;
-    const pe = nextData.pointerEvents;
-    if (pe === 'none' || pe === 'auto') {
-      this.pointerEvents = pe;
-    }
+
+    this.skipEvent = !!nextData.skipEvent;
+    const pe = nextData.pointerEvent ?? nextData.pointerEvents ?? 'auto';
+    this.pointerEvent = pe;
+    this.pointerEvents = pe;
+
     this.cursor = nextData.cursor;
 
     // 初始构建或 children 差异/需要更新时执行子树增量重建
@@ -639,6 +661,22 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   /**
+   * 应用绘制变换
+   * 将子组件的坐标变换应用到矩阵中
+   * 类似于 Flutter 的 applyPaintTransform
+   *
+   * @param child 子组件
+   * @param transform 变换矩阵 [a, b, c, d, tx, ty]
+   */
+  applyPaintTransform(child: Widget, transform: number[]): void {
+    const offset = child.renderObject.offset;
+    if (transform && transform.length === 6) {
+      transform[4] += transform[0] * offset.dx + transform[2] * offset.dy;
+      transform[5] += transform[1] * offset.dx + transform[3] * offset.dy;
+    }
+  }
+
+  /**
    * 绘制组件自身
    */
   protected paintSelf(_context: BuildContext) {
@@ -654,6 +692,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 用于调试和定位
    */
   getAbsolutePosition(): Offset {
+    if (this._worldMatrix) {
+      const p = transformPoint(this._worldMatrix, { x: 0, y: 0 });
+      return { dx: p.x, dy: p.y };
+    }
     let absoluteX = this.renderObject.offset.dx;
     let absoluteY = this.renderObject.offset.dy;
     let currentParent = this.parent;
@@ -666,7 +708,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   getWorldMatrix(): [number, number, number, number, number, number] {
-    return this._worldMatrix;
+    return this._worldMatrix ?? IDENTITY_MATRIX;
   }
 
   protected getSelfTransformSteps(): TransformStep[] {
@@ -689,6 +731,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   public hitTest(x: number, y: number): boolean {
+    if (this._worldMatrix) {
+      const inv = invert(this._worldMatrix);
+      const local = transformPoint(inv, { x, y });
+      const w = this.renderObject.size.width;
+      const h = this.renderObject.size.height;
+      return local.x >= 0 && local.y >= 0 && local.x <= w && local.y <= h;
+    }
+
     const pos = this.getAbsolutePosition();
     const w = this.renderObject.size.width;
     const h = this.renderObject.size.height;
@@ -699,9 +749,13 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 递归命中测试
    */
   public visitHitTest(x: number, y: number): Widget | null {
-    if (this.pointerEvents === 'none') {
+    if (this.skipEvent) {
       return this.hitTestChildren(x, y);
     }
+    if (this.pointerEvent === 'none' || this.pointerEvents === 'none') {
+      return this.hitTestChildren(x, y);
+    }
+
     if (!this.hitTest(x, y)) {
       return null;
     }

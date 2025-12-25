@@ -16,6 +16,7 @@ export interface ContainerProps extends WidgetProps {
   color?: string;
   border?: Border;
   borderRadius?: BorderRadius | number;
+  alignment?: 'center' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 }
 
 /**
@@ -34,6 +35,7 @@ export class Container extends Widget<ContainerProps> {
   color?: string;
   border?: Border;
   borderRadius?: BorderRadius;
+  alignment?: 'center' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 
   constructor(data: ContainerProps) {
     super(data);
@@ -52,6 +54,7 @@ export class Container extends Widget<ContainerProps> {
     this.color = data.color;
     this.border = data.border;
     this.borderRadius = this.normalizeBorderRadius(data.borderRadius);
+    this.alignment = data.alignment;
     // 更新光标配置
     if (data.cursor !== undefined) {
       this.cursor = data.cursor;
@@ -88,13 +91,13 @@ export class Container extends Widget<ContainerProps> {
 
     // 计算实际绘制区域（考虑外边距）
     // 注意：这里使用相对坐标，因为base.ts的paint方法已经处理了translate
-    const marginLeft = this.margin?.left || 0;
-    const marginTop = this.margin?.top || 0;
+    const marginLeft = this.margin?.left ?? 0;
+    const marginTop = this.margin?.top ?? 0;
 
     const marginSize = this.margin
       ? {
-          width: size.width - this.margin.left - this.margin.right,
-          height: size.height - this.margin.top - this.margin.bottom,
+          width: size.width - (this.margin.left ?? 0) - (this.margin.right ?? 0),
+          height: size.height - (this.margin.top ?? 0) - (this.margin.bottom ?? 0),
         }
       : size;
 
@@ -135,12 +138,14 @@ export class Container extends Widget<ContainerProps> {
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // 计算外边距占用的空间
-    const marginHorizontal = this.margin ? this.margin.left + this.margin.right : 0;
-    const marginVertical = this.margin ? this.margin.top + this.margin.bottom : 0;
+    const marginHorizontal = this.margin ? (this.margin.left ?? 0) + (this.margin.right ?? 0) : 0;
+    const marginVertical = this.margin ? (this.margin.top ?? 0) + (this.margin.bottom ?? 0) : 0;
 
     // 计算内边距占用的空间
-    const paddingHorizontal = this.padding ? this.padding.left + this.padding.right : 0;
-    const paddingVertical = this.padding ? this.padding.top + this.padding.bottom : 0;
+    const paddingHorizontal = this.padding
+      ? (this.padding.left ?? 0) + (this.padding.right ?? 0)
+      : 0;
+    const paddingVertical = this.padding ? (this.padding.top ?? 0) + (this.padding.bottom ?? 0) : 0;
 
     // 如果指定了固定尺寸，使用固定尺寸
     let width = this.width;
@@ -151,10 +156,20 @@ export class Container extends Widget<ContainerProps> {
       const childSize = childrenSizes[0] || { width: 0, height: 0 };
 
       if (width === undefined) {
-        width = childSize.width + paddingHorizontal + marginHorizontal;
+        // 如果有 alignment，则尽可能撑大
+        if (this.alignment && constraints.maxWidth !== Infinity) {
+          width = constraints.maxWidth;
+        } else {
+          width = childSize.width + paddingHorizontal + marginHorizontal;
+        }
       }
       if (height === undefined) {
-        height = childSize.height + paddingVertical + marginVertical;
+        // 如果有 alignment，则尽可能撑大
+        if (this.alignment && constraints.maxHeight !== Infinity) {
+          height = constraints.maxHeight;
+        } else {
+          height = childSize.height + paddingVertical + marginVertical;
+        }
       }
     }
 
@@ -173,10 +188,12 @@ export class Container extends Widget<ContainerProps> {
 
   protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     // 计算可用于子组件的空间
-    const marginHorizontal = this.margin ? this.margin.left + this.margin.right : 0;
-    const marginVertical = this.margin ? this.margin.top + this.margin.bottom : 0;
-    const paddingHorizontal = this.padding ? this.padding.left + this.padding.right : 0;
-    const paddingVertical = this.padding ? this.padding.top + this.padding.bottom : 0;
+    const marginHorizontal = this.margin ? (this.margin.left ?? 0) + (this.margin.right ?? 0) : 0;
+    const marginVertical = this.margin ? (this.margin.top ?? 0) + (this.margin.bottom ?? 0) : 0;
+    const paddingHorizontal = this.padding
+      ? (this.padding.left ?? 0) + (this.padding.right ?? 0)
+      : 0;
+    const paddingVertical = this.padding ? (this.padding.top ?? 0) + (this.padding.bottom ?? 0) : 0;
 
     const totalHorizontal = marginHorizontal + paddingHorizontal;
     const totalVertical = marginVertical + paddingVertical;
@@ -198,11 +215,31 @@ export class Container extends Widget<ContainerProps> {
       const childWidth = Math.max(0, this.width - totalHorizontal);
       const childHeight = Math.max(0, this.height - totalVertical);
 
+      // 如果有 alignment，则子组件约束为松散的（0~max）
+      if (this.alignment) {
+        return {
+          minWidth: 0,
+          maxWidth: childWidth,
+          minHeight: 0,
+          maxHeight: childHeight,
+        };
+      }
+
       return {
         minWidth: childWidth,
         maxWidth: childWidth,
         minHeight: childHeight,
         maxHeight: childHeight,
+      };
+    }
+
+    // 如果有 alignment，也返回松散约束
+    if (this.alignment) {
+      return {
+        minWidth: 0,
+        maxWidth: parentMaxWidth,
+        minHeight: 0,
+        maxHeight: parentMaxHeight,
       };
     }
 
@@ -222,9 +259,38 @@ export class Container extends Widget<ContainerProps> {
     const paddingLeft = this.padding?.left || 0;
     const paddingTop = this.padding?.top || 0;
 
+    let x = marginLeft + paddingLeft;
+    let y = marginTop + paddingTop;
+
+    if (this.alignment && this.children.length > 0) {
+      const childSize = this.children[0].renderObject.size;
+      const margin = this.margin;
+      const padding = this.padding;
+      const marginHorizontal = margin ? (margin.left || 0) + (margin.right || 0) : 0;
+      const marginVertical = margin ? (margin.top || 0) + (margin.bottom || 0) : 0;
+      const paddingHorizontal = padding ? (padding.left || 0) + (padding.right || 0) : 0;
+      const paddingVertical = padding ? (padding.top || 0) + (padding.bottom || 0) : 0;
+
+      const contentWidth =
+        (this.renderObject.size.width || 0) - marginHorizontal - paddingHorizontal;
+      const contentHeight = (this.renderObject.size.height || 0) - marginVertical - paddingVertical;
+
+      if (this.alignment === 'center') {
+        x += Math.max(0, (contentWidth - childSize.width) / 2);
+        y += Math.max(0, (contentHeight - childSize.height) / 2);
+      } else if (this.alignment === 'topRight') {
+        x += Math.max(0, contentWidth - childSize.width);
+      } else if (this.alignment === 'bottomLeft') {
+        y += Math.max(0, contentHeight - childSize.height);
+      } else if (this.alignment === 'bottomRight') {
+        x += Math.max(0, contentWidth - childSize.width);
+        y += Math.max(0, contentHeight - childSize.height);
+      }
+    }
+
     return {
-      dx: marginLeft + paddingLeft,
-      dy: marginTop + paddingTop,
+      dx: x,
+      dy: y,
     };
   }
 }

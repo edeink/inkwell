@@ -103,6 +103,7 @@ describe('Viewport 缩放选择测试', async () => {
     // 屏幕 X = Viewport.x + tx + scale * (contentTx + NodeX)
     const screenX = vpPos.dx + vp.tx + vp.scale * (nodeOffset.dx - vp.scrollX);
     const screenY = vpPos.dy + vp.ty + vp.scale * (nodeOffset.dy - vp.scrollY);
+    console.log(`[Test Debug] Calculated screenX=${screenX}, screenY=${screenY}`);
 
     const nodeW = node.renderObject.size.width;
     const nodeH = node.renderObject.size.height;

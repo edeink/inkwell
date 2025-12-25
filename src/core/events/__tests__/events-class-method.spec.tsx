@@ -42,7 +42,12 @@ function CustomWidgetElement(props: {
   height?: number;
   [k: string]: unknown;
 }) {
-  return props;
+  const { key, ...rest } = props;
+  return {
+    type: 'CustomWidget',
+    props: rest,
+    key,
+  } as any;
 }
 
 function buildTree(
@@ -81,6 +86,8 @@ describe('事件系统（类方法）', () => {
     leaf.onClick = (_e: InkwellEvent) => {
       calls.push('method:leaf');
     };
+    const handlers = EventRegistry.getHandlers(leaf.key!, 'click');
+    console.log('DEBUG: Handlers for leaf/click:', handlers.length, handlers);
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['method:leaf']);

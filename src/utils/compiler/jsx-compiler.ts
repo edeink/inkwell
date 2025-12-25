@@ -83,6 +83,32 @@ export function compileElement(element: AnyElement): ComponentData {
     key?: string | number | null;
   };
   const { type, props, key } = anyEl;
+
+  // 支持函数式组件 (Functional Component)
+  if (typeof type === 'function') {
+    const proto = (type as { prototype?: unknown }).prototype as object | undefined;
+    const isWidgetSubclass =
+      !!proto && Object.prototype.isPrototypeOf.call(Widget.prototype, proto);
+
+    if (!isWidgetSubclass) {
+      // 如果不是 Widget 子类，则视为函数式组件，直接执行展开
+      try {
+        // 将 key 合并入 props，虽然 React 通常不这样做，但在某些简易实现中可能需要
+        // 或者保持 React 惯例，key 不在 props 中。这里 props 已经是 Record<string, unknown>
+        const fn = type as (props: unknown) => AnyElement;
+        const rendered = fn({ ...(props ?? {}), key });
+        return compileElement(rendered);
+      } catch (e) {
+        console.error(`Error rendering functional component ${resolveTypeName(type)}:`, e);
+        // 返回一个错误占位或空对象
+        return {
+          type: 'Container' as ComponentType,
+          children: [],
+        } as unknown as ComponentData;
+      }
+    }
+  }
+
   const typeName = resolveTypeName(type);
   autoRegisterIfNeeded(type, typeName);
   const isComposite = WidgetRegistry.isCompositeType(typeName);

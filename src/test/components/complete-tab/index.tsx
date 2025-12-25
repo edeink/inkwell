@@ -47,8 +47,8 @@ export default function CompleteTab({ theme }: { theme: Theme }) {
 
   return (
     <div className={styles.root}>
-      <h2>完整流程测试</h2>
-      <p>测试 Build → Layout → Paint 三个阶段的完整渲染流程</p>
+      <h2>核心组件展示</h2>
+      <p>展示核心组件 (Widgets) 的功能与布局效果</p>
       <div ref={containerRef} className={styles.canvas} />
     </div>
   );

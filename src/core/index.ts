@@ -1,5 +1,6 @@
 export { Widget } from './base';
 export { Center } from './center';
+export { ClipRect } from './clip-rect';
 export { Container } from './container';
 export { Column } from './flex/column';
 export { Expanded } from './flex/expanded';

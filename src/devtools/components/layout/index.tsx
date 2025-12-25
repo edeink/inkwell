@@ -184,20 +184,27 @@ export function LayoutPanel({
         dock === 'top' || dock === 'bottom'
           ? ({
               height,
-              ['--tree-width' as any]: `${treeWidth}px`,
-              ['--tree-height' as any]: `${treeHeight}px`,
-              ['--grid-height' as any]: `calc(${height}px - 53px)`,
+              ['--tree-width']: `${treeWidth}px`,
+              ['--tree-height']: `${treeHeight}px`,
+              ['--grid-height']: `calc(${height}px - 53px)`,
             } as React.CSSProperties)
           : ({
               width,
-              ['--tree-width' as any]: `${treeWidth}px`,
-              ['--tree-height' as any]: `${treeHeight}px`,
-              ['--grid-height' as any]: 'calc(100vh - 53px)',
+              ['--tree-width']: `${treeWidth}px`,
+              ['--tree-height']: `${treeHeight}px`,
+              ['--grid-height']: 'calc(100vh - 53px)',
             } as React.CSSProperties)
       }
       data-visible={visible ? '1' : '0'}
       onWheel={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
     >
+      {/* 拖拽手柄 */}
       <div className={styles.layoutHeader}>
         <div className={styles.left}>{headerLeft}</div>
         <div className={styles.right}>

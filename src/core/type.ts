@@ -2,7 +2,7 @@ import { type IRenderer } from '../renderer/IRenderer';
 
 import type { Widget } from './base';
 
-// --- From src/core/type.ts (ComponentType) ---
+// --- 来自 src/core/type.ts (ComponentType) ---
 export const enum ComponentType {
   Column = 'Column',
   Text = 'Text',
@@ -19,7 +19,7 @@ export const enum ComponentType {
   Wrap = 'Wrap',
 }
 
-// --- From src/core/flex/type.ts ---
+// --- 来自 src/core/flex/type.ts ---
 export const enum MainAxisAlignment {
   Start = 'start',
   Center = 'center',
@@ -60,7 +60,7 @@ export interface FlexProperties {
   fit?: FlexFit; // 适应方式
 }
 
-// --- From src/core/events/types.ts ---
+// --- 来自 src/core/events/types.ts ---
 export type EventType =
   | 'click'
   | 'mousedown'
@@ -202,6 +202,19 @@ export type CursorType =
   | 'zoom-out'
   | 'none';
 
+export type PointerEvents =
+  | 'auto'
+  | 'none'
+  | 'visiblePainted'
+  | 'visibleFill'
+  | 'visibleStroke'
+  | 'visible'
+  | 'painted'
+  | 'fill'
+  | 'stroke'
+  | 'all'
+  | 'inherit';
+
 export interface Ref<T = unknown> {
   current: T | null;
 }
@@ -213,7 +226,20 @@ export interface WidgetProps extends WidgetEventHandler {
   type?: string; // TODO 此方法需要移除？
   flex?: FlexProperties;
   zIndex?: number;
-  pointerEvents?: 'auto' | 'none';
+  /**
+   * 是否跳过事件检测 (点击穿透)
+   * 如果为 true，则该组件不响应点击，但事件会传递给子组件
+   */
+  skipEvent?: boolean;
+  /**
+   * 指针事件控制
+   * 类似于 CSS pointer-events
+   */
+  pointerEvent?: PointerEvents;
+  /**
+   * @deprecated 请使用 pointerEvent
+   */
+  pointerEvents?: PointerEvents;
   cursor?: CursorType;
   // JSX 编译传入的 data 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
   children?: WidgetProps[];

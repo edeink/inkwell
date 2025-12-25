@@ -1,268 +1,364 @@
 /** @jsxImportSource @/utils/compiler */
-import { Center, Column, Container, Expanded, Padding, Positioned, Row, Stack, Text } from '@/core';
+import {
+  Center,
+  ClipRect,
+  Column,
+  Container,
+  Expanded,
+  Padding,
+  Positioned,
+  Row,
+  Stack,
+  Text,
+  TextAlign,
+} from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
-import { TextAlignVertical } from '@/core/text';
+import { ScrollView } from '@/core/viewport/scroll-view';
 
-export const getTestTemplate = () => (
-  <Column
-    key="complete-demo-root"
-    mainAxisAlignment={MainAxisAlignment.Start}
-    crossAxisAlignment={CrossAxisAlignment.Start}
-    spacing={20}
-    mainAxisSize={MainAxisSize.Min}
-  >
+// 统一配色方案
+const Colors = {
+  Primary: '#1890FF', // 主色
+  Secondary: '#52C41A', // 成功色
+  Warning: '#FAAD14', // 警告色
+  Error: '#FF4D4F', // 错误色
+  Text: {
+    Title: '#262626', // 标题文字
+    Body: '#595959', // 正文文字
+    Light: '#8C8C8C', // 浅色文字
+    White: '#FFFFFF', // 白色文字
+  },
+  Background: {
+    Base: '#F0F2F5', // 基础背景
+    Card: '#FFFFFF', // 卡片背景
+  },
+  Border: '#D9D9D9', // 边框颜色
+};
+
+/**
+ * 演示页面的主入口
+ * 展示了核心组件的组合使用方式，包括布局、定位、交互等
+ */
+export const getTestTemplate = (width?: number, height?: number) => (
+  <ScrollView key="root-scroll-view" width={width} height={height}>
+    <Container minWidth={width} alignment="center">
+      <Column
+        key="complete-demo-root"
+        mainAxisAlignment={MainAxisAlignment.Center}
+        crossAxisAlignment={CrossAxisAlignment.Start}
+        spacing={24}
+        mainAxisSize={MainAxisSize.Max}
+        padding={24}
+      >
+        {/* 标题区域 */}
+        <Column key="header-section" spacing={8} mainAxisSize={MainAxisSize.Min}>
+          <Text
+            key="demo-title"
+            text="Inkwell 组件库展示"
+            fontSize={32}
+            height={40}
+            lineHeight={40}
+            color={Colors.Text.Title}
+            fontWeight="bold"
+          />
+          <Text
+            key="demo-subtitle"
+            text="基于 Canvas 的高性能 UI 渲染框架演示"
+            fontSize={16}
+            color={Colors.Text.Light}
+          />
+        </Column>
+
+        {/* 1. 基础布局组件 (Container & Padding) */}
+        <Section title="1. 基础容器 (Container & Padding)">
+          <Row key="container-examples" spacing={20} mainAxisSize={MainAxisSize.Min}>
+            {/* 基础容器 */}
+            <DemoCard title="基础样式">
+              <Container
+                key="basic-container"
+                width={120}
+                height={80}
+                color={Colors.Primary}
+                padding={12}
+              >
+                <Center>
+                  <Text
+                    key="basic-text"
+                    text="Box"
+                    fontSize={16}
+                    color={Colors.Text.White}
+                    fontWeight="bold"
+                  />
+                </Center>
+              </Container>
+            </DemoCard>
+
+            {/* 圆角容器 */}
+            <DemoCard title="圆角与边框">
+              <Container
+                key="rounded-container"
+                width={120}
+                height={80}
+                color={Colors.Background.Card}
+                borderRadius={12}
+                padding={12}
+                border={{ width: 2, color: Colors.Primary }}
+              >
+                <Center>
+                  <Text
+                    key="rounded-text"
+                    text="Rounded"
+                    fontSize={16}
+                    color={Colors.Primary}
+                    fontWeight="bold"
+                  />
+                </Center>
+              </Container>
+            </DemoCard>
+
+            {/* Padding 示例 */}
+            <DemoCard title="内边距 (Padding)">
+              <Container
+                key="padding-container"
+                color={Colors.Background.Base}
+                border={{ width: 1, color: Colors.Border }}
+              >
+                <Padding key="padding-inner" padding={16}>
+                  <Container color={Colors.Secondary} width={80} height={40}>
+                    <Center>
+                      <Text text="Content" fontSize={12} color={Colors.Text.White} />
+                    </Center>
+                  </Container>
+                </Padding>
+              </Container>
+            </DemoCard>
+          </Row>
+        </Section>
+
+        {/* 2. 弹性布局 (Flex Row/Column & Expanded) */}
+        <Section title="2. 弹性布局 (Flex Row/Column)">
+          <Container
+            key="flex-demo-container"
+            width={400}
+            padding={16}
+            color={Colors.Background.Base}
+            borderRadius={8}
+          >
+            <Row
+              key="flex-row"
+              spacing={12}
+              mainAxisAlignment={MainAxisAlignment.Center}
+              crossAxisAlignment={CrossAxisAlignment.Center}
+            >
+              <Container
+                key="fixed-left"
+                width={60}
+                height={60}
+                color={Colors.Primary}
+                borderRadius={4}
+              >
+                <Center>
+                  <Text text="Fixed" color={Colors.Text.White} fontSize={12} />
+                </Center>
+              </Container>
+
+              <Expanded flex={{ flex: 1 }}>
+                <Container
+                  key="flex-middle"
+                  height={60}
+                  color={Colors.Warning}
+                  borderRadius={4}
+                  alignment="center"
+                >
+                  <Center>
+                    <Text
+                      text="Expanded (Flex: 1)"
+                      color={Colors.Text.White}
+                      fontSize={14}
+                      fontWeight="bold"
+                      textAlign={TextAlign.Center}
+                    />
+                  </Center>
+                </Container>
+              </Expanded>
+
+              <Container
+                key="fixed-right"
+                width={60}
+                height={60}
+                color={Colors.Primary}
+                borderRadius={4}
+              >
+                <Center>
+                  <Text text="Fixed" color={Colors.Text.White} fontSize={12} />
+                </Center>
+              </Container>
+            </Row>
+          </Container>
+        </Section>
+
+        {/* 3. 层叠布局 (Stack & Positioned) */}
+        <Section title="3. 层叠布局 (Stack & Positioned)">
+          <Container
+            key="stack-demo-container"
+            width={300}
+            height={160}
+            color={Colors.Background.Base}
+            borderRadius={8}
+            border={{ width: 1, color: Colors.Border }}
+          >
+            <Stack key="stack-layout" alignment="center">
+              {/* 背景层 */}
+              <Text
+                text="Stack Background"
+                fontSize={20}
+                color={Colors.Text.Light}
+                fontWeight="bold"
+              />
+
+              {/* 左上角标签 */}
+              <Positioned key="pos-tl" left={12} top={12}>
+                <Badge text="Left-Top" color={Colors.Error} />
+              </Positioned>
+
+              {/* 右下角标签 */}
+              <Positioned key="pos-br" right={12} bottom={12}>
+                <Badge text="Right-Bottom" color={Colors.Secondary} />
+              </Positioned>
+            </Stack>
+          </Container>
+        </Section>
+
+        {/* 4. 事件交互 (Event Handling) */}
+        <Section title="4. 事件交互 (Event Handling)">
+          <Container
+            key="event-root"
+            width={300}
+            padding={20}
+            color={Colors.Background.Card}
+            border={{ width: 1, color: Colors.Primary }}
+            borderRadius={8}
+            onClick={() => console.log('Container Clicked')}
+          >
+            <Column spacing={12}>
+              <Text text="点击下方按钮测试事件冒泡" fontSize={14} color={Colors.Text.Body} />
+              <Container
+                key="event-btn"
+                width={120}
+                height={40}
+                color={Colors.Primary}
+                borderRadius={20}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('Button Clicked (Stopped Propagation)');
+                }}
+              >
+                <Center>
+                  <Text
+                    text="Click Me"
+                    cursor="pointer"
+                    color={Colors.Text.White}
+                    fontWeight="bold"
+                  />
+                </Center>
+              </Container>
+            </Column>
+          </Container>
+        </Section>
+
+        {/* 5. 滚动视图 (Scroll View & Bounce) */}
+        <Section title="5. 滚动视图 (Scroll View & Bounce)">
+          <Container
+            key="scroll-demo-wrapper"
+            width={300}
+            height={200}
+            border={{ width: 1, color: Colors.Border }}
+            borderRadius={8}
+          >
+            <ClipRect key="scroll-clip">
+              <ScrollView
+                key="inner-scroll-view"
+                enableBounce={false}
+                scrollBarColor={Colors.Primary}
+                scrollBarWidth={6}
+              >
+                <Column key="scroll-content" spacing={12} padding={16}>
+                  <Text text="尝试拖拽或滚动查看回弹效果" fontSize={14} color={Colors.Text.Light} />
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Container
+                      key={`scroll-item-${i}`}
+                      height={40}
+                      color={i % 2 === 0 ? Colors.Background.Base : Colors.Background.Card}
+                      borderRadius={4}
+                    >
+                      <Center>
+                        <Text
+                          text={`Scroll Item ${i + 1}`}
+                          fontSize={14}
+                          color={Colors.Text.Body}
+                        />
+                      </Center>
+                    </Container>
+                  ))}
+                </Column>
+              </ScrollView>
+            </ClipRect>
+          </Container>
+        </Section>
+
+        <Text
+          key="footer"
+          text="End of Demo"
+          fontSize={14}
+          color={Colors.Text.Light}
+          mainAxisAlignment={MainAxisAlignment.Center}
+        />
+      </Column>
+    </Container>
+  </ScrollView>
+);
+
+/**
+ * 辅助组件：章节标题容器
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Section = ({ title, children }: { title: string; children: any }) => (
+  <Column key={`section-${title}`} spacing={12} mainAxisSize={MainAxisSize.Min}>
     <Text
-      key="demo-title"
-      text="完整 Widget 组件展示"
-      fontSize={32}
-      height={32}
-      lineHeight={32}
-      color="#2c3e50"
+      key={`title-${title}`}
+      text={title}
+      fontSize={20}
+      color={Colors.Text.Title}
       fontWeight="bold"
     />
-
-    <Column key="container-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text key="container-title" text="事件" fontSize={24} color="#3498db" fontWeight="bold" />
-      <Container key="root" width={240} height={120} onClick={() => console.log('root click')}>
-        <Container
-          key="inner"
-          width={200}
-          height={80}
-          onClickCapture={() => console.log('inner capture')}
-        >
-          <Text
-            key="leaf"
-            text="Hello Events"
-            fontSize={16}
-            onClick={() => console.log('leaf click')}
-          />
-        </Container>
-      </Container>
-    </Column>
-
-    {/* Row中的Expanded测试：居中修复并增加调试边框 */}
-    <Row
-      key="row-expanded-section"
-      spacing={10}
-      mainAxisAlignment={MainAxisAlignment.Center}
-      crossAxisAlignment={CrossAxisAlignment.Center}
-      mainAxisSize={MainAxisSize.Min}
+    <Container
+      key={`content-${title}`}
+      padding={16}
+      color={Colors.Background.Card}
+      borderRadius={8}
+      border={{ width: 1, color: Colors.Border }}
     >
-      <Container border={{ width: 1, color: '#9e9e9e' }} padding={2}>
-        <Text
-          key="row-left-text"
-          text="左侧"
-          fontSize={16}
-          color="#d32f2f"
-          textAlignVertical={TextAlignVertical.Top}
-        />
-      </Container>
-      <Expanded flex={{ flex: 1 }}>
-        <Container
-          key="row-expanded-container"
-          color="#e8f5e8"
-          height={120}
-          padding={8}
-          border={{ width: 1, color: '#9e9e9e' }}
-          borderRadius={12}
-        >
-          <Center>
-            <Text
-              key="row-expanded-text"
-              text="中间弹性区域"
-              fontSize={16}
-              color="#2e7d32"
-              textAlignVertical={TextAlignVertical.Center}
-            />
-          </Center>
-        </Container>
-      </Expanded>
-      <Container border={{ width: 1, color: '#9e9e9e' }} padding={2}>
-        <Text
-          key="row-right-text"
-          text="右侧"
-          fontSize={16}
-          color="#d32f2f"
-          textAlignVertical={TextAlignVertical.Top}
-        />
-      </Container>
-    </Row>
-
-    {/* Container 组件展示 */}
-    <Column key="container-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text
-        key="container-title"
-        text="Container 组件"
-        fontSize={24}
-        color="#3498db"
-        fontWeight="bold"
-      />
-
-      <Row key="container-examples" spacing={20} mainAxisSize={MainAxisSize.Min}>
-        <Container key="basic-container" width={150} height={100} color="#e74c3c" padding={12}>
-          <Text key="container-text" text="基础容器" fontSize={16} fontWeight="bold" />
-        </Container>
-
-        <Container
-          key="rounded-container"
-          width={150}
-          height={100}
-          color="#2ecc71"
-          borderRadius={15}
-          padding={12}
-          border={{ width: 2, color: '#1b5e20' }}
-        >
-          <Text
-            key="rounded-text"
-            text="圆角容器"
-            fontSize={16}
-            fontWeight="bold"
-            textAlignVertical={TextAlignVertical.Top}
-          />
-        </Container>
-
-        <Container
-          key="bordered-container"
-          width={150}
-          height={100}
-          color="#f39c12"
-          border={{
-            width: 3,
-            color: '#e67e22',
-          }}
-          padding={12}
-        >
-          <Text key="bordered-text" text="边框容器" fontSize={16} fontWeight="bold" />
-        </Container>
-      </Row>
-    </Column>
-
-    {/* Padding 组件展示 */}
-    <Column key="padding-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text
-        key="padding-title"
-        text="Padding 组件"
-        fontSize={24}
-        color="#28a745"
-        fontWeight="bold"
-      />
-
-      <Row key="padding-examples" spacing={20}>
-        <Container
-          key="padding-demo-1"
-          color="#e9ecef"
-          border={{
-            width: 1,
-            color: '#dee2e6',
-          }}
-        >
-          <Padding key="small-padding" padding={10}>
-            <Text key="padding-text-1" text="小间距 Padding" fontSize={14} color="#495057" />
-          </Padding>
-        </Container>
-
-        <Container
-          key="padding-demo-2"
-          color="#e9ecef"
-          border={{
-            width: 1,
-            color: '#dee2e6',
-          }}
-        >
-          <Padding key="large-padding" padding={25}>
-            <Text key="padding-text-2" text="大间距 Padding" fontSize={14} color="#495057" />
-          </Padding>
-        </Container>
-      </Row>
-    </Column>
-
-    {/* Center 组件展示 */}
-    <Column key="center-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text key="center-title" text="Center 组件" fontSize={24} color="#ffc107" fontWeight="bold" />
-
-      <Container
-        key="center-demo"
-        width={300}
-        height={120}
-        color="#fff3cd"
-        border={{
-          width: 1,
-          color: '#ffeaa7',
-        }}
-      >
-        <Center key="center-widget">
-          <Text
-            key="center-text"
-            text="居中显示的文本"
-            fontSize={16}
-            color="#856404"
-            fontWeight="bold"
-          />
-        </Center>
-      </Container>
-    </Column>
-
-    {/* Stack 组件展示 */}
-    <Column key="stack-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text key="stack-title" text="Stack 组件" fontSize={24} color="#dc3545" fontWeight="bold" />
-
-      <Container
-        key="stack-demo"
-        width={250}
-        height={150}
-        border={{
-          width: 1,
-          color: '#dee2e6',
-        }}
-      >
-        <Stack key="stack-widget" alignment="center">
-          <Container key="stack-bg" width={200} height={100} color="#f8d7da" />
-          <Text key="stack-text" text="堆叠布局" fontSize={18} color="#721c24" fontWeight="bold" />
-        </Stack>
-      </Container>
-    </Column>
-
-    {/* Positioned 组件展示 */}
-    <Column key="positioned-section" spacing={15} mainAxisSize={MainAxisSize.Min}>
-      <Text
-        key="positioned-title"
-        text="Positioned 组件"
-        fontSize={24}
-        color="#6f42c1"
-        fontWeight="bold"
-      />
-
-      <Container
-        key="positioned-demo"
-        width={300}
-        height={200}
-        color="#f8f9fa"
-        border={{
-          width: 1,
-          color: '#dee2e6',
-        }}
-      >
-        <Stack key="positioned-stack">
-          <Positioned key="positioned-tl" left={10} top={10}>
-            <Container key="pos-tl-container" width={60} height={30} color="#6f42c1">
-              <Text key="pos-tl-text" text="左上" fontSize={12} fontWeight="bold" />
-            </Container>
-          </Positioned>
-
-          <Positioned key="positioned-br" right={10} bottom={10}>
-            <Container key="pos-br-container" width={60} height={30} color="#6f42c1">
-              <Text key="pos-br-text" text="右下" fontSize={12} fontWeight="bold" />
-            </Container>
-          </Positioned>
-        </Stack>
-      </Container>
-    </Column>
-
-    <Text
-      key="demo-footer"
-      text="以上展示了所有新增 Widget 组件的基本功能"
-      fontSize={16}
-      color="#6c757d"
-    />
+      {/* 确保 children 被正确渲染 */}
+      {children}
+    </Container>
   </Column>
+);
+
+/**
+ * 辅助组件：演示卡片
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DemoCard = ({ title, children }: { title: string; children: any }) => (
+  <Column key={`card-${title}`} spacing={8} mainAxisSize={MainAxisSize.Min}>
+    {children}
+    <Text text={title} fontSize={12} color={Colors.Text.Body} />
+  </Column>
+);
+
+/**
+ * 辅助组件：徽标
+ */
+const Badge = ({ text, color }: { text: string; color: string }) => (
+  <Container key={`badge-${text}`} padding={6} color={color} borderRadius={4}>
+    <Text text={text} fontSize={10} color={Colors.Text.White} fontWeight="bold" />
+  </Container>
 );

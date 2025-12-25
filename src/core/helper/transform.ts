@@ -62,3 +62,54 @@ export function applySteps(renderer: IRenderer, steps: TransformStep[]): void {
     }
   }
 }
+
+/**
+ * 计算矩阵的逆矩阵
+ * @param m [a, b, c, d, tx, ty]
+ */
+export function invert(
+  m: [number, number, number, number, number, number],
+): [number, number, number, number, number, number] {
+  const a = m[0],
+    b = m[1],
+    c = m[2],
+    d = m[3],
+    tx = m[4],
+    ty = m[5];
+
+  const det = a * d - b * c;
+  if (!det) {
+    return [1, 0, 0, 1, 0, 0]; // 不可逆，返回单位矩阵
+  }
+
+  const invDet = 1 / det;
+
+  // inv[0] = d / det
+  // inv[1] = -b / det
+  // inv[2] = -c / det
+  // inv[3] = a / det
+  // inv[4] = (c * ty - d * tx) / det
+  // inv[5] = (b * tx - a * ty) / det
+
+  return [
+    d * invDet,
+    -b * invDet,
+    -c * invDet,
+    a * invDet,
+    (c * ty - d * tx) * invDet,
+    (b * tx - a * ty) * invDet,
+  ];
+}
+
+/**
+ * 应用矩阵变换到点
+ */
+export function transformPoint(
+  m: [number, number, number, number, number, number],
+  p: { x: number; y: number },
+): { x: number; y: number } {
+  return {
+    x: m[0] * p.x + m[2] * p.y + m[4],
+    y: m[1] * p.x + m[3] * p.y + m[5],
+  };
+}

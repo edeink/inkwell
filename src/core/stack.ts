@@ -33,6 +33,10 @@ export class Stack extends Widget<StackProps> {
   }
 
   private initStackProperties(data: StackProps): void {
+    // 默认开启点击穿透
+    if (data.skipEvent === undefined) {
+      this.skipEvent = true;
+    }
     this.alignment = data.alignment || 'topLeft';
     this.fit = data.fit || 'loose';
     this.props.allowOverflowPositioned = data.allowOverflowPositioned;
@@ -62,7 +66,8 @@ export class Stack extends Widget<StackProps> {
     };
 
     const nonPosSizes = childrenSizes.filter((_, i) => !isPositionedChild(i));
-    const fallbackSizes = nonPosSizes.length > 0 ? nonPosSizes : childrenSizes; // 若全部是 Positioned，则退回到所有子项
+    // 若全部是 Positioned，则退回到所有子项
+    const fallbackSizes = nonPosSizes.length > 0 ? nonPosSizes : childrenSizes;
 
     switch (this.fit) {
       case 'expand':

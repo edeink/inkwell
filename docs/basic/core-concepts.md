@@ -48,7 +48,7 @@ Widget 是 UI 的基本构建块。在 Inkwell 中，Widget 既是配置也是�
 
 ### 4. Compiler (JSX Compiler)
 位于 `src/utils/compiler`，负责将 React 的 JSX 语法转换为 Inkwell 可理解的中间格式 (`ComponentData`)。
-- **compileElement**: 将 JSX Element 转换为 JSON 描述。
+- **compileElement**: 将 JSX Element 转换为 JSON 描述。支持**函数式组件**的自动展开（Inline Expansion）。
 - **WidgetRegistry**: 负责 Widget 类型的注册和查找，确保 JSON 可以被正确实例化。
 
 ## 渲染管线 (Rendering Pipeline)

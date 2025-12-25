@@ -4,7 +4,6 @@ import { DevTools } from '../devtools/index';
 
 import CompleteTab from './components/complete-tab';
 import CounterTab from './components/counter-tab';
-import RendererTab from './components/renderer-tab';
 import styles from './index.module.less';
 
 //
@@ -14,10 +13,10 @@ import styles from './index.module.less';
  * 用于直接测试不同渲染器的图片和文字渲染功能
  */
 type Theme = 'light' | 'dark';
-type TabType = 'complete' | 'renderer' | 'counter';
+type TabType = 'complete' | 'counter';
 
 const TestPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('counter');
+  const [activeTab, setActiveTab] = useState<TabType>('complete');
   const [theme, setTheme] = useState<Theme>('light');
   const [showDevtools, setShowDevtools] = useState(
     () => localStorage.getItem('INKWELL_DEVTOOLS_VISIBLE') === 'true',
@@ -56,13 +55,7 @@ const TestPage: React.FC = () => {
           onClick={() => setActiveTab('complete')}
           className={`${styles.tabButton} ${activeTab === 'complete' ? styles.active : ''}`}
         >
-          完整流程测试
-        </button>
-        <button
-          onClick={() => setActiveTab('renderer')}
-          className={`${styles.tabButton} ${activeTab === 'renderer' ? styles.active : ''}`}
-        >
-          渲染器测试
+          核心组件展示
         </button>
         <button
           onClick={() => setActiveTab('counter')}
@@ -77,7 +70,6 @@ const TestPage: React.FC = () => {
         </div>
       )}
       {activeTab === 'complete' && <CompleteTab theme={theme} />}
-      {activeTab === 'renderer' && <RendererTab theme={theme} />}
       {activeTab === 'counter' && <CounterTab theme={theme} />}
     </div>
   );
