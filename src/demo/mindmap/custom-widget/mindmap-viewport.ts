@@ -14,37 +14,26 @@ import { ShortcutManager } from './shortcut/manager';
 import { CustomComponentType } from './type';
 
 import type { SelectionData } from '../types';
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
+import type { BuildContext } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
+import type { TransformStep } from '@/core/helper/transform';
 
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
+import { Viewport, type ViewportProps } from '@/core/viewport/viewport';
 
-export interface MindMapViewportProps extends WidgetProps {
-  scale?: number;
-  tx?: number;
-  ty?: number;
+export interface MindMapViewportProps extends ViewportProps {
   selectedKeys?: string[];
   selectionRect?: { x: number; y: number; width: number; height: number } | null;
-  width?: number;
-  height?: number;
   activeKey?: string | null;
   editingKey?: string | null;
   collapsedKeys?: string[];
-  // 新增属性：以世界坐标单位控制 children 层偏移
-  scrollX?: number;
-  scrollY?: number;
-  // 新增事件：滚动更新回调，外部据此更新 scrollX/scrollY
-  onScroll?: (scrollX: number, scrollY: number) => void;
-  // 新增事件：视图变换回调（缩放/平移）
-  onViewChange?: (view: { scale: number; tx: number; ty: number }) => void;
-  onZoomAt?: (scale: number, cx: number, cy: number) => void;
+
   onUndo?: () => void;
   onRedo?: () => void;
   onDeleteSelection?: () => SelectionData | void;
   onRestoreSelection?: (data: SelectionData) => void;
   onSetSelectedKeys?: (keys: string[]) => void;
-  /** 激活节点变更回调 */
   onActiveKeyChange?: (key: string | null) => void;
 }
 
@@ -60,12 +49,6 @@ function pointerIdOf(native?: Event): number {
   return -1;
 }
 
-function clampScale(s: number): number {
-  const min = SCALE_CONFIG.MIN_SCALE;
-  const max = SCALE_CONFIG.MAX_SCALE;
-  return Math.max(min, Math.min(max, s));
-}
-
 /**
  * 视口（Viewport）
  * 模块功能说明：
@@ -73,20 +56,18 @@ function clampScale(s: number): number {
  * - 管理选中、悬停、编辑状态并通过回调与外部控制器通信
  * - 统一将屏幕坐标转换为世界坐标以便命中测试与框选
  */
-export class MindMapViewport extends Widget<MindMapViewportProps> {
-  private _scale: number = 1;
-  private _tx: number = 0;
-  private _ty: number = 0;
-  // children 层偏移（世界坐标），用于将平移作用于子元素而非视口自身
-  private _scrollX: number = 0;
-  private _scrollY: number = 0;
+export class MindMapViewport extends Viewport<MindMapViewportProps> {
   private _selectedKeys: string[] = [];
-  private _selectionRect: { x: number; y: number; width: number; height: number } | null = null;
-  width?: number;
-  height?: number;
+  private _selectionRect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null = null;
   private _activeKey: string | null = null;
   private _editingKey: string | null = null;
   private _collapsedKeys: string[] = [];
+
   private pinchState: {
     id1: number;
     id2: number;
@@ -95,86 +76,35 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     cx: number;
     cy: number;
   } | null = null;
-  private pointers: Map<number, { x: number; y: number }> = new Map();
-  private _onScroll?: (scrollX: number, scrollY: number) => void;
-  private _onViewChange?: (view: { scale: number; tx: number; ty: number }) => void;
-  private _onZoomAt?: (scale: number, cx: number, cy: number) => void;
-  private _onUndo?: () => void;
-  private _onRedo?: () => void;
-  private _onDeleteSelection?: () => SelectionData | void;
-  private _onRestoreSelection?: (data: SelectionData) => void;
-  private _onSetSelectedKeys?: (keys: string[]) => void;
-  private _onActiveKeyChange?: (key: string | null) => void;
+
+  private pointers: Map<number, { x: number; y: number; clientX: number; clientY: number }> =
+    new Map();
+
   private selectAllActive: boolean = false;
 
   private shortcutManager: ShortcutManager;
   public historyManager: HistoryManager;
 
-  private _onViewChangeListeners: Set<(view: { scale: number; tx: number; ty: number }) => void> =
-    new Set();
-  private _onScrollListeners: Set<(scrollX: number, scrollY: number) => void> = new Set();
-
   constructor(data: MindMapViewportProps) {
-    super(data);
+    // 注入默认缩放限制
+    const propsWithDefaults = {
+      minScale: SCALE_CONFIG.MIN_SCALE,
+      maxScale: SCALE_CONFIG.MAX_SCALE,
+      ...data,
+    };
+    super(propsWithDefaults);
     this.shortcutManager = new ShortcutManager();
     this.historyManager = new HistoryManager();
     this.registerDefaultShortcuts();
-    this.init(data);
-    if (data.onViewChange) {
-      this._onViewChangeListeners.add(data.onViewChange);
-    }
-    if (data.onScroll) {
-      this._onScrollListeners.add(data.onScroll);
-    }
+    this.initMindMap(data);
   }
 
-  addViewChangeListener(fn: (view: { scale: number; tx: number; ty: number }) => void): () => void {
-    this._onViewChangeListeners.add(fn);
-    return () => this._onViewChangeListeners.delete(fn);
-  }
-
-  addScrollListener(fn: (scrollX: number, scrollY: number) => void): () => void {
-    this._onScrollListeners.add(fn);
-    return () => this._onScrollListeners.delete(fn);
-  }
-
-  private notifyViewChange(scale: number, tx: number, ty: number) {
-    this._onViewChange?.({ scale, tx, ty });
-    this._onViewChangeListeners.forEach((fn) => fn({ scale, tx, ty }));
-  }
-
-  private notifyScroll(scrollX: number, scrollY: number) {
-    this._onScroll?.(scrollX, scrollY);
-    this._onScrollListeners.forEach((fn) => fn(scrollX, scrollY));
-  }
-
-  private init(data: MindMapViewportProps): void {
-    this._scale = (data.scale ?? this._scale) as number;
-    this._tx = (data.tx ?? this._tx) as number;
-    this._ty = (data.ty ?? this._ty) as number;
-    this._selectedKeys = (data.selectedKeys ?? this._selectedKeys) as string[];
-    this._selectionRect = (data.selectionRect ?? this._selectionRect) as {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null;
-    this.width = data.width;
-    this.height = data.height;
-    this._activeKey = (data.activeKey ?? this._activeKey) as string | null;
-    this._editingKey = (data.editingKey ?? this._editingKey) as string | null;
-    this._collapsedKeys = (data.collapsedKeys ?? this._collapsedKeys) as string[];
-    this._scrollX = (data.scrollX ?? this._scrollX) as number;
-    this._scrollY = (data.scrollY ?? this._scrollY) as number;
-    this._onScroll = data.onScroll;
-    this._onViewChange = data.onViewChange;
-    this._onZoomAt = data.onZoomAt;
-    this._onUndo = data.onUndo;
-    this._onRedo = data.onRedo;
-    this._onDeleteSelection = data.onDeleteSelection;
-    this._onRestoreSelection = data.onRestoreSelection;
-    this._onSetSelectedKeys = data.onSetSelectedKeys;
-    this._onActiveKeyChange = data.onActiveKeyChange;
+  private initMindMap(data: MindMapViewportProps): void {
+    this._selectedKeys = data.selectedKeys ?? [];
+    this._selectionRect = data.selectionRect ?? null;
+    this._activeKey = data.activeKey ?? null;
+    this._editingKey = data.editingKey ?? null;
+    this._collapsedKeys = data.collapsedKeys ?? [];
   }
 
   private registerDefaultShortcuts() {
@@ -188,138 +118,64 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     this.shortcutManager.register(PreventBrowserZoomCommand);
   }
 
-  public async undo(): Promise<void> {
-    const success = await this.historyManager.undo();
-    if (!success) {
-      this._onUndo?.();
-    }
-  }
-
-  public async redo(): Promise<void> {
-    const success = await this.historyManager.redo();
-    if (!success) {
-      this._onRedo?.();
-    }
-  }
-
-  public zoomIn(): void {
-    const cx = (this.width || 0) / 2;
-    const cy = (this.height || 0) / 2;
-    const scale = clampScale(this.scale * 1.2);
-    this.executeZoom(scale, cx, cy);
-  }
-
-  public zoomOut(): void {
-    const cx = (this.width || 0) / 2;
-    const cy = (this.height || 0) / 2;
-    const scale = clampScale(this.scale / 1.2);
-    this.executeZoom(scale, cx, cy);
-  }
-
-  public resetZoom(): void {
-    const cx = (this.width || 0) / 2;
-    const cy = (this.height || 0) / 2;
-    this.executeZoom(1, cx, cy);
-  }
-
-  private executeZoom(targetScale: number, cx: number, cy: number) {
-    // 计算新的 tx, ty
-    const x = (cx - this.tx) / this.scale + this._scrollX;
-    const y = (cy - this.ty) / this.scale + this._scrollY;
-    const s = targetScale;
-    const tx = cx - (x - this._scrollX) * s;
-    const ty = cy - (y - this._scrollY) * s;
-
-    const cmd = new ViewportTransformCommand(
-      this,
-      { scale: this.scale, tx: this.tx, ty: this.ty },
-      { scale: s, tx, ty },
-    );
-    this.historyManager.execute(cmd);
-  }
-
-  public deleteSelection(): SelectionData | void {
-    return this._onDeleteSelection?.();
-  }
-
-  public restoreSelection(data: SelectionData): void {
-    this._onRestoreSelection?.(data);
-  }
-
   createElement(data: MindMapViewportProps): Widget<MindMapViewportProps> {
     super.createElement(data);
-    this.init(data);
+    this.initMindMap(data);
     return this;
   }
 
-  protected paintSelf(context: BuildContext): void {
-    const { renderer } = context;
-    const rect = this.selectionRect;
-    if (rect) {
-      const r = this.normalizeRect(rect);
-      renderer.drawRect({
-        x: r.x - this._scrollX,
-        y: r.y - this._scrollY,
-        width: r.width,
-        height: r.height,
-        fill: 'rgba(24,144,255,0.12)',
-        stroke: '#1890ff',
-        strokeWidth: 1,
-      });
+  // --- 重写 Viewport 方法以集成 HistoryManager ---
+
+  protected getSelfTransformSteps(): TransformStep[] {
+    const steps = super.getSelfTransformSteps();
+    steps.push({ t: 'translate', x: this._tx, y: this._ty });
+    steps.push({ t: 'scale', sx: this._scale, sy: this._scale });
+    return steps;
+  }
+
+  /**
+   * 执行缩放，重写以支持撤销/重做记录
+   */
+  protected executeZoom(
+    targetScale: number,
+    cx: number,
+    cy: number,
+    addToHistory: boolean = true,
+  ): void {
+    // 计算新的 tx, ty (逻辑与 Viewport.executeZoom 相同，但我们需要这些值来创建 Command)
+    const contentX = (cx - this._tx) / this._scale + this._scrollX;
+    const contentY = (cy - this._ty) / this._scale + this._scrollY;
+    const s = targetScale;
+    const tx = cx - (contentX - this._scrollX) * s;
+    const ty = cy - (contentY - this._scrollY) * s;
+
+    if (addToHistory) {
+      const cmd = new ViewportTransformCommand(
+        this,
+        { scale: this.scale, tx: this.tx, ty: this.ty },
+        { scale: s, tx, ty },
+      );
+      this.historyManager.execute(cmd);
+    } else {
+      this.setTransform(s, tx, ty);
     }
+
+    // Viewport.executeZoom 也会调用 setTransform，但我们这里通过 Command 间接调用 setTransform
+    // 所以不需要调用 super.executeZoom，否则会重复设置
+    // 但 Command 执行最终会调用 this.setTransform
   }
 
-  // 移除组件内部的 requestRender：统一使用基类 markNeedsLayout 调度下一 Tick
+  // --- Getters ---
 
-  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
-    const childMaxW = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.width)) : 0;
-    const childMaxH = childrenSizes.length ? Math.max(...childrenSizes.map((s) => s.height)) : 0;
-    const w0 = this.width ?? childMaxW;
-    const h0 = this.height ?? childMaxH;
-    const w = Math.max(constraints.minWidth, Math.min(w0, constraints.maxWidth));
-    const h = Math.max(constraints.minHeight, Math.min(h0, constraints.maxHeight));
-    return { width: isFinite(w) ? w : 800, height: isFinite(h) ? h : 600 };
-  }
-
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    childIndex: number,
-  ): BoxConstraints {
-    void childIndex;
-    return {
-      minWidth: 0,
-      maxWidth: constraints.maxWidth,
-      minHeight: 0,
-      maxHeight: constraints.maxHeight,
-    };
-  }
-
-  protected positionChild(_childIndex: number, _childSize: Size): Offset {
-    // children 层统一应用 scrollX/scrollY 的偏移
-    return { dx: -this._scrollX, dy: -this._scrollY };
-  }
-
-  private normalizeRect(r: { x: number; y: number; width: number; height: number }) {
-    const x = r.width >= 0 ? r.x : r.x + r.width;
-    const y = r.height >= 0 ? r.y : r.y + r.height;
-    const w = Math.abs(r.width);
-    const h = Math.abs(r.height);
-    return { x, y, width: w, height: h };
-  }
-
-  get scale(): number {
-    return this._scale;
-  }
-  get tx(): number {
-    return this._tx;
-  }
-  get ty(): number {
-    return this._ty;
-  }
   get selectedKeys(): string[] {
     return this._selectedKeys;
   }
-  get selectionRect(): { x: number; y: number; width: number; height: number } | null {
+  get selectionRect(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null {
     return this._selectionRect;
   }
   get activeKey(): string | null {
@@ -332,54 +188,33 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     return this._collapsedKeys;
   }
 
-  /**
-   * 设置视口变换（缩放与平移）
-   * @param scale 缩放比例
-   * @param tx 水平平移
-   * @param ty 垂直平移
-   */
-  setTransform(scale: number, tx: number, ty: number): void {
-    const s = clampScale(scale);
-    const nx = Number.isFinite(tx) ? tx : this._tx;
-    const ny = Number.isFinite(ty) ? ty : this._ty;
-    this._scale = s;
-    this._tx = nx;
-    this._ty = ny;
-    this.notifyViewChange(s, nx, ny);
-    this.markNeedsLayout();
+  // --- Business Actions ---
+
+  public async undo(): Promise<void> {
+    const success = await this.historyManager.undo();
+    if (!success) {
+      this.data.onUndo?.();
+    }
+  }
+
+  public async redo(): Promise<void> {
+    const success = await this.historyManager.redo();
+    if (!success) {
+      this.data.onRedo?.();
+    }
   }
 
   /**
-   * 设置视口平移
-   * @param tx 水平平移
-   * @param ty 垂直平移
+   * 兼容旧 API：设置位置
    */
   setPosition(tx: number, ty: number): void {
-    const nx = Number.isFinite(tx) ? tx : this._tx;
-    const ny = Number.isFinite(ty) ? ty : this._ty;
-    this._tx = nx;
-    this._ty = ny;
-    this.notifyViewChange(this._scale, nx, ny);
-    this.markNeedsLayout();
+    this.setTransform(this.scale, tx, ty);
   }
 
-  /**
-   * 设置视口缩放比例
-   * @param scale 缩放比例
-   */
-  setScale(scale: number): void {
-    this._scale = clampScale(scale);
-    this.notifyViewChange(this._scale, this._tx, this._ty);
-    this.markNeedsLayout();
-  }
-
-  /**
-   * 设置选中的节点 Keys
-   * @param keys 选中节点的 Key 列表
-   */
   setSelectedKeys(keys: string[]): void {
     this._selectedKeys = Array.from(keys);
-    // 通知子节点重绘以更新选中样式
+    this.data.onSetSelectedKeys?.(this._selectedKeys);
+    // 通知子节点重绘
     const root = this as unknown as Widget;
     const update = (w: Widget): void => {
       if (w.type === CustomComponentType.MindMapNode) {
@@ -394,29 +229,20 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     }
   }
 
-  /**
-   * 设置框选矩形
-   * @param rect 框选矩形（世界坐标），null 表示无框选
-   */
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
     this.markNeedsLayout();
   }
 
-  /**
-   * 设置激活的节点 Key
-   * @param key 节点 Key，null 表示取消激活
-   */
   setActiveKey(key: string | null): void {
     if (this._activeKey === key) {
       return;
     }
-    // 激活单个节点时自动清空之前的选区状态
     if (key) {
       this.setSelectedKeys([]);
     }
     this._activeKey = key ?? null;
-    this._onActiveKeyChange?.(this._activeKey);
+    this.data.onActiveKeyChange?.(this._activeKey);
 
     const start = (this.parent as Widget) ?? (this as Widget);
     const t = findWidget(start, `#${this._activeKey ?? ''}`) as Widget | null;
@@ -445,28 +271,40 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     this.markDirty();
   }
 
-  /**
-   * 设置正在编辑的节点 Key
-   * @param key 节点 Key，null 表示无编辑
-   */
   setEditingKey(key: string | null): void {
     this._editingKey = key ?? null;
   }
 
-  /**
-   * 设置折叠的节点 Keys
-   * @param keys 折叠节点的 Key 列表
-   */
   setCollapsedKeys(keys: string[]): void {
     this._collapsedKeys = Array.from(keys);
   }
 
+  public deleteSelection(): SelectionData | void {
+    return this.data.onDeleteSelection?.();
+  }
+
+  public restoreSelection(data: SelectionData): void {
+    this.data.onRestoreSelection?.(data);
+  }
+
+  // --- Interaction Handlers ---
+
   onPointerDown(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
-    this.pointers.set(pid, world);
-
     const pe = e?.nativeEvent as PointerEvent | undefined;
+    this.pointers.set(pid, {
+      ...world,
+      clientX: pe?.clientX ?? 0,
+      clientY: pe?.clientY ?? 0,
+    });
+
+    // 捏合缩放逻辑
+    if (this.tryStartPinch()) {
+      this._selectionRect = null;
+      return false;
+    }
+
     const ctrlLike = !!(pe && (pe.ctrlKey || pe.metaKey));
     const leftBtn = !!(pe && pe.buttons & 1);
     if (ctrlLike && leftBtn) {
@@ -483,29 +321,32 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
       }
       return false;
     }
-    // 若满足双指捏合（pinch）启动条件，优先开始缩放交互
-    if (this.tryStartPinch(e?.nativeEvent)) {
-      return false;
-    }
-    // 禁用单指拖动视口平移：保留为纯 pointer move（不设置 panState）
+
     return false;
   }
 
   onPointerMove(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
     const pid = pointerIdOf(e?.nativeEvent);
-    // 在捏合缩放期间更新两指位置并计算缩放比例
-    if (this.updatePinchZoom(pid, world, e?.nativeEvent)) {
+    const pe = e?.nativeEvent as PointerEvent | undefined;
+
+    if (this.pointers.has(pid)) {
+      this.pointers.set(pid, {
+        ...world,
+        clientX: pe?.clientX ?? 0,
+        clientY: pe?.clientY ?? 0,
+      });
+    }
+
+    if (this.updatePinchZoom()) {
       return false;
     }
-    // 全选模式下保持选择，不触发平移/滚动
     if (this.selectAllActive) {
       return false;
     }
     if (this._selectionRect) {
       this._selectionRect.width = world.x - this._selectionRect.x;
       this._selectionRect.height = world.y - this._selectionRect.y;
-      // 实时计算框选结果并更新
       const r = this.normalizeRect(this._selectionRect);
       const selected = this.collectKeysInRect(r);
       this.setSelectedKeys(selected);
@@ -519,12 +360,9 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     if (pid !== -1) {
       this.pointers.delete(pid);
     }
-    // 当捏合参与指针抬起时，结束捏合缩放状态
     if (this.stopPinchIfPointer(pid)) {
-      // 结束捏合后直接返回，避免误触发后续逻辑
       return false;
     }
-    // 退出全选模式
     if (this.selectAllActive) {
       this.selectAllActive = false;
       return false;
@@ -535,8 +373,6 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
       this.setSelectionRect(null);
       const selected = new Set(this.collectKeysInRect(r));
       this.setSelectedKeys(Array.from(selected));
-      this._onSetSelectedKeys?.(this._selectedKeys);
-      // 框选结束（或点击空白）时取消激活状态
       this.setActiveKey(null);
       this.markNeedsLayout();
       e.stopPropagation();
@@ -548,22 +384,25 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     if (we && (we.ctrlKey || we.metaKey)) {
       we.preventDefault();
     }
-    // 触控板双指滚动：当未按下 Ctrl/Meta 时，按 wheel delta 平滑平移视口
+    // 平移处理
     if (we && !(we.ctrlKey || we.metaKey)) {
       const dx = we.deltaX || 0;
       const dy = we.deltaY || 0;
-      // 将滚轮平移作用于 children 层偏移（世界单位需除以缩放），通过 onScroll 通知外部
-      // 滚动偏移量增加意味着向右/下滚动
       const nextScrollX = this._scrollX + dx / this.scale;
       const nextScrollY = this._scrollY + dy / this.scale;
       this.scrollTo(nextScrollX, nextScrollY);
       return false;
     }
-    // 触控板捏合缩放（或 Ctrl/Meta 辅助缩放）
+    // 缩放处理
     const scaleDelta = we && we.deltaY < 0 ? 1.06 : 0.94;
     const { x: cx, y: cy } = we ? this.getLocalCoords(we) : { x: 0, y: 0 };
-    const s = clampScale(this.scale * scaleDelta);
-    this._onZoomAt?.(s, cx, cy);
+    const s = this.clampScale(this.scale * scaleDelta);
+    // MindMap 期望有显式的 onZoomAt 处理程序，或者我们直接调用 executeZoom
+    if (this.data.onZoomAt) {
+      this.data.onZoomAt(s, cx, cy);
+    } else {
+      this.executeZoom(s, cx, cy, false);
+    }
     return false;
   }
 
@@ -572,226 +411,195 @@ export class MindMapViewport extends Widget<MindMapViewportProps> {
     if (!ke) {
       return;
     }
-
     const handled = this.shortcutManager.handle({
       viewport: this,
       event: e,
       nativeEvent: ke,
     });
-
     if (handled) {
       e.stopPropagation();
       return false;
     }
-
     return false;
   }
 
-  private getWorldXY(e: InkwellEvent): { x: number; y: number } {
-    // 获取视口自身在屏幕上的绝对位置
-    const vpPos = this.getAbsolutePosition();
-    // 1. (e.x - vpPos.dx): 将屏幕坐标转换为视口组件内的相对坐标
-    // 2. (... - this.tx): 扣除视口自身的平移
-    // 3. (... / this.scale): 反算缩放影响，得到未缩放的坐标
-    // 4. (... + this._scrollX): 加上内容层的滚动偏移，得到世界坐标（Content 坐标）
-    const x = (e.x - vpPos.dx - this.tx) / this.scale + this._scrollX;
-    const y = (e.y - vpPos.dy - this.ty) / this.scale + this._scrollY;
-    return { x, y };
-  }
-
-  private getLocalCoords(native: Event): { x: number; y: number } {
-    const target = native.target as Element;
-    const rect = target?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
-
-    let clientX = 0;
-    let clientY = 0;
-
-    const m = native as MouseEvent;
-    if (typeof m.clientX === 'number') {
-      clientX = m.clientX;
-      clientY = m.clientY;
-    } else {
-      const t = (native as TouchEvent).changedTouches?.[0];
-      if (t) {
-        clientX = t.clientX;
-        clientY = t.clientY;
-      }
+  protected paintSelf(context: BuildContext): void {
+    const { renderer } = context;
+    const rect = this.selectionRect;
+    if (rect) {
+      const r = this.normalizeRect(rect);
+      renderer.drawRect({
+        x: r.x - this._scrollX,
+        y: r.y - this._scrollY,
+        width: r.width,
+        height: r.height,
+        fill: 'rgba(24,144,255,0.12)',
+        stroke: '#1890ff',
+        strokeWidth: 1,
+      });
     }
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
-    };
   }
 
-  zoomAt(newScale: number, cx: number, cy: number): void {
-    const x = (cx - this.tx) / this.scale + this._scrollX;
-    const y = (cy - this.ty) / this.scale + this._scrollY;
-    const s = clampScale(newScale);
-    const tx = cx - (x - this._scrollX) * s;
-    const ty = cy - (y - this._scrollY) * s;
-    this.setTransform(s, tx, ty);
-  }
+  // --- 辅助方法 (捏合缩放 & 框选) ---
 
-  /**
-   * 滚动到指定位置
-   * @param x 滚动水平偏移
-   * @param y 滚动垂直偏移
-   */
-  scrollTo(x: number, y: number): void {
-    const nx = Number.isFinite(x) ? x : this._scrollX;
-    const ny = Number.isFinite(y) ? y : this._scrollY;
-    this._scrollX = nx;
-    this._scrollY = ny;
-    this.notifyScroll(nx, ny);
-    this.markNeedsLayout();
-  }
-
-  /**
-   * 滚动偏移量
-   * @param dx 水平滚动增量
-   * @param dy 垂直滚动增量
-   */
-  scrollBy(dx: number, dy: number): void {
-    this.scrollTo(this._scrollX + dx, this._scrollY + dy);
-  }
-
-  get scrollX(): number {
-    return this._scrollX;
-  }
-
-  get scrollY(): number {
-    return this._scrollY;
-  }
-
-  /**
-   * 根据当前指针集合尝试启动捏合缩放
-   * @param native 原生事件（用于读取 clientX/clientY）
-   * @returns 是否成功启动捏合
-   */
-  private tryStartPinch(native?: Event): boolean {
-    if (this.pointers.size === 2 && native) {
-      const ids = Array.from(this.pointers.keys());
-      const a = this.pointers.get(ids[0]);
-      const b = this.pointers.get(ids[1]);
-      if (!a || !b) {
-        return false;
-      }
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const d = Math.hypot(dx, dy);
-      const { x: cx, y: cy } = this.getLocalCoords(native);
-      this.pinchState = { id1: ids[0], id2: ids[1], startD: d, startScale: this.scale, cx, cy };
-      this._selectionRect = null;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * 在捏合缩放过程中更新指针位置并计算缩放比例
-   * @param pid 指针ID（pointerId/touch identifier），-1 表示无效
-   * @param world 世界坐标（已经扣除了视口平移与缩放）
-   * @param native 原生事件（用于读取 clientX/clientY）
-   * @returns 是否进行了捏合更新
-   */
-  private updatePinchZoom(pid: number, world: { x: number; y: number }, native?: Event): boolean {
-    if (!this.pinchState || pid === -1) {
+  private tryStartPinch(): boolean {
+    if (this.pointers.size !== 2) {
       return false;
     }
-    this.pointers.set(pid, world);
-    const a = this.pointers.get(this.pinchState.id1);
-    const b = this.pointers.get(this.pinchState.id2);
-    if (a && b) {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dNow = Math.hypot(dx, dy);
-      const s = clampScale(this.pinchState.startScale * (dNow / this.pinchState.startD));
-      const { x: cx, y: cy } = native ? this.getLocalCoords(native) : { x: 0, y: 0 };
-      this._onZoomAt?.(s, cx, cy);
+    const pts = Array.from(this.pointers.entries());
+    const p1 = pts[0];
+    const p2 = pts[1];
+
+    const t1 = p1[1];
+    const t2 = p2[1];
+
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    const d = Math.sqrt(dx * dx + dy * dy);
+
+    // 计算相对于视口组件的中心点
+    // 我们需要将客户端坐标转换为本地坐标以便进行缩放操作
+    // 由于无法直接访问 DOM 节点，我们使用存储的世界坐标进行逆向计算
+    // 之前的方法使用 getBoundingClientRect 进行调整，但这里我们使用已经计算好的世界坐标
+
+    // 重新从世界坐标计算本地坐标
+    const w1 = t1;
+    const w2 = t2;
+
+    const centerWorldX = (w1.x + w2.x) / 2;
+    const centerWorldY = (w1.y + w2.y) / 2;
+
+    // 将世界坐标中心点转换为本地坐标中心点
+    const localCx = (centerWorldX - this._scrollX) * this.scale + this._tx;
+    const localCy = (centerWorldY - this._scrollY) * this.scale + this._ty;
+
+    this.pinchState = {
+      id1: p1[0],
+      id2: p2[0],
+      startD: d,
+      startScale: this.scale,
+      cx: localCx,
+      cy: localCy,
+    };
+    return true;
+  }
+
+  private updatePinchZoom(): boolean {
+    if (!this.pinchState) {
+      return false;
+    }
+    if (this.pointers.size < 2) {
+      return false;
+    }
+
+    const p1 = this.pointers.get(this.pinchState.id1);
+    const p2 = this.pointers.get(this.pinchState.id2);
+
+    if (p1 && p2) {
+      const dx = p1.clientX - p2.clientX;
+      const dy = p1.clientY - p2.clientY;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const scale = this.pinchState.startScale * (d / this.pinchState.startD);
+      const s = this.clampScale(scale);
+
+      // 使用原始中心点 (pinchState.cx, cy)
+      // 传入 false 以跳过历史记录
+      this.executeZoom(s, this.pinchState.cx, this.pinchState.cy, false);
       return true;
     }
     return false;
   }
 
-  /**
-   * 若抬起的指针参与了捏合，结束捏合状态
-   * @param pid 指针ID（-1 表示无效）
-   * @returns 是否结束了捏合
-   */
   private stopPinchIfPointer(pid: number): boolean {
-    if (
-      this.pinchState &&
-      pid !== -1 &&
-      (pid === this.pinchState.id1 || pid === this.pinchState.id2)
-    ) {
+    if (this.pinchState && (pid === this.pinchState.id1 || pid === this.pinchState.id2)) {
       this.pinchState = null;
       return true;
     }
     return false;
   }
 
-  private collectKeysInRect(r: { x: number; y: number; width: number; height: number }): string[] {
-    const out: string[] = [];
-    // Should search within Viewport's children
-    const root = this as unknown as Widget;
-    const vpPos = this.getAbsolutePosition();
-    const walk = (w: Widget) => {
-      if (w.type === CustomComponentType.MindMapNode) {
-        const p = w.getAbsolutePosition();
-        // 计算节点相对于内容层原点（Content Origin）的坐标
-        // p - vpPos: 节点相对于视口左上角的偏移
-        // ... + this._scrollX: 加上滚动偏移，得到世界坐标
-        const cx = p.dx - vpPos.dx + this._scrollX;
-        const cy = p.dy - vpPos.dy + this._scrollY;
+  private normalizeRect(r: { x: number; y: number; width: number; height: number }) {
+    const x = r.width >= 0 ? r.x : r.x + r.width;
+    const y = r.height >= 0 ? r.y : r.y + r.height;
+    const w = Math.abs(r.width);
+    const h = Math.abs(r.height);
+    return { x, y, width: w, height: h };
+  }
 
-        if (
-          cx < r.x + r.width &&
-          cx + w.renderObject.size.width > r.x &&
-          cy < r.y + r.height &&
-          cy + w.renderObject.size.height > r.y
-        ) {
-          out.push(w.key as string);
+  private collectKeysInRect(rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): string[] {
+    const res: string[] = [];
+    const root = this as unknown as Widget;
+
+    const getWidgetBounds = (
+      w: Widget,
+    ): { x: number; y: number; width: number; height: number } | null => {
+      if (!w.renderObject) {
+        return null;
+      }
+      let x = 0;
+      let y = 0;
+      let curr: Widget | null = w;
+      // 计算相对于视口（根节点）的位置
+      while (curr && curr !== root) {
+        if (curr.renderObject) {
+          x += curr.renderObject.offset.dx;
+          y += curr.renderObject.offset.dy;
+        }
+        curr = curr.parent;
+      }
+      return {
+        x,
+        y,
+        width: w.renderObject.size.width,
+        height: w.renderObject.size.height,
+      };
+    };
+
+    const traverse = (w: Widget) => {
+      if (w.type === CustomComponentType.MindMapNode && w.key) {
+        const bounds = getWidgetBounds(w);
+        if (bounds) {
+          // 检查相交
+          const intersect = !(
+            bounds.x > rect.x + rect.width ||
+            bounds.x + bounds.width < rect.x ||
+            bounds.y > rect.y + rect.height ||
+            bounds.y + bounds.height < rect.y
+          );
+          if (intersect) {
+            res.push(w.key);
+          }
         }
       }
       for (const c of w.children as Widget[]) {
-        walk(c);
+        traverse(c);
       }
     };
-    for (const c of root.children) {
-      walk(c);
+
+    for (const c of root.children as Widget[]) {
+      traverse(c);
     }
-    return out;
+    return res;
   }
 
+  // 需要恢复 collectAllNodeKeys 方法
   private collectAllNodeKeys(): string[] {
-    const out: string[] = [];
+    const res: string[] = [];
     const root = this as unknown as Widget;
-    const walk = (w: Widget) => {
-      const isNode = w.type === CustomComponentType.MindMapNode;
-      if (isNode) {
-        out.push(w.key as string);
+    const traverse = (w: Widget) => {
+      if (w.type === CustomComponentType.MindMapNode && w.key) {
+        res.push(w.key);
       }
-      for (const c of w.children) {
-        walk(c);
+      for (const c of w.children as Widget[]) {
+        traverse(c);
       }
     };
-    if (root) {
-      walk(root as Widget);
-    }
-    return out;
-  }
-
-  protected getSelfTransformSteps(): Array<
-    | { t: 'translate'; x: number; y: number }
-    | { t: 'scale'; sx: number; sy: number }
-    | { t: 'rotate'; rad: number }
-  > {
-    const o = this.renderObject.offset;
-    return [
-      { t: 'translate', x: o.dx, y: o.dy },
-      { t: 'translate', x: this.tx, y: this.ty },
-      { t: 'scale', sx: this.scale, sy: this.scale },
-    ];
+    traverse(root);
+    return res;
   }
 }

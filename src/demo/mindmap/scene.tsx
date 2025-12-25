@@ -223,7 +223,13 @@ export class Scene extends StatefulWidget<SceneProps, SceneState> {
     if (!vp) {
       return;
     }
-    vp.setSelectedKeys(keys);
+    // 避免循环调用：Viewport 已经更新了 selectedKeys 并触发了此回调
+    // 这里的职责是通知其他可能监听此变化的组件（如果有）
+    // 或者仅仅是确保布局更新
+
+    // 只有当传入的 keys 和 Viewport 当前的不一致时才设置（通常不需要，除非来自外部数据源）
+    // vp.setSelectedKeys(keys); // 已移除，避免无限递归
+
     vp.markNeedsLayout();
   };
 

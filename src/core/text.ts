@@ -202,7 +202,12 @@ export class Text extends Widget<TextProps> {
   private lastLayoutHash: string = '';
 
   private getLayoutHash(constraints: BoxConstraints): string {
-    return `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-${this.lineHeight}-${this.textAlign}-${this.textAlignVertical}-${this.maxLines}-${this.overflow}-${constraints.minWidth}-${constraints.maxWidth}-${constraints.minHeight}-${constraints.maxHeight}`;
+    return (
+      `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-` +
+      `${this.lineHeight}-${this.textAlign}-${this.textAlignVertical}-${this.maxLines}-` +
+      `${this.overflow}-${constraints.minWidth}-${constraints.maxWidth}-` +
+      `${constraints.minHeight}-${constraints.maxHeight}`
+    );
   }
 
   private calculateTextMetrics(constraints: BoxConstraints): void {
@@ -394,7 +399,8 @@ export class Text extends Widget<TextProps> {
         descent,
       };
     } else {
-      const charsPerLine = Math.floor(maxWidth / avgCharWidth);
+      // 计算每行字符数，确保至少为1，防止非法数组长度错误
+      const charsPerLine = Math.max(1, Math.floor(maxWidth / avgCharWidth));
       let remainingText = this.text;
       const maxLines = this.maxLines || Infinity;
       while (remainingText.length > 0 && lines.length < maxLines) {

@@ -19,14 +19,28 @@ export default function CompleteTab({ theme }: { theme: Theme }) {
     if (!el.id) {
       el.id = 'complete-tab-container-' + Math.random().toString(36).slice(2);
     }
+    let runtime: Runtime | null = null;
+
+    const ro = new ResizeObserver((entries) => {
+      if (!runtime) {
+        return;
+      }
+      const { width, height } = entries[0].contentRect;
+      runtime.renderTemplate(() => getTestTemplate(width, height));
+    });
+
     Runtime.create(el.id, {
       renderer: 'canvas2d',
       background: theme === 'dark' ? '#000000' : '#ffffff',
       backgroundAlpha: 1,
     }).then((rt) => {
-      rt.renderTemplate(getTestTemplate);
+      runtime = rt;
+      ro.observe(el);
+      const { clientWidth, clientHeight } = el;
+      rt.renderTemplate(() => getTestTemplate(clientWidth, clientHeight));
     });
     return () => {
+      ro.disconnect();
       el.innerHTML = '';
     };
   }, [theme]);

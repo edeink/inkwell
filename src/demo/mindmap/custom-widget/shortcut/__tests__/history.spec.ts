@@ -65,6 +65,8 @@ describe('Viewport Zoom & Undo/Redo', () => {
         this.tx = x;
         this.ty = y;
       }),
+      // 添加 clampScale 方法以修复 TypeError
+      clampScale: (s: number) => s,
       historyManager: new HistoryManager(),
       zoomIn: MindMapViewport.prototype.zoomIn,
       zoomOut: MindMapViewport.prototype.zoomOut,

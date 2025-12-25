@@ -34,7 +34,7 @@ describe('布局分离逻辑', () => {
 
     expect(() => {
       root.layout(constraints);
-    }).toThrowError(/Children must be built before layout/);
+    }).toThrowError(/布局前必须先构建子节点/);
   });
 
   it('如果在布局前已构建子节点则应通过', () => {

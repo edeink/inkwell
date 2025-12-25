@@ -1,11 +1,17 @@
 .root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
   h2 {
     margin-bottom: 10px;
+    flex-shrink: 0;
   }
 
   p {
     margin-bottom: 20px;
     color: #666;
+    flex-shrink: 0;
   }
 }
 
@@ -13,5 +19,7 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #f8f9fa;
-  min-height: 360px;
+  overflow: hidden;
+  width: 800px;
+  height: 600px;
 }
