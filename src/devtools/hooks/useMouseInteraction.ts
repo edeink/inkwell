@@ -63,7 +63,7 @@ export function useMouseInteraction({
       setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
       return;
     }
-  }, [runtime, active]);
+  }, [runtime, active, setRuntime]);
 
   // 处理 overlay 激活状态和位置信息
   useEffect(() => {
@@ -168,7 +168,7 @@ export function useMouseInteraction({
         cancelAnimationFrame(raf);
       }
     };
-  }, [runtime, overlay, active]);
+  }, [runtime, overlay, active, getHoverRef, onPick, setHoverRef, setRuntime, isMultiRuntime]);
 
   return { runtimeId, isMultiRuntime, overlapWarning };
 }

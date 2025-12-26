@@ -396,6 +396,6 @@ export function DevTools(props: DevToolsProps) {
     return () => {
       // 保持单例生命周期，由显示的 dispose/reset 控制
     };
-  }, []);
+  }, [props]);
   return null;
 }

@@ -62,7 +62,7 @@ export class TextLayout {
     const lines: TextLine[] = [];
 
     // Optimization: Single line fits
-    if (maxWidth === Infinity || textWidth <= maxWidth) {
+    if (!text.includes('\n') && (maxWidth === Infinity || textWidth <= maxWidth)) {
       lines.push({
         text,
         width: textWidth,

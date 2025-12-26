@@ -1,7 +1,7 @@
 import { act } from 'react-dom/test-utils';
 import { afterEach, describe, it, vi } from 'vitest';
 
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType } from '../../type';
 
 // 模拟上下文
 const mockController = {
@@ -30,7 +30,7 @@ vi.mock('../../context', () => ({
 }));
 
 // 模拟主题
-vi.mock('../../config/theme', () => ({
+vi.mock('../../constants/theme', () => ({
   useThemePalette: () => ({
     minimapBackgroundColor: '#f0f0f0',
     nodeFillColor: '#fff',

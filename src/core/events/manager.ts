@@ -226,6 +226,25 @@ class EventManagerImpl {
       this.detachDelegated();
     }
   }
+  unregisterCanvas(id: string): void {
+    const rec = this.map.get(id);
+    if (!rec) {
+      return;
+    }
+    for (const [type, fn] of rec.keyboardHandlers) {
+      if (rec.container) {
+        rec.container.removeEventListener(type, fn as EventListener);
+      }
+    }
+    this.map.delete(id);
+    if (this.map.size === 0) {
+      this.detachDelegated();
+    }
+  }
+
+  static getInstance(): EventManagerImpl {
+    return EventManager;
+  }
 }
 
 export const EventManager = new EventManagerImpl();

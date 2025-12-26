@@ -1,6 +1,6 @@
 import type { Offset, Size } from '@/core/base';
 
-import { Side } from '@/demo/mindmap/custom-widget/type';
+import { Side } from '@/demo/mindmap/type';
 
 function buildSubtreeHeight(
   sizeByKey: Map<string, Size>,

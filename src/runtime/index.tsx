@@ -68,6 +68,42 @@ export default class Runtime {
     return runtime;
   }
 
+  /**
+   * 销毁运行时实例
+   * 释放资源，清理事件监听，销毁 Canvas
+   */
+  destroy(): void {
+    // 1. 取消正在进行的布局调度
+    if (this.__layoutRaf) {
+      cancelAnimationFrame(this.__layoutRaf);
+      this.__layoutRaf = null;
+    }
+    this.__layoutScheduled = false;
+
+    // 2. 清理事件管理器
+    if (this.canvasId) {
+      const entry = Runtime.canvasRegistry.get(this.canvasId);
+      if (entry && entry.runtime === this) {
+        EventManager.unregisterCanvas(this.canvasId);
+        Runtime.canvasRegistry.delete(this.canvasId);
+      }
+    }
+
+    // 3. 销毁渲染器
+    if (this.renderer) {
+      this.renderer.destroy();
+      this.renderer = null;
+    }
+
+    // 4. 清理引用
+    this.rootWidget = null;
+    this._canvas = null;
+    this._container = null;
+    this.dirtyWidgets.clear();
+
+    console.log(`Runtime ${this.canvasId} destroyed.`);
+  }
+
   private constructor() {
     // 私有构造函数，强制使用 create 方法
   }
@@ -628,30 +664,6 @@ export default class Runtime {
     setTimeout(() => {
       toast.remove();
     }, 8000);
-  }
-
-  /**
-   * 销毁运行时实例
-   */
-  destroy(): void {
-    if (this.__layoutRaf != null) {
-      try {
-        cancelAnimationFrame(this.__layoutRaf);
-      } catch {}
-      this.__layoutRaf = null;
-    }
-    if (this.renderer) {
-      this.renderer.destroy();
-      this.renderer = null;
-    }
-    this._container = null;
-    this.rootWidget = null;
-    if (this.canvasId) {
-      EventManager.unbind(this);
-      Runtime.canvasRegistry.delete(this.canvasId);
-      this.canvasId = null;
-    }
-    EventRegistry.clearRuntime(this);
   }
 
   private static generateUUID(): string {

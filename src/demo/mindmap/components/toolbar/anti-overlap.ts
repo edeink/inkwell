@@ -1,4 +1,4 @@
-import { MindMapNode } from '../../custom-widget/mindmap-node';
+import { MindMapNode } from '../../widgets/mindmap-node';
 
 import type { Widget } from '@/core';
 import type Runtime from '@/runtime';

@@ -2,9 +2,9 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MindmapContext } from '../../../context';
 import { MindmapController } from '../../../controller';
-import { MindMapViewport } from '../../../custom-widget/mindmap-viewport';
+import { MindmapContext } from '../../../hooks/context';
+import { MindMapViewport } from '../../../widgets/mindmap-viewport';
 import Minimap from '../index';
 
 import type { Root } from 'react-dom/client';
@@ -12,7 +12,7 @@ import type { Root } from 'react-dom/client';
 import Runtime from '@/runtime';
 
 // 模拟依赖
-vi.mock('../../../custom-widget/mindmap-viewport');
+vi.mock('../../../widgets/mindmap-viewport');
 vi.mock('@/runtime');
 // 移除对 controller 的自动 mock，因为我们在 beforeEach 中手动创建了 mock 对象
 // vi.mock('../../../controller');
@@ -52,7 +52,7 @@ describe('Minimap 集成测试', () => {
     });
 
     viewport.getAbsolutePosition = vi.fn().mockReturnValue({ dx: 0, dy: 0 });
-    // viewport.getContentPosition = vi.fn().mockReturnValue({ tx: 0, ty: 0 }); // Removed
+    // viewport.getContentPosition = vi.fn().mockReturnValue({ tx: 0, ty: 0 }); // 已移除
     Object.defineProperty(viewport, 'scrollX', { value: 0, writable: true });
     Object.defineProperty(viewport, 'scrollY', { value: 0, writable: true });
 

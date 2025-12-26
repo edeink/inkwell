@@ -1,4 +1,4 @@
-import { MindMapViewport } from '../custom-widget/mindmap-viewport';
+import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { EventsModule } from './modules/events';
 import { HistoryModule } from './modules/history';
@@ -36,21 +36,28 @@ export class MindmapController {
     this.view = new ViewModule(this, onViewChange);
     this.onViewChangeCb = onViewChange ?? null;
 
-    // Subscribe to viewport events
+    // 订阅视口变化事件
     this.viewport.addViewChangeListener((v) => {
       this.viewScale = v.scale;
       this.viewTx = v.tx;
       this.viewTy = v.ty;
       this.view.syncFromViewport();
     });
-    this.viewport.addScrollListener((cx, cy) => {
-      this.view.syncFromViewport();
-    });
 
+    // 注册插件
     this.layoutModule = new LayoutModule(this);
-    this.layoutModule.attach();
-    this.interaction = new InteractionModule(this, this.view);
-    this.interaction.attach();
+    this.interaction = new InteractionModule(this);
+
+    this.plugins.add(this.layoutModule);
+    this.plugins.add(this.interaction);
+    this.plugins.add(this.view);
+
+    // 初始化所有插件
+    this.plugins.forEach((p) => {
+      if (typeof p.onInit === 'function') {
+        p.onInit();
+      }
+    });
     MindmapController.byRuntime.set(runtime, this);
     (runtime as unknown as { __mindmapController: MindmapController }).__mindmapController = this;
   }
@@ -67,7 +74,7 @@ export class MindmapController {
     this.view.notifyListeners();
   }
 
-  // Layout notification
+  // 布局通知
   private layoutListeners: Set<() => void> = new Set();
 
   dispatchLayoutChange(): void {

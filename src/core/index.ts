@@ -5,7 +5,7 @@ export { Container } from './container';
 export { Column } from './flex/column';
 export { Expanded } from './flex/expanded';
 export { Row } from './flex/row';
-export { Image } from './image';
+export { Image, ImageFit } from './image';
 export { NextText } from './next-text';
 export { Padding } from './padding';
 export { Positioned } from './positioned';

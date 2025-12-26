@@ -4,7 +4,7 @@ import { computeViewportRect, type Fit } from '../utils';
 
 import styles from './index.module.less';
 
-import { useThemePalette } from '@/demo/mindmap/config/theme';
+import { useThemePalette } from '@/demo/mindmap/constants/theme';
 import { MindmapController } from '@/demo/mindmap/controller/index';
 
 export type HighlightOverlayProps = {
@@ -295,20 +295,6 @@ export default function HighlightOverlay({
         const s = vs.scale;
 
         // 反向计算视图平移量
-        // newTx = -scale * [ (newRectX - fit.ox) / fit.s - scrollX ]
-        // Wait, screenX = (nodeX - scrollX) * s + tx
-        // When dragging the rect, we are effectively changing tx (or scrollX?)
-        // The dragging moves the viewport window over the map.
-        // If we move the rect to the right (newRectX increases), it means we want to see area to the right.
-        // This usually means reducing tx (moving content left) or increasing scrollX.
-        // Here we are setting ViewPosition (tx, ty).
-
-        // Rect X corresponds to viewport left edge in map space.
-        // MapX = (newRectX - fit.ox) / fit.s
-        // MapX is the world coordinate of the left edge of the viewport.
-        // Screen Left (0) = (MapX - scrollX) * s + tx
-        // 0 = (MapX - scrollX) * s + tx
-        // tx = -(MapX - scrollX) * s
 
         const mapX = (newRectX - fit.ox) / fit.s;
         const mapY = (newRectY - fit.oy) / fit.s;

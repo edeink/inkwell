@@ -1,7 +1,7 @@
-import { SCALE_CONFIG } from '../../config/constants';
-import { CustomComponentType } from '../../custom-widget/type';
+import { SCALE_CONFIG } from '../../constants';
+import { CustomComponentType } from '../../type';
 
-import type { MindMapViewport } from '../../custom-widget/mindmap-viewport';
+import type { MindMapViewport } from '../../widgets/mindmap-viewport';
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';
 

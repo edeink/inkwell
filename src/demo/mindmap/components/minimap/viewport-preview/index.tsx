@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { CustomComponentType } from '../../../custom-widget/type';
 import {
   connectorPathFromRects,
   ConnectorStyle,
   DEFAULT_CONNECTOR_OPTIONS,
   type Point,
 } from '../../../helpers/connection-drawer';
+import { CustomComponentType } from '../../../type';
 import { fitBounds, type Rect } from '../utils';
 
 import styles from './index.module.less';
 
 import type { Widget } from '@/core/base';
 
-import { useThemePalette } from '@/demo/mindmap/config/theme';
+import { useThemePalette } from '@/demo/mindmap/constants/theme';
 import { MindmapController } from '@/demo/mindmap/controller/index';
 
 const MINIMAP_PADDING = 15;
+void MINIMAP_PADDING;
 
 /**
  * ViewportPreview
@@ -43,7 +44,7 @@ export default function ViewportPreview({
   onFitChange,
 }: ViewportPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [_fit, setFit] = useState<{ s: number; ox: number; oy: number }>({ s: 1, ox: 0, oy: 0 });
+  const [, setFit] = useState<{ s: number; ox: number; oy: number }>({ s: 1, ox: 0, oy: 0 });
   const rafIdRef = useRef<number | null>(null);
   const lastDrawKeyRef = useRef<string>('');
   const palette = useThemePalette();
@@ -179,7 +180,7 @@ export default function ViewportPreview({
   const clear = useCallback(
     (ctx: CanvasRenderingContext2D) => {
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to clear full buffer
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换以清除完整缓冲区
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.fillStyle = background ?? palette.minimapBackgroundColor;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -198,11 +199,11 @@ export default function ViewportPreview({
       return;
     }
 
-    // Handle High DPI
+    // 处理高 DPI
     const dpr = window.devicePixelRatio || 1;
-    // We only update width/height if they mismatch to avoid clearing unnecessarily,
-    // but clear() is called anyway.
-    // Actually, setting width/height clears canvas, so we should check.
+    // 我们仅在宽高不匹配时更新，以避免不必要的清除，
+    // 但 clear() 无论如何都会被调用。
+    // 实际上，设置 width/height 会清空画布，所以我们需要检查。
     const logicalW = width;
     const logicalH = height;
     const pixelW = Math.round(logicalW * dpr);
@@ -215,7 +216,7 @@ export default function ViewportPreview({
 
     const root = getRoot();
     const bounds = computeContentBounds(root);
-    // Add padding (15px) for preview mode safety margin
+    // 添加填充 (15px) 作为预览模式的安全边距
     const nextFit = fitBounds(bounds, logicalW, logicalH, 15);
     const prevKey = lastDrawKeyRef.current;
     const curKey = `${nextFit.s.toFixed(3)}:${nextFit.ox.toFixed(1)}:${nextFit.oy.toFixed(1)}`;

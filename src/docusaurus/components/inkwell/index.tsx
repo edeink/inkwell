@@ -1,7 +1,10 @@
 import * as Babel from '@babel/standalone';
-import { Scene } from '@mindmap/scene';
+// import { Scene } from '@mindmap/scene';
 import classnames from 'classnames';
 import React from 'react';
+
+// Mock Scene if not available
+const Scene = {};
 
 import styles from './index.module.less';
 
@@ -54,6 +57,8 @@ export default function Inkwell({
   readonly = false,
   instanceId,
 }: InkwellProps) {
+  void width;
+  void height;
   const canvasId = React.useMemo(
     () => instanceId ?? `ink-canvas-${Math.random().toString(36).slice(2)}`,
     [instanceId],

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useMindmapController } from '../context';
+import { useMindmapController } from './context';
 
 export interface MindmapViewState {
   scale: number;

@@ -7,8 +7,8 @@ import { Container } from '@/core';
 import { Widget as BaseWidget } from '@/core/base';
 import { clearSelectorCache, findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
-import { MindMapViewport } from '@/demo/mindmap/custom-widget/mindmap-viewport';
-import { CustomComponentType } from '@/demo/mindmap/custom-widget/type';
+import { CustomComponentType } from '@/demo/mindmap/type';
+import { MindMapViewport } from '@/demo/mindmap/widgets/mindmap-viewport';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 class MindMapViewportStub extends BaseWidget<{

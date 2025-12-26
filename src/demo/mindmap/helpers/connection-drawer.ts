@@ -278,7 +278,14 @@ export function connectorPathFromRects(a: Rect, b: Rect, options: ConnectorPathO
 export function connectorPathFromRects(
   params: { left: Rect; right: Rect } & ConnectorPathOptions,
 ): Point[];
-export function connectorPathFromRects(arg1: any, arg2?: any, arg3?: any): Point[] {
+export function connectorPathFromRects(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arg1: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arg2?: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arg3?: any,
+): Point[] {
   if (arg2 === undefined) {
     const params = arg1 as { left: Rect; right: Rect } & ConnectorPathOptions;
     const opts = { ...DEFAULT_CONNECTOR_OPTIONS, ...params };

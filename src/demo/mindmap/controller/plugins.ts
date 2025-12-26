@@ -1,5 +1,5 @@
 import type { MindmapController } from './index';
-import type { MindMapViewport } from '../custom-widget/mindmap-viewport';
+import type { MindMapViewport } from '../widgets/mindmap-viewport';
 import type Runtime from '@/runtime';
 
 export type ControllerPluginHookContext = {
@@ -10,6 +10,7 @@ export type ControllerPluginHookContext = {
 
 export interface ControllerPlugin {
   id: string;
+  onInit?(): void;
   onAttach?(ctx: ControllerPluginHookContext): void;
   onDetach?(ctx: ControllerPluginHookContext): void;
   onPointerDown?(

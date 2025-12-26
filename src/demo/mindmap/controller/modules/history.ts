@@ -1,5 +1,5 @@
-import { Connector } from '../../custom-widget/connector';
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType } from '../../type';
+import { Connector } from '../../widgets/connector';
 
 import type { MindmapController } from '../index';
 import type { Widget } from '@/core/base';

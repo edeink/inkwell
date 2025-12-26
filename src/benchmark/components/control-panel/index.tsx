@@ -74,7 +74,7 @@ export default function ControlPanel({
   const [rangeEnd, setRangeEnd] = useState<number>(10000);
   const [rangeStep, setRangeStep] = useState<number>(100);
   const [preset, setPreset] = useState<PresetType>(PresetType.Common);
-  const [runOnce, setRunOnce] = useState(false);
+  const [runOnce] = useState(false);
 
   // Canvas 模式下的节点数
   const [canvasNodeCount, setCanvasNodeCount] = useState<number>(1000);

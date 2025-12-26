@@ -27,17 +27,14 @@ export function createRenderFlexUnboundedError(
   const scrollableType = direction === 'vertical' ? 'vertical scrollable' : 'horizontal scrollable';
 
   return new RenderFlexError(
-    `RenderFlex children have non-zero flex but incoming ${axis} constraints are unbounded.\n\n` +
-      `When a ${flexWidget} is in a parent that does not provide a finite ${axis} constraint, for example if it is ` +
-      `in a ${scrollableType}, it will try to shrink-wrap its children along the ${direction} axis. Setting a ` +
-      `flex on a child (e.g. using Expanded) indicates that the child is to expand to fill the remaining ` +
-      `space in the ${direction} direction.\n\n` +
-      `These two directives are mutually exclusive. If a parent is to shrink-wrap its child, the child ` +
-      `cannot simultaneously expand to fit its parent.\n\n` +
-      `Consider setting mainAxisSize to MainAxisSize.min and using FlexFit.loose fits for the flexible ` +
-      `children (using Flexible rather than Expanded). This will allow the flexible children to size ` +
-      `themselves to less than the infinite remaining space they would otherwise be forced to take, and ` +
-      `then will cause the RenderFlex to shrink-wrap the children rather than expanding to fit the maximum ` +
-      `constraints provided by the parent.`,
+    `RenderFlex 子组件具有非零的 flex 值，但传入的 ${axis} 约束是无界的。\n\n` +
+      `当 ${flexWidget} 处于不提供有限 ${axis} 约束的父组件中时，` +
+      `例如它在一个 ${scrollableType} 中，它将尝试沿 ${direction} 轴紧缩包裹其子组件。` +
+      `在子组件上设置 flex（例如使用 Expanded）表示该子组件将扩展以填充 ${direction} 方向上的剩余空间。\n\n` +
+      `这两个指令是互斥的。如果父组件要紧缩包裹其子组件，` +
+      `子组件就不能同时扩展以适应其父组件。\n\n` +
+      `请考虑将 mainAxisSize 设置为 MainAxisSize.min，并为灵活的子组件使用 FlexFit.loose 适配` +
+      `（使用 Flexible 而不是 Expanded）。这将允许灵活的子组件将其大小调整为小于它们原本被迫占据的无限剩余空间，` +
+      `从而使 RenderFlex 能够紧缩包裹子组件，而不是扩展以适应父组件提供的最大约束。`,
   );
 }

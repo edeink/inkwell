@@ -51,7 +51,7 @@ export function resolveEdgeInsets(value: PaddingValue | undefined): EdgeInsets {
  * Padding 组件 - 为子组件添加内边距
  */
 export class Padding extends Widget<PaddingProps> {
-  padding: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+  padding: Required<EdgeInsets> = { top: 0, right: 0, bottom: 0, left: 0 };
 
   constructor(data: PaddingProps) {
     super(data);
@@ -59,7 +59,13 @@ export class Padding extends Widget<PaddingProps> {
   }
 
   private initPaddingProperties(data: PaddingProps): void {
-    this.padding = resolveEdgeInsets(data.padding);
+    const resolved = resolveEdgeInsets(data.padding);
+    this.padding = {
+      top: resolved.top || 0,
+      right: resolved.right || 0,
+      bottom: resolved.bottom || 0,
+      left: resolved.left || 0,
+    };
   }
 
   createElement(data: PaddingProps): Widget<PaddingProps> {

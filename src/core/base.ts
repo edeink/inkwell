@@ -10,21 +10,21 @@ import {
   type TransformStep,
 } from './helper/transform';
 import { WidgetRegistry } from './registry';
-
-import type {
-  BoxConstraints,
-  BuildContext,
-  CursorType,
-  EventHandler,
-  FlexProperties,
-  Offset,
-  PointerEvents,
-  Ref,
-  RenderObject,
-  Size,
-  WidgetEventHandler,
-  WidgetProps,
+import {
+  type BoxConstraints,
+  type BuildContext,
+  type CursorType,
+  type EventHandler,
+  type FlexProperties,
+  type Offset,
+  type PointerEvents,
+  type Ref,
+  type Size,
+  type WidgetEventHandler,
+  type WidgetProps,
 } from './type';
+
+import type { RenderObject } from './type';
 import type Runtime from '@/runtime';
 
 export type {
@@ -679,8 +679,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   /**
    * 绘制组件自身
    */
-  protected paintSelf(_context: BuildContext) {
-    // 在子组实现
+  protected paintSelf(context: BuildContext): void {
+    void context;
+    // Default do nothing
+  }
+
+  protected paintChildren(context: BuildContext): void {
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      // 只有可见才绘制
+      // 这里可以做简单的视口剔除优化
+      child.paint(context);
+    }
   }
 
   protected didStateChange(): boolean {

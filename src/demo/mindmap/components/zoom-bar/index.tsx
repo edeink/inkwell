@@ -2,8 +2,8 @@ import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { InputNumber, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { SCALE_CONFIG } from '../../config/constants';
-import { useMindmapController } from '../../context';
+import { SCALE_CONFIG } from '../../constants';
+import { useMindmapController } from '../../hooks/context';
 import { useMindmapView } from '../../hooks/use-mindmap-view';
 
 import { quantize } from './helper';

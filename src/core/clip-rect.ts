@@ -1,6 +1,6 @@
 import { Widget } from './base';
 
-import type { BoxConstraints, BuildContext, Size, WidgetProps } from './base';
+import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from './base';
 
 export interface ClipRectProps extends WidgetProps {
   // No extra props needed for basic clipping
@@ -34,7 +34,9 @@ export class ClipRect extends Widget<ClipRectProps> {
     };
   }
 
-  protected positionChild(_childIndex: number, _childSize: Size): import('./type').Offset {
+  protected positionChild(childIndex: number, childSize: Size): Offset {
+    void childIndex;
+    void childSize;
     return { dx: 0, dy: 0 };
   }
 

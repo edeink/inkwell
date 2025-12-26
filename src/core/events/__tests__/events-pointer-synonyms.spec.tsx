@@ -8,7 +8,7 @@ import '@/core/registry';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-class SynWidget extends Widget<{ key?: string; type: string; width?: number; height?: number }> {
+class SynWidget extends Widget<{ key?: string; type?: string; width?: number; height?: number }> {
   width = 40;
   height = 30;
 
@@ -25,31 +25,21 @@ class SynWidget extends Widget<{ key?: string; type: string; width?: number; hei
   onPointerUp?(_e: InkwellEvent): boolean | void;
 }
 
-WidgetRegistry.registerType('SynWidget', SynWidget);
-
-function SynWidgetElement(props: {
-  key: string;
-  width?: number;
-  height?: number;
-  [k: string]: any;
-}) {
-  return props;
-}
-
 function buildTree() {
   const el = (
     <Container key="root" width={200} height={200}>
       <Container key="inner" width={120} height={120}>
-        <SynWidgetElement key="leaf" width={80} height={40} />
+        <SynWidget key="leaf" width={80} height={40} />
       </Container>
     </Container>
   );
+  WidgetRegistry.registerType('SynWidget', SynWidget);
   const data = compileElement(el);
   const root = WidgetRegistry.createWidget(data) as SynWidget;
   root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0] as SynWidget;
-  const leaf = inner.children[0] as SynWidget;
+  const leaf = inner?.children?.[0] as SynWidget;
   return { root, leaf };
 }
 

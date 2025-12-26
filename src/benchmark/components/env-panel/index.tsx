@@ -58,8 +58,9 @@ function formatResolution(w: number, h: number) {
 function collectEnv() {
   const ua = navigator.userAgent;
   const plat = navigator.platform;
-  const cores = (navigator as any).hardwareConcurrency ?? undefined;
-  const mem = (navigator as any).deviceMemory ?? undefined;
+  const cores =
+    (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? undefined;
+  const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? undefined;
   const dpr = window.devicePixelRatio;
   const screenSize = formatResolution(window.screen.width, window.screen.height);
   const lang = navigator.language;
@@ -123,11 +124,13 @@ export default function EnvPanel() {
   const items = useMemo(() => collectEnv(), []);
   const [battery, setBattery] = useState<string | null>(null);
   useEffect(() => {
-    const navAny = navigator as any;
+    const navAny = navigator as Navigator & {
+      getBattery?: () => Promise<{ level: number; charging: boolean }>;
+    };
     if (navAny.getBattery) {
       navAny
         .getBattery()
-        .then((b: any) => {
+        .then((b) => {
           if (!b) {
             return;
           }

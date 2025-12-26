@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { useMindmapController } from '../../context';
+import { useMindmapController } from '../../hooks/context';
 
 import HighlightOverlay from './highlight-overlay';
 import styles from './index.module.less';

@@ -10,12 +10,17 @@ export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<T
   }
   const tBuild0 = performance.now();
   const container = document.createElement('div');
-  container.style.cssText = `position:relative;display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start;`;
+  container.style.cssText =
+    'position:relative;display:flex;flex-wrap:wrap;' + 'gap:4px;align-items:flex-start;';
   for (let i = 0; i < count; i++) {
     const d = document.createElement('div');
-    const w = 4;
-    const h = 4;
-    d.style.cssText = `width:${w}px;height:${h}px;background:#888`;
+    d.style.cssText = `display:flex;width:100px;height:20px;margin-bottom:5px;background:#eee`;
+    const child1 = document.createElement('div');
+    child1.style.cssText = `flex:1;background:red`;
+    d.appendChild(child1);
+    const child2 = document.createElement('div');
+    child2.style.cssText = `flex:1;background:blue`;
+    d.appendChild(child2);
     container.appendChild(d);
   }
   const tBuild1 = performance.now();

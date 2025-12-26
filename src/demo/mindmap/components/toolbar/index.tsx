@@ -2,14 +2,14 @@ import { CloudDownloadOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import React, { useCallback, useMemo, useRef } from 'react';
 
-import { Connector } from '../../custom-widget/connector';
-import { MindMapNode } from '../../custom-widget/mindmap-node';
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType } from '../../type';
+import { Connector } from '../../widgets/connector';
+import { MindMapNode } from '../../widgets/mindmap-node';
 
 import styles from './index.module.less';
 
-import type { MindMapLayout } from '../../custom-widget/mindmap-layout';
-import type { MindMapViewport } from '../../custom-widget/mindmap-viewport';
+import type { MindMapLayout } from '../../widgets/mindmap-layout';
+import type { MindMapViewport } from '../../widgets/mindmap-viewport';
 import type Runtime from '@/runtime';
 
 import { findWidget } from '@/core/helper/widget-selector';

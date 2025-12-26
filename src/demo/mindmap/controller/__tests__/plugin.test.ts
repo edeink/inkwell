@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { MindMapViewport } from '../../custom-widget/mindmap-viewport';
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType } from '../../type';
+import { MindMapViewport } from '../../widgets/mindmap-viewport';
 import { MindmapController } from '../index';
 
 import type { ControllerPlugin } from '../plugins';

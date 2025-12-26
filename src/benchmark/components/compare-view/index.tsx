@@ -98,7 +98,7 @@ export default function CompareView({
       return '';
     }
     const diffs = computeDiff(baseline, results, thresholdPercent).filter((d) => d.degraded);
-    if (!diffs.length) {
+    if (diffs.length === 0) {
       return '<div>未检测到超过阈值的性能劣化。</div>';
     }
     const grouped = new Map<string, DiffMetric[]>();
@@ -113,12 +113,16 @@ export default function CompareView({
       const items = arr
         .map(
           (d) =>
-            `<li><strong>${d.field}</strong>: ${d.baseline.toFixed(2)} → <span style="color:#dc2626">${d.current.toFixed(2)} (${(d.deltaPercent * 100).toFixed(1)}%)</span></li>`,
-        ) // red
+            `<li><strong>${d.field}</strong>: ${d.baseline.toFixed(2)} → ` +
+            `<span style="color:#dc2626">${d.current.toFixed(2)} ` +
+            `(${(d.deltaPercent * 100).toFixed(1)}%)</span></li>`,
+        )
         .join('');
       return `<div><h4 style="margin:6px 0">${name} @ ${nodes}</h4><ul>${items}</ul></div>`;
     });
-    return `<div><h3 style="margin:6px 0;color:#dc2626">性能劣化警报（>${(thresholdPercent * 100).toFixed(0)}%）</h3>${rows.join('')}</div>`;
+    return `<div><h3 style="margin:6px 0;color:#dc2626">性能劣化警报（>${(
+      thresholdPercent * 100
+    ).toFixed(0)}%）</h3>${rows.join('')}</div>`;
   }, [showHistory, baseline, results, thresholdPercent]);
 
   return (

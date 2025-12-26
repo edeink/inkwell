@@ -1,4 +1,4 @@
-import { CustomComponentType } from '../../custom-widget/type';
+import { CustomComponentType } from '../../type';
 
 import type { MindmapController } from '../index';
 import type { Offset, Widget } from '@/core/base';

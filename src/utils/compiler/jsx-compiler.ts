@@ -16,7 +16,8 @@ export type AnyElement =
   | (React.ReactElement & { type: unknown; props: unknown; key?: unknown });
 
 function resolveTypeName(type: unknown): string {
-  const name = (type as { name?: string }).name ?? String(type);
+  const typeObj = type as { name?: string } | null | undefined;
+  const name = typeObj?.name ?? String(type);
   // 将 *Element 结尾的函数组件名映射为真实组件类型名
   if (name.endsWith('Element')) {
     return name.slice(0, -'Element'.length);

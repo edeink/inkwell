@@ -11,13 +11,13 @@ export function createAbsoluteDomNodes(stage: HTMLElement, count: number): Promi
   }
   const tBuild0 = performance.now();
   const frag = document.createDocumentFragment();
-  const stageW = stage.clientWidth || 800;
-  const stageH = stage.clientHeight || 600;
+  const cols = Math.ceil(Math.sqrt(count));
   for (let i = 0; i < count; i++) {
+    const x = (i % cols) * 10;
+    const y = Math.floor(i / cols) * 10;
     const d = document.createElement('div');
-    const x = Math.floor(Math.random() * Math.max(1, stageW - 4));
-    const y = Math.floor(Math.random() * Math.max(1, stageH - 4));
-    d.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:4px;height:4px;background:#888`;
+    d.style.cssText =
+      `position:absolute;left:${x}px;top:${y}px;` + `width:4px;height:4px;background:#888`;
     frag.appendChild(d);
   }
   const tBuild1 = performance.now();
