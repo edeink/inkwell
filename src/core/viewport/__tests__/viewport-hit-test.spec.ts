@@ -20,6 +20,11 @@ const mockContext: BuildContext = {
     drawRect: vi.fn(), // Add drawRect
     fillRect: vi.fn(), // Might be needed
     strokeRect: vi.fn(), // Might be needed
+    getRawInstance: vi.fn(() => ({
+      beginPath: vi.fn(),
+      rect: vi.fn(),
+      clip: vi.fn(),
+    })),
   } as any,
   worldMatrix: [1, 0, 0, 1, 0, 0],
 };

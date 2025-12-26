@@ -6,6 +6,7 @@
   "scripts": {
     "dev:test": "vite",
     "build": "tsc -b && vite build",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "stylelint --fix \"src/**/*.{css,less}\" && eslint --ext .js,.jsx,.ts,.tsx src/ --fix && prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
     "preview": "vite preview",
     "test": "vitest run",

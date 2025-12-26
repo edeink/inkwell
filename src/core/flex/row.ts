@@ -1,5 +1,5 @@
 import { Widget } from '../base';
-import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '../type';
+import { CrossAxisAlignment, FlexFit, MainAxisAlignment, MainAxisSize } from '../type';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '../base';
 
@@ -58,6 +58,102 @@ export class Row extends Widget<RowProps> {
   protected paintSelf(_context: BuildContext): void {
     // Row 组件本身不需要绘制任何内容，它只是一个布局容器
     // 子组件的绘制由基类的 paint 方法处理
+  }
+
+  /**
+   * 布局子组件
+   * 重写以实现 Flex 布局算法
+   */
+  protected layoutChildren(parentConstraints: BoxConstraints): Size[] {
+    const sizes: Size[] = new Array(this.children.length);
+    const flexChildren: { index: number; flex: number; fit: FlexFit }[] = [];
+
+    // 1. 布局非 Flex 子组件
+    //    优先计算非 Flex 组件的尺寸，这些组件使用其固有尺寸（intrinsic size）
+    //    同时收集 Flex 子组件的信息，以便后续分配剩余空间
+    let totalNonFlexWidth = 0;
+
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      // 检查子组件是否有 flex 属性，且 flex 值大于 0
+      if (child.flex && child.flex.flex !== undefined && child.flex.flex > 0) {
+        flexChildren.push({
+          index: i,
+          flex: child.flex.flex,
+          fit: child.flex.fit || FlexFit.Tight,
+        });
+        // Flex 子组件暂时不布局，先占位
+        sizes[i] = { width: 0, height: 0 };
+      } else {
+        // 非 Flex 子组件：给予松散约束 (0 ~ max)
+        // 它们只占据它们需要的空间
+        const childConstraints = this.getConstraintsForChild(parentConstraints, i);
+        sizes[i] = child.layout(childConstraints);
+        totalNonFlexWidth += sizes[i].width;
+      }
+    }
+
+    // 计算总间距
+    // 间距只存在于组件之间，所以是 (n-1) * spacing
+    const totalSpacing = Math.max(0, this.children.length - 1) * this.spacing;
+    totalNonFlexWidth += totalSpacing;
+
+    // 2. 计算剩余空间
+    // 从父容器的最大宽度中减去非 Flex 组件和间距占用的宽度
+    const maxWidth = parentConstraints.maxWidth;
+    let remainingWidth = 0;
+    if (isFinite(maxWidth)) {
+      remainingWidth = Math.max(0, maxWidth - totalNonFlexWidth);
+    } else {
+      // 如果父容器宽度无限（如在滚动容器中），Expanded 组件无法计算具体宽度
+      // 这种情况下通常应该报错或者设为 0
+      remainingWidth = 0;
+    }
+
+    // 3. 布局 Flex 子组件
+    // 根据 flex 系数分配剩余空间
+    const totalFlex = flexChildren.reduce((acc, c) => acc + c.flex, 0);
+
+    if (totalFlex > 0 && isFinite(maxWidth)) {
+      const spacePerFlex = remainingWidth / totalFlex;
+
+      for (const flexChild of flexChildren) {
+        const index = flexChild.index;
+        const child = this.children[index];
+        // 计算当前 Flex 子组件应分得的宽度
+        const flexSize = spacePerFlex * flexChild.flex;
+
+        // 获取基础约束（主要为了继承父级的高度约束）
+        const baseConstraints = this.getConstraintsForChild(parentConstraints, index);
+
+        // 创建 Flex 约束
+        // FlexFit.Tight (默认): 强制子组件宽度等于计算出的 flexSize (minWidth = maxWidth)
+        // FlexFit.Loose: 子组件宽度最大为 flexSize，但可以更小 (minWidth = 0)
+        const childConstraints: BoxConstraints = {
+          ...baseConstraints,
+          minWidth: flexChild.fit === FlexFit.Tight ? flexSize : 0,
+          maxWidth: flexSize,
+        };
+
+        sizes[index] = child.layout(childConstraints);
+      }
+    } else if (flexChildren.length > 0) {
+      // 边界情况：无剩余空间或父容器宽度无限
+      // 强制所有 Flex 子组件宽度为 0，防止溢出或计算错误
+      for (const flexChild of flexChildren) {
+        const index = flexChild.index;
+        const child = this.children[index];
+        const baseConstraints = this.getConstraintsForChild(parentConstraints, index);
+        const childConstraints: BoxConstraints = {
+          ...baseConstraints,
+          minWidth: 0,
+          maxWidth: 0,
+        };
+        sizes[index] = child.layout(childConstraints);
+      }
+    }
+
+    return sizes;
   }
 
   /**

@@ -210,45 +210,50 @@ export class Container extends Widget<ContainerProps> {
     const parentMinHeight = Math.max(0, constraints.minHeight - totalVertical);
     const parentMaxHeight = Math.max(0, constraints.maxHeight - totalVertical);
 
-    // 如果指定了固定尺寸，子组件的约束基于固定尺寸
-    if (this.width !== undefined && this.height !== undefined) {
-      const childWidth = Math.max(0, this.width - totalHorizontal);
-      const childHeight = Math.max(0, this.height - totalVertical);
+    // 计算子组件约束范围
+    let cMinWidth = parentMinWidth;
+    let cMaxWidth = parentMaxWidth;
+    let cMinHeight = parentMinHeight;
+    let cMaxHeight = parentMaxHeight;
 
-      // 如果有 alignment，则子组件约束为松散的（0~max）
-      if (this.alignment) {
-        return {
-          minWidth: 0,
-          maxWidth: childWidth,
-          minHeight: 0,
-          maxHeight: childHeight,
-        };
-      }
+    // 应用自身 min/max 约束
+    cMinWidth = Math.max(cMinWidth, selfMinWidth);
+    cMaxWidth = Math.min(cMaxWidth, selfMaxWidth);
+    cMinHeight = Math.max(cMinHeight, selfMinHeight);
+    cMaxHeight = Math.min(cMaxHeight, selfMaxHeight);
 
-      return {
-        minWidth: childWidth,
-        maxWidth: childWidth,
-        minHeight: childHeight,
-        maxHeight: childHeight,
-      };
+    // 独立应用 width 约束：即使 height 未定义，也要强制应用 width
+    // 修复：之前只有当 width 和 height 都定义时才应用紧约束，导致仅设置 width 时约束失效
+    if (this.width !== undefined) {
+      const w = Math.max(0, this.width - totalHorizontal);
+      cMinWidth = w;
+      cMaxWidth = w;
     }
 
-    // 如果有 alignment，也返回松散约束
+    // 独立应用 height 约束
+    if (this.height !== undefined) {
+      const h = Math.max(0, this.height - totalVertical);
+      cMinHeight = h;
+      cMaxHeight = h;
+    }
+
+    // 如果有 alignment，则子组件约束为松散的（0~max）
+    // 注意：alignment 会使 min 约束变为 0，允许子组件小于父组件
     if (this.alignment) {
       return {
         minWidth: 0,
-        maxWidth: parentMaxWidth,
+        maxWidth: cMaxWidth,
         minHeight: 0,
-        maxHeight: parentMaxHeight,
+        maxHeight: cMaxHeight,
       };
     }
 
-    // 否则，传递调整后的约束（交集）
+    // 否则，传递严格约束（如果是固定尺寸）或范围约束
     return {
-      minWidth: Math.max(parentMinWidth, selfMinWidth),
-      maxWidth: Math.min(parentMaxWidth, selfMaxWidth),
-      minHeight: Math.max(parentMinHeight, selfMinHeight),
-      maxHeight: Math.min(parentMaxHeight, selfMaxHeight),
+      minWidth: cMinWidth,
+      maxWidth: cMaxWidth,
+      minHeight: cMinHeight,
+      maxHeight: cMaxHeight,
     };
   }
 

@@ -7,17 +7,24 @@ import { Center, Column, Container, MainAxisSize, Text, TextAlign } from '@/core
 export const DemoCard = ({
   title,
   children,
-  width = 200,
+  width = 300,
+  autoWidth = false,
 }: {
   title: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children: any;
   width?: number;
+  /**
+   * 是否自动计算宽度。
+   * 如果为 true，则忽略 width 属性，允许卡片根据父容器约束自适应宽度。
+   * 这对于 Wrap 等响应式布局是必须的。
+   */
+  autoWidth?: boolean;
 }) => (
   <Column key={`card-${title}`} spacing={8} mainAxisSize={MainAxisSize.Min}>
     <Container
       key={`card-bg-${title}`}
-      width={width}
+      width={autoWidth ? undefined : width}
       padding={16}
       color={Colors.Background.Card}
       borderRadius={8}

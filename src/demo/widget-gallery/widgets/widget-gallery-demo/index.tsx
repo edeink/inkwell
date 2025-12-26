@@ -5,17 +5,18 @@ import { Section } from '../section';
 
 import {
   Center,
-  ClipRect,
   Column,
   Container,
   Expanded,
   Image,
   ImageFit,
+  Padding,
   Positioned,
   Row,
   SizedBox,
   Stack,
   Text,
+  TextAlign,
   Wrap,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
@@ -55,7 +56,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           />
         </Column>
 
-        {/* 1. 基础布局组件 (Container & Padding) */}
+        {/* 基础布局组件 (Container & Padding) */}
         <Section title="1. 基础容器 (Container & Padding)">
           <Row key="container-examples" spacing={20} mainAxisSize={MainAxisSize.Min}>
             {/* 基础容器 */}
@@ -103,7 +104,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </Row>
         </Section>
 
-        {/* 2. 弹性布局 (Row & Column) */}
+        {/* 弹性布局 (Row & Column) */}
         <Section title="2. 弹性布局 (Row & Column)">
           <Column key="flex-examples" spacing={16} mainAxisSize={MainAxisSize.Min}>
             <DemoCard title="水平布局: 两端对齐" width={400}>
@@ -172,7 +173,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </Column>
         </Section>
 
-        {/* 3. 层叠布局 (Stack & Positioned) */}
+        {/* 层叠布局 (Stack & Positioned) */}
         <Section title="3. 层叠布局 (Stack & Positioned)">
           <DemoCard title="头像角标示例">
             <Container
@@ -218,40 +219,10 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </DemoCard>
         </Section>
 
-        {/* 4. 裁剪 (ClipRect) */}
-        <Section title="4. 区域裁剪 (ClipRect)">
-          <DemoCard title="溢出隐藏">
-            <Container
-              key="clip-wrapper"
-              width={100}
-              height={100}
-              color={Colors.Background.Base}
-              borderRadius={8}
-            >
-              <ClipRect key="clip-demo">
-                <Container
-                  key="clipped-content"
-                  width={150}
-                  height={150}
-                  color={Colors.Warning}
-                  borderRadius={75}
-                  margin={{ left: 25, top: 25 }} // 将圆形中心移到容器中心，部分被裁剪
-                />
-              </ClipRect>
-            </Container>
-          </DemoCard>
-        </Section>
-
-        {/* 5. 自动伸缩 (Expanded) */}
+        {/* 自动伸缩 (Expanded) */}
         <Section title="5. 自动伸缩 (Expanded)">
           <DemoCard title="填充剩余空间" width={400}>
-            <Container
-              key="expanded-container"
-              width={360}
-              height={50}
-              color={Colors.Background.Base}
-              borderRadius={4}
-            >
+            <Container key="expanded-container" color={Colors.Background.Base} borderRadius={4}>
               <Row key="expanded-row" mainAxisSize={MainAxisSize.Max}>
                 <Container key="fixed-left" width={60} height={50} color={Colors.Primary} />
                 <Expanded key="expanded-middle" flex={{ flex: 1 }}>
@@ -267,18 +238,17 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </DemoCard>
         </Section>
 
-        {/* 6. 流式布局 (Wrap) */}
+        {/* 流式布局 (Wrap) */}
         <Section title="6. 流式布局 (Wrap)">
-          <DemoCard title="自动换行布局">
+          <DemoCard title="自动换行布局 (响应式宽度)">
             <Container
               key="wrap-container"
-              width={300}
               color={Colors.Background.Base}
               padding={10}
               borderRadius={4}
             >
               <Wrap key="wrap-demo" spacing={10} runSpacing={10}>
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
                   <Container
                     key={`wrap-item-${i}`}
                     width={80}
@@ -301,7 +271,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </DemoCard>
         </Section>
 
-        {/* 7. 图片组件 (Image) */}
+        {/* 图片组件 (Image) */}
         <Section title="7. 图片展示 (Image)">
           <DemoCard title="图片填充模式">
             <Row key="image-row" spacing={20} mainAxisSize={MainAxisSize.Min}>
@@ -336,7 +306,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </DemoCard>
         </Section>
 
-        {/* 8. 间距组件 (SizedBox) */}
+        {/* 间距组件 (SizedBox) */}
         <Section title="8. 间距组件 (SizedBox)">
           <DemoCard title="固定间距">
             <Row key="sizedbox-row" mainAxisSize={MainAxisSize.Min}>
@@ -346,23 +316,13 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
             </Row>
           </DemoCard>
         </Section>
-        {/* 9. 滚动视图 (ScrollView) */}
+
+        {/* 滚动视图 (ScrollView) */}
         <Section title="9. 滚动视图 (ScrollView)">
           <DemoCard title="可滚动内容">
-            <Container
-              key="scroll-container-wrapper"
-              width={200}
-              height={150}
-              border={{ width: 1, color: Colors.Border }}
-            >
+            <Container key="scroll-container-wrapper" border={{ width: 1, color: Colors.Border }}>
               <ScrollView key="inner-scroll-view" width={200} height={150}>
                 <Column key="scroll-col" spacing={10} padding={10} mainAxisSize={MainAxisSize.Min}>
-                  <Text
-                    key="scroll-desc"
-                    text="ScrollView 是 ClipRect 和 Expanded 的替代方案，用于处理溢出内容。"
-                    fontSize={12}
-                    color={Colors.Text.Body}
-                  />
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                     <Container
                       key={`scroll-item-${i}`}
@@ -387,7 +347,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
           </DemoCard>
         </Section>
 
-        {/* 10. 交互演示 (Interaction) */}
+        {/* 交互演示 (Interaction) */}
         <Section title="10. 交互演示 (Interaction)">
           <DemoCard title="点击与光标">
             <Row key="interaction-row" spacing={20} mainAxisSize={MainAxisSize.Min}>
@@ -420,6 +380,16 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
             </Row>
           </DemoCard>
         </Section>
+
+        <Padding padding={[20, 0]}>
+          <Text
+            textAlign={TextAlign.Center}
+            key="scroll-end"
+            text="已经到达底部，没有更多了"
+            fontSize={12}
+            color={Colors.Text.Body}
+          />
+        </Padding>
       </Column>
     </Container>
   </ScrollView>

@@ -21,6 +21,13 @@ export interface ScrollViewProps extends ViewportProps {
   scrollBarWidth?: number;
 
   /**
+   * 控制内容溢出显示行为
+   * 'hidden': 裁剪超出视口的内容 (默认)
+   * 'visible': 显示超出视口的内容
+   */
+  overflow?: 'hidden' | 'visible';
+
+  /**
    * 是否开启弹性滚动
    * @default false
    */
@@ -66,6 +73,14 @@ export interface ScrollViewProps extends ViewportProps {
   bounceDamping?: number;
 }
 
+import {
+  applySteps,
+  composeSteps,
+  IDENTITY_MATRIX,
+  multiply,
+  type TransformStep,
+} from '@/core/helper/transform';
+
 export class ScrollView extends Viewport {
   protected _contentSize: Size = { width: 0, height: 0 };
   protected _showScrollbarX = false;
@@ -81,6 +96,58 @@ export class ScrollView extends Viewport {
 
   constructor(public data: ScrollViewProps) {
     super(data);
+  }
+
+  /**
+   * 重写 paint 方法以支持 overflow 裁剪
+   */
+  paint(context: import('../base').BuildContext): void {
+    // 1. Apply Self Transform (Position in Parent)
+    const steps = this.getSelfTransformSteps();
+    const local = composeSteps(steps);
+    const prev = context.worldMatrix ?? IDENTITY_MATRIX;
+    const next = multiply(prev, local);
+    this._worldMatrix = next;
+
+    context.renderer?.save?.();
+    applySteps(context.renderer, steps);
+
+    // 2. Paint Self (Background, Scrollbars, etc.)
+    this.paintSelf({ ...context, worldMatrix: next });
+
+    // 3. Clipping logic (Added for ScrollView)
+    // 默认为 hidden，除非显式设置为 visible
+    if (this.data.overflow !== 'visible') {
+      const { width, height } = this.renderObject.size;
+      // 只有当尺寸有效时才裁剪
+      if (width > 0 && height > 0) {
+        const ctx = context.renderer.getRawInstance() as CanvasRenderingContext2D | null;
+        if (ctx) {
+          ctx.beginPath();
+          ctx.rect(0, 0, width, height);
+          ctx.clip();
+        }
+      }
+    }
+
+    // 4. Apply View Transform (Scale, Tx, Ty) for Children
+    // Matrix Order: T * S * p (Scale first, then Translate)
+    const viewSteps: TransformStep[] = [
+      { t: 'translate', x: this._tx, y: this._ty },
+      { t: 'scale', sx: this._scale, sy: this._scale },
+    ];
+
+    applySteps(context.renderer, viewSteps);
+    const viewLocal = composeSteps(viewSteps);
+    const childMatrix = multiply(next, viewLocal);
+
+    // 5. Paint Children
+    const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
+    for (const child of children) {
+      child.paint({ ...context, worldMatrix: childMatrix });
+    }
+
+    context.renderer?.restore?.();
   }
 
   // 判断是否应触发回弹

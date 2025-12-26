@@ -233,8 +233,9 @@ export class TextLayout {
         line = layout.lines[i];
         // If index is exactly endIndex, prefer this line unless it's wrapped?
         // Standard behavior: if wrap happened, endIndex of line N is startIndex of line N+1.
-        // We need to decide where cursor goes. Usually it stays on line N if it's after the last char,
-        // but if it's before first char of next line, it's line N+1.
+        // We need to decide where cursor goes. Usually it stays on line N
+        // if it's after the last char, but if it's before first char of next line,
+        // it's line N+1.
         // Since we store startIndex inclusive, endIndex exclusive (or inclusive?), let's check.
         // Code: endIndex = startIndex + length. So endIndex is exclusive.
         // So if index == endIndex, it technically belongs to next line start.
