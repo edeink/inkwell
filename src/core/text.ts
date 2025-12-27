@@ -360,9 +360,6 @@ export class Text extends Widget<TextProps> {
         }
         lines[lastLineIndex] = lastLine + '...';
         lineWidths[lastLineIndex] = ctx.measureText(lines[lastLineIndex]).width;
-        // 省略号截断时，简单更新结束索引，虽然无法精确映射到原始文本，但保持区间连续性
-        // 我们不严格更新索引，因为这是视觉上的截断
-        const originalEnd = lineIndices[lastLineIndex].end;
         // 尝试缩短范围
         lineIndices[lastLineIndex].end = lineIndices[lastLineIndex].start + lastLine.length;
       }

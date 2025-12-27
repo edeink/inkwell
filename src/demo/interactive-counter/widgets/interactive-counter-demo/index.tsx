@@ -1,16 +1,17 @@
 /** @jsxImportSource @/utils/compiler */
-import { DemoButton } from '../demo-button';
+import { ClassButton } from '../class-button';
 import { FunctionalButton } from '../functional-button';
+import { PerformanceMonitor } from '../performance-monitor';
+import { RawButton } from '../raw-button';
 
 import {
-  Center,
-  Container,
+  Column,
+  MainAxisAlignment,
   MainAxisSize,
+  Padding,
   Row,
   StatefulWidget,
   Text,
-  TextAlign,
-  TextAlignVertical,
   type WidgetProps,
 } from '@/core';
 
@@ -18,74 +19,81 @@ export interface InteractiveCounterDemoProps extends WidgetProps {}
 
 export interface InteractiveCounterDemoState {
   count: number;
-  tips: string;
   [key: string]: unknown;
 }
 
+/**
+ * 交互式计数器示例
+ *
+ * 展示了：
+ * 1. 不同类型的组件实现 (Class, Functional, Raw)
+ * 2. 状态管理与 Ref 通信
+ * 3. 性能监控与渲染优化
+ */
 export class InteractiveCounterDemo extends StatefulWidget<
   InteractiveCounterDemoProps,
   InteractiveCounterDemoState
 > {
-  private btnRef: DemoButton | null = null;
+  private monitorRef: PerformanceMonitor | null = null;
 
-  constructor(data: InteractiveCounterDemoProps) {
-    super(data);
-    this.state = {
-      count: 0,
-      tips: '+1',
-    };
-  }
+  state: InteractiveCounterDemoState = {
+    count: 0,
+  };
 
+  /**
+   * 统一的点击处理函数
+   */
   private onInc = (): void => {
-    console.log('[计数器] onInc 被调用');
-    const cur = this.state.count;
-    this.setState({ count: cur + 1 });
-    // 触发子组件更新
-    if (this.btnRef) {
-      this.btnRef.changeColor();
+    // 更新自身状态
+    this.setState({ count: this.state.count + 1 });
+
+    // 性能监控器闪烁
+    if (this.monitorRef) {
+      this.monitorRef.flash();
     }
   };
 
   render() {
-    console.log('[计数器] render 被调用');
     return (
-      <Row key="counter-root" spacing={16} mainAxisSize={MainAxisSize.Max}>
-        <DemoButton ref={(r: unknown) => (this.btnRef = r as DemoButton)} onClick={this.onInc}>
-          <Text
-            key="counter-btn-text-02"
-            text={String(this.state.tips)}
-            fontSize={16}
-            color="#ffffff"
-            textAlign={TextAlign.Center}
-            textAlignVertical={TextAlignVertical.Center}
-          />
-        </DemoButton>
-        {/* 片段 2 */}
-        <Container
-          key="counter-btn"
-          width={180}
-          height={48}
-          color={'#1677ff'}
-          borderRadius={8}
-          onClick={this.onInc}
-        >
-          <Center>
-            <Text
-              key="counter-btn-text"
-              text="点击 +1"
-              fontSize={16}
-              color="#ffffff"
-              textAlign={TextAlign.Center}
-              textAlignVertical={TextAlignVertical.Center}
+      <Padding padding={24}>
+        <Row spacing={24}>
+          <Column
+            key="root-column"
+            spacing={24}
+            mainAxisSize={MainAxisSize.Min}
+            mainAxisAlignment={MainAxisAlignment.Center}
+          >
+            {/* 方案 A: Class Component */}
+            <ClassButton onClick={this.onInc}>
+              <Text key="btn-text-class" text=" Btn" fontSize={16} color="#ffffff" />
+            </ClassButton>
+
+            {/* 方案 B: Functional Component */}
+            <FunctionalButton onClick={this.onInc} />
+
+            {/* 方案 C: Raw Widget (Custom Paint) */}
+            <RawButton key="raw-btn" onClick={this.onInc} />
+          </Column>
+
+          <Column spacing={24}>
+            {/* 1. 性能监控区 */}
+            <PerformanceMonitor
+              key="perf-monitor"
+              ref={(r: unknown) => (this.monitorRef = r as PerformanceMonitor)}
+              externalCount={this.state.count}
             />
-          </Center>
-        </Container>
 
-        {/* 功能按钮 (New) */}
-        <FunctionalButton onClick={this.onInc} />
-
-        <Text key="counter-text" text={`计数: ${this.state.count}`} fontSize={24} color="#333333" />
-      </Row>
+            {/* 3. 状态展示区 */}
+            <Text
+              key="counter-display"
+              text={`Total Clicks: ${this.state.count}`}
+              fontSize={20}
+              color="#333333"
+              fontWeight="bold"
+            />
+          </Column>
+        </Row>
+      </Padding>
     );
   }
 }

@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { describe, expect, it, vi } from 'vitest';
 
-import { DemoButton as Button } from '../widgets/demo-button';
+import { ClassButton as Button } from '../widgets/class-button';
 
 import { Text, Widget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';

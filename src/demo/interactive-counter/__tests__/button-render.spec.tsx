@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { describe, expect, it } from 'vitest';
 
-import { DemoButton as Button } from '../widgets/demo-button';
+import { ClassButton as Button } from '../widgets/class-button';
 
 import { Center, Widget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -13,7 +13,7 @@ describe('ButtonElement 渲染与递归编译', () => {
     const json = compileElement(<Button />);
     const btn = WidgetRegistry.createWidget(json)!;
     btn.createElement(btn.data);
-    expect(btn.type).toBe('DemoButton');
+    expect(btn.type).toBe('ClassButton');
     expect(btn.children.length).toBeGreaterThan(0);
     const child = btn.children[0];
     expect(child.type).toBe('Container');
@@ -29,7 +29,7 @@ describe('ButtonElement 渲染与递归编译', () => {
     const root = WidgetRegistry.createWidget(json)!;
     root.createElement(root.data);
     const btn = root.children[0];
-    expect(btn.type).toBe('DemoButton');
+    expect(btn.type).toBe('ClassButton');
     expect(btn.children.length).toBeGreaterThan(0);
     const container = findWidget(root, '#counter-btn') as Widget | null;
     expect(container).not.toBeNull();

@@ -20,40 +20,34 @@ export interface ButtonState {
   [key: string]: unknown;
 }
 
-export class DemoButton extends StatefulWidget<ButtonProps, ButtonState> {
-  state: ButtonState = {
-    color: '#1677ff',
-  };
-
-  changeColor() {
-    const cur = this.state.color;
-    const colors = ['#1677ff', '#52c41a', '#faad14', '#f5222d'];
-    const nextColor = colors[(colors.indexOf(cur) + 1) % colors.length];
-    this.setState({
-      color: nextColor,
-    });
-  }
-
+/**
+ * 基于 Class 的按钮组件 (StatefulWidget)
+ *
+ * 演示特性：
+ * 1. 组件继承自 StatefulWidget
+ * 3. 实现了 render 方法返回 JSX
+ */
+export class ClassButton extends StatefulWidget<ButtonProps, ButtonState> {
   render() {
-    console.log('[按钮] render 被调用');
     return (
       <Container
         key="counter-btn"
         width={180}
         height={48}
-        color={this.state.color}
+        color={'#1677ff'}
         borderRadius={8}
         onClick={this.props.onClick}
       >
         <Row mainAxisAlignment={MainAxisAlignment.Center}>
           <Text
             key="counter-btn-text-01"
-            text="点击"
+            text="Class"
             fontSize={16}
             color="#ffffff"
             textAlign={TextAlign.Center}
             textAlignVertical={TextAlignVertical.Center}
           />
+
           {this.props.children}
         </Row>
       </Container>

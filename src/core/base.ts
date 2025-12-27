@@ -200,6 +200,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       if (this.shallowDiff(a, b)) {
         return true;
       }
+      if (a['children'] !== b['children']) {
+        return true;
+      }
     }
     return false;
   }
@@ -506,6 +509,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       this.markNeedsLayout();
     } else if (this.children.length > 0) {
       this.children = [];
+      this.markNeedsLayout();
+    } else if (propsChanged) {
+      // 如果没有子节点但属性发生了变化（如 Text 组件），也需要重新布局
       this.markNeedsLayout();
     }
 

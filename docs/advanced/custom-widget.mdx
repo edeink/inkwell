@@ -163,19 +163,99 @@ export class Circle extends Widget<CircleProps> {
 
 ---
 
-## 两种方式对比
+## 4. 实战案例：Interactive Counter 组件对比
 
-| 特性 | 组合方式 (`render`) | 自定义渲染 (`paintSelf`) |
-|------|-------------------|------------------------|
-| **基类** | `StatefulWidget` / `StatelessWidget` | `Widget` |
-| **核心方法** | `render()` | `performLayout()`, `paintSelf()` |
-| **布局能力** | 依赖子组件的布局 | 需手动计算自身尺寸 (`BoxConstraints` -> `Size`) |
-| **绘制能力** | 依赖子组件的绘制 | 直接操作 Canvas API (`renderer.draw*`) |
-| **复杂度** | 低 | 高 |
-| **灵活性** | 中 | 极高 |
+在 `src/demo/interactive-counter` 示例中，展示了三种不同的组件实现方式来构建同一个按钮功能。这有助于理解不同方式的特性和适用场景。
 
-## 与父组件交互的最佳实践
+### 4.1 Class Component (`ClassButton`)
+- **路径**: `widgets/class-button/index.tsx`
+- **特点**: 标准的 `StatefulWidget`。
+- **优势**: 完整的生命周期支持，可以使用 `setState` 管理内部状态（如 hover 态）。
+- **实现**: `render()` 方法返回 `Container` 和 `Text` 的组合。
 
-1.  **Props 传递**：通过构造函数和 `props` 传递配置。
-2.  **事件回调**：支持标准的 `on*` 事件属性（如 `onClick`）。在自定义渲染组件中，只要组件占据了空间（Layout 正确），事件系统就能自动命中它。
-3.  **状态提升**：尽量将状态管理放在父组件（StatefulWidget）中，通过 Props 控制子组件（StatelessWidget 或 Custom Widget）的表现。
+### 4.2 Functional Component (`FunctionalButton`)
+- **路径**: `widgets/functional-button/index.tsx`
+- **特点**: 无状态函数。
+- **优势**: 写法极其简洁，无 `this` 上下文负担。
+- **实现**: 仅仅是一个返回 JSX 的函数。
+
+### 4.3 Raw Widget (`RawButton`)
+- **路径**: `widgets/raw-button/index.ts`
+- **特点**: 直接继承 `Widget`，无 `render` 方法。
+- **优势**: 极致的性能控制，直接操作 Canvas 指令，无子组件树开销。
+- **实现**: 实现了 `performLayout` (计算尺寸) 和 `paintSelf` (绘制矩形和文字)。
+
+---
+
+## 5. 注意事项：事件绑定的双重触发
+
+在开发自定义 `Raw Widget`（直接继承 `Widget`）时，需要特别注意事件处理的实现方式，否则可能导致事件回调被重复执行。
+
+### 现象
+如果在组件类中定义了 `onClick` 等事件处理方法，并且在该方法中手动调用了 `this.props.onClick`，会导致回调函数被执行两次。
+
+### 原因
+Inkwell 的事件分发机制 (`dispatcher`) 和自动绑定机制 (`bindEventsIfNeeded`) 会协同工作，导致潜在的冲突：
+
+1.  **自动绑定**：基类 `Widget` 会自动扫描 `props` 中的 `on[Event]` 属性（如 `onClick`），并将其注册到事件系统 (`EventRegistry`)。
+2.  **方法优先**：事件分发时，系统会优先查找并调用组件实例上定义的同名方法（如 `onClick(e)`）。
+3.  **双重执行**：
+    *   第一步：系统调用实例方法 `onClick(e)`。如果该方法内手动调用了 `this.props.onClick(e)`，则回调第一次执行。
+    *   第二步：系统继续处理注册表中的监听器，自动注册的 `this.props.onClick` 会被再次调用，导致回调第二次执行。
+
+### 示例代码
+
+```typescript
+export class RawButton extends Widget<RawButtonProps> {
+  // ...
+
+  // ❌ 错误示范：会导致双重触发
+  onClick(e: InkwellEvent) {
+    // 可以在这里执行内部逻辑
+    console.log('Internal logic');
+    
+    // 警告：手动调用 props 回调会导致重复！
+    // 因为基类已经自动为你注册了这个回调
+    this.props.onClick?.(e); 
+  }
+  
+  // 结果：this.props.onClick 被执行了两次
+}
+```
+
+### 最佳实践建议
+
+1.  **推荐：完全依赖自动绑定**
+    *   不要在组件类中定义 `onClick` 等事件方法。
+    *   直接依靠基类的自动机制，将 `props.onClick` 注册为事件处理函数。
+    
+    ```typescript
+    // ✅ 推荐做法
+    export class RawButton extends Widget<RawButtonProps> {
+      // 不定义 onClick 方法
+    }
+    ```
+
+2.  **仅处理内部逻辑**
+    *   如果确实需要定义 `onClick` 来执行组件内部逻辑（如改变内部状态），请勿调用 `this.props.onClick`。
+    
+    ```typescript
+    // ✅ 仅处理内部逻辑
+    onClick(e: InkwellEvent) {
+       this._active = true;
+       this.markNeedsPaint();
+       // 不要调用 this.props.onClick，让事件系统自动去调用它
+    }
+    ```
+
+3.  **添加开发警告**
+    *   如果在开发底层组件时担心误用，可以参考 `RawButton` 的实现，添加检测逻辑：
+
+    ```typescript
+    onClick(e: InkwellEvent) {
+      if (this.props.onClick) {
+        console.warn('检测到双重事件绑定，建议仅保留一种实现方式');
+      }
+      this.props.onClick?.(e);
+    }
+    ```

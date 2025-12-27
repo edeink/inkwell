@@ -30,7 +30,7 @@ interface DemoConfig {
 }
 
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState('widget-gallery');
+  const [activeKey, setActiveKey] = useState('interactive-counter');
   const [theme, setTheme] = useState<ThemeType>('light');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [demoContext, setDemoContext] = useState<any>(null);
