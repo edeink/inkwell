@@ -35,18 +35,6 @@ export interface MindMapViewportProps extends ViewportProps {
   onActiveKeyChange?: (key: string | null) => void;
 }
 
-function pointerIdOf(native?: Event): number {
-  const p = native as PointerEvent | undefined;
-  if (p && typeof p.pointerId === 'number') {
-    return p.pointerId;
-  }
-  const t = native as TouchEvent | undefined;
-  if (t && t.changedTouches && t.changedTouches.length > 0) {
-    return t.changedTouches[0].identifier;
-  }
-  return -1;
-}
-
 /**
  * 视口（Viewport）
  * 模块功能说明：
@@ -67,16 +55,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   private _collapsedKeys: string[] = [];
 
   private pinchState: {
-    id1: number;
-    id2: number;
     startD: number;
     startScale: number;
     cx: number;
     cy: number;
   } | null = null;
-
-  private pointers: Map<number, { x: number; y: number; clientX: number; clientY: number }> =
-    new Map();
 
   private selectAllActive: boolean = false;
 
@@ -286,19 +269,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   onPointerDown(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
-    const pid = pointerIdOf(e?.nativeEvent);
     const pe = e?.nativeEvent as PointerEvent | undefined;
-    this.pointers.set(pid, {
-      ...world,
-      clientX: pe?.clientX ?? 0,
-      clientY: pe?.clientY ?? 0,
-    });
-
-    // 捏合缩放逻辑
-    if (this.tryStartPinch()) {
-      this._selectionRect = null;
-      return false;
-    }
 
     const ctrlLike = !!(pe && (pe.ctrlKey || pe.metaKey));
     const leftBtn = !!(pe && pe.buttons & 1);
@@ -322,20 +293,16 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   onPointerMove(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
-    const pid = pointerIdOf(e?.nativeEvent);
-    const pe = e?.nativeEvent as PointerEvent | undefined;
 
-    if (this.pointers.has(pid)) {
-      this.pointers.set(pid, {
-        ...world,
-        clientX: pe?.clientX ?? 0,
-        clientY: pe?.clientY ?? 0,
-      });
-    }
-
-    if (this.updatePinchZoom()) {
+    // 双指缩放处理
+    const ne = e.nativeEvent as TouchEvent | undefined;
+    if (ne && ne.touches && ne.touches.length === 2) {
+      this.handlePinchMove(ne.touches);
       return false;
+    } else {
+      this.pinchState = null;
     }
+
     if (this.selectAllActive) {
       return false;
     }
@@ -351,13 +318,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   onPointerUp(e: InkwellEvent): boolean | void {
-    const pid = pointerIdOf(e?.nativeEvent);
-    if (pid !== -1) {
-      this.pointers.delete(pid);
-    }
-    if (this.stopPinchIfPointer(pid)) {
-      return false;
-    }
+    // 简单处理：释放时清理状态
+    this.pinchState = null;
+
     if (this.selectAllActive) {
       this.selectAllActive = false;
       return false;
@@ -437,80 +400,34 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   // --- 辅助方法 (捏合缩放 & 框选) ---
 
-  private tryStartPinch(): boolean {
-    if (this.pointers.size !== 2) {
-      return false;
-    }
-    const pts = Array.from(this.pointers.entries());
-    const p1 = pts[0];
-    const p2 = pts[1];
-
-    const t1 = p1[1];
-    const t2 = p2[1];
-
+  private handlePinchMove(touches: TouchList) {
+    const t1 = touches[0];
+    const t2 = touches[1];
     const dx = t1.clientX - t2.clientX;
     const dy = t1.clientY - t2.clientY;
     const d = Math.sqrt(dx * dx + dy * dy);
 
-    // 计算相对于视口组件的中心点
-    // 我们需要将客户端坐标转换为本地坐标以便进行缩放操作
-    // 由于无法直接访问 DOM 节点，我们使用存储的世界坐标进行逆向计算
-    // 之前的方法使用 getBoundingClientRect 进行调整，但这里我们使用已经计算好的世界坐标
-
-    // 重新从世界坐标计算本地坐标
-    const w1 = t1;
-    const w2 = t2;
-
-    const centerWorldX = (w1.x + w2.x) / 2;
-    const centerWorldY = (w1.y + w2.y) / 2;
-
-    // 将世界坐标中心点转换为本地坐标中心点
-    const localCx = (centerWorldX - this._scrollX) * this.scale + this._tx;
-    const localCy = (centerWorldY - this._scrollY) * this.scale + this._ty;
-
-    this.pinchState = {
-      id1: p1[0],
-      id2: p2[0],
-      startD: d,
-      startScale: this.scale,
-      cx: localCx,
-      cy: localCy,
-    };
-    return true;
-  }
-
-  private updatePinchZoom(): boolean {
     if (!this.pinchState) {
-      return false;
-    }
-    if (this.pointers.size < 2) {
-      return false;
-    }
+      // 开始缩放
+      // 计算两个手指的中心点（Canvas 像素坐标）
+      const p1 = this.getLocalCoords(t1 as unknown as MouseEvent);
+      const p2 = this.getLocalCoords(t2 as unknown as MouseEvent);
+      const cx = (p1.x + p2.x) / 2;
+      const cy = (p1.y + p2.y) / 2;
 
-    const p1 = this.pointers.get(this.pinchState.id1);
-    const p2 = this.pointers.get(this.pinchState.id2);
-
-    if (p1 && p2) {
-      const dx = p1.clientX - p2.clientX;
-      const dy = p1.clientY - p2.clientY;
-      const d = Math.sqrt(dx * dx + dy * dy);
+      this.pinchState = {
+        startD: d,
+        startScale: this.scale,
+        cx,
+        cy,
+      };
+    } else {
+      // 更新缩放
       const scale = this.pinchState.startScale * (d / this.pinchState.startD);
       const s = this.clampScale(scale);
-
-      // 使用原始中心点 (pinchState.cx, cy)
-      // 传入 false 以跳过历史记录
+      // 使用原始中心点进行缩放
       this.executeZoom(s, this.pinchState.cx, this.pinchState.cy, false);
-      return true;
     }
-    return false;
-  }
-
-  private stopPinchIfPointer(pid: number): boolean {
-    if (this.pinchState && (pid === this.pinchState.id1 || pid === this.pinchState.id2)) {
-      this.pinchState = null;
-      return true;
-    }
-    return false;
   }
 
   private normalizeRect(r: { x: number; y: number; width: number; height: number }) {

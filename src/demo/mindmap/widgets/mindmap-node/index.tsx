@@ -129,6 +129,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     this.detachWindowPointerListeners();
     this.attachWindowPointerListeners(e.nativeEvent);
     this.setState({ dragging: true });
+    e.stopPropagation();
     return true;
   }
 
