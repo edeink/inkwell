@@ -641,7 +641,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   /**
    * 执行布局计算
    */
-  protected abstract performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size;
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+    return { width: 0, height: 0 };
+  }
 
   /**
    * 绘制组件及其子组件

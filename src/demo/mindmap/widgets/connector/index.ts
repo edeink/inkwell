@@ -1,9 +1,10 @@
 import { getTheme } from '../../constants/theme';
 import { CustomComponentType } from '../../type';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
+import type { BuildContext, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
+import { invert, transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
 import {
   connectorPathFromRects,
@@ -108,27 +109,17 @@ export class Connector extends Widget<ConnectorProps> {
       `${CustomComponentType.MindMapNode}#${this.toKey}`,
     ) as Widget | null;
 
-    const rectA = nodeA ? this.getRectFromNode(nodeA) : null;
-    const rectB = nodeB ? this.getRectFromNode(nodeB) : null;
-    if (!rectA || !rectB) {
+    if (!nodeA || !nodeB) {
       return null;
     }
-    const layoutPos = layout ? layout.getAbsolutePosition() : { dx: 0, dy: 0 };
-    const a = {
-      ...rectA,
-      x: rectA.x - layoutPos.dx,
-      y: rectA.y - layoutPos.dy,
-    };
-    const b = {
-      ...rectB,
-      x: rectB.x - layoutPos.dx,
-      y: rectB.y - layoutPos.dy,
-    };
 
-    const aCenterX = a.x + a.width / 2;
-    const bCenterX = b.x + b.width / 2;
-    const left = aCenterX <= bCenterX ? a : b;
-    const right = left === a ? b : a;
+    const rectA = this.getRectFromNode(nodeA);
+    const rectB = this.getRectFromNode(nodeB);
+
+    const aCenterX = rectA.x + rectA.width / 2;
+    const bCenterX = rectB.x + rectB.width / 2;
+    const left = aCenterX <= bCenterX ? rectA : rectB;
+    const right = left === rectA ? rectB : rectA;
     return connectorPathFromRects({
       left,
       right,
@@ -186,13 +177,10 @@ export class Connector extends Widget<ConnectorProps> {
       return false;
     }
 
-    // hitTest 传入的是绝对坐标
-    // pts 是相对于 MindMapLayout 的坐标（因为 paintSelf 逻辑中减去了 layoutPos）
-    // 而 Connector 本身在 MindMapLayout 中 offset 是 0,0
-    // 所以 Connector 的绝对坐标 = MindMapLayout 的绝对坐标
-    const pos = this.getAbsolutePosition();
-    const localX = x - pos.dx;
-    const localY = y - pos.dy;
+    // 将点击坐标（绝对坐标）转换为本地坐标
+    const local = this.globalToLocal({ x, y });
+    const localX = local.x;
+    const localY = local.y;
 
     // 增加点击判定范围
     const threshold = Math.max(this.strokeWidth, 6);
@@ -208,37 +196,35 @@ export class Connector extends Widget<ConnectorProps> {
   }
 
   /**
-   * 从节点实例获取绝对位置和尺寸
+   * 从节点实例获取相对位置和尺寸
    */
   private getRectFromNode(node: Widget): { x: number; y: number; width: number; height: number } {
-    const p = node.getAbsolutePosition();
+    const p = this.getLocalPositionOf(node);
     const s = node.renderObject.size;
-    return { x: p.dx, y: p.dy, width: s.width, height: s.height };
+    return { x: p.x, y: p.y, width: s.width, height: s.height };
   }
 
-  protected performLayout(_constraints: BoxConstraints, childrenSizes: Size[]): Size {
-    void childrenSizes;
-    // 默认情况下，连接线不占用布局空间，仅用于绘制
-    // 具体边界在 DevTools/命中测试中基于节点绝对位置动态计算
-    return { width: 0, height: 0 };
+  private getLocalPositionOf(node: Widget): { x: number; y: number } {
+    // 同层级优化：如果是兄弟节点，直接计算相对偏移，避免矩阵滞后问题
+    if (this.parent && node.parent === this.parent) {
+      return {
+        x: node.renderObject.offset.dx - this.renderObject.offset.dx,
+        y: node.renderObject.offset.dy - this.renderObject.offset.dy,
+      };
+    }
+
+    // 默认回退：使用绝对坐标转换
+    const nodeAbs = node.getAbsolutePosition();
+    return this.globalToLocal({ x: nodeAbs.dx, y: nodeAbs.dy });
   }
 
-  protected getConstraintsForChild(
-    constraints: BoxConstraints,
-    _childIndex: number,
-  ): BoxConstraints {
-    void _childIndex;
-    return {
-      minWidth: 0,
-      maxWidth: constraints.maxWidth,
-      minHeight: 0,
-      maxHeight: constraints.maxHeight,
-    };
-  }
-
-  protected positionChild(_childIndex: number, _childSize: Size): Offset {
-    void _childIndex;
-    void _childSize;
-    return { dx: 0, dy: 0 };
+  private globalToLocal(p: { x: number; y: number }): { x: number; y: number } {
+    if (this._worldMatrix) {
+      const inv = invert(this._worldMatrix);
+      return transformPoint(inv, p);
+    }
+    // Fallback if matrix not ready
+    const abs = this.getAbsolutePosition();
+    return { x: p.x - abs.dx, y: p.y - abs.dy };
   }
 }
