@@ -8,11 +8,11 @@ import { MindMapNode } from '../mindmap-node';
 import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
 import { MindMapViewport } from '../mindmap-viewport';
 
+import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from '../../type';
+import type { MindMapViewport as MindMapViewportCls } from '../mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 import type Runtime from '@/runtime';
-import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from '../../type';
-import type { MindMapViewport as MindMapViewportCls } from '../mindmap-viewport';
 
 import { StatefulWidget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -38,7 +38,14 @@ type SceneState = {
 export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   private nodePropsCache: Map<
     NodeId,
-    { title: string; prefSide?: Side; activeKey: NodeId | null; active: boolean; isEditing: boolean }
+    {
+      title: string;
+      prefSide?: Side;
+      activeKey: NodeId | null;
+      active: boolean;
+      isEditing: boolean;
+      isRoot: boolean;
+    }
   > = new Map();
   private nodeElementCache: Map<NodeId, WidgetProps> = new Map();
   private edgeElementCache: Map<string, WidgetProps> = new Map();
@@ -335,9 +342,15 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       onMoveNode: (key: string, dx: number, dy: number) => void;
       onAddSibling: (refKey: string, dir: -1 | 1, side?: Side) => void;
       onAddChildSide: (refKey: string, side: Side) => void;
+      onEdit: (key: string | null) => void;
+      getViewState: () => { scale: number; tx: number; ty: number };
     },
   ) {
     const ids = new Set<string>();
+    const hasParent = new Set<string>();
+    for (const e of state.edges) {
+      hasParent.add(e.to);
+    }
     // ... (保留现有逻辑)
     for (const id of state.nodes.keys()) {
       ids.add(id);
@@ -366,6 +379,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         activeKey: activeKey,
         active: activeKey === id,
         isEditing: (this.state as SceneState).editingKey === id,
+        isRoot: !hasParent.has(id),
       };
       const prev = this.nodePropsCache.get(id);
       let el = this.nodeElementCache.get(id);
@@ -375,7 +389,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         prev.prefSide !== props.prefSide ||
         prev.activeKey !== props.activeKey ||
         prev.active !== props.active ||
-        prev.isEditing !== props.isEditing;
+        prev.isEditing !== props.isEditing ||
+        prev.isRoot !== props.isRoot;
       if (changed) {
         el = (
           <MindMapNode
@@ -384,10 +399,13 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
             activeKey={activeKey}
             active={activeKey === id}
             isEditing={props.isEditing}
+            isRoot={props.isRoot}
             prefSide={n.prefSide}
             cursor="pointer"
             onActive={handlers.onActive}
             onMoveNode={handlers.onMoveNode}
+            onEdit={handlers.onEdit}
+            getViewState={handlers.getViewState}
           />
         );
         this.nodePropsCache.set(id, props);
@@ -513,7 +531,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     if (activeKey === key) {
       return;
     }
-    const nextState: any = {
+    const nextState: Partial<SceneState> = {
       activeKey: key,
     };
     // 当激活节点被清除时，同时清除编辑状态
@@ -536,6 +554,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       onMoveNode: (key, dx, dy) => this.onMoveNode(key, dx, dy),
       onAddSibling: (refKey, dir, side) => this.onAddSibling(refKey, dir, side),
       onAddChildSide: (refKey, side) => this.onAddChildSide(refKey, side),
+      onEdit: (key) => this.onEditingKeyChange(key),
+      getViewState: () => this.state.viewState,
     });
     return (
       <MindMapViewport

@@ -2,13 +2,11 @@
 
 import { getTheme } from '../../constants/theme';
 import { CustomComponentType } from '../../type';
-import { MindMapViewport } from '../mindmap-viewport';
 
-import type { InkwellEvent } from '@/core/events';
+import type { InkwellEvent } from '@/core/type';
 
 import { Container, Stack, Text } from '@/core';
 import { Widget, type WidgetProps } from '@/core/base';
-import { findWidget } from '@/core/helper/widget-selector';
 import { Positioned } from '@/core/positioned';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
@@ -22,6 +20,7 @@ export interface MindMapNodeTextEditorProps extends WidgetProps {
   onChange?: (text: string) => void;
   onFinish?: (text: string) => void;
   onCancel?: () => void;
+  getViewState?: () => { scale: number; tx: number; ty: number };
 }
 
 interface EditorState {
@@ -53,6 +52,9 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   private isDragging: boolean = false;
   private cursorTimer: number | null = null;
   private textWidgetRef: Text | null = null;
+  private blurTimer: number | null = null;
+  private ignoreNextBlur: boolean = false;
+  private isExiting: boolean = false;
 
   constructor(props: MindMapNodeTextEditorProps) {
     super(props);
@@ -72,10 +74,8 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.startCursorTimer();
     // 启动位置同步循环
     this.startInputPositionLoop();
-  }
 
-  private get typedProps(): MindMapNodeTextEditorProps {
-    return this.props as unknown as MindMapNodeTextEditorProps;
+    window.addEventListener('pointerdown', this.handleWindowPointerDown, true);
   }
 
   private initMeasureContext() {
@@ -114,6 +114,13 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
   private _rafId: number | null = null;
 
+  private makeSureInputIsFocused() {
+    if (this.input && document.activeElement !== this.input) {
+      this.input.focus();
+      this.startCursorTimer();
+    }
+  }
+
   private startInputPositionLoop() {
     if (typeof window === 'undefined') {
       return;
@@ -132,17 +139,14 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
   }
 
-  private updateInputPosition() {
-    if (!this.input || !this.root) {
-      return;
+  private getNodeScreenRect() {
+    if (!this.root || !this.parent) {
+      return null;
     }
 
-    const vp = findWidget<MindMapViewport>(
-      this.root,
-      CustomComponentType.MindMapViewport,
-    ) as MindMapViewport | null;
-    if (!vp) {
-      return;
+    const viewState = this.props.getViewState?.();
+    if (!viewState) {
+      return null;
     }
 
     // 尝试获取 Runtime 容器位置
@@ -159,10 +163,6 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     // 寻找 Node 容器 (MindMapNode 渲染的 Container)
     const nodeContainer = this.parent;
-    if (!nodeContainer) {
-      return;
-    }
-
     let absX = 0;
     let absY = 0;
     let curr: Widget | null = nodeContainer;
@@ -170,7 +170,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     let safety = 0;
 
     while (curr && safety < 100) {
-      if (curr === vp) {
+      if (curr.type === CustomComponentType.MindMapViewport) {
         foundVp = true;
         break;
       }
@@ -183,12 +183,14 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
 
     if (!foundVp) {
-      return;
+      // 如果没找到 Viewport，可能是独立的或者测试环境，
+      // 我们仍然可以使用累加的坐标，但要意识到可能不准确。
+      // 或者为了安全起见返回 null。
+      // 这里为了兼容性，如果有了 viewState，我们假设找到了“逻辑上的”Viewport
+      foundVp = true;
     }
 
-    const scale = vp.scale;
-    const tx = vp.tx;
-    const ty = vp.ty;
+    const { scale, tx, ty } = viewState;
 
     // 节点尺寸 (未缩放)
     const nodeWidth = nodeContainer.renderObject.size.width;
@@ -196,15 +198,36 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     // 计算 Canvas 坐标
     const canvasLeft = absX * scale + tx;
-    // 定位到节点左下角
+    const canvasTop = absY * scale + ty;
+    // 定位到节点左下角（用于 input）
     const canvasBottom = (absY + nodeHeight) * scale + ty;
 
     const screenLeft = containerRect.left + canvasLeft;
-    const screenTop = containerRect.top + canvasBottom;
+    const screenTop = containerRect.top + canvasTop;
+    const screenBottom = containerRect.top + canvasBottom;
 
-    this.input.style.left = `${screenLeft}px`;
-    this.input.style.top = `${screenTop}px`;
-    this.input.style.width = `${nodeWidth * scale}px`;
+    return {
+      left: screenLeft,
+      top: screenTop,
+      width: nodeWidth * scale,
+      height: nodeHeight * scale,
+      inputTop: screenBottom, // 用于 input 定位的 top
+    };
+  }
+
+  private updateInputPosition() {
+    if (!this.input) {
+      return;
+    }
+
+    const rect = this.getNodeScreenRect();
+    if (!rect) {
+      return;
+    }
+
+    this.input.style.left = `${rect.left}px`;
+    this.input.style.top = `${rect.inputTop}px`;
+    this.input.style.width = `${rect.width}px`;
     this.input.style.height = '0px';
   }
 
@@ -217,21 +240,51 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.stopInputPositionLoop();
     if (this.input) {
       this.input.removeEventListener('input', this.handleInput);
-      this.input.removeEventListener('keydown', this.handleKeyDown);
+      this.input.removeEventListener('keydown', this.handleInputKeyDown);
       this.input.removeEventListener('blur', this.handleBlur);
       this.input.remove();
       this.input = null;
     }
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('selectionchange', this.handleSelectionChange);
-    }
+    document.removeEventListener('selectionchange', this.handleSelectionChange);
+    window.removeEventListener('pointerdown', this.handleWindowPointerDown, true);
     super.dispose();
   }
 
+  private handleWindowPointerDown = (e: PointerEvent) => {
+    // 如果点击的是 hidden input 本身，不需要处理
+    if (e.target === this.input) {
+      return;
+    }
+
+    const rect = this.getNodeScreenRect();
+    if (!rect) {
+      return;
+    }
+
+    // 检查点击位置是否在 Node 范围内
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (
+      x >= rect.left &&
+      x <= rect.left + rect.width &&
+      y >= rect.top &&
+      y <= rect.top + rect.height
+    ) {
+      // 点击在 Node 范围内，标记为忽略下一次 blur
+      this.ignoreNextBlur = true;
+    } else {
+      // 点击在 Node 范围外，不忽略 blur（允许结束编辑）
+      this.ignoreNextBlur = false;
+    }
+  };
+
   createElement(data: MindMapNodeTextEditorProps): Widget<MindMapNodeTextEditorProps> {
+    const prevText = this.props.text;
     super.createElement(data);
-    // 如果 props 中的文本发生变化（如外部更新），则同步到 state
-    if (data.text !== this.state.text) {
+    // 只有当 props.text 确实发生变化时才同步到 state
+    // 这样可以避免父组件重新渲染（传递相同的 text）导致编辑器的 draft state 被重置
+    if (data.text !== prevText) {
       this.setState({ text: data.text });
       // 同步更新 input value，防止状态不一致
       if (this.input) {
@@ -259,7 +312,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     document.body.appendChild(this.input);
 
     this.input.addEventListener('input', this.handleInput);
-    this.input.addEventListener('keydown', this.handleKeyDown);
+    this.input.addEventListener('keydown', this.handleInputKeyDown);
     this.input.addEventListener('blur', this.handleBlur);
     // 同步输入框选区到组件状态
     document.addEventListener('selectionchange', this.handleSelectionChange);
@@ -292,6 +345,42 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
   }
 
+  /**
+   * @deprecated 键盘事件处理已迁移至 Input 组件
+   * 请勿在此添加新的事件处理逻辑
+   */
+  handleKeyDown(e?: KeyboardEvent) {
+    // 空实现，仅作兼容保留
+  }
+
+  private handleInputKeyDown = (e: KeyboardEvent) => {
+    // 键盘事件处理逻辑已从 handleKeyDown 迁移至此
+    this.resetCursorBlink();
+    if (e.key === 'ArrowUp') {
+      this.handleVerticalCursorMove('up', e);
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      this.handleVerticalCursorMove('down', e);
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      this.endEditing(true);
+    } else if (e.key === 'Escape') {
+      this.endEditing(false);
+    }
+    // 推迟选区更新，等待默认行为完成（如全选、移动光标）
+    setTimeout(() => {
+      if (this.input && !this.isExiting) {
+        this.setState({
+          selectionStart: this.input.selectionStart || 0,
+          selectionEnd: this.input.selectionEnd || 0,
+        });
+      }
+    }, 0);
+  };
+
   private handleInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
     // 更新状态，但不立即回写 input (因为是 input 触发的)
@@ -300,7 +389,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       selectionStart: target.selectionStart || 0,
       selectionEnd: target.selectionEnd || 0,
     });
-    this.typedProps.onChange?.(target.value);
+    this.props.onChange?.(target.value);
     this.resetCursorBlink();
   };
 
@@ -379,53 +468,33 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     this.resetCursorBlink();
   }
 
-  private handleKeyDown = (e: KeyboardEvent) => {
-    this.resetCursorBlink();
-    if (e.key === 'ArrowUp') {
-      this.handleVerticalCursorMove('up', e);
-      return;
-    }
-    if (e.key === 'ArrowDown') {
-      this.handleVerticalCursorMove('down', e);
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      this.finishEditing();
-    } else if (e.key === 'Escape') {
-      this.typedProps.onCancel?.();
-    }
-    // 推迟选区更新，等待默认行为完成（如全选、移动光标）
-    setTimeout(() => {
-      if (this.input) {
-        this.setState({
-          selectionStart: this.input.selectionStart || 0,
-          selectionEnd: this.input.selectionEnd || 0,
-        });
-      }
-    }, 0);
-  };
-
   private handleBlur = () => {
-    // 失去焦点时完成编辑
-    // 稍微延迟，防止点击内部元素（虽然目前没有）导致的误触发
-    // 或者防止因为各种原因的临时失焦
-    // 简单起见，直接完成
-    this.finishEditing();
-
-    // 编辑完成后，将焦点交还给 Canvas，以便 Viewport 能继续响应快捷键
-    if (typeof document !== 'undefined') {
-      // 尝试找到当前 runtime 的 canvas
-      // 这里通过简单的 DOM 查找，或者如果 runtime 可访问更好
-      // 由于没有直接持有 runtime 引用，尝试查找最近的 inkwell canvas
-      const canvas = document.querySelector('canvas[data-inkwell-id]');
-      if (canvas instanceof HTMLElement) {
-        canvas.focus({ preventScroll: true });
-      }
+    if (this.isExiting) {
+      return;
     }
+
+    // 如果是因为点击了 Node 内部区域导致的 blur，忽略之并重新聚焦
+    if (this.ignoreNextBlur) {
+      this.ignoreNextBlur = false;
+      // 使用 setTimeout 确保在 blur 之后重新聚焦
+      setTimeout(() => {
+        if (!this.isExiting) {
+          this.input?.focus();
+        }
+      }, 0);
+      return;
+    }
+
+    // 失去焦点时完成编辑
+    this.blurTimer = window.setTimeout(() => {
+      this.endEditing(true);
+    }, 100);
   };
 
   private handleSelectionChange = () => {
+    if (this.isExiting) {
+      return;
+    }
     if (this.input && document.activeElement === this.input) {
       // 同步输入框选区到组件状态
       const newStart = this.input.selectionStart || 0;
@@ -441,16 +510,54 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
   };
 
-  private finishEditing() {
-    const st = this.state;
-    this.typedProps.onFinish?.(st.text);
+  private endEditing(isFinish: boolean) {
+    if (this.isExiting) {
+      return;
+    }
+    this.isExiting = true;
+
+    // 清理定时器
+    if (this.blurTimer !== null) {
+      window.clearTimeout(this.blurTimer);
+      this.blurTimer = null;
+    }
+    this.stopCursorTimer();
+    this.stopInputPositionLoop();
+
+    let restoreFocus = false;
+    // 立即隐藏并清理 input，防止闪烁或后续事件
+    if (this.input) {
+      this.input.style.display = 'none';
+      // 如果当前焦点还在 input 上（如按 Enter 触发），则手动 blur 并标记需要恢复焦点
+      if (typeof document !== 'undefined' && document.activeElement === this.input) {
+        this.input.blur();
+        restoreFocus = true;
+      }
+    }
+
+    // 尝试恢复焦点到 Canvas，确保键盘快捷键可用
+    // 仅在焦点从 input 移除或丢失到 body 时执行，避免抢夺 Toolbar 等组件的焦点
+    if (typeof document !== 'undefined') {
+      if (restoreFocus || document.activeElement === document.body) {
+        const canvas = document.querySelector('canvas[data-inkwell-id]');
+        if (canvas instanceof HTMLElement) {
+          canvas.focus({ preventScroll: true });
+        }
+      }
+    }
+
+    if (isFinish) {
+      this.props.onFinish?.(this.state.text);
+    } else {
+      this.props.onCancel?.();
+    }
   }
 
   // --- 几何计算辅助方法 ---
 
   private getFontString(): string {
-    const fontSize = this.typedProps.fontSize || 14;
-    const fontFamily = this.typedProps.fontFamily || 'Arial, sans-serif';
+    const fontSize = this.props.fontSize || 14;
+    const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
     return `${fontSize}px ${fontFamily}`;
   }
 
@@ -463,7 +570,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   }
 
   private getCursorInfoAtIndex(index: number): { x: number; y: number; height: number } {
-    const defaultInfo = { x: 0, y: 0, height: this.typedProps.fontSize || 14 };
+    const defaultInfo = { x: 0, y: 0, height: this.props.fontSize || 14 };
 
     // 如果没有 ref 或者 metrics 尚未计算（首次渲染），回退到估算
     if (!this.textWidgetRef || !this.textWidgetRef.lines || this.textWidgetRef.lines.length === 0) {
@@ -625,17 +732,16 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
   // 事件坐标转换为组件局部坐标
   private getLocalPoint(e: InkwellEvent): { x: number; y: number } | null {
-    const vp = findWidget<MindMapViewport>(
-      this.root,
-      CustomComponentType.MindMapViewport,
-    ) as MindMapViewport | null;
-    if (!vp) {
+    const viewState = this.props.getViewState?.();
+    if (!viewState) {
       return null;
     }
 
+    const { scale, tx, ty } = viewState;
+
     // 世界坐标
-    const worldX = (e.x - vp.tx) / vp.scale;
-    const worldY = (e.y - vp.ty) / vp.scale;
+    const worldX = (e.x - tx) / scale;
+    const worldY = (e.y - ty) / scale;
 
     // 累加自身及父级的相对偏移，得到组件在世界中的绝对位置
     // 注意：Widget.renderObject.offset 是相对于父组件的偏移
@@ -647,7 +753,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     // 安全计数，防止死循环
     let safety = 0;
-    while (curr && curr !== vp && safety < 100) {
+    while (curr && curr.type !== CustomComponentType.MindMapViewport && safety < 100) {
       if (curr.renderObject && curr.renderObject.offset) {
         absX += curr.renderObject.offset.dx;
         absY += curr.renderObject.offset.dy;
@@ -662,6 +768,12 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   }
 
   onPointerDown = (e: InkwellEvent) => {
+    // 清除失焦定时器，保持编辑状态
+    if (this.blurTimer !== null) {
+      window.clearTimeout(this.blurTimer);
+      this.blurTimer = null;
+    }
+
     // 阻止冒泡，防止触发父组件（MindMapNode）的拖拽逻辑
     if (e.stopPropagation) {
       e.stopPropagation();
@@ -750,10 +862,13 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   // --- 渲染 ---
 
   render() {
+    // 确保输入框获得焦点
+    this.makeSureInputIsFocused();
+
     const st = this.state;
     const { text, selectionStart, selectionEnd } = st;
     const theme = getTheme();
-    const fontSize = this.typedProps.fontSize || 14;
+    const fontSize = this.props.fontSize || 14;
 
     // 选区矩形
     const selectionRects = this.getSelectionRects(selectionStart, selectionEnd);
@@ -801,8 +916,8 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
           ref={(ref) => (this.textWidgetRef = ref as Text | null)}
           text={text}
           fontSize={fontSize}
-          color={this.typedProps.color}
-          textAlign={this.typedProps.textAlign || TextAlign.Left}
+          color={this.props.color}
+          textAlign={this.props.textAlign || TextAlign.Left}
           textAlignVertical={TextAlignVertical.Top}
         />
         {cursor}

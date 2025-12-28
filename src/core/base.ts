@@ -44,10 +44,9 @@ export type {
 } from './type';
 
 // 内置的属性
-export interface WidgetCompactProps extends Omit<WidgetProps, 'children'>, WidgetEventHandler {
-  // 此处为了兼容 React 用法，访问 children 应当返回对象
-  children?: Widget[];
-}
+export type WidgetCompactProps<T extends WidgetProps, C = Widget[]> = {
+  [P in keyof T]: P extends 'children' ? C : T[P];
+} & WidgetEventHandler;
 
 // 构造器类型：约束 Widget 的数据类型与返回实例类型保持一致
 
@@ -86,7 +85,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   // 编译 JSX 得到的数据
   data: TData;
   // 为了兼容 React 用法，构造的属性
-  props: WidgetCompactProps;
+  props: WidgetCompactProps<TData>;
   // base 不维护状态
   flex: FlexProperties; // 添加flex属性
   depth: number = 0;
@@ -135,7 +134,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 编译 JSX 得到的数据
     this.data = data;
     // 实际运行的 props
-    this.props = { ...data, children: [] /** 未初始化 */ };
+    this.props = { ...data, children: [] /** 未初始化 */ } as unknown as WidgetCompactProps<TData>;
     this.flex = data.flex || {}; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
@@ -208,6 +207,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   public markDirty(): void {
+    if (this._dirty) {
+      return;
+    }
     this._dirty = true;
     this.markNeedsLayout();
   }
@@ -217,6 +219,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 markNeedsLayout 方法
    */
   markNeedsLayout(): void {
+    const rt = this.runtime as Runtime;
+    rt.scheduleUpdate(this);
+
     if (this._needsLayout) {
       return;
     }
@@ -227,23 +232,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         p._needsLayout = true;
       }
       p = p.parent;
-    }
-    const rt = this.runtime as
-      | Runtime
-      | { scheduleUpdate?: (w: Widget) => void; tick?: (ws?: Widget[]) => void }
-      | null as
-      | Runtime
-      | { scheduleUpdate?: (w: Widget) => void; tick?: (ws?: Widget[]) => void }
-      | null;
-
-    if (rt && 'scheduleUpdate' in rt && typeof rt.scheduleUpdate === 'function') {
-      rt.scheduleUpdate(this);
-      return;
-    }
-    if (rt && 'tick' in rt && typeof rt.tick === 'function') {
-      requestAnimationFrame(() => {
-        rt.tick?.([this]);
-      });
     }
   }
 
@@ -291,7 +279,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     const nextProps = { ...prevData, children: this.children };
     this.data = nextProps;
-    this.props = nextProps;
+    this.props = nextProps as unknown as WidgetCompactProps<TData>;
     this._dirty = false;
     return true;
   }
@@ -499,13 +487,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 初始构建或 children 差异/需要更新时执行子树增量重建
     if (nextChildrenData.length > 0) {
       this.buildChildren(nextChildrenData);
-      this.markNeedsLayout();
     } else if (this.children.length > 0) {
       this.children = [];
-      this.markNeedsLayout();
-    } else if (propsChanged) {
-      // 如果没有子节点但属性发生了变化（如 Text 组件），也需要重新布局
-      this.markNeedsLayout();
     }
 
     // 处理 ref 绑定
@@ -518,7 +501,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     // 更新自身 props 引用
-    this.props = { ...nextData, children: this.children };
+    this.props = { ...nextData, children: this.children } as unknown as WidgetCompactProps<TData>;
     return this;
   }
 

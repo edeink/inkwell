@@ -15,7 +15,7 @@ import { ShortcutManager } from '../../helpers/shortcut/manager';
 import { CustomComponentType } from '../../type';
 
 import type { SelectionData } from '../../type';
-import type { BuildContext } from '@/core/base';
+import type { BoxConstraints, BuildContext, Size } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
 import { RTree, type BBox } from '@/core/algorithm/r-tree';
@@ -157,6 +157,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     // 但 Command 执行最终会调用 this.setTransform
   }
 
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+    this.broadcastStateToNodes();
+    return super.performLayout(constraints, childrenSizes);
+  }
+
   // --- 业务操作 (Business Actions) ---
 
   public async undo(): Promise<void> {
@@ -205,6 +210,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       this.data.onSetSelectedKeys(keys);
     }
     this._internalSelectedKeys = keys;
+    this.broadcastStateToNodes();
     this.markNeedsLayout();
   }
 
@@ -213,16 +219,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   setActiveKey(key: string | null): void {
-    const oldKey = this.activeKey;
-    if (oldKey && oldKey !== key) {
-      const oldNode = findWidget(this, `#${oldKey}`) as Widget | null;
-      oldNode?.markDirty();
-    }
-
     if (this.data.onActiveKeyChange) {
       this.data.onActiveKeyChange(key);
     }
     this._internalActiveKey = key;
+    this.broadcastStateToNodes();
     this.markDirty();
 
     // 副作用：置顶显示
@@ -559,6 +560,38 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
 
     this.setSelectedKeys(finalKeys);
+  }
+
+  private broadcastStateToNodes(): void {
+    const root = this as unknown as Widget;
+    const selectedSet = new Set(this.selectedKeys);
+    const traverse = (w: Widget) => {
+      if (w.type === CustomComponentType.MindMapNode && w.key) {
+        const props = w.props;
+        if (props) {
+          const isActive = w.key === this.activeKey;
+          const isSelected = selectedSet.has(w.key);
+
+          let changed = false;
+          if (props.active !== isActive) {
+            props.active = isActive;
+            changed = true;
+          }
+          if (props.selected !== isSelected) {
+            props.selected = isSelected;
+            changed = true;
+          }
+
+          if (changed) {
+            w.markDirty();
+          }
+        }
+      }
+      for (const c of w.children as Widget[]) {
+        traverse(c);
+      }
+    };
+    traverse(root);
   }
 
   // 需要恢复 collectAllNodeKeys 方法

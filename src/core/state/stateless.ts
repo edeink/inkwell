@@ -16,7 +16,7 @@ export abstract class StatelessWidget<
 
   createElement(data: TData): Widget<TData> {
     // 无状态组件在创建时直接渲染并编译子节点
-    this.props = { ...data, children: data.children ?? [] } as unknown as WidgetCompactProps;
+    this.props = { ...data, children: data.children ?? [] } as unknown as WidgetCompactProps<TData>;
     const childrenData = compileElement(this.render());
     super.createElement({ ...data, children: [childrenData] });
     this._dirty = false;

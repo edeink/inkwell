@@ -128,7 +128,7 @@ const config: Config = {
           className: 'header-playground-link header-icon',
         },
         {
-          href: 'https://github.com/edeink/inkwell/discussions',
+          href: 'https://github.com/edeink/inkwell/issues',
           position: 'right',
           label: '社区',
           className: 'header-community-link header-icon',
