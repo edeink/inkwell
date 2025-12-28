@@ -106,17 +106,57 @@ describe('MindMapViewport 集成测试', () => {
 
     vp.children = [child1, child2];
 
-    // Simulate selection rect that covers child1 but not child2
-    const selected = (vp as any).collectKeysInRect({ x: 0, y: 0, width: 80, height: 80 });
-    expect(selected).toContain('node-1');
-    expect(selected).not.toContain('node-2');
+    // 模拟框选：鼠标按下 -> 移动 -> 释放
+    // 1. 按下 (Pointer Down) - 触发 buildSpatialIndex
+    vp.onPointerDown({
+      nativeEvent: { buttons: 1, pointerId: 1 },
+      x: 0,
+      y: 0,
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
 
-    const selected2 = (vp as any).collectKeysInRect({ x: 0, y: 0, width: 200, height: 200 });
-    expect(selected2).toContain('node-1');
-    expect(selected2).toContain('node-2');
+    // 2. 移动 (Pointer Move) - 框选 node-1 (0,0 -> 80,80)
+    vp.onPointerMove({
+      nativeEvent: { pointerId: 1 },
+      x: 80,
+      y: 80,
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
+
+    // 3. 释放 (Pointer Up) - 触发最终选择
+    vp.onPointerUp({
+      nativeEvent: { pointerId: 1 },
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
+
+    expect(vp.selectedKeys).toContain('node-1');
+    expect(vp.selectedKeys).not.toContain('node-2');
+
+    // 再次框选：包含两者 (0,0 -> 200,200)
+    vp.onPointerDown({
+      nativeEvent: { buttons: 1, pointerId: 1 },
+      x: 0,
+      y: 0,
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
+
+    vp.onPointerMove({
+      nativeEvent: { pointerId: 1 },
+      x: 200,
+      y: 200,
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
+
+    vp.onPointerUp({
+      nativeEvent: { pointerId: 1 },
+      stopPropagation: vi.fn(),
+    } as unknown as InkwellEvent);
+
+    expect(vp.selectedKeys).toContain('node-1');
+    expect(vp.selectedKeys).toContain('node-2');
   });
 
-  it('应支持 zoomAt 方法 (should support zoomAt)', () => {
+  it('应支持定点缩放', () => {
     const vp = new MindMapViewport({ type: CustomComponentType.MindMapViewport });
     // Viewport now has public zoomAt
     vp.zoomAt(2, 100, 100);

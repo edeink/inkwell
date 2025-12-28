@@ -6,7 +6,7 @@ import { MindMapNodeToolbar } from '../widgets/mindmap-node-toolbar';
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget, type BoxConstraints, type Size, type WidgetProps } from '@/core/base';
-import { multiply, IDENTITY_MATRIX } from '@/core/helper/transform';
+import { multiply } from '@/core/helper/transform';
 
 // 模拟 Viewport 类以模拟属性
 class MockViewport extends Widget {

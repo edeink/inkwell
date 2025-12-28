@@ -193,7 +193,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           }
         }
       }
-    } catch { }
+    } catch {}
     return null;
   }
 
@@ -380,7 +380,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             }
           }
         }
-      } catch { }
+      } catch {}
       this.markDirty();
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
@@ -418,9 +418,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
     const props = this.props as MindMapNodeProps;
-    const editing = props.isEditing ?? (vp?.editingKey === this.key);
+    const editing = st.isEditing || props.isEditing || vp?.editingKey === this.key;
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
-    const active = props.active ?? (vp?.activeKey === this.key);
+    const active = props.active ?? vp?.activeKey === this.key;
     this.active = active;
     const isDragging = !!st.dragging;
     const baseFill = editing

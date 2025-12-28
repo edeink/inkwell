@@ -70,13 +70,6 @@ describe('MindMap 修复验证', () => {
       onDelete: vi.fn(),
     });
 
-    const event = {
-      x: 10,
-      y: 10,
-      stopPropagation: vi.fn(),
-      target: toolbar,
-    } as any;
-
     // 模拟点击添加按钮
     // 需要检查 Toolbar 实现以了解按钮位置。
     // 假设我们可以模拟或控制命中测试。

@@ -1,3 +1,5 @@
+import { throttle } from 'lodash-es';
+
 import { SCALE_CONFIG } from '../../constants';
 import { DeleteCommand, RedoCommand, UndoCommand } from '../../helpers/shortcut/commands/history';
 import {
@@ -12,10 +14,11 @@ import { HistoryManager } from '../../helpers/shortcut/history/manager';
 import { ShortcutManager } from '../../helpers/shortcut/manager';
 import { CustomComponentType } from '../../type';
 
+import type { SelectionData } from '../../type';
 import type { BuildContext } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
-import type { SelectionData } from '../../type';
 
+import { RTree, type BBox } from '@/core/algorithm/r-tree';
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { Viewport, type ViewportProps } from '@/core/viewport/viewport';
@@ -66,6 +69,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   private shortcutManager: ShortcutManager;
   public historyManager: HistoryManager;
 
+  private spatialIndex: RTree<{ key: string; rect: BBox }> | null = null;
+  private handleSelectionMove: () => void;
+
   constructor(data: MindMapViewportProps) {
     // 注入默认缩放限制
     const propsWithDefaults = {
@@ -76,15 +82,24 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     super(propsWithDefaults);
     this.shortcutManager = new ShortcutManager();
     this.historyManager = new HistoryManager();
+    this.handleSelectionMove = throttle(() => this.updateSelection(), 64);
     this.registerDefaultShortcuts();
     this.initMindMap(data);
   }
 
   private initMindMap(data: MindMapViewportProps): void {
-    this._selectionRect = data.selectionRect ?? null;
-    this._internalActiveKey = data.activeKey ?? null;
-    this._internalEditingKey = data.editingKey ?? null;
-    this._internalSelectedKeys = data.selectedKeys ?? [];
+    if (data.selectionRect !== undefined) {
+      this._selectionRect = data.selectionRect;
+    }
+    if (data.activeKey !== undefined) {
+      this._internalActiveKey = data.activeKey;
+    }
+    if (data.editingKey !== undefined) {
+      this._internalEditingKey = data.editingKey;
+    }
+    if (data.selectedKeys !== undefined) {
+      this._internalSelectedKeys = data.selectedKeys;
+    }
   }
 
   private registerDefaultShortcuts() {
@@ -142,7 +157,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     // 但 Command 执行最终会调用 this.setTransform
   }
 
-  // --- Business Actions ---
+  // --- 业务操作 (Business Actions) ---
 
   public async undo(): Promise<void> {
     const success = await this.historyManager.undo();
@@ -179,7 +194,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this.markNeedsLayout();
   }
 
-  // --- Getters & Setters ---
+  // --- 属性访问器 (Getters & Setters) ---
 
   get selectedKeys(): string[] {
     return this.data.selectedKeys ?? this._internalSelectedKeys;
@@ -210,7 +225,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this._internalActiveKey = key;
     this.markDirty();
 
-    // Side effect: bring to front
+    // 副作用：置顶显示
     if (key) {
       const start = (this.parent as Widget) ?? (this as Widget);
       const t = findWidget(start, `#${key}`) as Widget | null;
@@ -249,7 +264,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   setCollapsedKeys(keys: string[]): void {
-    // TODO: lift state if needed
+    // TODO: 如果需要，提升状态
     void keys;
   }
 
@@ -277,10 +292,13 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       return false;
     }
     if (leftBtn && !ctrlLike) {
+      this.buildSpatialIndex();
       this._selectionRect = { x: world.x, y: world.y, width: 0, height: 0 };
-      if (this.activeKey) {
+      if (this.activeKey || this.editingKey) {
         this.setActiveKey(null);
+        this.setEditingKey(null);
       }
+      this.markNeedsLayout();
       return false;
     }
 
@@ -305,9 +323,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     if (this._selectionRect) {
       this._selectionRect.width = world.x - this._selectionRect.x;
       this._selectionRect.height = world.y - this._selectionRect.y;
-      const r = this.normalizeRect(this._selectionRect);
-      const selected = this.collectKeysInRect(r);
-      this.setSelectedKeys(selected);
+      this.handleSelectionMove();
       this.markNeedsLayout();
       return false;
     }
@@ -322,11 +338,10 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       return false;
     }
     if (this._selectionRect) {
-      const r = this.normalizeRect(this._selectionRect);
+      // 最终选区更新
+      this.updateSelection();
       this._selectionRect = null;
       this.setSelectionRect(null);
-      const selected = new Set(this.collectKeysInRect(r));
-      this.setSelectedKeys(Array.from(selected));
       this.setActiveKey(null);
       this.markNeedsLayout();
       e.stopPropagation();
@@ -382,9 +397,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     const rect = this.selectionRect;
     if (rect) {
       const r = this.normalizeRect(rect);
-      // rect is in World Space.
-      // paintSelf draws in Viewport Local Space (before scale/tx).
-      // Convert World -> Local: Local = (World - scroll) * scale + tx
+      // rect 是世界坐标 (World Space)
+      // paintSelf 在视口局部坐标系 (Viewport Local Space) 中绘制 (在应用 scale/tx 之前)
+      // 转换 World -> Local: Local = (World - scroll) * scale + tx
       const x = (r.x - this._scrollX) * this._scale + this._tx;
       const y = (r.y - this._scrollY) * this._scale + this._ty;
       const width = r.width * this._scale;
@@ -395,9 +410,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
         y,
         width,
         height,
-        fill: 'rgba(24,144,255,0.12)',
-        stroke: '#1890ff',
-        strokeWidth: 1, // Fixed stroke width or scaled? Usually fixed is better for UI.
+        fill: 'rgba(0,150,255,0.2)',
+        stroke: '#0096ff',
+        strokeWidth: 1,
       });
     }
   }
@@ -442,13 +457,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return { x, y, width: w, height: h };
   }
 
-  private collectKeysInRect(rect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }): string[] {
-    const res: string[] = [];
+  private buildSpatialIndex(): void {
+    const items: { item: { key: string; rect: BBox }; bbox: BBox }[] = [];
     const root = this as unknown as Widget;
 
     const getWidgetBounds = (
@@ -460,7 +470,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       let x = 0;
       let y = 0;
       let curr: Widget | null = w;
-      // 计算相对于视口（根节点）的位置
+      // 计算相对于视口的位置（视觉空间）
+      // 注意：这包括 Viewport 布局应用的滚动偏移 (-scrollX, -scrollY)
       while (curr && curr !== root) {
         if (curr.renderObject) {
           x += curr.renderObject.offset.dx;
@@ -480,21 +491,22 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       if (w.type === CustomComponentType.MindMapNode && w.key) {
         const bounds = getWidgetBounds(w);
         if (bounds) {
-          // 检查相交
-          // bounds.x/y 是相对于 Viewport 内容原点的坐标（World Space）
-          // rect 也是 World Space
-          // 直接比较即可
-          const x = bounds.x;
-          const y = bounds.y;
-          const intersect = !(
-            x > rect.x + rect.width ||
-            x + bounds.width < rect.x ||
-            y > rect.y + rect.height ||
-            y + bounds.height < rect.y
-          );
-          if (intersect) {
-            res.push(w.key);
-          }
+          // 将视觉空间坐标转换为世界空间坐标（逻辑空间）
+          // 视觉坐标 = 世界坐标 - 滚动偏移
+          // 世界坐标 = 视觉坐标 + 滚动偏移
+          const worldX = bounds.x + this._scrollX;
+          const worldY = bounds.y + this._scrollY;
+
+          const bbox = {
+            minX: worldX,
+            minY: worldY,
+            maxX: worldX + bounds.width,
+            maxY: worldY + bounds.height,
+          };
+          items.push({
+            item: { key: w.key, rect: bbox },
+            bbox,
+          });
         }
       }
       for (const c of w.children as Widget[]) {
@@ -505,7 +517,48 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     for (const c of root.children as Widget[]) {
       traverse(c);
     }
-    return res;
+
+    this.spatialIndex = new RTree();
+    this.spatialIndex.load(items);
+  }
+
+  private updateSelection() {
+    if (!this._selectionRect || !this.spatialIndex) {
+      return;
+    }
+    const r = this.normalizeRect(this._selectionRect);
+
+    // 根据拖拽方向确定选择模式（宽度的正负）
+    // 宽度 > 0: 左 -> 右 (包含模式 Contain)
+    // 宽度 < 0: 右 -> 左 (相交模式 Intersect)
+    const isContainMode = this._selectionRect.width > 0;
+
+    const bbox: BBox = {
+      minX: r.x,
+      minY: r.y,
+      maxX: r.x + r.width,
+      maxY: r.y + r.height,
+    };
+
+    const candidates = this.spatialIndex.search(bbox);
+
+    let finalKeys: string[] = [];
+
+    if (isContainMode) {
+      finalKeys = candidates
+        .filter(
+          (c) =>
+            c.rect.minX >= bbox.minX &&
+            c.rect.maxX <= bbox.maxX &&
+            c.rect.minY >= bbox.minY &&
+            c.rect.maxY <= bbox.maxY,
+        )
+        .map((c) => c.key);
+    } else {
+      finalKeys = candidates.map((c) => c.key);
+    }
+
+    this.setSelectedKeys(finalKeys);
   }
 
   // 需要恢复 collectAllNodeKeys 方法

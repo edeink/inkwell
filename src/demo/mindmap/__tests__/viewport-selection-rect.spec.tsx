@@ -5,7 +5,7 @@ import { MindMapNode } from '../widgets/mindmap-node';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import Runtime from '@/runtime';
-// Mock Canvas2DRenderer
+// 模拟 Canvas2DRenderer
 const mockDrawRect = vi.fn();
 const mockSave = vi.fn();
 const mockRestore = vi.fn();
@@ -41,7 +41,7 @@ const mockRenderer = {
   update: vi.fn(),
 };
 
-// Mock Runtime
+// 模拟 Runtime
 vi.mock('@/runtime', async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -55,36 +55,36 @@ vi.mock('@/runtime', async (importOriginal) => {
         return new MockRuntime();
       }
 
-      scheduleUpdate(w) {
+      scheduleUpdate(w: any) {
         this.dirtyWidgets.add(w);
       }
 
-      tick(dirty) {
+      tick(dirty: any) {
         if (dirty) {
-          dirty.forEach((w) => this.dirtyWidgets.add(w));
+          dirty.forEach((w: any) => this.dirtyWidgets.add(w));
         }
-        // Simulate rebuild
+        // 模拟重建
         const list = Array.from(this.dirtyWidgets);
         this.dirtyWidgets.clear();
         for (const w of list) {
-          w.rebuild();
-          w.clearDirty();
-          // In real runtime, we check isLayoutDirty
-          if (w.isLayoutDirty()) {
-            w.layout({ minWidth: 0, maxWidth: 800, minHeight: 0, maxHeight: 600 });
+          (w as any).rebuild();
+          (w as any).clearDirty();
+          // 在实际 runtime 中，我们会检查 isLayoutDirty
+          if ((w as any).isLayoutDirty()) {
+            (w as any).layout({ minWidth: 0, maxWidth: 800, minHeight: 0, maxHeight: 600 });
           }
         }
-        // Simulate paint
+        // 模拟绘制
         if (this.rootWidget) {
           const context = { renderer: this.renderer };
-          this.rootWidget.paint(context);
+          (this.rootWidget as any).paint(context);
         }
       }
     },
   };
 });
 
-describe('Viewport Selection Rect', () => {
+describe('Viewport 选区矩形测试', () => {
   let runtime: any;
   let viewport: any;
 
@@ -99,12 +99,12 @@ describe('Viewport Selection Rect', () => {
     viewport.runtime = runtime;
     runtime.rootWidget = viewport;
 
-    // Initial layout
+    // 初始布局
     viewport.layout({ minWidth: 0, maxWidth: 800, minHeight: 0, maxHeight: 600 });
   });
 
-  it('should show selection rect during drag and hide after pointer up', () => {
-    // 1. Pointer Down
+  it('拖拽时应显示选区矩形，松开后应隐藏', () => {
+    // 1. 按下鼠标
     viewport.onPointerDown({
       nativeEvent: { buttons: 1, pointerId: 1 },
       x: 100,
@@ -113,7 +113,7 @@ describe('Viewport Selection Rect', () => {
 
     expect(viewport.selectionRect).toEqual({ x: 100, y: 100, width: 0, height: 0 });
 
-    // 2. Pointer Move
+    // 2. 移动鼠标
     viewport.onPointerMove({
       nativeEvent: { pointerId: 1 },
       x: 200,
@@ -122,26 +122,26 @@ describe('Viewport Selection Rect', () => {
 
     expect(viewport.selectionRect).toEqual({ x: 100, y: 100, width: 100, height: 100 });
 
-    // Verify layout scheduled
+    // 验证已调度布局
     expect(runtime.dirtyWidgets.has(viewport)).toBe(true);
 
-    // Run tick to paint
+    // 运行 tick 进行绘制
     runtime.tick();
 
-    // Verify drawRect called (selection rect)
+    // 验证 drawRect 被调用 (绘制选区矩形)
     expect(mockDrawRect).toHaveBeenCalledWith(
       expect.objectContaining({
         x: 100,
         y: 100,
         width: 100,
         height: 100,
-        stroke: '#1890ff',
+        stroke: '#0096ff',
       }),
     );
 
     mockDrawRect.mockClear();
 
-    // 3. Pointer Up
+    // 3. 松开鼠标
     viewport.onPointerUp({
       nativeEvent: { pointerId: 1 },
       stopPropagation: vi.fn(),
@@ -149,43 +149,43 @@ describe('Viewport Selection Rect', () => {
 
     expect(viewport.selectionRect).toBeNull();
 
-    // Verify layout scheduled (crucial fix verification)
+    // 验证已调度布局 (关键修复验证)
     expect(runtime.dirtyWidgets.has(viewport)).toBe(true);
 
-    // Run tick to paint
+    // 运行 tick 进行绘制
     runtime.tick();
 
-    // Verify drawRect NOT called for selection rect
+    // 验证 drawRect 未被调用 (选区矩形不应绘制)
     expect(mockDrawRect).not.toHaveBeenCalled();
   });
 
-  it('should select items inside the rect', () => {
-    // Setup a child node
+  it('应选中矩形内的项目', () => {
+    // 设置子节点
     const child = new MindMapNode({
       key: 'node-1',
       title: 'Node 1',
       type: CustomComponentType.MindMapNode,
     });
     child.renderObject = {
-      offset: { dx: 150, dy: 150 }, // Inside 100,100 -> 200,200 rect
+      offset: { dx: 150, dy: 150 }, // 在 100,100 -> 200,200 矩形内
       size: { width: 50, height: 50 },
     } as any;
 
-    // We need to attach child to viewport
+    // 我们需要将 child 附加到 viewport
     viewport.children = [child];
     child.parent = viewport;
 
-    // 1. Drag to select
+    // 1. 拖拽选择
     viewport.onPointerDown({ nativeEvent: { buttons: 1, pointerId: 1 }, x: 100, y: 100 });
-    viewport.onPointerMove({ nativeEvent: { pointerId: 1 }, x: 250, y: 250 }); // Rect: 100,100 -> 250,250 (150x150)
+    viewport.onPointerMove({ nativeEvent: { pointerId: 1 }, x: 250, y: 250 }); // 矩形: 100,100 -> 250,250 (150x150)
 
-    // Verify selection updated during drag
+    // 验证拖拽过程中选区更新
     expect(viewport.selectedKeys).toContain('node-1');
 
-    // 2. Pointer Up
+    // 2. 松开鼠标
     viewport.onPointerUp({ nativeEvent: { pointerId: 1 }, stopPropagation: vi.fn() });
 
-    // Verify final selection
+    // 验证最终选择
     expect(viewport.selectedKeys).toContain('node-1');
     expect(viewport.selectionRect).toBeNull();
   });

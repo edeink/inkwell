@@ -315,9 +315,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 当组件被移除时调用，用于清理副作用（如 DOM 元素、定时器等）
    */
   dispose(): void {
-    if (this.type.includes('MindMap') || this.type === 'Scene') {
-      console.debug(`[Lifecycle] dispose: ${this.type} (${this.key})`);
-    }
     this._disposed = true;
   }
 
@@ -464,10 +461,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 如果是创建子元素，请调用createChildWidget
    */
   createElement(data: TData): Widget {
-    // [调试] 生命周期追踪
-    if (this.type.includes('MindMap') || this.type === 'Scene') {
-      console.debug(`[Lifecycle] createElement: ${this.type} (${this.key})`);
-    }
     this._isBuilt = true;
 
     const nextData = data;
@@ -565,10 +558,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 layout 方法
    */
   layout(constraints: BoxConstraints): Size {
-    if (this.type.includes('MindMap') || this.type === 'Scene') {
-      // console.debug(`[Lifecycle] layout: ${this.type} (${this.key})`);
-    }
-
     // 验证：确保在布局前子节点已构建（若存在子节点数据）
     if (!this._isBuilt && Array.isArray(this.data.children) && this.data.children.length > 0) {
       throw new Error('布局前必须先构建子节点');

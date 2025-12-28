@@ -77,7 +77,6 @@ describe('MindMap 选择与交互', async () => {
         ty={0}
         width={800}
         height={600}
-        activeKey="n1"
       >
         <MindMapLayout key="layout-root" layout="treeBalanced">
           <MindMapNode key="n1" title="Node 1" />
@@ -89,6 +88,8 @@ describe('MindMap 选择与交互', async () => {
     const root = runtime.getRootWidget();
     const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as MindMapViewport;
 
+    // 手动设置 activeKey 以测试非受控模式
+    vp.setActiveKey('n1');
     expect(vp.activeKey).toBe('n1');
 
     // 模拟空白处点击（按下并抬起，无移动）
@@ -111,18 +112,15 @@ describe('MindMap 选择与交互', async () => {
     expect(vp.activeKey).toBeNull();
   });
 
-  it('updates selectedKeys during drag selection', async () => {
+  it('应该在拖拽选区时更新 selectedKeys', async () => {
     const container = document.createElement('div');
     container.id = `mm-test-2-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
-    // Node at some position.
-    // MindMapLayout positions nodes.
-    // We can just rely on layout engine or mocking positions,
-    // but easier to check if logic calls collectKeysInRect.
-    // For this test, we assume layout happens and node has a size/pos.
-    // We'll force a layout first.
+    // 节点位于某个位置。
+    // MindMapLayout 定位节点。
+    // 我们强制布局一次。
 
     const scene = (
       <MindMapViewport
@@ -140,7 +138,7 @@ describe('MindMap 选择与交互', async () => {
     );
     await runtime.renderFromJSX(scene as any);
 
-    // Force layout to ensure node has size/pos
+    // 强制布局以确保节点有尺寸/位置
     runtime.rerender();
 
     const root = runtime.getRootWidget();
@@ -148,25 +146,25 @@ describe('MindMap 选择与交互', async () => {
 
     expect(vp.selectedKeys).toEqual([]);
 
-    // Start drag
+    // 开始拖拽
     vp.onPointerDown({
       x: 0,
       y: 0,
       nativeEvent: new MouseEvent('pointerdown', { clientX: 0, clientY: 0, buttons: 1 }),
     } as any);
 
-    // Move to cover area
+    // 移动以覆盖区域
     vp.onPointerMove({
       x: 800,
       y: 600,
       nativeEvent: new MouseEvent('pointermove', { clientX: 800, clientY: 600, buttons: 1 }),
     } as any);
 
-    // Should be selected during move
+    // 移动期间应被选中
     expect(vp.selectedKeys).toContain('n1');
   });
 
-  it('applies distinct styles for active/selected/hover', async () => {
+  it('应该为 active/selected/hover 状态应用不同样式', async () => {
     const container = document.createElement('div');
     container.id = `mm-test-3-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
