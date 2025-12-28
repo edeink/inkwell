@@ -33,6 +33,7 @@ export interface MindMapViewportProps extends ViewportProps {
   onRestoreSelection?: (data: SelectionData) => void;
   onSetSelectedKeys?: (keys: string[]) => void;
   onActiveKeyChange?: (key: string | null) => void;
+  onEditingKeyChange?: (key: string | null) => void;
 }
 
 /**
@@ -43,16 +44,12 @@ export interface MindMapViewportProps extends ViewportProps {
  * - 统一将屏幕坐标转换为世界坐标以便命中测试与框选
  */
 export class MindMapViewport extends Viewport<MindMapViewportProps> {
-  private _selectedKeys: string[] = [];
   private _selectionRect: {
     x: number;
     y: number;
     width: number;
     height: number;
   } | null = null;
-  private _activeKey: string | null = null;
-  private _editingKey: string | null = null;
-  private _collapsedKeys: string[] = [];
 
   private pinchState: {
     startD: number;
@@ -81,11 +78,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   private initMindMap(data: MindMapViewportProps): void {
-    this._selectedKeys = data.selectedKeys ?? [];
     this._selectionRect = data.selectionRect ?? null;
-    this._activeKey = data.activeKey ?? null;
-    this._editingKey = data.editingKey ?? null;
-    this._collapsedKeys = data.collapsedKeys ?? [];
   }
 
   private registerDefaultShortcuts() {
@@ -143,29 +136,6 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     // 但 Command 执行最终会调用 this.setTransform
   }
 
-  // --- 获取器 ---
-
-  get selectedKeys(): string[] {
-    return this._selectedKeys;
-  }
-  get selectionRect(): {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null {
-    return this._selectionRect;
-  }
-  get activeKey(): string | null {
-    return this._activeKey;
-  }
-  get editingKey(): string | null {
-    return this._editingKey;
-  }
-  get collapsedKeys(): string[] {
-    return this._collapsedKeys;
-  }
-
   // --- Business Actions ---
 
   public async undo(): Promise<void> {
@@ -189,22 +159,13 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this.setTransform(this.scale, tx, ty);
   }
 
-  setSelectedKeys(keys: string[]): void {
-    this._selectedKeys = Array.from(keys);
-    this.data.onSetSelectedKeys?.(this._selectedKeys);
-    // 通知子节点重绘
-    const root = this as unknown as Widget;
-    const update = (w: Widget): void => {
-      if (w.type === CustomComponentType.MindMapNode) {
-        w.markDirty();
-      }
-      for (const c of w.children as Widget[]) {
-        update(c);
-      }
-    };
-    for (const c of root.children) {
-      update(c);
-    }
+  get selectionRect(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null {
+    return this._selectionRect;
   }
 
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
@@ -212,49 +173,65 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this.markNeedsLayout();
   }
 
-  setActiveKey(key: string | null): void {
-    if (this._activeKey === key) {
-      return;
-    }
-    if (key) {
-      this.setSelectedKeys([]);
-    }
-    this._activeKey = key ?? null;
-    this.data.onActiveKeyChange?.(this._activeKey);
+  // --- Getters & Setters ---
 
-    const start = (this.parent as Widget) ?? (this as Widget);
-    const t = findWidget(start, `#${this._activeKey ?? ''}`) as Widget | null;
-    if (t) {
-      const isNode = t.type === CustomComponentType.MindMapNode;
-      const container = isNode && t.parent ? (t.parent as Widget) : t;
-      container.bringToFront();
+  get selectedKeys(): string[] {
+    return this.data.selectedKeys ?? [];
+  }
+
+  setSelectedKeys(keys: string[]): void {
+    if (this.data.onSetSelectedKeys) {
+      this.data.onSetSelectedKeys(keys);
     }
-    const root = this as unknown as Widget;
-    const next = this._activeKey;
-    const update = (w: Widget): void => {
-      if (w.type === CustomComponentType.MindMapNode) {
-        const data = w.data;
-        w.createElement({ ...data, activeKey: next, active: w.key === next });
-      } else if (w.type === CustomComponentType.MindMapNodeToolbar) {
-        const data = w.data;
-        w.createElement({ ...data, activeKey: next });
-      }
-      for (const c of w.children as Widget[]) {
-        update(c);
-      }
-    };
-    for (const c of root.children) {
-      update(c);
+  }
+
+  get activeKey(): string | null {
+    return this.data.activeKey ?? null;
+  }
+
+  setActiveKey(key: string | null): void {
+    if (this.data.onActiveKeyChange) {
+      this.data.onActiveKeyChange(key);
     }
-    this.markDirty();
+
+    // Side effect: bring to front
+    if (key) {
+      const start = (this.parent as Widget) ?? (this as Widget);
+      const t = findWidget(start, `#${key}`) as Widget | null;
+      if (t) {
+        let p = t.parent;
+        let container: Widget | null = null;
+        while (p && p !== this) {
+          if (p.data.type === 'MindMapNodeContainer') {
+            container = p;
+            break;
+          }
+          p = p.parent;
+        }
+        if (container) {
+          container.bringToFront();
+        }
+      }
+    }
+  }
+
+  get editingKey(): string | null {
+    return this.data.editingKey ?? null;
   }
 
   setEditingKey(key: string | null): void {
-    this._editingKey = key ?? null;
+    if (this.data.onEditingKeyChange) {
+      this.data.onEditingKeyChange(key);
+    }
+  }
+
+  get collapsedKeys(): string[] {
+    return this.data.collapsedKeys ?? [];
   }
 
   setCollapsedKeys(keys: string[]): void {
-    this._collapsedKeys = Array.from(keys);
+    // TODO: lift state if needed
+    void keys;
   }
 
   public deleteSelection(): SelectionData | void {
@@ -386,14 +363,22 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     const rect = this.selectionRect;
     if (rect) {
       const r = this.normalizeRect(rect);
+      // rect is in World Space.
+      // paintSelf draws in Viewport Local Space (before scale/tx).
+      // Convert World -> Local: Local = (World - scroll) * scale + tx
+      const x = (r.x - this._scrollX) * this._scale + this._tx;
+      const y = (r.y - this._scrollY) * this._scale + this._ty;
+      const width = r.width * this._scale;
+      const height = r.height * this._scale;
+
       renderer.drawRect({
-        x: r.x - this._scrollX,
-        y: r.y - this._scrollY,
-        width: r.width,
-        height: r.height,
+        x,
+        y,
+        width,
+        height,
         fill: 'rgba(24,144,255,0.12)',
         stroke: '#1890ff',
-        strokeWidth: 1,
+        strokeWidth: 1, // Fixed stroke width or scaled? Usually fixed is better for UI.
       });
     }
   }
@@ -477,11 +462,16 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
         const bounds = getWidgetBounds(w);
         if (bounds) {
           // 检查相交
+          // bounds.x/y 是相对于 Viewport 内容原点的坐标（World Space）
+          // rect 也是 World Space
+          // 直接比较即可
+          const x = bounds.x;
+          const y = bounds.y;
           const intersect = !(
-            bounds.x > rect.x + rect.width ||
-            bounds.x + bounds.width < rect.x ||
-            bounds.y > rect.y + rect.height ||
-            bounds.y + bounds.height < rect.y
+            x > rect.x + rect.width ||
+            x + bounds.width < rect.x ||
+            y > rect.y + rect.height ||
+            y + bounds.height < rect.y
           );
           if (intersect) {
             res.push(w.key);

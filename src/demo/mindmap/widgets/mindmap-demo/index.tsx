@@ -21,7 +21,12 @@ interface SceneProps extends WidgetProps {
   width?: number;
   height?: number;
 }
-type SceneState = { graph: GraphState; viewState: { scale: number; tx: number; ty: number } };
+type SceneState = {
+  graph: GraphState;
+  viewState: { scale: number; tx: number; ty: number };
+  selectedKeys: string[];
+  editingKey: string | null;
+};
 
 /**
  * 创建 Mindmap 场景
@@ -41,6 +46,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     this.state = {
       graph: makeInitialState(),
       viewState: { scale: 1, tx: 0, ty: 0 },
+      selectedKeys: [],
+      editingKey: null,
     };
   }
 
@@ -180,27 +187,33 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   };
 
   private onSetSelectedKeys = (keys: string[]): void => {
-    void keys;
-    const vp = this.getViewport();
-    if (!vp) {
-      return;
-    }
-    // 避免循环调用：Viewport 已经更新了 selectedKeys 并触发了此回调
-    // 这里的职责是通知其他可能监听此变化的组件（如果有）
-    // 或者仅仅是确保布局更新
+    this.setState({
+      selectedKeys: keys,
+    });
+  };
 
-    // 只有当传入的 keys 和 Viewport 当前的不一致时才设置（通常不需要，除非来自外部数据源）
-    // vp.setSelectedKeys(keys); // 已移除，避免无限递归
-
-    vp.markNeedsLayout();
+  private onEditingKeyChange = (key: string | null): void => {
+    this.setState({
+      editingKey: key,
+    });
   };
 
   private onActive = (key: string | null): void => {
-    const vp = this.getViewport();
     const cur = (this.state as SceneState).graph;
     const next: GraphState = { ...cur, activeKey: key ?? null, version: cur.version + 1 };
-    vp?.setActiveKey(key ?? null);
-    this.setState({ graph: next });
+
+    // 如果激活了新节点，且之前有选区，清除选区
+    let selectedKeys = (this.state as SceneState).selectedKeys;
+    if (key && selectedKeys.length > 0) {
+      selectedKeys = [];
+    }
+
+    this.setState({
+      graph: next,
+      selectedKeys,
+      // 切换激活节点时，通常退出编辑模式，除非是由双击触发（由 onEditingKeyChange 处理）
+      editingKey: null,
+    });
   };
 
   onKeyDown(e: InkwellEvent): boolean | void {
@@ -252,16 +265,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       nextId,
       nodes: new Map(cur.nodes).set(id, newNode),
       edges: nextEdges,
+      activeKey: id,
       version: cur.version + 1,
     };
-    this.setState({ graph: next });
-    this.onActive(id);
-
-    // 自动进入编辑模式
-    const vp = this.getViewport();
-    if (vp) {
-      vp.setEditingKey(id);
-    }
+    this.setState({
+      graph: next,
+      selectedKeys: [],
+      editingKey: id,
+    });
   };
 
   private onAddChildSide = (refKey: string, side: Side): void => {
@@ -274,16 +285,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       nextId,
       nodes: new Map(cur.nodes).set(id, { id, title, prefSide: side }),
       edges: [...cur.edges, { from: refKey, to: id }],
+      activeKey: id,
       version: cur.version + 1,
     };
-    this.setState({ graph: next });
-    this.onActive(id);
-
-    // 自动进入编辑模式
-    const vp = this.getViewport();
-    if (vp) {
-      vp.setEditingKey(id);
-    }
+    this.setState({
+      graph: next,
+      selectedKeys: [],
+      editingKey: id,
+    });
   };
 
   private onMoveNode = (key: string, dx: number, dy: number): void => {
@@ -524,6 +533,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         tx={view.tx}
         ty={view.ty}
         activeKey={s.activeKey}
+        selectedKeys={(this.state as SceneState).selectedKeys}
+        editingKey={(this.state as SceneState).editingKey}
         onScroll={this.onScroll}
         onViewChange={this.onViewChange}
         onActiveKeyChange={this.onActiveKeyChange}
@@ -531,6 +542,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         onDeleteSelection={this.onDeleteSelection}
         onRestoreSelection={this.onRestoreSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}
+        onEditingKeyChange={this.onEditingKeyChange}
       >
         <MindMapLayout
           key="layout-root"

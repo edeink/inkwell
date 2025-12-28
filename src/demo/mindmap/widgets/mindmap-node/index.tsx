@@ -166,7 +166,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       return;
     }
     vp.setEditingKey(this.key);
-    this.setState({ isEditing: true });
     return false;
   }
 
@@ -418,7 +417,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     ) as MindMapViewport | null;
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
-    const editing = !!st.isEditing;
+    const editing = vp?.editingKey === this.key;
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
     const active = vp?.activeKey === this.key;
     const isDragging = !!st.dragging;
@@ -464,13 +463,12 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           this.setState({ title: val });
         }}
         onFinish={(val) => {
-          this.setState({ title: val, isEditing: false });
+          this.setState({ title: val });
           if (vp?.editingKey === this.key) {
             vp.setEditingKey(null);
           }
         }}
         onCancel={() => {
-          this.setState({ isEditing: false });
           if (vp?.editingKey === this.key) {
             vp.setEditingKey(null);
           }
