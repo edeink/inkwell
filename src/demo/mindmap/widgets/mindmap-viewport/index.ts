@@ -12,9 +12,9 @@ import { HistoryManager } from '../../helpers/shortcut/history/manager';
 import { ShortcutManager } from '../../helpers/shortcut/manager';
 import { CustomComponentType } from '../../type';
 
-import type { SelectionData } from '../../type';
 import type { BuildContext } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
+import type { SelectionData } from '../../type';
 
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -59,6 +59,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   } | null = null;
 
   private selectAllActive: boolean = false;
+  private _internalActiveKey: string | null = null;
+  private _internalEditingKey: string | null = null;
+  private _internalSelectedKeys: string[] = [];
 
   private shortcutManager: ShortcutManager;
   public historyManager: HistoryManager;
@@ -79,6 +82,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   private initMindMap(data: MindMapViewportProps): void {
     this._selectionRect = data.selectionRect ?? null;
+    this._internalActiveKey = data.activeKey ?? null;
+    this._internalEditingKey = data.editingKey ?? null;
+    this._internalSelectedKeys = data.selectedKeys ?? [];
   }
 
   private registerDefaultShortcuts() {
@@ -176,29 +182,40 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   // --- Getters & Setters ---
 
   get selectedKeys(): string[] {
-    return this.data.selectedKeys ?? [];
+    return this.data.selectedKeys ?? this._internalSelectedKeys;
   }
 
   setSelectedKeys(keys: string[]): void {
     if (this.data.onSetSelectedKeys) {
       this.data.onSetSelectedKeys(keys);
     }
+    this._internalSelectedKeys = keys;
+    this.markNeedsLayout();
   }
 
   get activeKey(): string | null {
-    return this.data.activeKey ?? null;
+    return this.data.activeKey !== undefined ? this.data.activeKey : this._internalActiveKey;
   }
 
   setActiveKey(key: string | null): void {
+    const oldKey = this.activeKey;
+    if (oldKey && oldKey !== key) {
+      const oldNode = findWidget(this, `#${oldKey}`) as Widget | null;
+      oldNode?.markDirty();
+    }
+
     if (this.data.onActiveKeyChange) {
       this.data.onActiveKeyChange(key);
     }
+    this._internalActiveKey = key;
+    this.markDirty();
 
     // Side effect: bring to front
     if (key) {
       const start = (this.parent as Widget) ?? (this as Widget);
       const t = findWidget(start, `#${key}`) as Widget | null;
       if (t) {
+        t.markDirty();
         let p = t.parent;
         let container: Widget | null = null;
         while (p && p !== this) {
@@ -216,13 +233,15 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   get editingKey(): string | null {
-    return this.data.editingKey ?? null;
+    return this.data.editingKey !== undefined ? this.data.editingKey : this._internalEditingKey;
   }
 
   setEditingKey(key: string | null): void {
     if (this.data.onEditingKeyChange) {
       this.data.onEditingKeyChange(key);
     }
+    this._internalEditingKey = key;
+    this.markDirty();
   }
 
   get collapsedKeys(): string[] {

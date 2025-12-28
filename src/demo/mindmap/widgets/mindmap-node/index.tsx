@@ -193,7 +193,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           }
         }
       }
-    } catch {}
+    } catch { }
     return null;
   }
 
@@ -380,7 +380,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             }
           }
         }
-      } catch {}
+      } catch { }
       this.markDirty();
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
@@ -417,9 +417,11 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     ) as MindMapViewport | null;
     const st = this.state as MindMapNodeProps;
     const theme = getTheme();
-    const editing = vp?.editingKey === this.key;
+    const props = this.props as MindMapNodeProps;
+    const editing = props.isEditing ?? (vp?.editingKey === this.key);
     const selected = !!(vp && Array.isArray(vp.selectedKeys) && vp.selectedKeys.includes(this.key));
-    const active = vp?.activeKey === this.key;
+    const active = props.active ?? (vp?.activeKey === this.key);
+    this.active = active;
     const isDragging = !!st.dragging;
     const baseFill = editing
       ? theme.nodeEditFillColor
@@ -443,7 +445,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const borderWidth = active || editing || selected || hover ? 2 : 1;
 
     // 计算光标样式
-    const localConfig: Record<string, string> = this.data.cursorConfig || {};
+    const localConfig: Record<string, string> = props.cursorConfig || {};
     const state = editing ? 'editing' : hover ? 'reading' : 'normal';
     const defaults: Record<string, string> = {
       normal: 'default',
@@ -502,7 +504,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         borderRadius={8}
         minWidth={80}
         maxWidth={650}
-        pointerEvents={'none'}
         cursor={cursor}
       >
         {content}

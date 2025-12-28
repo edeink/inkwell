@@ -1,7 +1,6 @@
 import { LayoutEngine } from '../../helpers/layout-engine';
 import { CustomComponentType, Side } from '../../type';
 
-import type { MindMapViewport } from '../mindmap-viewport';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';

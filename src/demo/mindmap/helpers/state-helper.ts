@@ -29,7 +29,7 @@ export function makeInitialState(): GraphState {
     { from: 'n4-1', to: 'n4-1-1' },
   ];
   const map = new Map(nodes.map((n) => [n.id, n] as const));
-  return { nodes: map, edges, activeKey: null, version: 1, nextId: 1000 };
+  return { nodes: map, edges, version: 1, nextId: 1000 };
 }
 
 export function findParent(state: GraphState, childId: NodeId): NodeId | null {

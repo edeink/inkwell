@@ -95,9 +95,17 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     return { dx: 0, dy: 0 };
   }
 
+  private getActiveNode(): Widget | null {
+    const activeKey = this.getActiveKey();
+    if (!activeKey) {
+      return null;
+    }
+    return findWidget(this.root, `#${activeKey}`) as Widget | null;
+  }
+
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
-    const node = findWidget(this.root, ':active') as Widget | null;
+    const node = this.getActiveNode();
     const vp = findWidget<MindMapViewport>(
       this.root,
       CustomComponentType.MindMapViewport,
@@ -106,8 +114,8 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
       return;
     }
     const activeKey = this.getActiveKey();
-    const active = activeKey === node.key;
-    if (!active) {
+    // 既然通过 getActiveNode 查找到的，必定是 activeKey 对应的节点，这里再次确认一下
+    if (activeKey !== node.key) {
       return;
     }
     const size = node.renderObject.size as Size;
@@ -152,7 +160,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   public hitTest(x: number, y: number): boolean {
-    const node = findWidget(this.root, ':active') as Widget | null;
+    const node = this.getActiveNode();
     const vp = findWidget<MindMapViewport>(
       this.root,
       CustomComponentType.MindMapViewport,
@@ -213,6 +221,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   onPointerDown(e: InkwellEvent): boolean | void {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
+      e.stopPropagation();
       const now = Date.now();
       if (now - this.lastActionTime < 100) {
         return;
@@ -243,7 +252,6 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
           this._onAddChildSide?.(key, Side.Right);
         }
       }
-      // e.stopPropagation();
     }
   }
 
@@ -255,7 +263,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight';
     side?: Side;
   }): void {
-    const node = findWidget(this.root, ':active') as Widget | null;
+    const node = this.getActiveNode();
     const vp = findWidget<MindMapViewport>(
       this.root,
       CustomComponentType.MindMapViewport,
@@ -376,7 +384,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
   }
 
   private getNodeKey(): string | null {
-    const n = findWidget(this.root, ':active') as Widget | null;
+    const n = this.getActiveNode();
     return n ? (n.key as string) : null;
   }
 
@@ -384,7 +392,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     x: number,
     y: number,
   ): { type: 'addAbove' | 'addBelow' | 'addChildLeft' | 'addChildRight'; side?: Side } | null {
-    const node = findWidget(this.root, ':active') as Widget | null;
+    const node = this.getActiveNode();
     if (!node) {
       return null;
     }

@@ -34,7 +34,6 @@ export interface SelectionData {
 export interface GraphState {
   nodes: Map<NodeId, GraphNode>;
   edges: GraphEdge[];
-  activeKey: NodeId | null;
   version: number;
   nextId: number;
 }

@@ -161,7 +161,9 @@ function matchSimple(w: Widget, sel: SimpleSelector): boolean {
     for (const p of sel.pseudos) {
       if (p === 'active') {
         const data = w.data as unknown as { active?: unknown };
-        if (data?.active !== true) {
+        const dataActive = data?.active === true;
+        const instanceActive = (w as any).active === true;
+        if (!dataActive && !instanceActive) {
           return false;
         }
       } else if (p === 'root') {

@@ -8,11 +8,11 @@ import { MindMapNode } from '../mindmap-node';
 import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
 import { MindMapViewport } from '../mindmap-viewport';
 
-import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from '../../type';
-import type { MindMapViewport as MindMapViewportCls } from '../mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 import type Runtime from '@/runtime';
+import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from '../../type';
+import type { MindMapViewport as MindMapViewportCls } from '../mindmap-viewport';
 
 import { StatefulWidget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -26,17 +26,19 @@ type SceneState = {
   viewState: { scale: number; tx: number; ty: number };
   selectedKeys: string[];
   editingKey: string | null;
+  activeKey: string | null;
 };
 
 /**
  * 创建 Mindmap 场景
  * @param width 视口宽度（像素）
  * @param height 视口高度（像素）
+ * @param initialGraph 初始图数据（可选）
  */
 export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   private nodePropsCache: Map<
     NodeId,
-    { title: string; prefSide?: Side; activeKey: NodeId | null; active: boolean }
+    { title: string; prefSide?: Side; activeKey: NodeId | null; active: boolean; isEditing: boolean }
   > = new Map();
   private nodeElementCache: Map<NodeId, WidgetProps> = new Map();
   private edgeElementCache: Map<string, WidgetProps> = new Map();
@@ -48,6 +50,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       viewState: { scale: 1, tx: 0, ty: 0 },
       selectedKeys: [],
       editingKey: null,
+      activeKey: null,
     };
   }
 
@@ -91,13 +94,13 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   private onDeleteSelection = (): SelectionData | void => {
     const vp = this.getViewport();
     const cur = (this.state as SceneState).graph;
+    const currentActiveKey = (this.state as SceneState).activeKey;
     if (!vp) {
       return;
     }
     const keys: string[] = [];
-    const active = cur.activeKey;
-    if (active) {
-      keys.push(active);
+    if (currentActiveKey) {
+      keys.push(currentActiveKey);
     }
     if (Array.isArray(vp.selectedKeys) && vp.selectedKeys.length) {
       keys.push(...vp.selectedKeys);
@@ -152,10 +155,9 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       ...cur,
       nodes: nextNodes,
       edges: nextEdges,
-      activeKey: null,
       version: cur.version + 1,
     };
-    this.setState({ graph: next });
+    this.setState({ graph: next, activeKey: null });
 
     return {
       nodes: deletedNodes,
@@ -200,7 +202,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
 
   private onActive = (key: string | null): void => {
     const cur = (this.state as SceneState).graph;
-    const next: GraphState = { ...cur, activeKey: key ?? null, version: cur.version + 1 };
+    const next: GraphState = { ...cur, version: cur.version + 1 };
 
     // 如果激活了新节点，且之前有选区，清除选区
     let selectedKeys = (this.state as SceneState).selectedKeys;
@@ -213,6 +215,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       selectedKeys,
       // 切换激活节点时，通常退出编辑模式，除非是由双击触发（由 onEditingKeyChange 处理）
       editingKey: null,
+      activeKey: key ?? null,
     });
   };
 
@@ -265,13 +268,13 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       nextId,
       nodes: new Map(cur.nodes).set(id, newNode),
       edges: nextEdges,
-      activeKey: id,
       version: cur.version + 1,
     };
     this.setState({
       graph: next,
       selectedKeys: [],
       editingKey: id,
+      activeKey: id,
     });
   };
 
@@ -285,13 +288,13 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       nextId,
       nodes: new Map(cur.nodes).set(id, { id, title, prefSide: side }),
       edges: [...cur.edges, { from: refKey, to: id }],
-      activeKey: id,
       version: cur.version + 1,
     };
     this.setState({
       graph: next,
       selectedKeys: [],
       editingKey: id,
+      activeKey: id,
     });
   };
 
@@ -330,7 +333,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     handlers: {
       onActive: (key: string | null) => void;
       onMoveNode: (key: string, dx: number, dy: number) => void;
-      onAddSibling: (refKey: string, dir: -1 | 1) => void;
+      onAddSibling: (refKey: string, dir: -1 | 1, side?: Side) => void;
       onAddChildSide: (refKey: string, side: Side) => void;
     },
   ) {
@@ -355,12 +358,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       }
     }
     const nodes: WidgetProps[] = [];
+    const activeKey = (this.state as SceneState).activeKey;
     for (const [id, n] of state.nodes.entries()) {
       const props = {
         title: n.title,
         prefSide: n.prefSide,
-        activeKey: state.activeKey,
-        active: state.activeKey === id,
+        activeKey: activeKey,
+        active: activeKey === id,
+        isEditing: (this.state as SceneState).editingKey === id,
       };
       const prev = this.nodePropsCache.get(id);
       let el = this.nodeElementCache.get(id);
@@ -369,14 +374,16 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         prev.title !== props.title ||
         prev.prefSide !== props.prefSide ||
         prev.activeKey !== props.activeKey ||
-        prev.active !== props.active;
+        prev.active !== props.active ||
+        prev.isEditing !== props.isEditing;
       if (changed) {
         el = (
           <MindMapNode
             key={id}
             title={n.title}
-            activeKey={state.activeKey}
-            active={state.activeKey === id}
+            activeKey={activeKey}
+            active={activeKey === id}
+            isEditing={props.isEditing}
             prefSide={n.prefSide}
             cursor="pointer"
             onActive={handlers.onActive}
@@ -414,7 +421,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         cursor="pointer"
         onAddSibling={handlers.onAddSibling}
         onAddChildSide={handlers.onAddChildSide}
-        activeKey={state.activeKey}
+        activeKey={activeKey}
       />
     );
     return { elements: [...nodes, ...edges], toolbar };
@@ -481,12 +488,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     const newState: GraphState = {
       nodes,
       edges: data.edges,
-      activeKey: data.activeKey ?? null,
       version: (this.state as SceneState).graph.version + 1,
       nextId,
     };
 
-    this.setState({ graph: newState });
+    this.setState({ graph: newState, activeKey: data.activeKey ?? null });
 
     // 重置视图位置到中心？或者保持不变？
     // 应该让 Viewport 重新布局
@@ -503,13 +509,20 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   };
 
   private onActiveKeyChange = (key: string | null): void => {
-    const s = (this.state as SceneState).graph;
-    if (s.activeKey === key) {
+    const activeKey = (this.state as SceneState).activeKey;
+    if (activeKey === key) {
       return;
+    }
+    const nextState: any = {
+      activeKey: key,
+    };
+    // 当激活节点被清除时，同时清除编辑状态
+    if (!key) {
+      nextState.editingKey = null;
     }
     this.setState({
       ...this.state,
-      graph: { ...s, activeKey: key },
+      ...nextState,
     });
   };
 
@@ -519,10 +532,10 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     const width = (this.props as SceneProps).width ?? 800;
     const height = (this.props as SceneProps).height ?? 600;
     const { elements, toolbar } = this.renderGraphCached(s, {
-      onActive: this.onActive,
-      onMoveNode: this.onMoveNode,
-      onAddSibling: this.onAddSibling,
-      onAddChildSide: this.onAddChildSide,
+      onActive: (key) => this.onActive(key),
+      onMoveNode: (key, dx, dy) => this.onMoveNode(key, dx, dy),
+      onAddSibling: (refKey, dir, side) => this.onAddSibling(refKey, dir, side),
+      onAddChildSide: (refKey, side) => this.onAddChildSide(refKey, side),
     });
     return (
       <MindMapViewport
@@ -532,9 +545,9 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         scale={view.scale}
         tx={view.tx}
         ty={view.ty}
-        activeKey={s.activeKey}
-        selectedKeys={(this.state as SceneState).selectedKeys}
-        editingKey={(this.state as SceneState).editingKey}
+        activeKey={this.state.activeKey}
+        selectedKeys={this.state.selectedKeys}
+        editingKey={this.state.editingKey}
         onScroll={this.onScroll}
         onViewChange={this.onViewChange}
         onActiveKeyChange={this.onActiveKeyChange}
