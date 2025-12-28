@@ -1,0 +1,94 @@
+---
+title: ScrollView
+---
+
+核心用途：`ScrollView` 是基于 `Viewport` 构建的通用滚动容器，增加了滚动条、溢出裁剪（Overflow Clipping）和弹性滚动（Bounce）效果，适用于常规的长列表或内容滚动场景。
+
+## 如何引入
+
+```typescript
+import { ScrollView } from '@/core';
+```
+
+## 示例
+
+### 1. 基础滚动视图 (Basic ScrollView)
+
+使用 `ScrollView` 包裹超出尺寸的内容，实现自动裁剪和滚动。
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<ScrollView width={300} height={200} overflow="hidden" scrollBarColor="#999">
+  <Column>
+    {Array.from({ length: 10 }).map((_, i) => (
+      <Container key={i} width={280} height={40} margin={{ bottom: 10 }} color="#f0f0f0">
+        <Text text={`Item ${i + 1}`} />
+      </Container>
+    ))}
+  </Column>
+</ScrollView>
+```
+
+### 2. 弹性滚动 (Bouncing ScrollView)
+
+开启 `enableBounce` 实现类似 iOS 的阻尼回弹效果。
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<ScrollView 
+  width={300} 
+  height={200} 
+  enableBounce={true} 
+  bounceDamping={0.6}
+  scrollBarColor="#ccc"
+>
+  <Container width={300} height={200} color="#e6f7ff">
+     <Center>
+       <Text text="Pull me down/up!" />
+     </Center>
+  </Container>
+</ScrollView>
+```
+
+## API 文档
+
+### ScrollViewProps
+
+`ScrollView` 继承自 `Viewport`，拥有其所有属性（如 `width`, `height`, `scale`, `tx`, `ty` 等），并增加了以下特有属性：
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `overflow` | `'hidden' \| 'visible'` | 否 | `'hidden'` | 控制超出视口的内容是否裁剪。 |
+| `scrollBarColor` | `string` | 否 | - | 滚动条颜色。 |
+| `scrollBarWidth` | `number` | 否 | - | 滚动条宽度。 |
+| `enableBounce` | `boolean` | 否 | `false` | 是否开启弹性滚动（回弹效果）。 |
+| `enableBounceVertical` | `boolean` | 否 | - | 是否开启垂直方向弹性（默认跟随 `enableBounce`）。 |
+| `enableBounceHorizontal` | `boolean` | 否 | - | 是否开启水平方向弹性（默认跟随 `enableBounce`）。 |
+| `maxBounceDistance` | `number` | 否 | - | 最大回弹距离。 |
+| `bounceDamping` | `number` | 否 | - | 回弹阻尼系数 (0-1)，值越大回弹越快。 |
+| `bounceSpeedThreshold` | `number` | 否 | `1` | 触发回弹的速度阈值。 |
+| `onBounceStart` | `() => void` | 否 | - | 回弹动画开始时的回调。 |
+| `onBounceComplete` | `() => void` | 否 | - | 回弹动画完成时的回调。 |
+
+### 实例方法 (Methods)
+
+可以通过组件实例调用以下方法来控制滚动。
+
+| 方法名 | 参数 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `scrollTo` | `(x: number, y: number)` | `void` | 滚动到指定位置。 |
+| `scrollBy` | `(dx: number, dy: number)` | `void` | 相对当前位置滚动。 |
+
+## 注意事项
+
+### 1. 性能优化
+- `ScrollView` 默认开启 `overflow: 'hidden'`，这会使用 Canvas 的 `clip()` 操作。虽然这对实现滚动视图是必须的，但在嵌套极深的结构中频繁使用 clip 可能会影响性能。
+- 建议仅在需要裁剪的层级使用 `ScrollView`，避免不必要的嵌套。
+
+### 2. 兼容性
+- `ScrollView` 自动处理了子元素的变换矩阵，因此子元素无需关心视口的偏移，只需根据自身逻辑绘制即可。
+- 如果在 `ScrollView` 内部使用了绝对定位 (`Positioned`)，它们是相对于 `ScrollView` 内容区域定位的，会跟随滚动移动。
+
+### 3. 常见问题
+- **无法滚动？** 请确保 `width` 和 `height` 已正确设置（或由父级约束决定），且内容尺寸 (`_contentSize`) 确实大于视口尺寸。
+- **滚动条不显示？** 确保 `scrollBarColor` 已设置，并且内容确实溢出了视口。

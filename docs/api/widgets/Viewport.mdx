@@ -1,0 +1,85 @@
+---
+title: Viewport
+---
+
+核心用途：`Viewport` 是一个提供底层视口变换逻辑（缩放、平移）和坐标转换能力的核心组件，适用于需要自定义视口行为的场景（如无限画布、图表、地图等）。它不包含滚动条或裁剪逻辑，而是专注于视图矩阵的管理。
+
+## 如何引入
+
+```typescript
+import { Viewport } from '@/core';
+```
+
+## 示例
+
+### 1. 基础视口 (Basic Viewport)
+
+创建一个可缩放和平移的视口容器。
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Viewport 
+  width={400} 
+  height={300} 
+  scale={1.0} 
+  minScale={0.5} 
+  maxScale={3.0}
+  tx={0}
+  ty={0}
+>
+  <Container width={200} height={200} color="#ffccc7">
+    <Center>
+      <Text text="Scalable Content" />
+    </Center>
+  </Container>
+</Viewport>
+```
+
+## API 文档
+
+### ViewportProps
+
+| 属性名 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `width` | `number` | 否 | - | 视口宽度。 |
+| `height` | `number` | 否 | - | 视口高度。 |
+| `scale` | `number` | 否 | `1` | 初始缩放比例。 |
+| `tx` | `number` | 否 | `0` | 初始 X 轴平移偏移。 |
+| `ty` | `number` | 否 | `0` | 初始 Y 轴平移偏移。 |
+| `scrollX` | `number` | 否 | `0` | 初始 X 轴滚动位置。 |
+| `scrollY` | `number` | 否 | `0` | 初始 Y 轴滚动位置。 |
+| `minScale` | `number` | 否 | `0.1` | 最小缩放比例。 |
+| `maxScale` | `number` | 否 | `10` | 最大缩放比例。 |
+| `onViewChange` | `(view: { scale, tx, ty }) => void` | 否 | - | 视口变换（缩放/平移）时的回调。 |
+| `onScroll` | `(x, y) => void` | 否 | - | 滚动位置变化时的回调。 |
+| `onZoomAt` | `(scale, cx, cy) => void` | 否 | - | 指定中心点缩放时的回调。 |
+
+### 实例方法 (Methods)
+
+可以通过组件实例调用以下方法来控制视口。
+
+| 方法名 | 参数 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `setScale` | `(scale: number)` | `void` | 设置缩放比例（保持当前平移）。 |
+| `setTransform` | `(scale: number, tx: number, ty: number)` | `void` | 同时设置缩放和平移。 |
+| `zoomIn` | `()` | `void` | 以视口中心为原点放大（默认系数 1.2）。 |
+| `zoomOut` | `()` | `void` | 以视口中心为原点缩小（默认系数 1.2）。 |
+| `zoomAt` | `(scale: number, cx: number, cy: number)` | `void` | 以指定坐标 `(cx, cy)` 为中心进行缩放。 |
+| `resetZoom` | `()` | `void` | 重置缩放比例为 1。 |
+| `getWorldXY` | `(event: { x: number, y: number })` | `{ x, y }` | 将屏幕/事件坐标转换为视口内的世界坐标（内容坐标）。 |
+
+## 注意事项
+
+### 1. 坐标系统
+`Viewport` 维护了一个变换矩阵 (`_worldMatrix`)。
+- **Screen Coordinate**: 屏幕上的物理坐标。
+- **World Coordinate (Local)**: 经过缩放和平移后的内容坐标。
+- `getWorldXY` 方法可用于处理点击事件，将屏幕点击位置转换为内容中的实际位置。这是实现交互式画布（如拖拽、点击选中）的关键。
+
+### 2. 性能优化
+- 尽量避免在 `onViewChange` 回调中执行昂贵的计算，因为缩放和平移操作可能会高频触发（每帧）。
+- 对于极其复杂的场景，可以结合 `RepaintBoundary` (如果框架支持) 来缓存视口内容的绘制结果。
+
+### 3. 常见问题
+- **点击坐标不对？** 默认的点击事件坐标是屏幕坐标。在 `Viewport` 内部处理交互时，必须使用 `getWorldXY` 或组件自身的 `globalToLocal` 进行转换，否则缩放后位置会偏移。
+- **内容被遮挡？** `Viewport` 默认不裁剪溢出内容。如果需要裁剪，请在外层包裹 `ClipRect` 或使用 `ScrollView`。

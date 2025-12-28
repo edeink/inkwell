@@ -14,6 +14,8 @@ export { Stack } from './stack';
 export { StatefulWidget } from './state/stateful';
 export { StatelessWidget } from './state/stateless';
 export { Text, TextAlign, TextAlignVertical } from './text';
+export { ScrollView, type ScrollViewProps } from './viewport/scroll-view';
+export { Viewport, type ViewportProps } from './viewport/viewport';
 export * from './type';
 export type { Ref } from './type';
 export { Wrap } from './wrap';
