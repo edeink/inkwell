@@ -30,22 +30,13 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
   private lastSides = new Map<string, Side>();
 
   public visitHitTest(x: number, y: number): Widget | null {
-    let wx = x;
-    let wy = y;
-    const vp = this.parent as MindMapViewport;
-    if (typeof vp.scale === 'number' && typeof vp.tx === 'number') {
-      const s = vp.scale || 1;
-      const tx = vp.tx || 0;
-      const ty = vp.ty || 0;
-      wx = (x - tx) / s;
-      wy = (y - ty) / s;
-    }
-
-    const child = this.hitTestChildren(wx, wy);
+    // 移除手动坐标变换，因为子节点 (MindMapNode) 已通过 _worldMatrix 处理了坐标变换
+    // 直接传递屏幕坐标即可
+    const child = this.hitTestChildren(x, y);
     if (child) {
       return child;
     }
-    if (this.hitTest(wx, wy)) {
+    if (this.hitTest(x, y)) {
       return this;
     }
     return null;
