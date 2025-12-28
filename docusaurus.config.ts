@@ -122,7 +122,7 @@ const config: Config = {
           className: 'header-github-link header-icon',
         },
         {
-          href: 'https://stackblitz.com/github/edeink/inkwell',
+          to: '/demo',
           position: 'right',
           label: 'Playground',
           className: 'header-playground-link header-icon',
