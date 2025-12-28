@@ -85,7 +85,7 @@ export class InteractiveCounterDemo extends StatefulWidget<
 
             {/* 3. 状态展示区 */}
             <Text
-              key="counter-display"
+              key={`counter-display-${this.state.count}`}
               text={`Total Clicks: ${this.state.count}`}
               fontSize={20}
               color="#333333"

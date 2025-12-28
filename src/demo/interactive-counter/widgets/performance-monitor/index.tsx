@@ -62,14 +62,29 @@ export class PerformanceMonitor extends StatefulWidget<
       >
         <Column spacing={20}>
           {/* 业务计数显示 */}
-          <Text text={`外部计数: ${this.props.externalCount}`} fontSize={14} color="#333" />
+          <Text
+            key={`ext-${this.props.externalCount}`}
+            text={`外部计数: ${this.props.externalCount}`}
+            fontSize={14}
+            color="#333"
+          />
 
-          <Text text={`内部计数: ${this.state.innerCount}`} fontSize={14} color="#333" />
+          <Text
+            key={`inner-${this.state.innerCount}`}
+            text={`内部计数: ${this.state.innerCount}`}
+            fontSize={14}
+            color="#333"
+          />
 
           {/* 渲染性能指示器 */}
           <Container width={16} height={16} borderRadius={8} color={this.state.indicatorColor} />
 
-          <Text text={`render 调用次数: ${this.renderCount}`} fontSize={12} color="#666" />
+          <Text
+            key={`render-${this.renderCount}`}
+            text={`render 调用次数: ${this.renderCount}`}
+            fontSize={12}
+            color="#666"
+          />
         </Column>
       </Container>
     );
