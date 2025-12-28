@@ -15,6 +15,7 @@ import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget } from '@/core/base';
+import { invert, transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
 
 export interface MindMapNodeToolbarProps extends WidgetProps {
@@ -112,16 +113,18 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const size = node.renderObject.size as Size;
     const margin = 6;
     const { allowed: sides } = this.resolveSides(node, size);
-    const pNode = node.getAbsolutePosition();
-    const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
+
+    // 获取节点绝对坐标并转换为本地坐标
+    const nodeAbs = node.getAbsolutePosition();
+    const nodeLocal = this.globalToLocal({ x: nodeAbs.dx, y: nodeAbs.dy });
+
+    const nodeRect = { x: nodeLocal.x, y: nodeLocal.y, width: size.width, height: size.height };
     const btnSize = 20;
     const half = btnSize / 2;
     const btnBlue = '#1890ff';
     const white = '#ffffff';
-    const pOverlay = this.getAbsolutePosition();
-    const drawPlusLocal = (wx: number, wy: number) => {
-      const lx = wx - pOverlay.dx;
-      const ly = wy - pOverlay.dy;
+
+    const drawPlusLocal = (lx: number, ly: number) => {
       renderer.drawRect({
         x: lx,
         y: ly,
@@ -165,13 +168,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const size = node.renderObject.size as Size;
     const margin = 6;
     const { allowed: sides } = this.resolveSides(node, size);
-    const pNode = node.getAbsolutePosition();
-    const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
+
+    // 坐标变换：将点击坐标和节点坐标都转换为本地坐标系
+    const localClick = this.globalToLocal({ x, y });
+    const nodeAbs = node.getAbsolutePosition();
+    const nodeLocal = this.globalToLocal({ x: nodeAbs.dx, y: nodeAbs.dy });
+
+    const nodeRect = { x: nodeLocal.x, y: nodeLocal.y, width: size.width, height: size.height };
     const btnSize = 20;
 
-    const nodeAbs = node.getAbsolutePosition();
-    const localX = x - nodeAbs.dx;
-    const localY = y - nodeAbs.dy;
     const M = 2;
 
     for (const s of sides) {
@@ -181,13 +186,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
         { width: btnSize, height: btnSize },
         margin,
       );
-      const lx = pos.x - nodeRect.x;
-      const ly = pos.y - nodeRect.y;
+      // pos 已经是本地坐标
       const inside =
-        localX >= lx - M &&
-        localY >= ly - M &&
-        localX <= lx + btnSize + M &&
-        localY <= ly + btnSize + M;
+        localClick.x >= pos.x - M &&
+        localClick.y >= pos.y - M &&
+        localClick.x <= pos.x + btnSize + M &&
+        localClick.y <= pos.y + btnSize + M;
       if (inside) {
         return true;
       }
@@ -195,28 +199,13 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     return false;
   }
 
-  private transformToNodeLocal(
-    x: number,
-    y: number,
-    node: Widget,
-    vp: MindMapViewport,
-  ): { x: number; y: number } {
-    const nodeAbs = node.getAbsolutePosition();
-    const vpOffset = vp.renderObject.offset;
-    const vpTx = vp.tx;
-    const vpTy = vp.ty;
-    const scale = vp.scale;
-
-    const contentX = (x - vpOffset.dx - vpTx) / scale;
-    const contentY = (y - vpOffset.dy - vpTy) / scale;
-
-    const nodeOffsetX = nodeAbs.dx - vpOffset.dx;
-    const nodeOffsetY = nodeAbs.dy - vpOffset.dy;
-
-    return {
-      x: contentX - nodeOffsetX,
-      y: contentY - nodeOffsetY,
-    };
+  private globalToLocal(p: { x: number; y: number }): { x: number; y: number } {
+    if (this._worldMatrix) {
+      const inv = invert(this._worldMatrix);
+      return transformPoint(inv, p);
+    }
+    const abs = this.getAbsolutePosition();
+    return { x: p.x - abs.dx, y: p.y - abs.dy };
   }
 
   private lastActionTime: number = 0;
@@ -409,12 +398,15 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const size = node.renderObject.size as Size;
     const margin = 6;
     const { allowed: sides, isLeft } = this.resolveSides(node, size);
-    const pNode = node.getAbsolutePosition();
-    const nodeRect = { x: pNode.dx, y: pNode.dy, width: size.width, height: size.height };
+
+    // 坐标变换：将点击坐标和节点坐标都转换为本地坐标系
+    const localClick = this.globalToLocal({ x, y });
+    const nodeAbs = node.getAbsolutePosition();
+    const nodeLocal = this.globalToLocal({ x: nodeAbs.dx, y: nodeAbs.dy });
+
+    const nodeRect = { x: nodeLocal.x, y: nodeLocal.y, width: size.width, height: size.height };
     const btnSize = 20;
-    const localP = this.transformToNodeLocal(x, y, node, vp);
-    const localX = localP.x;
-    const localY = localP.y;
+
     const M = 2;
     for (const s of sides) {
       const pos = calculatePlusButtonPosition(
@@ -423,13 +415,12 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
         { width: btnSize, height: btnSize },
         margin,
       );
-      const lx = pos.x - nodeRect.x;
-      const ly = pos.y - nodeRect.y;
+      // pos 已经是本地坐标
       const inside =
-        localX >= lx - M &&
-        localY >= ly - M &&
-        localX <= lx + btnSize + M &&
-        localY <= ly + btnSize + M;
+        localClick.x >= pos.x - M &&
+        localClick.y >= pos.y - M &&
+        localClick.x <= pos.x + btnSize + M &&
+        localClick.y <= pos.y + btnSize + M;
       if (inside) {
         if (s === 'top') {
           return { type: 'addAbove', side: isLeft ? Side.Left : Side.Right };

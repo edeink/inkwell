@@ -6,6 +6,7 @@ import { MindMapNodeToolbar } from '../widgets/mindmap-node-toolbar';
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget, type BoxConstraints, type Size, type WidgetProps } from '@/core/base';
+import { multiply, IDENTITY_MATRIX } from '@/core/helper/transform';
 
 // 模拟 Viewport 类以模拟属性
 class MockViewport extends Widget {
@@ -92,35 +93,67 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
 
   // 测试布局坐标下的 hitTest（假设框架在调用 hitTest 前转换坐标）
   it('hitTest 应在任何缩放比例下使用布局坐标工作', () => {
-    viewport.scale = 2;
-    viewport.tx = 50;
-    viewport.ty = 50;
+    // 模拟 Viewport 变换
+    const scale = 2;
+    const tx = 50;
+    const ty = 50;
+    viewport.scale = scale;
+    viewport.tx = tx;
+    viewport.ty = ty;
+
+    // 设置 Toolbar 的 World Matrix (继承 Viewport)
+    const vpMatrix: [number, number, number, number, number, number] = [scale, 0, 0, scale, tx, ty];
+    (toolbar as any)._worldMatrix = vpMatrix;
+
+    // 设置 Node 的 World Matrix (Viewport * Local)
+    // Node Local: translate(100, 100)
+    const nodeLocalMatrix: [number, number, number, number, number, number] = [
+      1, 0, 0, 1, 100, 100,
+    ];
+    (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
 
     // Node 布局位置: (100, 100)
     // 右侧按钮布局位置: 206, 115
-    // hitTest 期望布局坐标
+    // 屏幕坐标 = Matrix * Local
+    // Local (210, 120) -> Screen
+    // x = 210 * 2 + 50 = 470
+    // y = 120 * 2 + 50 = 290
 
-    const hit = toolbar.hitTest(210, 120);
+    // hitTest 接收的是屏幕坐标
+    const hit = toolbar.hitTest(470, 290);
     expect(hit).toBe(true);
 
-    const miss = toolbar.hitTest(200, 120);
+    const miss = toolbar.hitTest(200, 120); // 屏幕 200, 120 -> Local (200-50)/2=75, (120-50)/2=35. 显然不命中
     expect(miss).toBe(false);
   });
 
   // 测试屏幕坐标下的 onPointerDown（真实用户交互）
   it('onPointerDown 应在缩放时处理屏幕坐标', () => {
-    viewport.scale = 2;
+    const s = 2;
+    viewport.scale = s;
     viewport.tx = 0;
     viewport.ty = 0;
 
+    const vpMatrix: [number, number, number, number, number, number] = [s, 0, 0, s, 0, 0];
+    (toolbar as any)._worldMatrix = vpMatrix;
+    const nodeLocalMatrix: [number, number, number, number, number, number] = [
+      1, 0, 0, 1, 100, 100,
+    ];
+    (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
+
     // 右侧按钮布局位置: 206, 115
     // 屏幕位置 (Scale=2): 412, 230
-    // 中心屏幕位置: 412 + 10 = 422, 230 + 10 = 240 (约)
+    // 中心屏幕位置: 412 + 10*2 = 432, 230 + 10*2 = 250
+    // 注意：绘制时是 drawPlusLocal(lx, ly)。btnSize=20.
+    // 屏幕上看到的按钮是 40x40.
+    // 屏幕中心点对应 local 中心点。
+    // Local center: 206+10=216, 115+10=125.
+    // Screen center: 216*2=432, 125*2=250.
 
     // 模拟屏幕坐标事件
     const event = {
-      x: 422,
-      y: 240,
+      x: 432,
+      y: 250,
       stopPropagation: vi.fn(),
       target: toolbar,
     } as unknown as InkwellEvent;
@@ -128,12 +161,6 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
     toolbar.onPointerDown(event);
 
     // 应触发回调
-    // 右侧按钮触发 addChildRight 或 addSibling，取决于上下文？
-    // 在默认设置（根节点？）中，可能不同。
-    // 让我们检查代码中的 resolveSides 逻辑：
-    // 如果是 Root (!edge)，允许: ['left', 'right']
-    // 右侧按钮 -> addChildRight
-
     expect(onAddChildSideSpy).toHaveBeenCalled();
   });
 
@@ -142,9 +169,16 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
     viewport.tx = 50;
     viewport.ty = 50;
 
+    const vpMatrix: [number, number, number, number, number, number] = [1, 0, 0, 1, 50, 50];
+    (toolbar as any)._worldMatrix = vpMatrix;
+    const nodeLocalMatrix: [number, number, number, number, number, number] = [
+      1, 0, 0, 1, 100, 100,
+    ];
+    (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
+
     // 右侧按钮布局位置: 206, 115
     // 屏幕位置 = Layout + Tx = 256, 165
-    // 点击位置 266, 175
+    // 点击位置 266, 175 (中心)
 
     const event = {
       x: 266,
