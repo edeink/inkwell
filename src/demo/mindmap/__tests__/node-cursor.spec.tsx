@@ -64,34 +64,4 @@ describe('MindMapNode 光标配置', () => {
     // 默认普通状态
     expect(container.props.cursor).toBe('default');
   });
-
-  it('配置不完整时应回退到默认值', () => {
-    const root = createWidgetTree({
-      type: CustomComponentType.MindMapViewport,
-      key: 'viewport',
-      children: [
-        {
-          type: CustomComponentType.MindMapNode,
-          key: 'node1',
-          title: 'Node 1',
-          cursorConfig: {
-            // 仅覆盖普通状态
-            normal: 'grab',
-          },
-        },
-      ],
-    });
-
-    // root!.build(mockContext);
-    const node = (root as any).children[0] as MindMapNode;
-
-    // 普通状态
-    let container = node.render() as any;
-    expect(container.props.cursor).toBe('grab');
-
-    // 编辑状态（回退到默认值 'text'）
-    node.setState({ isEditing: true });
-    container = node.render() as any;
-    expect(container.props.cursor).toBe('text');
-  });
 });

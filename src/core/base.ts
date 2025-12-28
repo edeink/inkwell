@@ -117,7 +117,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   private _runtime?: Runtime;
   protected _needsLayout: boolean = false;
   protected _isBuilt: boolean = false;
-  protected _dirty: boolean = true;
+  protected _dirty: boolean = false;
   protected _disposed: boolean = false;
   protected _worldMatrix?: [number, number, number, number, number, number];
 
@@ -211,6 +211,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       return;
     }
     this._dirty = true;
+    const rt = this.runtime as Runtime;
+    if (rt) {
+      rt.scheduleUpdate(this);
+    }
     this.markNeedsLayout();
   }
 
@@ -219,9 +223,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 markNeedsLayout 方法
    */
   markNeedsLayout(): void {
-    const rt = this.runtime as Runtime;
-    rt.scheduleUpdate(this);
-
     if (this._needsLayout) {
       return;
     }

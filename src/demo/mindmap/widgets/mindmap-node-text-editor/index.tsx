@@ -27,7 +27,6 @@ interface EditorState {
   text: string;
   selectionStart: number;
   selectionEnd: number;
-  isFocused: boolean;
   cursorVisible: boolean;
   [key: string]: unknown;
 }
@@ -62,7 +61,6 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       text: props.text,
       selectionStart: 0,
       selectionEnd: props.text.length, // 默认全选
-      isFocused: true,
       cursorVisible: true,
     };
     this.initMeasureContext();
@@ -88,9 +86,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
   private startCursorTimer() {
     if (typeof window !== 'undefined' && this.cursorTimer === null) {
       this.cursorTimer = window.setInterval(() => {
-        if (this.state.isFocused) {
-          this.setState({ cursorVisible: !this.state.cursorVisible });
-        }
+        this.setState({ cursorVisible: !this.state.cursorVisible });
       }, 500);
     }
   }
@@ -780,15 +776,14 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     }
 
     this.isDragging = true;
+    this.stopCursorTimer();
     const pt = this.getLocalPoint(e);
     if (pt) {
       const index = this.getIndexAtPoint(pt.x, pt.y);
       this.setState({
         selectionStart: index,
         selectionEnd: index,
-        isFocused: true,
       });
-      this.resetCursorBlink();
 
       // 聚焦输入框并设置光标
       if (this.input) {
@@ -840,6 +835,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       e.stopPropagation();
     }
     this.isDragging = false;
+    this.resetCursorBlink();
     return false;
   };
 
@@ -885,7 +881,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     ));
 
     // 光标
-    const showCursor = st.isFocused && st.cursorVisible && selectionStart === selectionEnd;
+    const showCursor = st.cursorVisible && selectionStart === selectionEnd;
     let cursor = null;
     if (showCursor) {
       const cursorInfo = this.getCursorInfoAtIndex(selectionEnd);

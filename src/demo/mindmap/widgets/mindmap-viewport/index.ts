@@ -196,7 +196,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
-    this.markNeedsLayout();
+    this.markDirty();
   }
 
   // --- 属性访问器 (Getters & Setters) ---
@@ -212,6 +212,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this._internalSelectedKeys = keys;
     this.broadcastStateToNodes();
     this.markNeedsLayout();
+    this.markDirty();
   }
 
   get activeKey(): string | null {
@@ -289,7 +290,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       this.selectAllActive = true;
       const keys = this.collectAllNodeKeys();
       this.setSelectedKeys(keys);
-      this.markNeedsLayout();
+      this.markDirty();
       return false;
     }
     if (leftBtn && !ctrlLike) {
@@ -299,7 +300,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
         this.setActiveKey(null);
         this.setEditingKey(null);
       }
-      this.markNeedsLayout();
+      this.markDirty();
       return false;
     }
 
@@ -325,7 +326,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       this._selectionRect.width = world.x - this._selectionRect.x;
       this._selectionRect.height = world.y - this._selectionRect.y;
       this.handleSelectionMove();
-      this.markNeedsLayout();
+      this.markDirty();
       return false;
     }
   }
@@ -344,7 +345,7 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       this._selectionRect = null;
       this.setSelectionRect(null);
       this.setActiveKey(null);
-      this.markNeedsLayout();
+      this.markDirty();
       e.stopPropagation();
     }
   }

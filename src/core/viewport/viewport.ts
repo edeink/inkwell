@@ -140,20 +140,26 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     const s = this.clampScale(scale);
     const nx = Number.isFinite(tx) ? tx : this._tx;
     const ny = Number.isFinite(ty) ? ty : this._ty;
-    this._scale = s;
-    this._tx = nx;
-    this._ty = ny;
-    this.notifyViewChange(s, nx, ny);
-    this.markNeedsLayout();
+
+    if (this._scale !== s || this._tx !== nx || this._ty !== ny) {
+      this._scale = s;
+      this._tx = nx;
+      this._ty = ny;
+      this.notifyViewChange(s, nx, ny);
+      this.markDirty();
+    }
   }
 
   public scrollTo(x: number, y: number): void {
     const nx = Number.isFinite(x) ? x : this._scrollX;
     const ny = Number.isFinite(y) ? y : this._scrollY;
-    this._scrollX = nx;
-    this._scrollY = ny;
-    this.notifyScroll(nx, ny);
-    this.markNeedsLayout();
+
+    if (this._scrollX !== nx || this._scrollY !== ny) {
+      this._scrollX = nx;
+      this._scrollY = ny;
+      this.notifyScroll(nx, ny);
+      this.markDirty();
+    }
   }
 
   public scrollBy(dx: number, dy: number): void {
