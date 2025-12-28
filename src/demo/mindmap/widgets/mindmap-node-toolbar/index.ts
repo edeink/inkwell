@@ -222,6 +222,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const hit = this.hitToolbar(e.x, e.y);
     if (hit) {
       e.stopPropagation();
+      e.nativeEvent?.preventDefault();
       const now = Date.now();
       if (now - this.lastActionTime < 100) {
         return;
