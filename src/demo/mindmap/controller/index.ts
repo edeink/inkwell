@@ -1,7 +1,5 @@
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
-import { EventsModule } from './modules/events';
-import { HistoryModule } from './modules/history';
 import { InteractionModule } from './modules/interaction';
 import { LayoutModule } from './modules/layout';
 import { ViewModule } from './modules/view';
@@ -46,11 +44,11 @@ export class MindmapController {
 
     // 注册插件
     this.layoutModule = new LayoutModule(this);
-    this.interaction = new InteractionModule(this);
+    this.interaction = new InteractionModule(this, this.view);
 
-    this.plugins.add(this.layoutModule);
-    this.plugins.add(this.interaction);
-    this.plugins.add(this.view);
+    this.plugins.add(this.layoutModule as unknown as ControllerPlugin);
+    this.plugins.add(this.interaction as unknown as ControllerPlugin);
+    this.plugins.add(this.view as unknown as ControllerPlugin);
 
     // 初始化所有插件
     this.plugins.forEach((p) => {
@@ -214,4 +212,4 @@ export function createController(
   return new MindmapController(runtime, viewport, onViewChange);
 }
 
-export { EventsModule, HistoryModule, LayoutModule };
+export { LayoutModule };

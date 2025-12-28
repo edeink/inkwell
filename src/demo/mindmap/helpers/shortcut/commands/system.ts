@@ -8,6 +8,8 @@ export const PreventBrowserZoomCommand: ShortcutCommand = {
   id: 'prevent-browser-zoom',
   keys: ['Ctrl++', 'Meta++', 'Ctrl+-', 'Meta+-', 'Ctrl+=', 'Meta+=', 'Ctrl+0', 'Meta+0'],
   priority: 1000, // 高优先级
+  allowRepeat: false,
+  cooldownMs: 120,
   execute: ({ viewport, nativeEvent }: ShortcutContext) => {
     nativeEvent.preventDefault();
 

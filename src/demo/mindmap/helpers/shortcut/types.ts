@@ -28,6 +28,10 @@ export interface ShortcutCommand {
   keys: string[];
   /** 优先级（数值越大优先级越高），默认 0 */
   priority?: number;
+  /** 是否允许按住键盘产生的重复触发（KeyboardEvent.repeat），默认不允许 */
+  allowRepeat?: boolean;
+  /** 执行冷却时间（毫秒），在冷却期内再次触发会被忽略，默认 0 表示不限制 */
+  cooldownMs?: number;
   /**
    * 执行命令
    * @param context 上下文

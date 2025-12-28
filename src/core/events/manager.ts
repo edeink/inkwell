@@ -77,6 +77,42 @@ class EventManagerImpl {
     for (const type of delegatedTypes) {
       const fn = (e: Event) => {
         const native = e as MouseEvent | WheelEvent | PointerEvent | TouchEvent;
+        // 自动聚焦处理：当在 Canvas 上发生交互时，尝试获取焦点以接收键盘事件
+        // 但如果当前 activeElement 是 input/textarea（例如正在编辑文本），则不要抢占焦点
+        if (type === 'mousedown' || type === 'pointerdown' || type === 'touchstart') {
+          if (
+            document.activeElement instanceof HTMLInputElement ||
+            document.activeElement instanceof HTMLTextAreaElement ||
+            (document.activeElement as HTMLElement)?.isContentEditable
+          ) {
+            return;
+          }
+
+          const rt = this.getTargetRuntime(native);
+          if (rt) {
+            const renderer = rt.getRenderer();
+            const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+            const canvas = raw?.canvas;
+            if (canvas) {
+              if (canvas.tabIndex < 0) {
+                canvas.tabIndex = 0;
+              }
+              const attemptFocus = () => {
+                if (document.activeElement !== canvas) {
+                  try {
+                    canvas.focus({ preventScroll: true });
+                  } catch (e) {
+                    console.warn('[Inkwell] Canvas focus failed', e);
+                  }
+                }
+              };
+              attemptFocus();
+              // 某些场景下（如父容器存在 focus 抢占），需要延迟再次确认
+              setTimeout(attemptFocus, 0);
+            }
+          }
+        }
+
         if (type === 'mousemove' || type === 'pointermove' || type === 'touchmove') {
           this.latestMoveEvent = { type, native: native as MouseEvent | PointerEvent | TouchEvent };
           if (this.rafId == null) {

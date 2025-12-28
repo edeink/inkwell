@@ -6,6 +6,7 @@ import type { ShortcutCommand, ShortcutContext, ShortcutRegistry } from './types
  */
 export class ShortcutManager implements ShortcutRegistry {
   private commands: ShortcutCommand[] = [];
+  private lastExecAt: Map<string, number> = new Map();
 
   /**
    * 注册快捷键命令
@@ -38,10 +39,49 @@ export class ShortcutManager implements ShortcutRegistry {
       return false;
     }
 
+    try {
+      console.log('快捷键事件接收', {
+        键: nativeEvent.key,
+        Ctrl: !!nativeEvent.ctrlKey,
+        Meta: !!nativeEvent.metaKey,
+        Shift: !!nativeEvent.shiftKey,
+        Alt: !!nativeEvent.altKey,
+        重复: !!nativeEvent.repeat,
+      });
+    } catch {}
+
     for (const command of this.commands) {
       if (this.isMatch(nativeEvent, command.keys)) {
+        // 键盘长按产生的重复事件默认不处理，除非命令允许
+        if (nativeEvent.repeat && command.allowRepeat !== true) {
+          try {
+            console.log('快捷键忽略：长按重复', { 命令: command.id });
+          } catch {}
+          continue;
+        }
+        // 冷却时间限制
+        const now = Date.now();
+        const cd = command.cooldownMs ?? 0;
+        if (cd > 0) {
+          const last = this.lastExecAt.get(command.id) ?? 0;
+          if (now - last < cd) {
+            try {
+              console.log('快捷键忽略：冷却中', { 命令: command.id, 剩余: cd - (now - last) });
+            } catch {}
+            continue;
+          }
+        }
+        try {
+          console.log('快捷键匹配成功，开始执行', { 命令: command.id, 组合: command.keys });
+        } catch {}
         const handled = command.execute(context);
         if (handled === true) {
+          if ((command.cooldownMs ?? 0) > 0) {
+            this.lastExecAt.set(command.id, now);
+          }
+          try {
+            console.log('快捷键执行完成', { 命令: command.id });
+          } catch {}
           return true;
         }
       }

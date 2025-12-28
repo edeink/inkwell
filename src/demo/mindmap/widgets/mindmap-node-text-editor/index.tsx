@@ -412,6 +412,17 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
     // 或者防止因为各种原因的临时失焦
     // 简单起见，直接完成
     this.finishEditing();
+
+    // 编辑完成后，将焦点交还给 Canvas，以便 Viewport 能继续响应快捷键
+    if (typeof document !== 'undefined') {
+      // 尝试找到当前 runtime 的 canvas
+      // 这里通过简单的 DOM 查找，或者如果 runtime 可访问更好
+      // 由于没有直接持有 runtime 引用，尝试查找最近的 inkwell canvas
+      const canvas = document.querySelector('canvas[data-inkwell-id]');
+      if (canvas instanceof HTMLElement) {
+        canvas.focus({ preventScroll: true });
+      }
+    }
   };
 
   private handleSelectionChange = () => {

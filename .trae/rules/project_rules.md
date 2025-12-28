@@ -1,3 +1,18 @@
+# 中文语言要求说明 (Chinese Language Requirements)
+
+本项目严格执行以下中文语言规范，AI 助手必须无条件遵守：
+
+1.  **源码注释**：所有源代码（包括 JS/TS 文件）中的注释必须使用**中文**编写。
+2.  **测试描述**：测试文件中的 `describe` 和 `it` 描述必须使用**中文**，清晰表达测试意图。
+3.  **断言信息**：测试断言中的描述性文本必须使用**中文**。
+4.  **错误信息**：错误提示和日志输出内容必须使用**中文**。
+5.  **字符串常量**：用于解析或界面显示的字符串常量必须使用**中文**。
+6.  **文档编写**：所有文档的说明性文字必须使用**中文**。
+
+**例外情况**：
+-   专有技术名词可保留英文。
+-   第三方库的 API 调用保持英文原样。
+
 # Project Rules & AI Guidelines
 
 This document defines the coding standards, architectural overview, and collaboration guidelines for the `@edeink/inkwell` project.
