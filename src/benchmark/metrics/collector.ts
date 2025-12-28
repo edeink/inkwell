@@ -7,7 +7,6 @@ export type Timings = {
   buildMs: number;
   layoutMs: number;
   paintMs: number;
-  updateMs?: number;
 };
 
 /**

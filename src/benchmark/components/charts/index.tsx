@@ -31,10 +31,7 @@ export default function Charts({
 }) {
   // 按测试名称聚合不同节点规模下的指标，便于序列化到折线图
   const byTest = useMemo(() => {
-    const map: Record<
-      string,
-      { nodes: number; createMs: number; mem: number; fps: number; updateMs: number }[]
-    > = {};
+    const map: Record<string, { nodes: number; createMs: number; mem: number; fps: number }[]> = {};
     const median = (arr: number[]) => {
       const s = [...arr].sort((a, b) => a - b);
       const m = Math.floor(s.length / 2);
@@ -43,7 +40,6 @@ export default function Charts({
     for (const r of results) {
       const nodes = r.average.metrics.nodes;
       const createMs = r.average.metrics.createTimeMs;
-      const updateMs = r.average.metrics.updateMs ?? 0;
       const mem = r.average.metrics.memoryDelta ?? 0;
       const fps = median(r.average.frames.map((f) => f.fps)); // 使用中位数代表帧率稳定性
       const arr = map[r.name] ?? [];
@@ -52,7 +48,6 @@ export default function Charts({
         createMs,
         mem,
         fps,
-        updateMs,
       });
       map[r.name] = arr;
     }
@@ -140,32 +135,6 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, xCommon]);
 
-  const updateTimeOption = useMemo<EChartsOption>(() => {
-    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
-      name,
-      type: 'line',
-      data: byTest[name].map((v) => [v.nodes, v.updateMs]),
-      showSymbol: byTest[name].length === 1,
-      symbolSize: byTest[name].length === 1 ? 8 : 4,
-    }));
-    return {
-      title: {
-        text: '更新耗时（ms） vs 节点数',
-      },
-      tooltip: {
-        trigger: 'axis',
-      },
-      legend: {},
-      xAxis: xCommon as unknown as EChartsOption['xAxis'],
-      yAxis: {
-        type: 'value',
-        name: '更新耗时（ms）',
-      },
-      series,
-    } as EChartsOption;
-  }, [byTest, xCommon]);
-
-  // 内存占用图表配置（bytes vs 节点数）
   const memOption = useMemo<EChartsOption>(() => {
     const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
       name,
@@ -211,26 +180,6 @@ export default function Charts({
     } as EChartsOption;
   }, [byTest, xCommon]);
 
-  const jankOption = useMemo<EChartsOption>(() => {
-    const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
-      name,
-      type: 'line',
-      data: byTest[name].map((v) => [v.nodes, r1pLow(results, name, v.nodes).jankCount]),
-      showSymbol: byTest[name].length === 1,
-      symbolSize: byTest[name].length === 1 ? 8 : 4,
-    }));
-    const yVals = series.flatMap((s) => (s.data as number[][]).map((d) => d[1]));
-    const ySpan = rangeOf(yVals).span;
-    return {
-      title: { text: '卡顿帧（Jank）' },
-      tooltip: { trigger: 'axis' },
-      legend: {},
-      xAxis: xCommon as unknown as EChartsOption['xAxis'],
-      yAxis: { type: ySpan > 1000 ? 'log' : 'value', name: '帧数（frames）' },
-      series,
-    } as EChartsOption;
-  }, [byTest, results, xCommon]);
-
   // 1% Low 帧率（低于最差 1% 帧的平均 FPS）
   const low1Option = useMemo<EChartsOption>(() => {
     const series: SeriesOption[] = Object.keys(byTest).map((name) => ({
@@ -271,17 +220,6 @@ export default function Charts({
         ) : null}
       </div>
       <div className={styles.chart} style={{ position: 'relative' }}>
-        <ReactECharts style={{ height: 320 }} option={updateTimeOption} />
-        {onToggleMode && onUploadBaseline ? (
-          <Toolbox
-            results={results}
-            experimentType={experimentType || 'dom_vs_widget'}
-            onToggleMode={onToggleMode}
-            onUploadBaseline={onUploadBaseline}
-          />
-        ) : null}
-      </div>
-      <div className={styles.chart} style={{ position: 'relative' }}>
         <ReactECharts style={{ height: 320 }} option={memOption} />
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
@@ -294,17 +232,6 @@ export default function Charts({
       </div>
       <div className={styles.chart} style={{ position: 'relative' }}>
         <ReactECharts style={{ height: 320 }} option={fpsOption} />
-        {onToggleMode && onUploadBaseline ? (
-          <Toolbox
-            results={results}
-            experimentType={experimentType || 'dom_vs_widget'}
-            onToggleMode={onToggleMode}
-            onUploadBaseline={onUploadBaseline}
-          />
-        ) : null}
-      </div>
-      <div className={styles.chart} style={{ position: 'relative' }}>
-        <ReactECharts style={{ height: 320 }} option={jankOption} />
         {onToggleMode && onUploadBaseline ? (
           <Toolbox
             results={results}
@@ -343,19 +270,17 @@ function rangeOf(nums: number[]) {
 }
 
 /**
- * 计算 1% Low 与 Jank 计数
+ * 计算 1% Low
  * - 1% Low：排序后最低 1% 帧的平均 FPS；
- * - Jank：低于 55FPS 的帧数计数（经验阈值）。
  */
 function r1pLow(results: TestResult[], name: string, nodes: number) {
   const r = results.find((x) => x.name === name && x.average.metrics.nodes === nodes);
   if (!r) {
-    return { low1: 0, jankCount: 0 };
+    return { low1: 0 };
   }
   const arr = r.average.frames.map((f) => f.fps).sort((a, b) => a - b);
   const n = Math.max(1, Math.floor(arr.length * 0.01));
   const low = arr.slice(0, n);
   const low1 = low.reduce((s, v) => s + v, 0) / low.length;
-  const jankCount = arr.filter((v) => v < 55).length;
-  return { low1, jankCount };
+  return { low1 };
 }

@@ -42,7 +42,7 @@ export default {
       type: 'category',
       label: 'Demo 例子',
       collapsed: true,
-      items: ['demo/mindmap'],
+      items: ['demo/mindmap', 'demo/interactive-counter', 'demo/widget-gallery'],
     },
     {
       type: 'category',

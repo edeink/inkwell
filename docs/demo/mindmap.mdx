@@ -3,7 +3,7 @@ title: 思维导图 Demo
 sidebar_label: 思维导图
 ---
 
-import { Scene } from '@mindmap/scene';
+import { MindmapDemo } from '@mindmap';
 
 # 思维导图 (Mindmap)
 
@@ -13,8 +13,15 @@ import { Scene } from '@mindmap/scene';
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Scene />
+<MindmapDemo />
 ```
+
+### 组件参数 (Props)
+
+| 属性 | 类型 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `width` | `number` | - | 视口宽度 |
+| `height` | `number` | - | 视口高度 |
 
 ## 功能特性
 

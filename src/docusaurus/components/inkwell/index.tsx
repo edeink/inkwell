@@ -3,6 +3,10 @@ import * as Babel from '@babel/standalone';
 import classnames from 'classnames';
 import React from 'react';
 
+import { InteractiveCounterDemo } from '@/demo/interactive-counter';
+import { MindmapDemo } from '@/demo/mindmap';
+import { WidgetGalleryDemo } from '@/demo/widget-gallery';
+
 // Mock Scene if not available
 const Scene = {};
 
@@ -135,6 +139,9 @@ export default function Inkwell({
           'InkConsole',
           'Scene',
           'canvasId',
+          'MindmapDemo',
+          'InteractiveCounterDemo',
+          'WidgetGalleryDemo',
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
@@ -147,6 +154,9 @@ export default function Inkwell({
           ink,
           Scene,
           canvasId,
+          MindmapDemo,
+          InteractiveCounterDemo,
+          WidgetGalleryDemo,
           ...Object.values(Core),
         );
         await runtime.renderTemplate(tplFn as () => JSXElement);

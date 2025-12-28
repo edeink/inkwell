@@ -53,6 +53,7 @@ const config: Config = {
               alias: {
                 '@': path.resolve(__dirname, './src'),
                 '@site/src': path.resolve(__dirname, './src/docusaurus'),
+                '@demo': path.resolve(__dirname, './src/demo'),
                 '@mindmap': path.resolve(__dirname, './src/demo/mindmap'),
               },
             },

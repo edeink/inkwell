@@ -1,0 +1,38 @@
+---
+title: 组件库展示 Demo
+sidebar_label: 组件库展示
+---
+
+import { WidgetGalleryDemo } from '@demo/widget-gallery';
+
+# 组件库展示 (Widget Gallery)
+
+这是一个展示 Inkwell 框架内置组件的综合示例。
+
+## 在线演示
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<WidgetGalleryDemo width={800} height={600} />
+```
+
+## 功能特性
+
+1.  **基础组件**
+    *   `Container`: 容器组件，支持背景色、边框、圆角等。
+    *   `Text`: 文本组件，支持字体、颜色、大小等样式。
+    *   `Image`: 图片组件。
+
+2.  **布局组件**
+    *   `Row` / `Column`: 线性布局。
+    *   `Stack` / `Positioned`: 层叠布局。
+    *   `Flex` / `Expanded`: 弹性布局。
+
+3.  **滚动组件**
+    *   `SingleChildScrollView`: 单一子元素滚动视图。
+    *   `ListView`: 列表滚动视图。
+
+## 代码结构
+
+*   `src/demo/widget-gallery/widgets/widget-gallery-demo/index.tsx`: 主入口。
+*   `src/demo/widget-gallery/widgets/demo-card/index.tsx`: 展示卡片组件。

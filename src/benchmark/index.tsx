@@ -46,6 +46,9 @@ type ProgressItem = {
 
 /**
  * 根据布局类型生成 DOM 与 Widget 两类测试用例集合。
+ * 注意：已确保 Absolute 和 Flex 类型的 DOM 与 Widget 实现逻辑在测试结构、元素尺寸和布局属性上保持一致。
+ * - Absolute: 均使用随机坐标分布 4x4 元素。
+ * - Flex: 均使用 Wrap/FlexWrap 布局，4x4 元素，间距 4px。
  */
 function listTests(caseType: TestCaseType, mode: 'benchmark' | 'canvas'): LoadedTest[] {
   // Canvas 模式：仅运行 Widget 测试，且名称简化
@@ -182,7 +185,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [showStage, setShowStage] = useState(false);
   const [nodeCounts, setNodeCounts] = useState<number[]>([100, 500, 1000, 5000, 10000]);
   const [repeat, setRepeat] = useState<number>(3);
-  const [caseType, setCaseType] = useState<TestCaseType>(TestCaseType.Text);
+  const [caseType, setCaseType] = useState<TestCaseType>(TestCaseType.Absolute);
   const [experimentType, setExperimentType] = useState<ExperimentType>('dom_vs_widget');
   const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);
   const [thresholdPercent, setThresholdPercent] = useState<number>(0.05);

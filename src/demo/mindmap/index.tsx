@@ -6,6 +6,8 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 
+export { MindmapDemo } from './widgets/mindmap-demo';
+
 export function setupMindmap(
   runtime: Runtime,
   width: number,

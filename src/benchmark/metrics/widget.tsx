@@ -122,7 +122,6 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
       buildMs: t.buildMs,
       layoutMs: t.layoutMs,
       paintMs: t.paintMs,
-      updateMs: t.updateMs,
       memoryDelta: Math.max(0, delta),
     };
     this.collecting = false;

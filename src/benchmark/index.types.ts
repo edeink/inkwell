@@ -26,7 +26,6 @@ export type PerformanceMetrics = {
   buildMs?: number;
   layoutMs?: number;
   paintMs?: number;
-  updateMs?: number;
   memoryDelta?: number;
   cpuBusyPercent?: number;
 };
@@ -76,6 +75,7 @@ export enum TestCaseType {
   Absolute = 'absolute',
   Flex = 'flex',
   Text = 'text',
+  CanvasBenchmark = 'canvas_benchmark',
 }
 
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
