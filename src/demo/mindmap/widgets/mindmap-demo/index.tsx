@@ -86,7 +86,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       return;
     }
     vp.zoomAt(scale, cx, cy);
-    vp.markNeedsLayout();
+    vp.markDirty();
 
     // 通知 Controller 视图变更
     // @ts-expect-error 运行时扩展
@@ -331,7 +331,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
     if (wrapper) {
       wrapper.renderObject.offset = { dx, dy };
-      wrapper.markNeedsLayout();
+      wrapper.markDirty();
     }
   };
 

@@ -75,6 +75,25 @@ export function createTightConstraints(width: number, height: number): BoxConstr
 }
 
 /**
+ * 判断约束是否相等
+ */
+export function areConstraintsEqual(a: BoxConstraints, b: BoxConstraints): boolean {
+  return (
+    a.minWidth === b.minWidth &&
+    a.maxWidth === b.maxWidth &&
+    a.minHeight === b.minHeight &&
+    a.maxHeight === b.maxHeight
+  );
+}
+
+/**
+ * 判断是否为紧约束（宽高固定）
+ */
+export function isTight(c: BoxConstraints): boolean {
+  return c.minWidth === c.maxWidth && c.minHeight === c.maxHeight;
+}
+
+/**
  * 基础组件类
  */
 export abstract class Widget<TData extends WidgetProps = WidgetProps> {
@@ -227,10 +246,23 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       return;
     }
     this._needsLayout = true;
+
+    // 优化：如果当前节点是布局边界（例如具有紧约束），则无需向上传播
+    // 因为即使内部重新布局，自身尺寸也不会改变，不会影响父级
+    if (this.renderObject.constraints && isTight(this.renderObject.constraints)) {
+      return;
+    }
+
     let p: Widget | null = this.parent;
     while (p) {
       if (!p._needsLayout) {
         p._needsLayout = true;
+      }
+      // 如果父节点已经是布局边界，或者已经标记为 dirty，则可以提前终止
+      // 但为了简单起见，这里继续传播直到遇到已标记节点（上面的 !p._needsLayout 检查覆盖了已标记的情况）
+      // 若要实现严格的 RelayoutBoundary 逻辑，需要更复杂的判断
+      if (p.renderObject.constraints && isTight(p.renderObject.constraints)) {
+        break;
       }
       p = p.parent;
     }
@@ -378,8 +410,16 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       }
     }
 
+    // 检测子组件结构是否发生变化
+    const childrenStructureChanged =
+      prev.length !== nextChildren.length || prev.some((c, i) => c !== nextChildren[i]);
+
     // 替换 children 引用（删除未复用的旧节点）
     this.children = nextChildren;
+
+    if (childrenStructureChanged) {
+      this.markNeedsLayout();
+    }
 
     // 构建后验证
     if (this.children.length !== childrenData.length) {
@@ -546,6 +586,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (!this._isBuilt && Array.isArray(this.data.children) && this.data.children.length > 0) {
       throw new Error('布局前必须先构建子节点');
     }
+
+    // 优化：如果不需要重新布局且约束未改变，直接返回缓存尺寸
+    if (
+      !this._needsLayout &&
+      this.renderObject.constraints &&
+      areConstraintsEqual(this.renderObject.constraints, constraints)
+    ) {
+      return this.renderObject.size;
+    }
+
+    this.renderObject.constraints = constraints;
 
     // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);

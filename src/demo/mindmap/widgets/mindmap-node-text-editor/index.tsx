@@ -777,12 +777,14 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     this.isDragging = true;
     this.stopCursorTimer();
+
     const pt = this.getLocalPoint(e);
     if (pt) {
       const index = this.getIndexAtPoint(pt.x, pt.y);
       this.setState({
         selectionStart: index,
         selectionEnd: index,
+        cursorVisible: true,
       });
 
       // 聚焦输入框并设置光标

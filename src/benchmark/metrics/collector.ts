@@ -42,8 +42,8 @@ export class FrameSampler {
       const dt = now - last; // 相邻两帧的时间差（毫秒）
       last = now;
       if (dt > 0) {
-        const fps = 1000 / dt; // 帧率：每秒毫秒数 / 单帧耗时
-        this.samples.push({ t: now - this.startMark, fps }); // 相对起点时间与 FPS
+        const fps = round1(1000 / dt); // 帧率：每秒毫秒数 / 单帧耗时
+        this.samples.push({ t: round1(now - this.startMark), fps }); // 相对起点时间与 FPS
       }
       // 下一帧继续采样
       requestAnimationFrame(loop);
@@ -75,4 +75,11 @@ export async function measureNextPaint(): Promise<number> {
       resolve(t1 - t0);
     });
   });
+}
+
+/**
+ * 保留一位小数
+ */
+export function round1(num: number): number {
+  return Math.round(num * 10) / 10;
 }

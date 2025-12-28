@@ -211,7 +211,6 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
     this._internalSelectedKeys = keys;
     this.broadcastStateToNodes();
-    this.markNeedsLayout();
     this.markDirty();
   }
 

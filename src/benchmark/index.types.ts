@@ -126,6 +126,7 @@ export abstract class PerformanceTestInterface {
  */
 export function averageSamples(samples: TestSample[]): TestSample {
   const n = samples.length || 1;
+  const round1 = (v: number) => Math.round(v * 10) / 10;
   const avgMemory: MemoryUsage = {
     heapUsed: 0,
     heapTotal: 0,
@@ -147,25 +148,29 @@ export function averageSamples(samples: TestSample[]): TestSample {
 
   const avgMetrics: PerformanceMetrics = {
     nodes: Math.round(samples.reduce((a, b) => a + b.metrics.nodes, 0) / n),
-    createTimeMs: samples.reduce((a, b) => a + b.metrics.createTimeMs, 0) / n,
-    avgPerNodeMs: samples.reduce((a, b) => a + b.metrics.avgPerNodeMs, 0) / n,
+    createTimeMs: round1(samples.reduce((a, b) => a + b.metrics.createTimeMs, 0) / n),
+    avgPerNodeMs: round1(samples.reduce((a, b) => a + b.metrics.avgPerNodeMs, 0) / n),
     memoryDelta: undefined,
   };
   const hasMemDelta = samples.every((s) => typeof s.metrics.memoryDelta === 'number');
   if (hasMemDelta) {
-    avgMetrics.memoryDelta = samples.reduce((a, b) => a + (b.metrics.memoryDelta as number), 0) / n;
+    avgMetrics.memoryDelta = round1(
+      samples.reduce((a, b) => a + (b.metrics.memoryDelta as number), 0) / n,
+    );
   }
   const hasBuild = samples.every((s) => typeof s.metrics.buildMs === 'number');
   const hasLayout = samples.every((s) => typeof s.metrics.layoutMs === 'number');
   const hasPaint = samples.every((s) => typeof s.metrics.paintMs === 'number');
   if (hasBuild) {
-    avgMetrics.buildMs = samples.reduce((a, b) => a + (b.metrics.buildMs as number), 0) / n;
+    avgMetrics.buildMs = round1(samples.reduce((a, b) => a + (b.metrics.buildMs as number), 0) / n);
   }
   if (hasLayout) {
-    avgMetrics.layoutMs = samples.reduce((a, b) => a + (b.metrics.layoutMs as number), 0) / n;
+    avgMetrics.layoutMs = round1(
+      samples.reduce((a, b) => a + (b.metrics.layoutMs as number), 0) / n,
+    );
   }
   if (hasPaint) {
-    avgMetrics.paintMs = samples.reduce((a, b) => a + (b.metrics.paintMs as number), 0) / n;
+    avgMetrics.paintMs = round1(samples.reduce((a, b) => a + (b.metrics.paintMs as number), 0) / n);
   }
 
   const frames: FrameRateSample[] = [];
@@ -177,8 +182,8 @@ export function averageSamples(samples: TestSample[]): TestSample {
     const ts = samples.map((s) => s.frames[i]?.t).filter((v) => typeof v === 'number') as number[];
     if (vals.length) {
       frames.push({
-        t: ts[0] ?? i,
-        fps: vals.reduce((a, b) => a + b, 0) / vals.length,
+        t: round1(ts[0] ?? i),
+        fps: round1(vals.reduce((a, b) => a + b, 0) / vals.length),
       });
     }
   }

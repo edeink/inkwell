@@ -147,7 +147,7 @@ export class Image extends Widget<ImageProps> {
       this.naturalHeight = this.imageElement!.naturalHeight;
       this.imageLoaded = true;
       // 触发重新布局和渲染
-      this.markNeedsLayout();
+      this.markDirty();
     };
     this.imageElement.onerror = () => {
       console.error(`Failed to load image: ${this.src}`);

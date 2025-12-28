@@ -42,7 +42,7 @@ export default function CanvasReport({ results }: Props) {
             <Statistic
               title="Build 耗时占比"
               value={metrics.build}
-              precision={2}
+              precision={1}
               suffix="%"
               valueStyle={{ color: '#1890ff' }}
             />
@@ -53,7 +53,7 @@ export default function CanvasReport({ results }: Props) {
             <Statistic
               title="Layout 耗时占比"
               value={metrics.layout}
-              precision={2}
+              precision={1}
               suffix="%"
               valueStyle={{ color: '#52c41a' }}
             />
@@ -64,7 +64,7 @@ export default function CanvasReport({ results }: Props) {
             <Statistic
               title="Paint 耗时占比"
               value={metrics.paint}
-              precision={2}
+              precision={1}
               suffix="%"
               valueStyle={{ color: '#faad14' }}
             />
@@ -72,7 +72,7 @@ export default function CanvasReport({ results }: Props) {
         </Col>
       </Row>
       <div style={{ marginTop: 24, textAlign: 'center', color: '#666' }}>
-        测试节点数: {metrics.nodes} | 总耗时: {metrics.totalTime.toFixed(2)}ms
+        测试节点数: {metrics.nodes} | 总耗时: {metrics.totalTime.toFixed(1)}ms
       </div>
     </div>
   );

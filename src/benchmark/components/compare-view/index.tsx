@@ -113,8 +113,8 @@ export default function CompareView({
       const items = arr
         .map(
           (d) =>
-            `<li><strong>${d.field}</strong>: ${d.baseline.toFixed(2)} → ` +
-            `<span style="color:#dc2626">${d.current.toFixed(2)} ` +
+            `<li><strong>${d.field}</strong>: ${d.baseline.toFixed(1)} → ` +
+            `<span style="color:#dc2626">${d.current.toFixed(1)} ` +
             `(${(d.deltaPercent * 100).toFixed(1)}%)</span></li>`,
         )
         .join('');

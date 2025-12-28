@@ -83,7 +83,7 @@ function setTransform(
   (vp as any)._ty = ty;
   (vp as any)._scrollX = scrollX;
   (vp as any)._scrollY = scrollY;
-  vp.markNeedsLayout(); // 触发更新
+  vp.markDirty(); // 触发更新
 }
 
 describe('MindMapViewport 选区精度测试', () => {

@@ -1,94 +1,112 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import type Runtime from '@/runtime';
+import {
+  Widget,
+  createBoxConstraints,
+  createTightConstraints,
+  type BoxConstraints,
+  type Size,
+} from '@/core/base';
 
-import { Container } from '@/core';
-import { Widget, createBoxConstraints } from '@/core/base';
-import { WidgetRegistry } from '@/core/registry';
-import { compileElement } from '@/utils/compiler/jsx-compiler';
+// 自定义测试组件，方便控制行为
+class TestWidget extends Widget {
+  layoutCount = 0;
 
-function buildSimpleTree(): { root: Widget; inner: Widget } {
-  const el = (
-    <Container key="root" width={200} height={200}>
-      <Container key="inner" width={120} height={120} />
-    </Container>
-  );
-  const data = compileElement(el);
-  const root = WidgetRegistry.createWidget(data)!;
-  root.createElement(data);
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
+    this.layoutCount++;
+    // 简单实现：取最小约束尺寸
+    return {
+      width: constraints.minWidth,
+      height: constraints.minHeight,
+    };
+  }
+}
+
+function buildTree(): { root: TestWidget; child: TestWidget } {
+  const root = new TestWidget({ type: 'Root' });
+  const child = new TestWidget({ type: 'Child' });
+  root.children = [child];
+  child.parent = root;
+
+  // 初始布局
   root.layout(createBoxConstraints());
-  const inner = root.children[0];
-  return { root, inner };
+  return { root, child };
 }
 
-function attachFakeRuntime(root: Widget, onRebuild: () => void): { runtime: Runtime } {
-  let scheduled = false;
-  const runtime = {
-    rebuild: vi.fn(() => onRebuild()),
-    scheduleUpdate: vi.fn((_w: Widget) => {
-      if (scheduled) {
-        return;
-      }
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        runtime.rebuild();
-      });
-    }),
-  } as unknown as Runtime;
-  root.runtime = runtime;
-  return { runtime };
-}
+describe('markNeedsLayout 优化与约束缓存', () => {
+  it('当约束为紧约束(Tight)时，停止向上传播 (RelayoutBoundary)', () => {
+    const { root, child } = buildTree();
 
-describe('markNeedsLayout 基本与传播', () => {
-  it('单节点标记后在下一帧触发布局', async () => {
-    const { root, inner } = buildSimpleTree();
-    const calls: { rebuild: number } = { rebuild: 0 };
-    attachFakeRuntime(root, () => {
-      calls.rebuild++;
-    });
-    inner.markNeedsLayout();
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-    await new Promise((r) => setTimeout(r, 1));
-    expect(calls.rebuild).toBe(1);
+    // 手动设置 child 为紧约束，模拟它是 RelayoutBoundary
+    child.renderObject.constraints = createTightConstraints(100, 100);
+
+    // 重置状态
+    (root as any)._needsLayout = false;
+    (child as any)._needsLayout = false;
+
+    child.markNeedsLayout();
+
+    expect((child as any)._needsLayout).toBe(true);
+    // 核心验证：root 不应被标记，因为 child 是边界
+    expect((root as any)._needsLayout).toBe(false);
   });
 
-  it('向上递归标记父节点', () => {
-    const { root, inner } = buildSimpleTree();
-    root.runtime = { scheduleUpdate: () => void 0 } as unknown as Runtime;
-    inner.markNeedsLayout();
-    expect((inner as unknown as { _needsLayout: boolean })._needsLayout).toBe(true);
-    expect((root as unknown as { _needsLayout: boolean })._needsLayout).toBe(true);
+  it('当约束为松散约束(Loose)时，继续向上传播', () => {
+    const { root, child } = buildTree();
+
+    // 手动设置 child 为松散约束
+    child.renderObject.constraints = createBoxConstraints({ minWidth: 0, maxWidth: 100 });
+
+    (root as any)._needsLayout = false;
+    (child as any)._needsLayout = false;
+
+    child.markNeedsLayout();
+
+    expect((child as any)._needsLayout).toBe(true);
+    expect((root as any)._needsLayout).toBe(true);
   });
 
-  it('并发多次调用仅调度一次', async () => {
-    const { root, inner } = buildSimpleTree();
-    const calls: { rebuild: number } = { rebuild: 0 };
-    attachFakeRuntime(root, () => {
-      calls.rebuild++;
-    });
-    inner.markNeedsLayout();
-    inner.markNeedsLayout();
-    inner.markNeedsLayout();
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-    await new Promise((r) => setTimeout(r, 1));
-    expect(calls.rebuild).toBe(1);
+  it('layout 缓存优化：约束未变且不需布局时直接返回缓存尺寸，不执行 performLayout', () => {
+    const { root } = buildTree();
+    const c1 = createTightConstraints(100, 100);
+
+    // 第一次布局
+    root.layout(c1);
+    const initialCount = root.layoutCount;
+
+    // 再次布局，相同约束，且 _needsLayout = false
+    root.layout(c1);
+
+    // 验证 layoutCount 未增加
+    expect(root.layoutCount).toBe(initialCount);
   });
 
-  it('markDirty 自动调度 scheduleUpdate 下一帧重建', async () => {
-    const { root, inner } = buildSimpleTree();
-    const calls: { rebuild: number } = { rebuild: 0 };
-    const runtime = {
-      rebuild: vi.fn(() => calls.rebuild++),
-      scheduleUpdate: vi.fn((_w: Widget) => {
-        requestAnimationFrame(() => runtime.rebuild());
-      }),
-    } as unknown as Runtime;
-    root.runtime = runtime;
-    inner.markDirty();
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-    expect(calls.rebuild).toBe(1);
+  it('layout 缓存失效：约束变化时重新布局', () => {
+    const { root } = buildTree();
+    const c1 = createTightConstraints(100, 100);
+    root.layout(c1);
+    const initialCount = root.layoutCount;
+
+    // 新约束
+    const c2 = createTightConstraints(150, 150);
+    root.layout(c2);
+
+    expect(root.layoutCount).toBe(initialCount + 1);
+  });
+
+  it('layout 缓存失效：标记 dirty 后即使约束未变也重新布局', () => {
+    const { root } = buildTree();
+    const c1 = createTightConstraints(100, 100);
+    root.layout(c1);
+    const initialCount = root.layoutCount;
+
+    // 标记 dirty
+    root.markNeedsLayout();
+
+    // 相同约束
+    root.layout(c1);
+
+    expect(root.layoutCount).toBe(initialCount + 1);
   });
 });

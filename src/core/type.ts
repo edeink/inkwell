@@ -306,6 +306,7 @@ export interface Border {
 export interface RenderObject {
   offset: Offset;
   size: Size;
+  constraints?: BoxConstraints;
   [key: string]: unknown;
 }
 

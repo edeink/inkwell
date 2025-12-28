@@ -5,7 +5,7 @@ import { buildFlexWidgetScene } from '../tester/flex/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
 import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
 
-import { FrameSampler, type Timings } from './collector';
+import { FrameSampler, round1, type Timings } from './collector';
 
 /**
  * Widget 测试上下文
@@ -114,15 +114,15 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     }
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
-    const createTimeMs = t.buildMs + t.layoutMs + t.paintMs;
+    const createTimeMs = round1(t.buildMs + t.layoutMs + t.paintMs);
     this.lastMetrics = {
       nodes: targetCount,
       createTimeMs,
-      avgPerNodeMs: createTimeMs / Math.max(1, targetCount),
-      buildMs: t.buildMs,
-      layoutMs: t.layoutMs,
-      paintMs: t.paintMs,
-      memoryDelta: Math.max(0, delta),
+      avgPerNodeMs: round1(createTimeMs / Math.max(1, targetCount)),
+      buildMs: round1(t.buildMs),
+      layoutMs: round1(t.layoutMs),
+      paintMs: round1(t.paintMs),
+      memoryDelta: round1(Math.max(0, delta)),
     };
     this.collecting = false;
   }

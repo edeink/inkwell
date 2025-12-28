@@ -89,7 +89,7 @@ export class ViewModule {
     }
     this.dispatchViewChangeEvent();
     try {
-      this.controller.viewport.markNeedsLayout();
+      this.controller.viewport.markDirty();
     } catch {}
     try {
       const ctx = this.controller.getPluginContext();
@@ -104,7 +104,7 @@ export class ViewModule {
   setActiveKey(key: string | null): void {
     this.controller.viewport.setActiveKey(key);
     try {
-      this.controller.viewport.markNeedsLayout();
+      this.controller.viewport.markDirty();
     } catch {}
     this.dispatchActiveChangeEvent(key);
   }

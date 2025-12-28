@@ -58,7 +58,7 @@ Widget 是 UI 的基本构建块。在 Inkwell 中，Widget 既是配置也是�
     - `Runtime` 调用 `compileElement` 生成数据。
     - 数据被实例化为 `Widget` 树。
 2.  **Dirty Check**:
-    - `setState` 或 `markNeedsLayout` 标记 Widget 为脏（dirty）。
+    - `setState` 或 `markDirty` 标记 Widget 为脏（dirty）。
     - `Runtime.tick` 收集脏节点。
 3.  **Layout**: 
     - 从根节点或脏节点开始，向下传递 `Constraints`。
