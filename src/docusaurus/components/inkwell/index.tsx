@@ -3,9 +3,9 @@ import * as Babel from '@babel/standalone';
 import classnames from 'classnames';
 import React from 'react';
 
-import { InteractiveCounterDemo } from '@/demo/interactive-counter';
-import { MindmapDemo } from '@/demo/mindmap';
-import { WidgetGalleryDemo } from '@/demo/widget-gallery';
+import { InteractiveCounterDemo } from '@/demo/interactive-counter/app';
+import { MindmapDemo } from '@/demo/mindmap/app';
+import { WidgetGalleryDemo } from '@/demo/widget-gallery/app';
 
 // Mock Scene if not available
 const Scene = {};

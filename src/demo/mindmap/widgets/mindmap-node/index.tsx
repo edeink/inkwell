@@ -44,7 +44,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   title: string = '';
   prefSide: Side | undefined = undefined;
   active: boolean = false;
-  private _onActive?: (key: string | null) => void;
   private _onMoveNode?: (key: string, dx: number, dy: number) => void;
   private dragState: { startX: number; startY: number; origDx: number; origDy: number } | null =
     null;
@@ -78,7 +77,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const akFromProps = (data.activeKey ?? null) as string | null;
     const ak = akFromProps;
     this.active = typeof data.active === 'boolean' ? (data.active as boolean) : ak === this.key;
-    this._onActive = data.onActive;
     this._onMoveNode = data.onMoveNode;
   }
 

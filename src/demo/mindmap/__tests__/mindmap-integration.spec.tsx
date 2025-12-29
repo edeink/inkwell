@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MindmapDemo } from '../widgets/mindmap-demo';
+import { MindmapDemo } from '../app';
 
 import { EventManager } from '@/core/events/manager';
 import Runtime from '@/runtime';

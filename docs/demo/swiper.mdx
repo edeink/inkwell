@@ -1,0 +1,67 @@
+---
+sidebar_position: 4
+---
+
+# 轮播图 (Swiper)
+
+Swiper 组件是一个支持手势滑动、自动播放和自定义轮播项的轮播组件。
+
+## 引入
+
+```tsx
+import { Swiper } from '@/demo/swiper/widgets/swiper';
+```
+
+## 代码演示
+
+### 基础用法
+
+展示了基本的轮播功能，开启自动播放。
+
+```tsx
+import { Container, Text, Center } from '@/core';
+import { Swiper } from '@/demo/swiper/widgets/swiper';
+
+const items = [
+  <Container key="1" color="#FF5252">
+    <Center><Text text="Item 1" color="#fff" fontSize={24} /></Center>
+  </Container>,
+  <Container key="2" color="#448AFF">
+    <Center><Text text="Item 2" color="#fff" fontSize={24} /></Center>
+  </Container>,
+  <Container key="3" color="#69F0AE">
+    <Center><Text text="Item 3" color="#fff" fontSize={24} /></Center>
+  </Container>,
+];
+
+export function App() {
+  return (
+    <Swiper
+      items={items}
+      width={400}
+      height={250}
+      autoplay={true}
+      interval={2000}
+    />
+  );
+}
+```
+
+## API
+
+| 属性 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| items | 轮播项数组 (必须提供 key) | `Widget[]` | - |
+| width | 容器宽度 | `number` | - |
+| height | 容器高度 | `number` | - |
+| autoplay | 是否自动播放 | `boolean` | `false` |
+| interval | 自动播放间隔（毫秒） | `number` | `3000` |
+| duration | 切换动画时长（毫秒） | `number` | `300` |
+
+## 特性
+
+- **手势滑动**: 支持触摸或鼠标拖拽切换，滑动距离超过屏幕宽度的 30% 时触发切换。
+- **惯性滑动**: 松手后自动根据滑动方向和距离完成剩余动画。
+- **自动播放**: 支持可配置间隔时间的自动轮播，鼠标悬停或拖拽时自动暂停。
+- **指示器**: 底部内置圆点指示器，右上角显示数字页码。
+- **循环播放**: 支持无限循环轮播。

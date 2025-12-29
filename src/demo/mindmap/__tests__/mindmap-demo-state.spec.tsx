@@ -1,13 +1,13 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { MindmapDemo } from '../widgets/mindmap-demo';
+import { MindmapDemo } from '../app';
+import { CustomComponentType } from '../type';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
-import { CustomComponentType } from '../type';
 
 describe('MindmapDemo State Management', async () => {
   beforeEach(() => {
@@ -20,24 +20,24 @@ describe('MindmapDemo State Management', async () => {
         }
         const ctx: any = {
           canvas: this as HTMLCanvasElement,
-          save() { },
-          restore() { },
-          translate() { },
-          scale() { },
-          rotate() { },
-          clearRect() { },
-          fillRect() { },
-          strokeRect() { },
-          beginPath() { },
-          closePath() { },
-          moveTo() { },
-          lineTo() { },
-          quadraticCurveTo() { },
-          fill() { },
-          stroke() { },
-          setLineDash() { },
-          fillText() { },
-          drawImage() { },
+          save() {},
+          restore() {},
+          translate() {},
+          scale() {},
+          rotate() {},
+          clearRect() {},
+          fillRect() {},
+          strokeRect() {},
+          beginPath() {},
+          closePath() {},
+          moveTo() {},
+          lineTo() {},
+          quadraticCurveTo() {},
+          fill() {},
+          stroke() {},
+          setLineDash() {},
+          fillText() {},
+          drawImage() {},
           getTransform() {
             return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as any;
           },
@@ -59,7 +59,9 @@ describe('MindmapDemo State Management', async () => {
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
-    if (!demoInstance) throw new Error('Root widget not found');
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
     const state = (demoInstance as any).state;
 
     expect(state.activeKey).toBeNull();
@@ -79,7 +81,9 @@ describe('MindmapDemo State Management', async () => {
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
-    if (!demoInstance) throw new Error('Root widget not found');
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
 
     // Simulate onActive callback
     (demoInstance as any).onActive('n1');
@@ -90,7 +94,10 @@ describe('MindmapDemo State Management', async () => {
     expect(state.activeKey).toBe('n1');
 
     // Check if Viewport receives the new activeKey
-    const vp = findWidget(demoInstance, `#${CustomComponentType.MindMapViewport}`) as unknown as MindMapViewport;
+    const vp = findWidget(
+      demoInstance,
+      `#${CustomComponentType.MindMapViewport}`,
+    ) as unknown as MindMapViewport;
     expect(vp).not.toBeNull();
     expect(vp.activeKey).toBe('n1');
   });
@@ -105,7 +112,9 @@ describe('MindmapDemo State Management', async () => {
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
-    if (!demoInstance) throw new Error('Root widget not found');
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
     console.log('onActive keys:', Object.keys(demoInstance));
 
     // Simulate onActive callbackadding sibling
@@ -130,7 +139,9 @@ describe('MindmapDemo State Management', async () => {
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
-    if (!demoInstance) throw new Error('Root widget not found');
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
 
     // Set active key first
     (demoInstance as any).onActive('n1');

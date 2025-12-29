@@ -8,60 +8,92 @@
 
 ### 1. 根目录结构
 
-每个 Demo 的根目录下仅包含以下核心文件：
+每个 Demo 的根目录下必须包含以下核心文件：
 
-- `index.tsx`: Demo 的主入口文件，导出 Demo 组件。
-- `index.module.less`: 样式文件。
-- `app.tsx`: 应用主文件，通常包含 Demo 的根容器。
-- `type.ts`: 类型定义文件，统一管理该 Demo 的类型。
+- `index.tsx`: **React 组件入口**。负责导出 Demo 的 React 封装组件和元数据。
+- `app.tsx`: **InkWell 运行入口**。包含 InkWell Widget 定义和 `runApp` 函数。
+- `index.module.less`: 样式文件（可选）。
+- `type.ts`: 类型定义文件，统一管理该 Demo 的类型（可选）。
 
-### 2. 目录分类
+### 2. 职责分离
+
+Demo 采用双入口模式，明确分离 React 逻辑和 InkWell 逻辑：
+
+| 文件 | 职责 | 导出内容 |
+| --- | --- | --- |
+| `index.tsx` | 提供 React 容器、初始化 Canvas、注入 UI 覆盖层（如 Toolbar） | `default` (React Component), `meta` (配置信息) |
+| `app.tsx` | 定义 InkWell Widget 树、执行渲染逻辑 | `runApp` (渲染函数), Widget 类 |
+
+### 3. 代码组织
 
 代码内容严格按照以下分类存放：
 
-- **/components**: 存放 React 组件。
+- **/components**: 存放 React 组件（UI 覆盖层、工具栏等）。
 - **/widgets**: 存放 InkWell 核心 Widget 组件。
 - **/helpers**: 存放工具函数和辅助逻辑。
 - **/constants**: 存放常量定义。
 - **/hooks**: 存放自定义 React Hooks。
-- **/assets**: 存放静态资源文件。
 
-### 3. 组件组织规范
+## 编写规范
 
-- **独占文件夹**: 每个组件（无论是 React 组件还是 InkWell Widget）必须拥有独立的文件夹。
-- **命名规范**: 文件夹名称使用 kebab-case（如 `demo-button`），组件文件命名为 `index.tsx`。
-- **禁止混合**: 禁止在同一个文件夹内放置多个组件，必须分文件夹存放。
+### 1. React 入口 (index.tsx)
+
+每个 Demo 的 `index.tsx` 必须导出一个 React 组件（默认导出）和元数据配置。
+
+```typescript
+import React from 'react';
+import { InkwellCanvas } from '../common/inkwell-canvas';
+import { runApp } from './app';
+
+// 1. 导出元数据
+export const meta = {
+  key: 'my-demo',
+  label: '我的演示',
+  description: '这是一个演示描述',
+};
+
+// 2. 导出 React 组件
+export default function MyDemo() {
+  return (
+    <InkwellCanvas 
+      style={{ width: '100%', height: '100%' }}
+      onRuntimeReady={runApp} 
+    />
+  );
+}
+```
+
+### 2. InkWell 入口 (app.tsx)
+
+`app.tsx` 负责定义 InkWell 应用逻辑，必须实现 `runApp`。
+
+```typescript
+/** @jsxImportSource @/utils/compiler */
+import { StatefulWidget, Container, Center } from '@/core';
+import type Runtime from '@/runtime';
+
+export class MyDemoApp extends StatefulWidget {
+  // ... Widget 实现
+}
+
+export function runApp(runtime: Runtime) {
+  runtime.render(<MyDemoApp />);
+}
+```
 
 ## 开发准则
 
-### 1. 命名规范
+- **默认导出**: `index.tsx` 必须使用 `export default` 导出 React 组件，以便 `src/demo/index.tsx` 统一加载。
+- **元数据**: 必须导出 `meta` 对象，包含 `key`, `label`, `description`。
+- **命名规范**: 文件夹使用 kebab-case，组件使用 PascalCase。
+- **语言要求**: 所有注释、文档、字符串常量必须使用 **中文**。
 
-- **文件夹**: kebab-case (例如: `my-component`)
-- **组件文件**: `index.tsx`
-- **样式文件**: `index.module.less`
-- **组件名**: PascalCase (例如: `MyComponent`)
+## 维护规范
 
-### 2. 代码风格
+### 文档同步
 
-- **类型安全**: 严格使用 TypeScript，避免使用 `any`。
-- **样式隔离**: 使用 CSS Modules (`*.module.less`) 避免样式冲突。
-- **类名管理**: 使用 `classnames` 库进行类名拼接。
+在添加或修改 `docs/demo` 下的文档时，请务必遵守以下同步要求：
 
-### 3. 注释规范
-
-- **语言**: 所有源代码注释、测试描述 (`it`, `describe`)、断言消息必须使用 **中文**。
-- **文档**: 所有新建文档必须使用 **中文**。
-
-## 示例项目
-
-本项目包含以下演示应用：
-
-1.  **interactive-counter**: 交互式计数器，展示基本的 Widget 状态管理和事件处理。
-2.  **widget-gallery**: 组件展示廊，全面展示 InkWell 的核心布局和渲染能力（如 Container, Row, Column, Stack, ScrollView 等）。
-3.  **mindmap**: 思维导图，展示复杂的 Canvas 交互、自定义布局引擎和高性能渲染。
-
-## 依赖说明
-
-- **React**: 19.x
-- **TypeScript**: ~5.8
-- **Less**: 样式预处理
+1.  **文档更新**: 检查并更新 `docs/demo` 目录下的相关文档，确保内容准确反映代码变更。
+2.  **导航配置**: 所有在 `docs/demo` 中添加或修改的内容，必须在 `sidebars.ts` 文件中同步更新导航配置，确保新文档在侧边栏中可见。
+3.  **引用路径**: 确保文档中的代码引用路径正确指向 `app.tsx` 或 `index.tsx`。

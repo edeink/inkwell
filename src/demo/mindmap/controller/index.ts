@@ -34,13 +34,7 @@ export class MindmapController {
     this.view = new ViewModule(this, onViewChange);
     this.onViewChangeCb = onViewChange ?? null;
 
-    // 订阅视口变化事件
-    this.viewport.addViewChangeListener((v) => {
-      this.viewScale = v.scale;
-      this.viewTx = v.tx;
-      this.viewTy = v.ty;
-      this.view.syncFromViewport();
-    });
+    this.bindViewport(viewport);
 
     // 注册插件
     this.layoutModule = new LayoutModule(this);
@@ -58,6 +52,32 @@ export class MindmapController {
     });
     MindmapController.byRuntime.set(runtime, this);
     (runtime as unknown as { __mindmapController: MindmapController }).__mindmapController = this;
+  }
+
+  syncView(view: { scale: number; tx: number; ty: number }): void {
+    this.viewScale = view.scale;
+    this.viewTx = view.tx;
+    this.viewTy = view.ty;
+    this.view.syncFromViewport();
+  }
+
+  bindViewport(viewport: MindMapViewport): void {
+    if (this.viewport === viewport) {
+      return;
+    }
+    this.viewport = viewport;
+    // 重新订阅视口变化事件
+    // 注意：由于 Widget 可能是新建的，我们需要确保 Controller 始终监听最新的 Widget
+    // 实际的 Viewport Widget 可能会在 Render 过程中被替换，
+    // 因此推荐外部在 Viewport 变化时调用 setViewport 或 syncView
+    this.viewport.addViewChangeListener((v) => {
+      this.syncView(v);
+    });
+
+    // 同步初始状态
+    this.viewScale = viewport.scale;
+    this.viewTx = viewport.tx;
+    this.viewTy = viewport.ty;
   }
 
   get scrollX(): number {
