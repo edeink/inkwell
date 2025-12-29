@@ -1,10 +1,10 @@
 ---
 id: update-mechanism
-title: 更新机制与性能优化
+title: 更新机制
 sidebar_position: 2
 ---
 
-# 更新机制与性能优化
+# 更新机制
 
 本文档详细解析 Inkwell 框架的组件更新机制，并结合近期的核心更新说明如何优化渲染性能。
 
@@ -102,37 +102,6 @@ sequenceDiagram
 -   **跳过已销毁组件**: 在遍历脏列表时，增加 `isDisposed()` 检查。如果组件在等待更新期间被卸载，直接跳过。
 -   **重复检测**: 如果一个组件已经被父组件更新过，再次遇到它时会跳过。
 
-### 3.3 状态提升与 Ref 优化
-
-**案例**: `Counter` 组件点击增加时，同时更新自身 `count` 并通过 `ref` 调用 `Button` 的 `changeColor`。
-
-**问题**: `Counter` `setState` 和 `Button` `setState` 独立触发，导致双重渲染。
-
-**优化前后的对比流程图**:
-
-```mermaid
-graph TD
-    subgraph Before [优化前: 双重渲染]
-        A1[Event: onClick] --> B1[Counter.setState]
-        A1 --> C1[Button.changeColor -> setState]
-        B1 --> D1[Runtime Queue: [Counter, Button]]
-        D1 --> E1[Rebuild Counter] --> F1[Rebuild Button (Props Update)]
-        D1 --> G1[Rebuild Button (State Update)]
-        F1 -.-> H1[Render 1]
-        G1 -.-> I1[Render 2]
-    end
-
-    subgraph After [优化后: 单次渲染]
-        A2[Event: onClick] --> B2[Counter.setState]
-        A2 --> C2[Button.changeColor -> setState]
-        B2 --> D2[Runtime Queue: [Counter, Button]]
-        D2 --> E2[Sort by Depth: Counter < Button]
-        E2 --> F2[Rebuild Counter]
-        F2 --> G2[Update Button Props & Remove from Queue]
-        G2 --> H2[Single Render]
-    end
-```
-
 ## 4. 性能优化最佳实践
 
 ### 4.1 避免在 Render 中执行副作用
@@ -159,14 +128,9 @@ graph TD
 
 ## 5. 警告与注意事项
 
-:::warning 注意
-**不要在构造函数中调用 `setState`**。
+:::tip 注意
+**不要在构造函数中中调用 `setState`**。
 在 `constructor` 阶段组件尚未挂载，直接赋值 `this.state` 即可。
-:::
-
-:::danger 避免
-**避免在 `componentDidUpdate` (或类似时机) 无条件调用 `setState`**。
-这会导致死循环。务必包裹在条件判断中。
 :::
 
 :::tip 提示

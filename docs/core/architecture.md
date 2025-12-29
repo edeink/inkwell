@@ -15,9 +15,9 @@ Inkwell 的运行时（Runtime）负责协调整个渲染流程。它管理着 W
 ```mermaid
 graph TD
     Runtime[Runtime] -->|Manages| WidgetTree[Widget Tree]
-    Runtime -->|Manages| Renderer[IRenderer (Canvas2D)]
+    Runtime -->|Manages| Renderer["IRenderer (Canvas2D)"]
     Runtime -->|Compiles| JSX[JSX / React Elements]
-    JSX -->|Compiler| ComponentData[ComponentData (JSON)]
+    JSX -->|Compiler| ComponentData["ComponentData (JSON)"]
     ComponentData -->|Hydrates| WidgetTree
     WidgetTree -->|Layout & Paint| Renderer
 ```

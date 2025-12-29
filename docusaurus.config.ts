@@ -1,9 +1,12 @@
 import path from 'path';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
 
 import type { ThemeConfig } from '@docusaurus/preset-classic';
 import type { Config } from '@docusaurus/types';
 
 const isProd = process.env.NODE_ENV === 'production';
+
 const config: Config = {
   title: 'Inkwell 文档',
   tagline: '基于 Canvas 的高性能 UI 系统，友好的 JSX 体验',
@@ -12,13 +15,23 @@ const config: Config = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
+
   i18n: {
     defaultLocale: 'zh',
     locales: ['zh', 'en'],
   },
+
   markdown: {
     mermaid: true,
   },
+
+  stylesheets: [
+    {
+      href: 'https://unpkg.com/katex@0.16.9/dist/katex.min.css',
+      type: 'text/css',
+    },
+  ],
+
   presets: [
     [
       'classic',
@@ -26,6 +39,8 @@ const config: Config = {
         docs: {
           routeBasePath: 'docs',
           sidebarPath: path.resolve(__dirname, './sidebars.ts'),
+          remarkPlugins: [remarkMath],
+          rehypePlugins: [rehypeKatex],
           includeCurrentVersion: true,
           // 在生产环境中排除本地调试文档，仅本地构建可见
           include: isProd ? ['**/*.{md,mdx}', '!test/*.mdx'] : ['**/*.{md,mdx}'],
@@ -41,12 +56,14 @@ const config: Config = {
       },
     ],
   ],
+
   plugins: [
-    'docusaurus-plugin-search-local',
-    function myLessPlugin() {
+    // 'docusaurus-plugin-search-local',
+    function myCustomPlugin() {
       return {
-        name: 'inkwell-less-modules',
-        configureWebpack() {
+        name: 'inkwell-custom-plugin',
+        configureWebpack(config, isServer, utils) {
+          const { getStyleLoaders } = utils;
           return {
             devtool: 'source-map',
             resolve: {
@@ -106,7 +123,9 @@ const config: Config = {
       };
     },
   ],
+
   themes: ['@docusaurus/theme-mermaid'],
+
   themeConfig: {
     image: 'img/social-card.png',
     navbar: {

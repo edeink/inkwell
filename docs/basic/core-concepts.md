@@ -4,7 +4,7 @@ title: 核心概念
 sidebar_position: 3
 ---
 
-# 架构设计
+# 核心概念
 
 Inkwell 的核心架构深受 Flutter 启发，但针对 React 生态进行了适配。它提供了一个高性能、声明式的 Canvas UI 渲染系统。
 

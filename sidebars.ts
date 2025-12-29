@@ -2,21 +2,30 @@ export default {
   docs: [
     {
       type: 'category',
-      label: '基础教程',
+      label: '快速入门',
       collapsed: false,
       items: ['basic/intro', 'basic/quick-start', 'basic/core-concepts', 'basic/widget-basics'],
+    },
+    {
+      type: 'category',
+      label: '核心框架',
+      collapsed: false,
+      items: [
+        'core/architecture',
+        'core/lifecycle',
+        'core/update-mechanism',
+        'core/view-transform',
+        'core/events',
+      ],
     },
     {
       type: 'category',
       label: '进阶指南',
       collapsed: false,
       items: [
-        'advanced/lifecycle',
-        'advanced/update-mechanism',
         'advanced/custom-widget',
-        'advanced/events',
-        'advanced/devtools',
         'advanced/performance',
+        'advanced/devtools',
         'advanced/testing',
       ],
     },
@@ -26,6 +35,7 @@ export default {
       collapsed: true,
       items: [
         'api/api-index',
+        'api/utils',
         {
           type: 'category',
           label: 'Widgets',

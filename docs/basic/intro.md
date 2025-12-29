@@ -5,6 +5,8 @@ slug: /
 sidebar_position: 1
 ---
 
+# 介绍
+
 欢迎来到 Inkwell 文档。Inkwell 是一个以 Canvas 为核心的 UI 运行时，采用 JSX 编写体验，兼顾性能与可维护性。
 
 - 采用可控渲染管线，避免不必要的 DOM 布局与重排

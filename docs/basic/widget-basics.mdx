@@ -13,13 +13,26 @@ Inkwell 的 Widget 是构建界面的基础单元，采用 Flutter 风格的声�
 - 定位与层叠：在同一层内控制子元素的绝对位置与覆盖关系。
 ·
 ## 分类与对应组件
-- 布局器：[`Row`](./Row)、[`Column`](./Column)、[`Center`](./Center)、[`Stack`](./Stack)
-- 容器与间距：[`Container`](./Container)、[`Padding`](./Padding)、[`SizedBox`](./SizedBox)
-- 文本与媒体：[`Text`](./Text)、[`Image`](./Image)
-- 定位：[`Positioned`](./Positioned)
+
+Inkwell 提供了丰富的内置组件，涵盖布局、绘制、交互等多个方面。详细 API 请参考 [API 文档](../api/widgets)。
+
+### 1. 基础布局
+- **弹性布局**: [`Row`](../api/widgets/Row) (水平)、[`Column`](../api/widgets/Column) (垂直)、[`Expanded`](../api/widgets/Expanded) (填充剩余空间)
+- **层叠布局**: [`Stack`](../api/widgets/Stack)、[`Positioned`](../api/widgets/Positioned)
+- **对齐与定位**: [`Center`](../api/widgets/Center)、`Align` (暂未文档化)
+- **流式布局**: [`Wrap`](../api/widgets/Wrap)
+
+### 2. 容器与绘制
+- **通用容器**: [`Container`](../api/widgets/Container) (集成了尺寸、边距、背景等)
+- **空间控制**: [`SizedBox`](../api/widgets/SizedBox) (固定尺寸)、[`Padding`](../api/widgets/Padding) (内边距)
+- **内容展示**: [`Text`](../api/widgets/Text)、[`Image`](../api/widgets/Image)
+
+### 3. 滚动与视口
+- **滚动视图**: [`ScrollView`](../api/widgets/ScrollView)
+- **视口控制**: [`Viewport`](../api/widgets/Viewport)
 
 ## 核心布局模型（简要）
-- Flex（弹性布局）：`Row/Column` 按主轴/交叉轴对齐；子元素可通过 `flex` 参与剩余空间分配。
+- **Flex（弹性布局）**: `Row/Column` 按主轴/交叉轴对齐；子元素可通过 `Expanded` (`flex`) 参与剩余空间分配。
 - Alignment（对齐）：`Center/Stack` 控制子元素在父容器中的对齐位置。
 - Constraints（约束）：`Container/SizedBox` 提供固定或紧约束；`Padding` 通过内边距缩减可用空间。
 

@@ -19,5 +19,7 @@ jobs:
           cache: 'npm'
       - name: Install deps
         run: npm ci
+      - name: Check docs links
+        run: npm run check:docs
       - name: Build docs
-        run: npm run docs:build
+        run: npm run doc:build

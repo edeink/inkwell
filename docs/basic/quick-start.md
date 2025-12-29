@@ -4,7 +4,7 @@ title: 快速开始
 sidebar_position: 2
 ---
 
-# 开发指南
+# 快速开始
 
 本文档介绍了如何在 Inkwell 项目中进行高效开发，包括环境搭建、组件开发流程和调试技巧。
 
@@ -33,88 +33,76 @@ pnpm dev
 pnpm doc
 ```
 
-## 创建新组件 (Creating a Widget)
+## 组件开发基础
 
-在 Inkwell 中，创建组件主要有两种方式：组合现有组件（Composition）和 自定义渲染（Custom Rendering）。
+Inkwell 的组件开发体验与 React 非常相似。
 
-### 方式 1: 组合现有组件 (Composition)
+### 1. 定义 State 和 Props
 
-继承 `StatelessWidget` 或 `StatefulWidget`，并实现 `render` 方法。这是最常见的方式。
+继承 `StatefulWidget` 并传入 Props 和 State 的类型定义。
 
-```typescript
-import { StatelessWidget, WidgetProps, AnyElement } from "@/core";
-import { Container, Text } from "@/core";
+```tsx
+import { StatefulWidget, WidgetProps } from '@/core';
 
-interface MyButtonProps extends WidgetProps {
-  label: string;
+interface CounterProps extends WidgetProps {
+  initialValue?: number;
 }
 
-export class MyButton extends StatelessWidget<MyButtonProps> {
-  protected render(): AnyElement {
-    return (
-      <Container color="blue">
-        <Text text={this.data.label} />
-      </Container>
-    );
-  }
+interface CounterState {
+  count: number;
 }
-```
 
-### 方式 2: 自定义渲染 (Custom Rendering)
+export class Counter extends StatefulWidget<CounterProps, CounterState> {
+  // 初始化 State
+  state: CounterState = {
+    count: this.props.initialValue || 0,
+  };
 
-直接继承 `Widget`，并实现 `performLayout` 和 `paint` 方法。适用于需要精细控制绘制和布局的叶子节点。
-
-```typescript
-import { Widget, WidgetProps, BoxConstraints, Size, BuildContext } from "@/core/base";
-
-export class MyCircle extends Widget {
-  performLayout(constraints: BoxConstraints): Size {
-    // 1. 计算期望大小
-    const desiredSize = { width: 100, height: 100 };
-    // 2. 遵守父级约束
-    return {
-      width: Math.min(desiredSize.width, constraints.maxWidth),
-      height: Math.min(desiredSize.height, constraints.maxHeight),
-    };
-  }
-
-  paint(context: BuildContext): void {
-    const { renderer } = context;
-    // 绘制逻辑
-    renderer.save();
-    renderer.fillStyle('red');
-    renderer.beginPath();
-    renderer.arc(50, 50, 50, 0, Math.PI * 2);
-    renderer.fill();
-    renderer.restore();
-  }
+  // ...
 }
 ```
 
-## 调试 (Debugging)
+### 2. 更新 State (setState)
 
-### 使用 DevTools
-Demo 页面内置了 DevTools，用于检查 Widget 树和性能分析。
+使用 `setState` 更新状态，这将触发组件的 `build` (对于 StatelessWidget 是 `render`) 方法重新执行。
 
-- **启动**: 按下 `Cmd + Shift + D` (Mac) 或 `Ctrl + Shift + D` (Windows) 打开调试面板。
-- **查看树结构**: 左侧面板展示完整的 Widget 树层级。
-- **查看属性**: 点击树节点，右侧面板显示该 Widget 的属性（Props）、状态（State）和布局信息（RenderObject）。
-- **高亮元素**: 鼠标悬停在树节点上，Canvas 中会高亮对应的区域。
+```tsx
+handleIncrement = () => {
+  this.setState({
+    count: this.state.count + 1
+  });
+};
+```
 
-### 常见问题排查
-- **组件不显示？** 
-  - 检查 `performLayout` 是否返回了非零的 `Size`。
-  - 检查 `paint` 方法是否被调用，以及绘制坐标是否在可视区域内。
-- **点击无效？** 
-  - 检查 `hitTest` 逻辑是否正确覆盖了组件区域。
-  - 确认组件没有被上层透明组件遮挡 (`zIndex`)。
+### 3. 使用 JSX 传递参数
 
-## 测试 (Testing)
+在 `render` 方法中，使用 JSX 语法构建 UI 树，并通过属性传递 Props。
 
+```tsx
+render() {
+  return (
+    <Container color="white" padding={10}>
+      <Text text={`Count: ${this.state.count}`} />
+      <Button onClick={this.handleIncrement}>
+        <Text text="Increment" />
+      </Button>
+    </Container>
+  );
+}
+```
+
+如需了解更多关于**自定义组件**的高级用法（如直接操作 RenderObject），请参阅 [自定义组件指南](../advanced/custom-widget)。
+
+## 调试与测试
+
+### 调试
+Inkwell 提供了专门的开发者工具用于检查 Widget 树和性能分析。
+详细说明请参阅 [开发者工具](../advanced/devtools)。
+
+### 测试
 我们使用 Vitest 进行单元测试。
+详细测试方法请参阅 [测试指南](../advanced/testing)。
 
 ```bash
 pnpm test
 ```
-
-编写测试时，建议参考 `src/core/__tests__` 下的示例，使用测试辅助函数来模拟 Widget 树的构建和布局流程。
