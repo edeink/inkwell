@@ -1,6 +1,7 @@
 {
   "name": "@edeink/inkwell",
   "private": true,
+  "type": "module",
   "version": "0.0.0",
   "scripts": {
     "build": "tsc -b && vite build",

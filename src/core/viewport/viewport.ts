@@ -248,6 +248,12 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
    * 绘制组件自身
    */
   paint(context: BuildContext): void {
+    if (this.isRepaintBoundary) {
+      // @ts-ignore - access private method from base
+      this._paintWithLayer(context);
+      return;
+    }
+
     // 1. Apply Self Transform (Position in Parent)
     const steps = this.getSelfTransformSteps();
     const local = composeSteps(steps);
@@ -279,6 +285,8 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     }
 
     context.renderer?.restore?.();
+    // @ts-ignore
+    this._needsPaint = false;
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {

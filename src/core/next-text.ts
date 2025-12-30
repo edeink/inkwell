@@ -59,6 +59,11 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical.Center,
 };
 
+/**
+ * 这是预留用来做文字性能对比的测试文件
+ * 当需要进行文字的实验性能测试，会将 Text 的内容复制一份到此，进行优化，跑 benchmark
+ * 除此之外，不保证功能可用性，请勿在线上环境使用
+ * */
 export class NextText extends Widget<NextTextProps> {
   text: string = '';
   fontSize: number = 16;
@@ -95,23 +100,97 @@ export class NextText extends Widget<NextTextProps> {
   }
 
   private initTextProperties(data: NextTextProps): void {
-    if (!data.text && data.text !== '') {
-      console.warn('Text 组件必须提供 text 属性');
-      this.text = '[缺少文本]';
-    } else {
-      this.text = data.text;
+    let needsLayout = false;
+    let needsPaint = false;
+
+    // Text content
+    const newText = data.text ?? '';
+    if (this.text !== newText) {
+      if (!newText && newText !== '') {
+        console.warn('Text 组件必须提供 text 属性');
+        this.text = '[缺少文本]';
+      } else {
+        this.text = newText;
+      }
+      needsLayout = true;
     }
-    this.fontSize = (data.fontSize ?? this.fontSize) as number;
-    this.fontFamily = (data.fontFamily ?? this.fontFamily) as string;
-    this.fontWeight = (data.fontWeight ?? this.fontWeight) as string | number;
-    this.color = (data.color ?? this.color) as string;
-    this.height = (data.height ?? this.height) as number | undefined;
-    this.lineHeight = (data.lineHeight ?? this.lineHeight) as number | undefined;
-    this.textAlign = (data.textAlign ?? this.textAlign) as typeof this.textAlign;
-    this.textAlignVertical = (data.textAlignVertical ??
+
+    // FontSize
+    const newFontSize = (data.fontSize ?? this.fontSize) as number;
+    if (this.fontSize !== newFontSize) {
+      this.fontSize = newFontSize;
+      needsLayout = true;
+    }
+
+    // FontFamily
+    const newFontFamily = (data.fontFamily ?? this.fontFamily) as string;
+    if (this.fontFamily !== newFontFamily) {
+      this.fontFamily = newFontFamily;
+      needsLayout = true;
+    }
+
+    // FontWeight
+    const newFontWeight = (data.fontWeight ?? this.fontWeight) as string | number;
+    if (this.fontWeight !== newFontWeight) {
+      this.fontWeight = newFontWeight;
+      needsLayout = true;
+    }
+
+    // Color
+    const newColor = (data.color ?? this.color) as string;
+    if (this.color !== newColor) {
+      this.color = newColor;
+      needsPaint = true;
+    }
+
+    // Height
+    const newHeight = (data.height ?? this.height) as number | undefined;
+    if (this.height !== newHeight) {
+      this.height = newHeight;
+      needsLayout = true;
+    }
+
+    // LineHeight
+    const newLineHeight = (data.lineHeight ?? this.lineHeight) as number | undefined;
+    if (this.lineHeight !== newLineHeight) {
+      this.lineHeight = newLineHeight;
+      needsLayout = true;
+    }
+
+    // TextAlign
+    const newTextAlign = (data.textAlign ?? this.textAlign) as typeof this.textAlign;
+    if (this.textAlign !== newTextAlign) {
+      this.textAlign = newTextAlign;
+      needsLayout = true;
+    }
+
+    // TextAlignVertical
+    const newTextAlignVertical = (data.textAlignVertical ??
       this.textAlignVertical) as typeof this.textAlignVertical;
-    this.maxLines = (data.maxLines ?? this.maxLines) as number | undefined;
-    this.overflow = (data.overflow ?? this.overflow) as typeof this.overflow;
+    if (this.textAlignVertical !== newTextAlignVertical) {
+      this.textAlignVertical = newTextAlignVertical;
+      needsLayout = true;
+    }
+
+    // MaxLines
+    const newMaxLines = (data.maxLines ?? this.maxLines) as number | undefined;
+    if (this.maxLines !== newMaxLines) {
+      this.maxLines = newMaxLines;
+      needsLayout = true;
+    }
+
+    // Overflow
+    const newOverflow = (data.overflow ?? this.overflow) as typeof this.overflow;
+    if (this.overflow !== newOverflow) {
+      this.overflow = newOverflow;
+      needsLayout = true;
+    }
+
+    if (needsLayout) {
+      this.markNeedsLayout();
+    } else if (needsPaint) {
+      this.markNeedsPaint();
+    }
   }
 
   createElement(data: NextTextProps): Widget<NextTextProps> {

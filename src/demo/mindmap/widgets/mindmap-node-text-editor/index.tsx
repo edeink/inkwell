@@ -455,11 +455,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
 
     // 同步 input
     if (this.input) {
-      try {
-        this.input.setSelectionRange(newIndex, newIndex);
-      } catch {
-        // ignore
-      }
+      this.input.setSelectionRange(newIndex, newIndex);
     }
     this.resetCursorBlink();
   }
@@ -821,11 +817,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
           selectionEnd: index,
         });
         if (this.input) {
-          try {
-            this.input.setSelectionRange(st.selectionStart, index);
-          } catch {
-            // ignore
-          }
+          this.input.setSelectionRange(st.selectionStart, index);
         }
       }
     }

@@ -25,6 +25,7 @@ import {
 } from './type';
 
 import type { RenderObject } from './type';
+import type { IRenderer } from '@/renderer/IRenderer';
 import type Runtime from '@/runtime';
 
 export type {
@@ -141,6 +142,28 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected _disposed: boolean = false;
   protected _worldMatrix?: [number, number, number, number, number, number];
 
+  // RepaintBoundary 相关
+  public isRepaintBoundary: boolean = false;
+  protected _needsPaint: boolean = true;
+  protected _layer: {
+    canvas: HTMLCanvasElement | OffscreenCanvas;
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+  } | null = null;
+
+  // 自动 Key 生成计数器
+  private static _keyCounters: Map<string, number> = new Map();
+
+  /**
+   * 生成唯一 Key
+   * @param type 组件类型
+   * @returns 唯一的 Key 字符串
+   */
+  private static _generateKey(type: string): string {
+    const count = (Widget._keyCounters.get(type) || 0) + 1;
+    Widget._keyCounters.set(type, count);
+    return `${type}-${count}`;
+  }
+
   constructor(data: TData) {
     if (!data) {
       throw new Error('组件数据不能为空');
@@ -149,7 +172,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       throw new Error('组件数据必须包含 type 属性');
     }
 
-    this.key = data.key || `widget-${Math.random().toString(36).substr(2, 9)}`;
+    // 如果未提供 key，则自动生成唯一且可读的 key
+    this.key = data.key || Widget._generateKey(data.type);
     this.type = data.type;
     // 编译 JSX 得到的数据
     this.data = data;
@@ -247,6 +271,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       return;
     }
     this._needsLayout = true;
+    this.markNeedsPaint();
 
     // 优化：如果当前节点是布局边界（例如具有紧约束），则无需向上传播
     // 因为即使内部重新布局，自身尺寸也不会改变，不会影响父级
@@ -258,6 +283,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     while (p) {
       if (!p._needsLayout) {
         p._needsLayout = true;
+        p.markNeedsPaint();
       }
       // 如果父节点已经是布局边界，或者已经标记为 dirty，则可以提前终止
       // 但为了简单起见，这里继续传播直到遇到已标记节点（上面的 !p._needsLayout 检查覆盖了已标记的情况）
@@ -266,6 +292,32 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         break;
       }
       p = p.parent;
+    }
+  }
+
+  /**
+   * 标记需要重绘
+   * 向上查找最近的 RepaintBoundary 并标记为脏
+   */
+  markNeedsPaint(): void {
+    if (this._needsPaint) {
+      return;
+    }
+    this._needsPaint = true;
+
+    // 通知 Runtime 调度更新（如果需要）
+    if (this.runtime) {
+      this.runtime.scheduleUpdate(this);
+    }
+
+    // 如果是绘制边界，则无需向上传播
+    // 因为父级只需要绘制缓存的 Layer，不需要重绘自身内容
+    if (this.isRepaintBoundary) {
+      return;
+    }
+
+    if (this.parent) {
+      this.parent.markNeedsPaint();
     }
   }
 
@@ -544,7 +596,21 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     // 更新自身 props 引用
     this.props = { ...nextData, children: this.children } as unknown as WidgetCompactProps<TData>;
+
+    if (propsChanged) {
+      this.didUpdateWidget(prevData);
+    }
+
     return this;
+  }
+
+  /**
+   * 当组件配置发生变化时调用
+   * 默认行为是标记需要重新布局
+   * 子类可以覆盖此方法以实现更精细的更新逻辑（例如只标记重绘）
+   */
+  protected didUpdateWidget(_oldProps: TData): void {
+    this.markNeedsLayout();
   }
 
   private bindEventsIfNeeded = (widget: Widget, data: WidgetProps): void => {
@@ -674,7 +740,72 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 绘制组件及其子组件
    */
   paint(context: BuildContext): void {
-    const steps = this.getSelfTransformSteps();
+    // 脏区域剔除 (Culling)
+    if (context.dirtyRect) {
+      // 计算当前的世界矩阵
+      const steps = this.getSelfTransformSteps();
+      const local = composeSteps(steps);
+      const parentMatrix = context.worldMatrix ?? IDENTITY_MATRIX;
+      const currentMatrix = multiply(parentMatrix, local);
+
+      const bounds = this.getBoundingBox(currentMatrix);
+      const dr = context.dirtyRect;
+
+      // 简单的 AABB 碰撞检测
+      const noIntersection =
+        bounds.x > dr.x + dr.width ||
+        bounds.x + bounds.width < dr.x ||
+        bounds.y > dr.y + dr.height ||
+        bounds.y + bounds.height < dr.y;
+
+      if (noIntersection) {
+        return;
+      }
+    }
+
+    if (this.isRepaintBoundary) {
+      this._paintWithLayer(context);
+      return;
+    }
+    this._performPaint(context);
+    this._needsPaint = false;
+  }
+
+  /**
+   * 获取组件的世界坐标包围盒
+   * @param matrix 可选，指定使用的变换矩阵。如果不传则使用当前的 _worldMatrix
+   */
+  getBoundingBox(matrix?: [number, number, number, number, number, number]): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const m = matrix || this._worldMatrix || IDENTITY_MATRIX;
+    const w = this.renderObject.size.width;
+    const h = this.renderObject.size.height;
+
+    const p1 = transformPoint(m, { x: 0, y: 0 });
+    const p2 = transformPoint(m, { x: w, y: 0 });
+    const p3 = transformPoint(m, { x: w, y: h });
+    const p4 = transformPoint(m, { x: 0, y: h });
+
+    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
+    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
+    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
+    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
+
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  protected _performPaint(
+    context: BuildContext,
+    offsetOverride?: { dx: number; dy: number },
+  ): void {
+    const steps: TransformStep[] = offsetOverride
+      ? [{ t: 'translate', x: offsetOverride.dx, y: offsetOverride.dy }]
+      : this.getSelfTransformSteps();
+
     const local = composeSteps(steps);
     const prev = context.worldMatrix ?? IDENTITY_MATRIX;
     const next = multiply(prev, local);
@@ -691,6 +822,103 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     context.renderer?.restore?.();
+  }
+
+  private _paintWithLayer(context: BuildContext): void {
+    // 1. 计算当前边界的全局矩阵
+    const steps = this.getSelfTransformSteps();
+    const local = composeSteps(steps);
+    const prev = context.worldMatrix ?? IDENTITY_MATRIX;
+    const next = multiply(prev, local);
+    this._worldMatrix = next;
+
+    // 2. 按需更新图层
+    if (this._needsPaint || !this._layer) {
+      const { width, height } = this.renderObject.size;
+      const dpr = context.renderer.getResolution ? context.renderer.getResolution() : 1;
+
+      const w = Math.max(1, Math.ceil(width * dpr));
+      const h = Math.max(1, Math.ceil(height * dpr));
+
+      if (!this._layer || this._layer.canvas.width !== w || this._layer.canvas.height !== h) {
+        const canvas =
+          typeof OffscreenCanvas !== 'undefined'
+            ? new OffscreenCanvas(w, h)
+            : document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        // @ts-ignore
+        const ctx = canvas.getContext('2d') as
+          | CanvasRenderingContext2D
+          | OffscreenCanvasRenderingContext2D;
+        this._layer = { canvas, ctx };
+      }
+
+      const { canvas, ctx } = this._layer;
+      // 清空 Layer
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      // 创建 Layer Renderer
+      const LayerRendererClass = context.renderer.constructor as new () => IRenderer;
+      const layerRenderer = new LayerRendererClass();
+      if (layerRenderer.setContext) {
+        layerRenderer.setContext(ctx);
+      } else {
+        // 降级处理：假设 setContext 存在，如果不存在可能会失败。
+        console.warn('渲染器不支持 setContext，RepaintBoundary 可能失效。');
+      }
+
+      // 在 Layer 上绘制
+      // 使用 next (Global Matrix) 作为 worldMatrix，以便子节点计算正确的全局矩阵
+      // 使用 offsetOverride: {0,0} 确保内容绘制在 Layer 原点
+      this._performPaint(
+        { ...context, renderer: layerRenderer, worldMatrix: next },
+        { dx: 0, dy: 0 },
+      );
+
+      ctx.restore();
+
+      this._needsPaint = false;
+    } else {
+      // Layer 是 clean 的，但我们需要更新子节点的 _worldMatrix
+      // 因为父节点可能移动了，导致 next 变了
+      this._updateChildrenMatrices(next);
+    }
+
+    // 3. 将图层绘制到主上下文
+    context.renderer.save();
+    applySteps(context.renderer, steps);
+
+    if (this._layer && typeof context.renderer.drawImage === 'function') {
+      context.renderer.drawImage({
+        image: this._layer.canvas,
+        x: 0,
+        y: 0,
+        width: this.renderObject.size.width,
+        height: this.renderObject.size.height,
+      });
+    }
+
+    context.renderer.restore();
+  }
+
+  /**
+   * 递归更新子节点的世界矩阵（在跳过绘制时使用）
+   */
+  protected _updateChildrenMatrices(
+    parentMatrix: [number, number, number, number, number, number],
+  ): void {
+    const children = this.children;
+    for (const child of children) {
+      const steps = child.getSelfTransformSteps();
+      const local = composeSteps(steps);
+      const next = multiply(parentMatrix, local);
+      child._worldMatrix = next;
+      // 递归更新
+      child._updateChildrenMatrices(next);
+    }
   }
 
   /**

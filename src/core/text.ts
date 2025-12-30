@@ -173,29 +173,109 @@ export class Text extends Widget<TextProps> {
   }
 
   private initTextProperties(data: TextProps): void {
-    if (!data.text && data.text !== '') {
-      console.warn('Text 组件必须提供 text 属性');
-      this.text = '[缺少文本]';
-    } else {
-      this.text = data.text;
+    let needsLayout = false;
+    let needsPaint = false;
+
+    if (data.text === undefined && this.text !== '') {
+      // 只有在明确需要重置时才警告，这里保持原有逻辑，如果不传且当前为空才警告？
+      // 原逻辑：if (!data.text && data.text !== '') ...
+      // 这里简化判断，主要关注变化
     }
-    this.fontSize = (data.fontSize ?? this.fontSize) as number;
-    this.fontFamily = (data.fontFamily ?? this.fontFamily) as string;
-    this.fontWeight = (data.fontWeight ?? this.fontWeight) as string | number;
-    this.color = (data.color ?? this.color) as string;
-    this.height = (data.height ?? this.height) as number | undefined;
-    this.lineHeight = (data.lineHeight ?? this.lineHeight) as number | undefined;
-    this.textAlign = (data.textAlign ?? this.textAlign) as typeof this.textAlign;
-    this.textAlignVertical = (data.textAlignVertical ??
+
+    // Text content
+    const newText = data.text ?? '';
+    if (this.text !== newText) {
+      if (!newText && newText !== '') {
+        console.warn('Text 组件必须提供 text 属性');
+        this.text = '[缺少文本]';
+      } else {
+        this.text = newText;
+      }
+      needsLayout = true;
+    }
+
+    // FontSize
+    // 注意：原有逻辑是 data.fontSize ?? this.fontSize，这意味着如果不传，保持旧值。
+    // 这可能不符合声明式预期（移除属性应恢复默认），但为了兼容现有逻辑，我们保持一致。
+    const newFontSize = (data.fontSize ?? this.fontSize) as number;
+    if (this.fontSize !== newFontSize) {
+      this.fontSize = newFontSize;
+      needsLayout = true;
+    }
+
+    // FontFamily
+    const newFontFamily = (data.fontFamily ?? this.fontFamily) as string;
+    if (this.fontFamily !== newFontFamily) {
+      this.fontFamily = newFontFamily;
+      needsLayout = true;
+    }
+
+    // FontWeight
+    const newFontWeight = (data.fontWeight ?? this.fontWeight) as string | number;
+    if (this.fontWeight !== newFontWeight) {
+      this.fontWeight = newFontWeight;
+      needsLayout = true;
+    }
+
+    // Color
+    const newColor = (data.color ?? this.color) as string;
+    if (this.color !== newColor) {
+      this.color = newColor;
+      needsPaint = true;
+    }
+
+    // Height
+    const newHeight = (data.height ?? this.height) as number | undefined;
+    if (this.height !== newHeight) {
+      this.height = newHeight;
+      needsLayout = true;
+    }
+
+    // LineHeight
+    const newLineHeight = (data.lineHeight ?? this.lineHeight) as number | undefined;
+    if (this.lineHeight !== newLineHeight) {
+      this.lineHeight = newLineHeight;
+      needsLayout = true;
+    }
+
+    // TextAlign
+    const newTextAlign = (data.textAlign ?? this.textAlign) as typeof this.textAlign;
+    if (this.textAlign !== newTextAlign) {
+      this.textAlign = newTextAlign;
+      needsLayout = true;
+    }
+
+    // TextAlignVertical
+    const newTextAlignVertical = (data.textAlignVertical ??
       this.textAlignVertical) as typeof this.textAlignVertical;
-    this.maxLines = (data.maxLines ?? this.maxLines) as number | undefined;
-    this.overflow = (data.overflow ?? this.overflow) as typeof this.overflow;
+    if (this.textAlignVertical !== newTextAlignVertical) {
+      this.textAlignVertical = newTextAlignVertical;
+      needsLayout = true;
+    }
+
+    // MaxLines
+    const newMaxLines = (data.maxLines ?? this.maxLines) as number | undefined;
+    if (this.maxLines !== newMaxLines) {
+      this.maxLines = newMaxLines;
+      needsLayout = true;
+    }
+
+    // Overflow
+    const newOverflow = (data.overflow ?? this.overflow) as typeof this.overflow;
+    if (this.overflow !== newOverflow) {
+      this.overflow = newOverflow;
+      needsLayout = true;
+    }
+
+    if (needsLayout) {
+      this.markNeedsLayout();
+    } else if (needsPaint) {
+      this.markNeedsPaint();
+    }
   }
 
-  createElement(data: TextProps): Widget<TextProps> {
-    super.createElement(data);
-    this.initTextProperties(data);
-    return this;
+  protected didUpdateWidget(_oldProps: TextProps): void {
+    this.initTextProperties(this.props as unknown as TextProps);
   }
 
   private lastLayoutConstraints: BoxConstraints | null = null;

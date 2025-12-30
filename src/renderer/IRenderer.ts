@@ -48,6 +48,11 @@ export interface IRenderer {
   destroy(): void;
 
   /**
+   * 获取当前分辨率 (Device Pixel Ratio)
+   */
+  getResolution?(): number;
+
+  /**
    * 获取原始渲染器实例
    * 用于访问特定渲染引擎的高级功能
    * @returns 原始渲染器实例
@@ -143,7 +148,7 @@ export interface IRenderer {
    * @param options 图片绘制选项
    */
   drawImage(options: {
-    image: HTMLImageElement;
+    image: HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
     x: number;
     y: number;
     width: number;
@@ -153,4 +158,10 @@ export interface IRenderer {
     sWidth?: number; // 源图片裁剪宽度
     sHeight?: number; // 源图片裁剪高度
   }): void;
+
+  /**
+   * 设置当前渲染上下文
+   * @param context 渲染上下文
+   */
+  setContext(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
 }

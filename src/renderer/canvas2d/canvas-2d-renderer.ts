@@ -142,6 +142,10 @@ export class Canvas2DRenderer implements IRenderer {
     this.transformStack = [];
   }
 
+  getResolution(): number {
+    return this.options?.resolution || 1;
+  }
+
   /**
    * 获取原始渲染器实例
    * @returns Canvas 2D Context
@@ -345,7 +349,7 @@ export class Canvas2DRenderer implements IRenderer {
    * @param options 图片绘制选项
    */
   drawImage(options: {
-    image: HTMLImageElement;
+    image: HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
     x: number;
     y: number;
     width: number;
@@ -370,7 +374,7 @@ export class Canvas2DRenderer implements IRenderer {
       ) {
         // 带裁剪的图片绘制
         this.ctx.drawImage(
-          options.image,
+          options.image as HTMLImageElement,
           options.sx,
           options.sy,
           options.sWidth,
@@ -382,7 +386,13 @@ export class Canvas2DRenderer implements IRenderer {
         );
       } else {
         // 简单图片绘制
-        this.ctx.drawImage(options.image, options.x, options.y, options.width, options.height);
+        this.ctx.drawImage(
+          options.image as HTMLImageElement,
+          options.x,
+          options.y,
+          options.width,
+          options.height,
+        );
       }
     } catch (error) {
       console.warn('Failed to draw image:', error);
@@ -453,6 +463,10 @@ export class Canvas2DRenderer implements IRenderer {
       this.ctx.stroke();
     }
     this.ctx.restore();
+  }
+
+  setContext(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void {
+    this.ctx = ctx as CanvasRenderingContext2D;
   }
 }
 

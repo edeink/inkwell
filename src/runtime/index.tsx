@@ -500,7 +500,7 @@ export default class Runtime {
   /**
    * 执行渲染
    */
-  private performRender(): void {
+  private performRender(dirtyRect?: { x: number; y: number; width: number; height: number }): void {
     if (!this.rootWidget || !this.renderer) {
       return;
     }
@@ -508,12 +508,35 @@ export default class Runtime {
     // 创建构建上下文
     const context: BuildContext = {
       renderer: this.renderer,
+      dirtyRect,
     };
 
     // 执行绘制
     try {
+      this.renderer.save();
+      if (
+        dirtyRect &&
+        'clipRect' in this.renderer &&
+        typeof (this.renderer as unknown as { clipRect: unknown }).clipRect === 'function'
+      ) {
+        // 假设渲染器支持 clipRect 或者我们使用原始上下文
+        // 由于 IRenderer 接口中没有定义 clipRect，
+        // 我们可能需要访问原始实例或者在 paint 中手动剔除。
+        // 但对于“清除”，我们已经清除了该区域。
+        // 为了防止绘制溢出，裁剪是必要的。
+        // 再次检查 IRenderer，它有 save/restore。
+        // 如果没有 clip 方法，尝试使用原始实例。
+        const raw = this.renderer.getRawInstance() as CanvasRenderingContext2D;
+        if (raw) {
+          raw.beginPath();
+          raw.rect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+          raw.clip();
+        }
+      }
+
       this.rootWidget.paint(context);
       this.renderer.render();
+      this.renderer.restore();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (this.isCanvasOomErrorMessage(msg)) {
@@ -532,14 +555,14 @@ export default class Runtime {
     const dirtyList = Array.from(this.dirtyWidgets);
     this.dirtyWidgets.clear();
 
-    // Sort by depth to ensure parents update before children
+    // 按深度排序，确保父组件先于子组件更新
     dirtyList.sort((a, b) => a.depth - b.depth);
 
     let hasAnyUpdate = false;
     if (dirtyList.length > 0) {
       for (const w of dirtyList) {
-        // If the widget was added to dirtyWidgets during this rebuild (e.g. by parent update),
-        // remove it to prevent double render in next frame
+        // 如果在重建过程中该组件被添加到 dirtyWidgets（例如由父组件更新触发），
+        // 将其移除以防止下一帧重复渲染
         if (this.dirtyWidgets.has(w)) {
           this.dirtyWidgets.delete(w);
         }
@@ -562,16 +585,99 @@ export default class Runtime {
     }
     const totalSize = this.calculateLayout(this.rootWidget);
     const initialized = !!this.canvasId;
+    let fullRepaint = false;
+
     if (!initialized) {
       await this.initRenderer({}, totalSize);
+      fullRepaint = true;
     } else {
+      // 检查尺寸是否变化
+      const oldW = (this.renderer as unknown as { width?: number }).width; // 假设我们可以获取宽度/高度或进行追踪
+      // 实际上 initRenderer 和 update() 会更新尺寸
+      // 如果尺寸变化，通常需要全量重绘
+      // 暂时假设 update() 处理调整大小，我们可以标记它
       this.renderer.update({
         width: totalSize.width,
         height: totalSize.height,
       });
+      // 如果能检测到调整大小，设置 fullRepaint = true
+      // 简单检查:
+      if (
+        this._canvas &&
+        (this._canvas.width !== totalSize.width || this._canvas.height !== totalSize.height)
+      ) {
+        fullRepaint = true;
+      }
     }
-    this.clearCanvas();
-    this.performRender();
+
+    let dirtyRect: { x: number; y: number; width: number; height: number } | undefined;
+
+    if (!fullRepaint) {
+      // 根据 dirtyList 计算脏矩形
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      let count = 0;
+      for (const w of dirtyList) {
+        if (w.isDisposed()) {
+          continue;
+        }
+        // 确保组件仍在树中
+        if (w.root !== this.rootWidget) {
+          continue;
+        }
+
+        try {
+          const box = w.getBoundingBox();
+          if (box.width > 0 && box.height > 0) {
+            minX = Math.min(minX, box.x);
+            minY = Math.min(minY, box.y);
+            maxX = Math.max(maxX, box.x + box.width);
+            maxY = Math.max(maxY, box.y + box.height);
+            count++;
+          }
+        } catch (e) {
+          // 忽略
+        }
+      }
+
+      if (count > 0 && minX !== Infinity) {
+        // 增加一点 padding 防止边缘残留
+        const padding = 2;
+        dirtyRect = {
+          x: Math.floor(minX - padding),
+          y: Math.floor(minY - padding),
+          width: Math.ceil(maxX - minX + padding * 2),
+          height: Math.ceil(maxY - minY + padding * 2),
+        };
+
+        // 限制在画布尺寸范围内
+        if (this._canvas) {
+          dirtyRect.x = Math.max(0, dirtyRect.x);
+          dirtyRect.y = Math.max(0, dirtyRect.y);
+          dirtyRect.width = Math.min(this._canvas.width - dirtyRect.x, dirtyRect.width);
+          dirtyRect.height = Math.min(this._canvas.height - dirtyRect.y, dirtyRect.height);
+        }
+      } else {
+        // 未找到有效的脏矩形，回退到全量重绘还是跳过？
+        // 如果 dirtyList 不为空但未找到边界（例如尺寸为 0 的组件），也许跳过渲染？
+        // 但可能存在副作用。如果不确定，默认为全量重绘，或者如果计数为 0 则跳过。
+        if (dirtyList.length > 0 && count === 0) {
+          // 所有脏组件尺寸为 0 或已销毁。
+          // 我们可能可以跳过渲染？
+          // 但为了安全起见，如果无法确定边界，则进行全量重绘。
+          fullRepaint = true;
+        }
+      }
+    }
+
+    if (fullRepaint) {
+      dirtyRect = undefined;
+    }
+
+    this.clearCanvas(dirtyRect);
+    this.performRender(dirtyRect);
   }
 
   rerender(): void {
@@ -585,7 +691,7 @@ export default class Runtime {
   /**
    * 清除画布内容
    */
-  private clearCanvas(): void {
+  private clearCanvas(rect?: { x: number; y: number; width: number; height: number }): void {
     if (!this.renderer) {
       return;
     }
@@ -594,7 +700,11 @@ export default class Runtime {
       try {
         const ctx = raw as CanvasRenderingContext2D;
         const canvas = ctx.canvas;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (rect) {
+          ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         if (this.isCanvasOomErrorMessage(msg)) {
