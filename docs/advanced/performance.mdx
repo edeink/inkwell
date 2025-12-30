@@ -2,39 +2,16 @@
 id: performance
 title: 性能优化指南
 sidebar_position: 5
-description: InkWell 性能基准与优化最佳实践
+description: InkWell 性能优化最佳实践与案例分析
 ---
-
-import { BenchmarkApp } from '@/benchmark/index.tsx'
-import BrowserOnly from '@docusaurus/BrowserOnly'
-import ErrorBoundary from '@docusaurus/ErrorBoundary'
 
 # 性能优化指南
 
-## 性能基准测试
-
-<div>
-  <p>本页提供 InkWell 与 DOM 的交互式性能基准对比，支持不同节点规模与场景（文本、Flex、绝对定位）。</p>
-  <details>
-    <summary>基准方法说明</summary>
-    <ul>
-      <li>统计指标：帧率（FPS）、主线程 Long Task 时长、内存占用。</li>
-      <li>流程：每轮执行采集 → 构建 → 再采集，重复多次取平均。</li>
-      <li>环境因素：浏览器优化与设备性能可能影响绝对数值，建议关注相对趋势。</li>
-    </ul>
-  </details>
-  <BrowserOnly>
-    {() => (
-      <ErrorBoundary>
-        <BenchmarkApp />
-      </ErrorBoundary>
-    )}
-  </BrowserOnly>
-</div>
+本文档旨在帮助开发者编写高性能的 InkWell 应用。通过遵循以下最佳实践，你可以显著提升应用的帧率和响应速度。
 
 ## 最佳实践与案例分析
 
-### 案例：计数器重复渲染优化
+### 案例 1：计数器重复渲染优化
 
 在早期版本中，我们发现简单的计数器组件点击一次会触发多次 `render`。通过深入分析，我们总结了以下优化原则：
 
@@ -67,8 +44,34 @@ class MyButton extends StatefulWidget {
 
 对于不维护内部状态的组件，优先使用 `StatelessWidget`。它们结构更轻量，且通常不需要复杂的生命周期管理。
 
+### 案例 2：复杂列表的滚动优化
+
+**场景**：在包含大量图片的列表中滚动时出现掉帧。
+
+**分析**：
+1. 每一帧都重新构建了所有列表项，产生大量临时对象。
+2. 绘制指令过多，且包含耗时的图片解码。
+
+**优化方案**：
+1. **虚拟滚动 (Virtualization)**：虽然 InkWell 尚未内置虚拟列表，但建议自行实现仅渲染可视区域内 Item 的逻辑。
+2. **RepaintBoundary**：为列表项或列表容器添加 `isRepaintBoundary = true`。这样滚动条的更新或某个 Item 的内部状态变化不会污染整个视图。
+
 ## 通用优化建议
 
-1.  **减少层级深度**：Canvas 绘图指令随层级增加，扁平化的结构通常渲染更快。
-2.  **合理使用 `RepaintBoundary`**：虽然 Inkwell 暂未完全实现类似 Flutter 的 `RepaintBoundary`，但在设计时应注意隔离频繁变化的区域（如光标、动画元素）与静态背景。
-3.  **缓存复杂绘制**：对于绘制代价高昂且不常变化的组件，可以将其绘制到离屏 Canvas (Offscreen Canvas) 并作为图片缓存。
+### 1. 减少层级深度
+Canvas 绘图指令随层级增加，扁平化的结构通常渲染更快。避免无意义的 `Container` 嵌套。
+
+### 2. 合理使用 `RepaintBoundary`
+InkWell 支持局部重绘机制。在以下场景中开启 `RepaintBoundary`：
+- **独立动画**：如加载 Spinner、光标闪烁。
+- **复杂绘制**：如复杂的图表或地图，一旦绘制完成很少变动。
+- **滚动区域**：将滚动内容与固定头部/底部隔离。
+
+### 3. 缓存复杂绘制
+对于绘制代价高昂且不常变化的组件，可以将其绘制到离屏 Canvas (Offscreen Canvas) 并作为图片缓存。InkWell 的 `RepaintBoundary` 机制在底层也利用了类似原理。
+
+### 4. 避免在 `paint` 中创建对象
+`paint` 方法每一帧都可能被调用。避免在其中创建新的对象（如 `Paint`、`Path`、闭包等），应复用成员变量。
+
+### 5. 使用 `const` 风格的组件构建
+如果子组件树是静态的，尽量在父组件外部定义或使用 `useMemo` (如果是在 Hook 环境下) / 成员变量缓存，避免每次 `build` 都重新 `new Widget()`。

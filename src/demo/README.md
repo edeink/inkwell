@@ -97,3 +97,13 @@ export function runApp(runtime: Runtime) {
 1.  **文档更新**: 检查并更新 `docs/demo` 目录下的相关文档，确保内容准确反映代码变更。
 2.  **导航配置**: 所有在 `docs/demo` 中添加或修改的内容，必须在 `sidebars.ts` 文件中同步更新导航配置，确保新文档在侧边栏中可见。
 3.  **引用路径**: 确保文档中的代码引用路径正确指向 `app.tsx` 或 `index.tsx`。
+
+### 测试导入规范
+
+在编写或维护测试用例（如 `__tests__` 目录下的文件）时，请遵循以下模块导入规范：
+
+1.  **主 Widget 导入**: 演示的主 Widget 类（通常定义在 `app.tsx` 中）应直接从 `../app` 导入，而不是从可能已废弃的 `widgets/` 目录导入。
+    - ✅ 正确: `import { MyDemoApp } from '../app';`
+    - ❌ 错误: `import { MyDemoApp } from '../widgets/my-demo';`
+
+2.  **路径一致性**: 确保测试文件中的相对路径引用与当前的重构目录结构保持一致。

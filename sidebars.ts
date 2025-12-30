@@ -58,7 +58,7 @@ export default {
       type: 'category',
       label: '其他资源',
       collapsed: true,
-      items: ['meta/faq', 'meta/test-overview', 'meta/test-component'],
+      items: ['meta/faq', 'meta/test-overview', 'meta/test-component', 'meta/test-benchmark'],
     },
   ],
 };
