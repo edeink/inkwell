@@ -297,6 +297,8 @@ export default class Runtime {
       this.__layoutScheduled = true;
       this.__layoutRaf = requestAnimationFrame(async () => {
         try {
+          // 正常情况，tick 会消费所有的 dirtyWidget
+          // 此处只是为了二次确保所有的内容都被更新
           await this.flushUpdates();
         } catch (error) {
           console.error('布局更新失败:', error);

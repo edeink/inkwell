@@ -60,6 +60,17 @@ function isKeyboard(type: EventType): boolean {
 
 const delegatedTypes: EventType[] = allTypes.filter((t) => !isKeyboard(t));
 
+function isEditableElement(el: Element | null): boolean {
+  if (!el) {
+    return false;
+  }
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    (el as HTMLElement).isContentEditable
+  );
+}
+
 class EventManagerImpl {
   private map: ListenerMap = new Map();
   private globalHandlers: Map<EventType, (e: Event) => void> = new Map();
@@ -81,21 +92,14 @@ class EventManagerImpl {
         // 但如果当前 activeElement 是 input/textarea（例如正在编辑文本），则不要抢占焦点
         if (type === 'mousedown' || type === 'pointerdown' || type === 'touchstart') {
           const target = native.target as HTMLElement | null;
-          const isTargetInteractive =
-            target &&
-            (target instanceof HTMLInputElement ||
-              target instanceof HTMLTextAreaElement ||
-              target.isContentEditable);
+          const isTargetInteractive = isEditableElement(target);
 
           // 如果点击的是输入框本身，则完全交由原生处理，Inkwell 不响应
           if (isTargetInteractive) {
             return;
           }
 
-          const isInputActive =
-            document.activeElement instanceof HTMLInputElement ||
-            document.activeElement instanceof HTMLTextAreaElement ||
-            (document.activeElement as HTMLElement)?.isContentEditable;
+          const isInputActive = isEditableElement(document.activeElement);
 
           // 如果当前已经在编辑文本（activeElement 是 input），点击 Canvas 时不要抢夺焦点
           // 以免导致软键盘收起或输入中断
@@ -110,7 +114,11 @@ class EventManagerImpl {
                   canvas.tabIndex = 0;
                 }
                 const attemptFocus = () => {
-                  if (document.activeElement !== canvas) {
+                  // Double check inside to ensure state hasn't changed
+                  if (
+                    document.activeElement !== canvas &&
+                    !isEditableElement(document.activeElement)
+                  ) {
                     try {
                       canvas.focus({ preventScroll: true });
                     } catch (e) {

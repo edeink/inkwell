@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { describe, expect, it } from 'vitest';
 
-import { InteractiveCounterDemo } from '../widgets/interactive-counter-demo';
+import { InteractiveCounterDemo } from '../app';
 
 import { EventRegistry } from '@/core/events';
 import { findWidget } from '@/core/helper/widget-selector';

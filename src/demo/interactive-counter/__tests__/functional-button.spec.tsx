@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { InteractiveCounterDemo } from '../widgets/interactive-counter-demo';
+import { InteractiveCounterDemo } from '../app';
 
 import type { InkwellEvent } from '@/core';
 

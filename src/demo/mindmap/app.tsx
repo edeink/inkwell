@@ -1,5 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
 import { ConnectorStyle } from './helpers/connection-drawer';
+import { AddChildNodeCommand, AddSiblingNodeCommand } from './helpers/shortcut/commands/edit';
 import { findParent, makeInitialState } from './helpers/state-helper';
 import { CustomComponentType, Side } from './type';
 import { Connector } from './widgets/connector';
@@ -235,7 +236,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   }
 
-  private onAddSibling = (refKey: string, dir: -1 | 1, side?: Side): void => {
+  private handleAddSiblingNode = (refKey: string, dir: -1 | 1, side?: Side): string | void => {
     const cur = (this.state as SceneState).graph;
     const parent = findParent(cur, refKey);
     if (!parent) {
@@ -285,9 +286,17 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       editingKey: id,
       activeKey: id,
     });
+    return id;
   };
 
-  private onAddChildSide = (refKey: string, side: Side): void => {
+  private onAddSibling = (refKey: string, dir: -1 | 1, side?: Side): void => {
+    const vp = this.getViewport();
+    if (vp) {
+      vp.historyManager.execute(new AddSiblingNodeCommand(vp, refKey, dir, side));
+    }
+  };
+
+  private handleAddChildNode = (refKey: string, side: Side): string | void => {
     const cur = (this.state as SceneState).graph;
     const title = '';
     const id = `n${cur.nextId}`;
@@ -305,6 +314,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       editingKey: id,
       activeKey: id,
     });
+    return id;
+  };
+
+  private onAddChildSide = (refKey: string, side: Side): void => {
+    const vp = this.getViewport();
+    if (vp) {
+      vp.historyManager.execute(new AddChildNodeCommand(vp, refKey, side));
+    }
   };
 
   private onMoveNode = (key: string, dx: number, dy: number): void => {
@@ -582,6 +599,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         onRestoreSelection={this.onRestoreSelection}
         onSetSelectedKeys={this.onSetSelectedKeys}
         onEditingKeyChange={this.onEditingKeyChange}
+        onAddSiblingNode={this.handleAddSiblingNode}
+        onAddChildNode={this.handleAddChildNode}
       >
         <MindMapLayout
           key="layout-root"

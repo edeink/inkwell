@@ -1,8 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { InteractiveCounterDemo } from '../app';
 import { ClassButton as Button } from '../widgets/class-button';
-import { InteractiveCounterDemo } from '../widgets/interactive-counter-demo';
 
 import Runtime from '@/runtime';
 

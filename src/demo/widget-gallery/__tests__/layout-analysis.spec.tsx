@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { WidgetGalleryDemo } from '../widgets/widget-gallery-demo';
+import { WidgetGalleryDemo } from '../app';
 
 import { createBoxConstraints, Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';

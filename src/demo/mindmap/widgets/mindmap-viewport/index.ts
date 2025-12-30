@@ -12,7 +12,7 @@ import { PreventBrowserZoomCommand } from '../../helpers/shortcut/commands/syste
 import { ViewportTransformCommand } from '../../helpers/shortcut/commands/view';
 import { HistoryManager } from '../../helpers/shortcut/history/manager';
 import { ShortcutManager } from '../../helpers/shortcut/manager';
-import { CustomComponentType } from '../../type';
+import { CustomComponentType, Side } from '../../type';
 
 import type { SelectionData } from '../../type';
 import type { BoxConstraints, BuildContext, Size } from '@/core/base';
@@ -37,6 +37,8 @@ export interface MindMapViewportProps extends ViewportProps {
   onSetSelectedKeys?: (keys: string[]) => void;
   onActiveKeyChange?: (key: string | null) => void;
   onEditingKeyChange?: (key: string | null) => void;
+  onAddSiblingNode?: (refKey: string, dir: -1 | 1, side?: Side) => string | void;
+  onAddChildNode?: (refKey: string, side: Side) => string | void;
 }
 
 /**
@@ -116,6 +118,9 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   createElement(data: MindMapViewportProps): Widget<MindMapViewportProps> {
     super.createElement(data);
     this.initMindMap(data);
+    // 确保在更新时标记需要布局，以触发子组件的布局更新
+    // 即使约束没有变化，子组件（如 MindMapLayout）的内容可能已经改变
+    this.markNeedsLayout();
     return this;
   }
 

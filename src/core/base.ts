@@ -134,7 +134,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   private __root: Widget | null = null;
   // 运行时实例
   private _runtime?: Runtime;
-  protected _needsLayout: boolean = false;
+  // 初始化默认没有布局，需要布局
+  protected _needsLayout: boolean = true;
   protected _isBuilt: boolean = false;
   protected _dirty: boolean = false;
   protected _disposed: boolean = false;
