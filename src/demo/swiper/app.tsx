@@ -27,7 +27,7 @@ export class SwiperDemoApp extends StatelessWidget {
     return (
       <Container color="#ffffff">
         <Center>
-          <Swiper items={items} width={400} height={250} autoplay={true} interval={2000} />
+          <Swiper items={items} width={400} height={250} interval={2000} />
         </Center>
       </Container>
     );

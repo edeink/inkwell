@@ -1038,8 +1038,12 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   protected hitTestChildren(x: number, y: number): Widget | null {
-    // 倒序遍历（高 zIndex 优先）
-    const children = this.children.slice().sort((a, b) => b.zIndex - a.zIndex);
+    // 倒序遍历（高 zIndex 优先，同 zIndex 后添加的优先）
+    // 注意：需要先反转数组，利用 sort 的稳定性，使得同 zIndex 的元素保持反转后的顺序（即后添加的在前面）
+    const children = this.children
+      .slice()
+      .reverse()
+      .sort((a, b) => b.zIndex - a.zIndex);
     for (const child of children) {
       const res = child.visitHitTest(x, y);
       if (res) {

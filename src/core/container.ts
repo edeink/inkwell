@@ -148,8 +148,8 @@ export class Container extends Widget<ContainerProps> {
     const paddingVertical = this.padding ? (this.padding.top ?? 0) + (this.padding.bottom ?? 0) : 0;
 
     // 如果指定了固定尺寸，使用固定尺寸
-    let width = this.width;
-    let height = this.height;
+    let width = this.width !== undefined ? this.width + marginHorizontal : undefined;
+    let height = this.height !== undefined ? this.height + marginVertical : undefined;
 
     // 如果没有指定尺寸，根据子组件和约束来确定
     if (width === undefined || height === undefined) {
@@ -175,10 +175,14 @@ export class Container extends Widget<ContainerProps> {
 
     // 确保满足约束条件
     // 结合组件自身的 min/max 约束与父级传递的 constraints
-    const minWidth = Math.max(constraints.minWidth, this.minWidth ?? 0);
-    const maxWidth = Math.min(constraints.maxWidth, this.maxWidth ?? Infinity);
-    const minHeight = Math.max(constraints.minHeight, this.minHeight ?? 0);
-    const maxHeight = Math.min(constraints.maxHeight, this.maxHeight ?? Infinity);
+    // 注意：this.minWidth 是视觉宽度，需要加上 margin 才是布局宽度
+    const minWidth = Math.max(constraints.minWidth, (this.minWidth ?? 0) + marginHorizontal);
+    const maxWidth = Math.min(constraints.maxWidth, (this.maxWidth ?? Infinity) + marginHorizontal);
+    const minHeight = Math.max(constraints.minHeight, (this.minHeight ?? 0) + marginVertical);
+    const maxHeight = Math.min(
+      constraints.maxHeight,
+      (this.maxHeight ?? Infinity) + marginVertical,
+    );
 
     width = Math.max(minWidth, Math.min(width!, maxWidth));
     height = Math.max(minHeight, Math.min(height!, maxHeight));
@@ -199,12 +203,14 @@ export class Container extends Widget<ContainerProps> {
     const totalVertical = marginVertical + paddingVertical;
 
     // 计算有效的自身约束
-    const selfMinWidth = Math.max(0, (this.minWidth ?? 0) - totalHorizontal);
-    const selfMaxWidth = Math.max(0, (this.maxWidth ?? Infinity) - totalHorizontal);
-    const selfMinHeight = Math.max(0, (this.minHeight ?? 0) - totalVertical);
-    const selfMaxHeight = Math.max(0, (this.maxHeight ?? Infinity) - totalVertical);
+    // 注意：this.minWidth 等属性是视觉属性（不含 margin），但包含 padding
+    // 所以计算子组件约束时，只需要减去 padding
+    const selfMinWidth = Math.max(0, (this.minWidth ?? 0) - paddingHorizontal);
+    const selfMaxWidth = Math.max(0, (this.maxWidth ?? Infinity) - paddingHorizontal);
+    const selfMinHeight = Math.max(0, (this.minHeight ?? 0) - paddingVertical);
+    const selfMaxHeight = Math.max(0, (this.maxHeight ?? Infinity) - paddingVertical);
 
-    // 父级约束减去内边距/外边距
+    // 父级约束减去内边距/外边距 (因为父级约束包含 margin 空间)
     const parentMinWidth = Math.max(0, constraints.minWidth - totalHorizontal);
     const parentMaxWidth = Math.max(0, constraints.maxWidth - totalHorizontal);
     const parentMinHeight = Math.max(0, constraints.minHeight - totalVertical);
@@ -225,14 +231,32 @@ export class Container extends Widget<ContainerProps> {
     // 独立应用 width 约束：即使 height 未定义，也要强制应用 width
     // 修复：之前只有当 width 和 height 都定义时才应用紧约束，导致仅设置 width 时约束失效
     if (this.width !== undefined) {
-      const w = Math.max(0, this.width - totalHorizontal);
+      // this.width 是视觉宽度（包含 padding），所以只减去 padding 得到内容宽度
+      const w = Math.max(0, this.width - paddingHorizontal);
       cMinWidth = w;
       cMaxWidth = w;
+    } else {
+      // 只有未定义 width 且无 min/max 约束时，才尝试传递父级约束
+      // 如果 constraints 是紧约束（min==max），需要确保子组件能响应
     }
 
     // 独立应用 height 约束
     if (this.height !== undefined) {
-      const h = Math.max(0, this.height - totalVertical);
+      // this.height 是视觉高度（包含 padding），所以只减去 padding 得到内容高度
+      const h = Math.max(0, this.height - paddingVertical);
+      cMinHeight = h;
+      cMaxHeight = h;
+    }
+
+    // 如果父级是紧约束，强制传递给子组件（除非显式指定了尺寸）
+    // 这对于 Positioned -> Container 场景至关重要
+    if (constraints.minWidth === constraints.maxWidth && this.width === undefined) {
+      const w = Math.max(0, constraints.maxWidth - totalHorizontal);
+      cMinWidth = w;
+      cMaxWidth = w;
+    }
+    if (constraints.minHeight === constraints.maxHeight && this.height === undefined) {
+      const h = Math.max(0, constraints.maxHeight - totalVertical);
       cMinHeight = h;
       cMaxHeight = h;
     }

@@ -233,7 +233,7 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
         onPointerUp={this.handlePointerUp.bind(this)}
         onPointerEnter={() => (this.isHovering = true)}
         onPointerLeave={() => (this.isHovering = false)}
-        cursor="grab"
+        // cursor="grab"
       >
         <ClipRect>
           <Stack>
@@ -264,7 +264,7 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
                       height={8}
                       borderRadius={4}
                       color={i === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.5)'}
-                      margin={{ left: 4, right: 4 }}
+                      margin={{ left: 2, right: 4 }}
                       onClick={() => this.handleIndicatorClick(i)}
                       cursor="pointer"
                     />

@@ -7,18 +7,17 @@ import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
 import Swiper, { meta as SwiperMeta } from './swiper';
+import { DemoKey, ThemeType } from './type';
 import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 
 import { DevTools } from '@/devtools';
 
-type ThemeType = 'light' | 'dark';
-
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState('mindmap');
-  const [theme, setTheme] = useState<ThemeType>('light');
+  const [activeKey, setActiveKey] = useState<string>(DemoKey.Swiper);
+  const [theme, setTheme] = useState<ThemeType>(ThemeType.Light);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => (prev === ThemeType.Light ? ThemeType.Dark : ThemeType.Light));
   };
 
   const demos = useMemo(
@@ -35,7 +34,7 @@ export default function UnifiedDemo() {
     <div style={{ display: 'flex', alignItems: 'center', paddingRight: 16 }}>
       <Button
         type="text"
-        icon={theme === 'light' ? <BulbOutlined /> : <BulbFilled />}
+        icon={theme === ThemeType.Light ? <BulbOutlined /> : <BulbFilled />}
         onClick={toggleTheme}
       />
     </div>
@@ -44,10 +43,10 @@ export default function UnifiedDemo() {
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme === 'dark' ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        algorithm: theme === ThemeType.Dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
       }}
     >
-      <div className={cn(styles.container, { [styles.dark]: theme === 'dark' })}>
+      <div className={cn(styles.container, { [styles.dark]: theme === ThemeType.Dark })}>
         <Tabs
           className={styles.tabs}
           activeKey={activeKey}
