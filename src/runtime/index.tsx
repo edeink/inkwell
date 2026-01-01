@@ -1,6 +1,7 @@
 import { Widget } from '../core/base';
 import { EventManager } from '../core/events/manager';
 import { EventRegistry } from '../core/events/registry';
+import { PipelineOwner } from '../core/pipeline/owner';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
@@ -46,6 +47,7 @@ export default class Runtime {
   private _container: HTMLElement | null = null;
   private _canvas: HTMLCanvasElement | null = null;
   private rootWidget: Widget | null = null;
+  public pipelineOwner: PipelineOwner = new PipelineOwner();
   private oomErrorCount: number = 0;
   private lastOomToastAt: number = 0;
   private canvasId: string | null = null;
@@ -106,6 +108,9 @@ export default class Runtime {
 
   private constructor() {
     // 私有构造函数，强制使用 create 方法
+    this.pipelineOwner.onNeedVisualUpdate = () => {
+      this.ensureLayoutScheduled();
+    };
   }
 
   private async init(containerId: string, options: RuntimeOptions): Promise<void> {
@@ -580,9 +585,13 @@ export default class Runtime {
         w.clearDirty();
       }
     }
-    if (!hasAnyUpdate && dirtyList.length === 0) {
+    if (!hasAnyUpdate && dirtyList.length === 0 && !this.pipelineOwner.hasScheduledLayout) {
       return;
     }
+
+    // 布局阶段：处理 Relayout Boundary
+    this.pipelineOwner.flushLayout();
+
     const totalSize = this.calculateLayout(this.rootWidget);
     const initialized = !!this.canvasId;
     let fullRepaint = false;
@@ -675,6 +684,9 @@ export default class Runtime {
     if (fullRepaint) {
       dirtyRect = undefined;
     }
+
+    // 绘制阶段：清除绘制脏标记 (如果实现了 PipelineOwner 的绘制调度)
+    this.pipelineOwner.flushPaint();
 
     this.clearCanvas(dirtyRect);
     this.performRender(dirtyRect);

@@ -24,6 +24,7 @@ import {
   type WidgetProps,
 } from './type';
 
+import type { PipelineOwner } from './pipeline/owner';
 import type { RenderObject } from './type';
 import type { IRenderer } from '@/renderer/IRenderer';
 import type Runtime from '@/runtime';
@@ -150,6 +151,21 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
   } | null = null;
 
+  protected _relayoutBoundary: Widget | null = null;
+  private _owner?: PipelineOwner;
+
+  public get isRelayoutBoundary(): boolean {
+    return this._relayoutBoundary === this;
+  }
+
+  public get owner(): PipelineOwner | undefined {
+    return this._owner ?? this.runtime?.pipelineOwner;
+  }
+
+  public set owner(v: PipelineOwner | undefined) {
+    this._owner = v;
+  }
+
   // 自动 Key 生成计数器
   private static _keyCounters: Map<string, number> = new Map();
 
@@ -273,25 +289,23 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this._needsLayout = true;
     this.markNeedsPaint();
 
-    // 优化：如果当前节点是布局边界（例如具有紧约束），则无需向上传播
-    // 因为即使内部重新布局，自身尺寸也不会改变，不会影响父级
-    if (this.renderObject.constraints && isTight(this.renderObject.constraints)) {
-      return;
+    if (this._relayoutBoundary !== this) {
+      this.markParentNeedsLayout();
+    } else {
+      if (this.owner) {
+        this.owner.scheduleLayoutFor(this);
+      }
     }
+  }
 
-    let p: Widget | null = this.parent;
-    while (p) {
-      if (!p._needsLayout) {
-        p._needsLayout = true;
-        p.markNeedsPaint();
-      }
-      // 如果父节点已经是布局边界，或者已经标记为 dirty，则可以提前终止
-      // 但为了简单起见，这里继续传播直到遇到已标记节点（上面的 !p._needsLayout 检查覆盖了已标记的情况）
-      // 若要实现严格的 RelayoutBoundary 逻辑，需要更复杂的判断
-      if (p.renderObject.constraints && isTight(p.renderObject.constraints)) {
-        break;
-      }
-      p = p.parent;
+  markParentNeedsLayout(): void {
+    this._needsLayout = true;
+    const parent = this.parent;
+    if (!this._dirty) {
+      this.markNeedsPaint();
+    }
+    if (parent) {
+      parent.markNeedsLayout();
     }
   }
 
@@ -327,6 +341,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   public clearDirty(): void {
     this._dirty = false;
+  }
+
+  public performRebuildAndLayout(): void {
+    // 类似于 layout，但复用现有约束
+    // 注意：如果 constraints 为 null，说明从未布局过，必须由父级触发
+    if (this.renderObject.constraints) {
+      this.layout(this.renderObject.constraints);
+    }
+  }
+
+  public clearPaintDirty(): void {
+    this._needsPaint = false;
   }
 
   public isLayoutDirty(): boolean {
@@ -677,6 +703,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     this.renderObject.constraints = constraints;
+
+    // Determine Relayout Boundary
+    // If constraints are tight, we can be a relayout boundary
+    if (!this.parent || (this.parent && isTight(constraints))) {
+      this._relayoutBoundary = this;
+    } else {
+      this._relayoutBoundary = this.parent?._relayoutBoundary || null;
+    }
 
     // 首先布局子组件（只计算尺寸，不设置位置）
     const childrenSizes = this.layoutChildren(constraints);
