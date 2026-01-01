@@ -14,7 +14,9 @@ export interface WrapProps extends WidgetProps {
 export class Wrap extends Widget<WrapProps> {
   spacing: number = 0;
   runSpacing: number = 0;
-  private __wrapLines: { widths: number; height: number; indices: number[] }[] = [];
+  // 使用 Float32Array 存储子节点位置 (x, y)，索引为 childIndex * 2
+  // 替代原有的 __wrapLines 对象数组，显著减少内存分配和 GC 压力
+  private _childOffsets: Float32Array | null = null;
 
   constructor(data: WrapProps) {
     super(data);
@@ -33,46 +35,58 @@ export class Wrap extends Widget<WrapProps> {
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const maxWidth = isFinite(constraints.maxWidth) ? constraints.maxWidth : Infinity;
-    const lines: { widths: number; height: number; indices: number[] }[] = [];
-    let currentLineWidth = 0;
+    const count = childrenSizes.length;
+
+    // 预分配/复用位置缓存数组
+    const requiredSize = count * 2;
+    if (!this._childOffsets || this._childOffsets.length < requiredSize) {
+      this._childOffsets = new Float32Array(requiredSize);
+    }
+    const offsets = this._childOffsets;
+
+    let x = 0;
+    let y = 0;
     let currentLineHeight = 0;
-    let currentIndices: number[] = [];
+    let maxLineWidth = 0;
 
-    for (let i = 0; i < childrenSizes.length; i++) {
-      const sz = childrenSizes[i];
-      const nextWidth =
-        currentIndices.length === 0 ? sz.width : currentLineWidth + this.spacing + sz.width;
-      if (nextWidth > maxWidth) {
-        // 换行
-        lines.push({
-          widths: currentLineWidth,
-          height: currentLineHeight,
-          indices: currentIndices,
-        });
-        currentLineWidth = sz.width;
-        currentLineHeight = sz.height;
-        currentIndices = [i];
-      } else {
-        currentLineWidth = nextWidth;
-        currentLineHeight = Math.max(currentLineHeight, sz.height);
-        currentIndices.push(i);
+    const spacing = this.spacing;
+    const runSpacing = this.runSpacing;
+
+    for (let i = 0; i < count; i++) {
+      const childSize = childrenSizes[i];
+      const w = childSize.width;
+      const h = childSize.height;
+
+      // 计算当前行是否放得下
+      // 如果当前不是行首 (x > 0)，需要加上 spacing
+      let startX = x;
+      if (startX > 0) {
+        startX += spacing;
       }
-    }
-    if (currentIndices.length > 0) {
-      lines.push({ widths: currentLineWidth, height: currentLineHeight, indices: currentIndices });
+
+      // 如果超出宽度，且当前行不为空 -> 换行
+      if (startX + w > maxWidth && x > 0) {
+        maxLineWidth = Math.max(maxLineWidth, x);
+        y += currentLineHeight + runSpacing;
+        x = 0;
+        currentLineHeight = 0;
+        startX = 0; // 新行起始位置
+      }
+
+      // 记录子节点位置
+      offsets[i * 2] = startX;
+      offsets[i * 2 + 1] = y;
+
+      // 更新当前行状态
+      x = startX + w;
+      currentLineHeight = Math.max(currentLineHeight, h);
     }
 
-    const totalHeight = lines.reduce(
-      (acc, l, idx) => acc + l.height + (idx > 0 ? this.runSpacing : 0),
-      0,
-    );
-    const finalWidth = Math.min(
-      Math.max(constraints.minWidth, Math.max(...lines.map((l) => l.widths))),
-      constraints.maxWidth,
-    );
+    // 记录最后一行宽度
+    maxLineWidth = Math.max(maxLineWidth, x);
+    const totalHeight = y + currentLineHeight;
 
-    // 记录行信息以供定位
-    this.__wrapLines = lines;
+    const finalWidth = Math.min(Math.max(constraints.minWidth, maxLineWidth), constraints.maxWidth);
 
     return {
       width: finalWidth,
@@ -81,23 +95,9 @@ export class Wrap extends Widget<WrapProps> {
   }
 
   protected positionChild(childIndex: number, _childSize: Size): Offset {
-    const lines: { widths: number; height: number; indices: number[] }[] = this.__wrapLines || [];
-    let y = 0;
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li];
-      const idxInLine = line.indices.indexOf(childIndex);
-      if (idxInLine >= 0) {
-        let x = 0;
-        for (let k = 0; k < idxInLine; k++) {
-          const prevChild = this.children[line.indices[k]];
-          x += prevChild.renderObject.size.width;
-          if (k < idxInLine) {
-            x += this.spacing;
-          }
-        }
-        return { dx: x, dy: y };
-      }
-      y += line.height + this.runSpacing;
+    if (this._childOffsets) {
+      const idx = childIndex * 2;
+      return { dx: this._childOffsets[idx], dy: this._childOffsets[idx + 1] };
     }
     return { dx: 0, dy: 0 };
   }

@@ -4,6 +4,13 @@ import { resolveEdgeInsets } from './padding';
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from './base';
 import type { Border, BorderRadius, EdgeInsets, PaddingValue } from './type';
 
+function areEdgeInsetsEqual(a: EdgeInsets, b: EdgeInsets): boolean {
+  if (a === b) {
+    return true;
+  }
+  return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
+}
+
 export interface ContainerProps extends WidgetProps {
   width?: number;
   height?: number;
@@ -80,6 +87,35 @@ export class Container extends Widget<ContainerProps> {
     super.createElement(data);
     this.initContainerProperties(data);
     return this;
+  }
+
+  protected didUpdateWidget(oldProps: ContainerProps): void {
+    const newProps = this.data;
+
+    // 检查布局相关属性是否发生变化
+    const oldPadding = resolveEdgeInsets(oldProps.padding);
+    const newPadding = resolveEdgeInsets(newProps.padding);
+    const oldMargin = resolveEdgeInsets(oldProps.margin);
+    const newMargin = resolveEdgeInsets(newProps.margin);
+
+    const layoutChanged =
+      oldProps.width !== newProps.width ||
+      oldProps.height !== newProps.height ||
+      oldProps.minWidth !== newProps.minWidth ||
+      oldProps.maxWidth !== newProps.maxWidth ||
+      oldProps.minHeight !== newProps.minHeight ||
+      oldProps.maxHeight !== newProps.maxHeight ||
+      oldProps.alignment !== newProps.alignment ||
+      !areEdgeInsetsEqual(oldPadding, newPadding) ||
+      !areEdgeInsetsEqual(oldMargin, newMargin);
+
+    if (layoutChanged) {
+      super.didUpdateWidget(oldProps);
+      return;
+    }
+
+    // 如果布局属性未变，仅标记重绘
+    this.markNeedsPaint();
   }
 
   /**

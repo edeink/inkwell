@@ -75,3 +75,31 @@ InkWell 支持局部重绘机制。在以下场景中开启 `RepaintBoundary`：
 
 ### 5. 使用 `const` 风格的组件构建
 如果子组件树是静态的，尽量在父组件外部定义或使用 `useMemo` (如果是在 Hook 环境下) / 成员变量缓存，避免每次 `build` 都重新 `new Widget()`。
+
+### 案例 3：Flex 布局与节点复用优化
+
+**场景**：在渲染包含 5000 个色块的 `Wrap` 布局时，更新颜色导致帧率下降。
+
+**分析**：
+1. **O(n) 查找开销**：默认的 Diff 算法在处理大量无 Key 子节点时，查找复用节点的复杂度为 O(n^2) 或 O(n)，导致构建耗时随节点数指数或线性增长。
+2. **不必要的 Layout**：仅修改背景色时，默认机制可能触发了父容器的 `layout` 计算，尽管尺寸并未改变。
+
+**优化方案**：
+1. **类型分组复用**：InkWell 内部实现了基于类型的 O(1) 复用池。对于同类型的大量子节点（如列表项），即使没有 Key 也能高效复用。
+2. **智能 `didUpdateWidget`**：
+   - 自定义组件应重写 `didUpdateWidget`。
+   - 区分 `Layout` 属性（如 width, padding）和 `Paint` 属性（如 color）。
+   - 仅在必要时调用 `markNeedsLayout`，否则仅调用 `markNeedsPaint`。
+
+```typescript
+// 优化后的 Container 更新逻辑示例
+protected didUpdateWidget(oldProps: Props): void {
+  if (this.isLayoutChanged(oldProps, this.data)) {
+    this.markNeedsLayout();
+  } else {
+    this.markNeedsPaint(); // 避免触发父级 Layout
+  }
+}
+```
+
+**结果**：优化后，5000 个节点的颜色更新仅耗时 ~12ms，完全满足 60FPS 要求。

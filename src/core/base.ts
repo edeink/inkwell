@@ -402,15 +402,26 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
     const byKey = new Map<string, Widget>();
-    // 简单实现：优先匹配 key，无 key 则尝试按类型复用
-    const prevNoKey: Widget[] = [];
+    // 优化：按类型分组存储无 key 节点，实现 O(1) 查找
+    const prevNoKey = new Map<string, Widget[]>();
 
     for (const c of prev) {
       if (c.data.key) {
         byKey.set(c.key, c);
       } else {
-        prevNoKey.push(c);
+        const type = c.type;
+        let list = prevNoKey.get(type);
+        if (!list) {
+          list = [];
+          prevNoKey.set(type, list);
+        }
+        list.push(c);
       }
+    }
+
+    // 为了保持顺序复用（FIFO），我们将数组反转，这样 pop() 就能拿到最早的节点
+    for (const list of prevNoKey.values()) {
+      list.reverse();
     }
 
     const nextChildren: Widget[] = [];
@@ -422,12 +433,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
       if (k) {
         reuse = byKey.get(k) ?? null;
-      } else if (prevNoKey.length > 0) {
-        // 尝试复用第一个同类型的无 key 节点
-        const idx = prevNoKey.findIndex((w) => w.type === childData.type);
-        if (idx !== -1) {
-          reuse = prevNoKey[idx];
-          prevNoKey.splice(idx, 1);
+      } else {
+        // 尝试复用同类型的无 key 节点
+        const type = childData.type;
+        if (type) {
+          const list = prevNoKey.get(type);
+          if (list && list.length > 0) {
+            reuse = list.pop()!;
+          }
         }
       }
 
