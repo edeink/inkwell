@@ -1,5 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 // @ts-nocheck
+import { easeSharp } from './easing';
+
 import {
   Center,
   ClipRect,
@@ -15,11 +17,6 @@ import {
   type WidgetProps,
 } from '@/core';
 
-// 缓动函数
-function easeInOutQuad(t: number): number {
-  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-}
-
 export interface SwiperProps extends WidgetProps {
   items: Widget[];
   width: number;
@@ -34,6 +31,8 @@ interface SwiperState {
   offset: number;
   dragging: boolean;
   width: number;
+  pendingPrevIndex?: number;
+  pendingNextIndex?: number;
 }
 
 export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
@@ -112,12 +111,12 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
   private animateTo(targetOffset: number, onComplete: () => void) {
     const startOffset = this.state.offset;
     const startTime = Date.now();
-    const duration = this.props.duration || 300;
+    const duration = this.props.duration || 400; // 调整为 400ms 符合 300-500ms 要求
 
     const loop = () => {
       const now = Date.now();
       const progress = Math.min((now - startTime) / duration, 1);
-      const eased = easeInOutQuad(progress);
+      const eased = easeSharp(progress);
 
       const currentOffset = startOffset + (targetOffset - startOffset) * eased;
 
@@ -198,7 +197,33 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
   }
 
   private handleIndicatorClick(index: number) {
-    this.setState({ currentIndex: index, offset: 0 });
+    if (index === this.state.currentIndex) {
+      return;
+    }
+
+    const { width } = this.state;
+    // 根据目标索引位置决定滑动方向
+    if (index > this.state.currentIndex) {
+      // 目标在右侧，向左滑 (内容左移)
+      this.setState({ pendingNextIndex: index });
+      this.animateTo(-width, () => {
+        this.setState({
+          currentIndex: index,
+          offset: 0,
+          pendingNextIndex: undefined,
+        });
+      });
+    } else {
+      // 目标在左侧，向右滑 (内容右移)
+      this.setState({ pendingPrevIndex: index });
+      this.animateTo(width, () => {
+        this.setState({
+          currentIndex: index,
+          offset: 0,
+          pendingPrevIndex: undefined,
+        });
+      });
+    }
   }
 
   render() {
@@ -217,8 +242,16 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
 
     const count = items.length;
     // 计算前、中、后索引
-    const prevIndex = (currentIndex - 1 + count) % count;
-    const nextIndex = (currentIndex + 1) % count;
+    // 优先使用 pendingIndex 用于动画过渡
+    const prevIndex =
+      this.state.pendingPrevIndex !== undefined
+        ? this.state.pendingPrevIndex
+        : (currentIndex - 1 + count) % count;
+
+    const nextIndex =
+      this.state.pendingNextIndex !== undefined
+        ? this.state.pendingNextIndex
+        : (currentIndex + 1) % count;
 
     const currentItem = items[currentIndex];
     const prevItem = items[prevIndex];
