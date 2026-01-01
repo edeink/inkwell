@@ -1,7 +1,7 @@
 import Runtime from '../../runtime';
 import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
 import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
-import { buildFlexWidgetScene } from '../tester/flex/widget';
+import { buildFlexRowColWidgetScene, buildFlexWidgetScene } from '../tester/flex/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
 import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
 
@@ -67,6 +67,9 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
     switch (this.caseType) {
       case TestCaseType.Flex:
         this.lastTimings = await buildFlexWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        break;
+      case TestCaseType.FlexRowCol:
+        this.lastTimings = await buildFlexRowColWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;
       case TestCaseType.Text:
         if (this.variant === 'v1') {

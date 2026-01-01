@@ -147,10 +147,8 @@ export default function ControlPanel({
   ]);
 
   // 根据区间估算轮次最大值，限制在 1~10 之间
-  const repeatMax = useMemo(() => {
-    const len = Math.max(1, Math.floor((rangeEnd - rangeStart) / Math.max(1, rangeStep)) + 1);
-    return Math.min(10, Math.max(1, len));
-  }, [rangeStart, rangeEnd, rangeStep]);
+  // Modified: Allow user to set repeat count more freely, max 100
+  const repeatMax = 100;
 
   // 步长上限
   const stepMax = useMemo(() => {

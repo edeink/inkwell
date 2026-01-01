@@ -74,6 +74,7 @@ export type DiffMetric = {
 export enum TestCaseType {
   Absolute = 'absolute',
   Flex = 'flex',
+  FlexRowCol = 'flex_row_col',
   Text = 'text',
   CanvasBenchmark = 'canvas_benchmark',
 }
@@ -81,7 +82,8 @@ export enum TestCaseType {
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
   { label: '盒子绝对布局测试', value: TestCaseType.Absolute },
   { label: '文字渲染测试', value: TestCaseType.Text },
-  { label: '流式布局测试', value: TestCaseType.Flex },
+  { label: 'Wrap 布局测试', value: TestCaseType.Flex },
+  { label: 'Flex 布局测试', value: TestCaseType.FlexRowCol },
 ];
 
 export enum TestStatus {

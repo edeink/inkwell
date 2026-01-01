@@ -184,7 +184,7 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   } | null>(null);
   const [showStage, setShowStage] = useState(false);
   const [nodeCounts, setNodeCounts] = useState<number[]>([100, 500, 1000, 5000, 10000]);
-  const [repeat, setRepeat] = useState<number>(3);
+  const [repeat, setRepeat] = useState<number>(1);
   const [caseType, setCaseType] = useState<TestCaseType>(TestCaseType.Absolute);
   const [experimentType, setExperimentType] = useState<ExperimentType>('dom_vs_widget');
   const [baselineResults, setBaselineResults] = useState<TestResult[] | null>(null);

@@ -1,6 +1,6 @@
 import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
 import { createAbsoluteDomNodes } from '../tester/absolute/dom';
-import { createFlexDomNodes } from '../tester/flex/dom';
+import { createFlexDomNodes, createFlexRowColDomNodes } from '../tester/flex/dom';
 import { createTextDomNodes } from '../tester/text/dom';
 
 import { FrameSampler, round1, type Timings } from './collector';
@@ -42,6 +42,10 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     switch (this.caseType) {
       case TestCaseType.Flex: {
         this.lastTimings = await createFlexDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.FlexRowCol: {
+        this.lastTimings = await createFlexRowColDomNodes(this.ctx.stage, targetCount);
         break;
       }
       case TestCaseType.Text: {
