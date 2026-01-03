@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Runtime from '../../runtime';
@@ -135,37 +136,15 @@ describe('Swiper 布局问题', () => {
     const runtime = await Runtime.create(containerId);
 
     // 初始渲染: 第1页
-    await runtime.renderFromJSON({
-      type: asType('Container'),
-      key: 'root',
-      width: 800,
-      height: 600,
-      children: [
-        {
-          type: asType('Stack'),
-          key: 'stack',
-          fit: 'expand',
-          children: [
-            {
-              type: asType('Positioned'),
-              key: 'pos',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-              children: [
-                {
-                  type: asType('Container'),
-                  key: 'page1',
-                  color: 'red',
-                  children: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    await runtime.render(
+      <Container key="root" width={800} height={600}>
+        <Stack key="stack" fit="expand">
+          <Positioned key="pos" left={0} right={0} top={0} bottom={0}>
+            <Container key="page1" color="red" />
+          </Positioned>
+        </Stack>
+      </Container>,
+    );
 
     const root = runtime.getRootWidget() as Container;
     const stack = root.children[0] as Stack;
@@ -179,37 +158,15 @@ describe('Swiper 布局问题', () => {
     expect(page1.renderObject.size).toEqual({ width: 800, height: 600 });
 
     // 模拟切换页面: 用 page2 替换 page1
-    await runtime.renderFromJSON({
-      type: asType('Container'),
-      key: 'root',
-      width: 800,
-      height: 600,
-      children: [
-        {
-          type: asType('Stack'),
-          key: 'stack',
-          fit: 'expand',
-          children: [
-            {
-              type: asType('Positioned'),
-              key: 'pos',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-              children: [
-                {
-                  type: asType('Container'),
-                  key: 'page2', // New key
-                  color: 'blue',
-                  children: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    await runtime.render(
+      <Container key="root" width={800} height={600}>
+        <Stack key="stack" fit="expand">
+          <Positioned key="pos" left={0} right={0} top={0} bottom={0}>
+            <Container key="page2" color="blue" />
+          </Positioned>
+        </Stack>
+      </Container>,
+    );
 
     const newRoot = runtime.getRootWidget() as Container;
     const newStack = newRoot.children[0] as Stack;
@@ -229,12 +186,7 @@ describe('Swiper 布局问题', () => {
     const runtime = await Runtime.create(containerId);
 
     // 初始渲染
-    await runtime.renderFromJSON({
-      type: asType('TestSwiper'),
-      key: 'swiper',
-      width: 800,
-      height: 600,
-    });
+    await runtime.render(<TestSwiper key="swiper" width={800} height={600} />);
 
     const swiper = runtime.getRootWidget() as TestSwiper;
     // 结构: Swiper -> Container -> ClipRect -> Stack -> Positioned -> Container

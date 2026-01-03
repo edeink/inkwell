@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Swiper } from '../index';
@@ -10,7 +11,7 @@ import Runtime from '@/runtime';
 
 const asType = (type: string) => type as unknown as ComponentType;
 
-// Mock Canvas Context
+// 模拟 Canvas 上下文
 const mockContext = {
   canvas: { width: 800, height: 600 },
   scale: vi.fn(),
@@ -55,7 +56,7 @@ describe('Swiper 动画测试', () => {
       return null;
     } as any);
 
-    // Mock requestAnimationFrame
+    // 模拟 requestAnimationFrame
     let lastTime = 0;
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       const currTime = Date.now();
@@ -95,20 +96,21 @@ describe('Swiper 动画测试', () => {
 
     // 创建 3 个页面的 Swiper
     const items = [
-      { type: asType('Container'), key: 'p1', props: { color: 'red' } },
-      { type: asType('Container'), key: 'p2', props: { color: 'blue' } },
-      { type: asType('Container'), key: 'p3', props: { color: 'green' } },
+      <Container key="p1" color="red" />,
+      <Container key="p2" color="blue" />,
+      <Container key="p3" color="green" />,
     ];
 
-    await runtime.renderFromJSON({
-      type: asType('Swiper'),
-      key: 'swiper',
-      width: 800,
-      height: 600,
-      items: items,
-      autoplay: false,
-      duration: 400,
-    });
+    await runtime.render(
+      <Swiper
+        key="swiper"
+        width={800}
+        height={600}
+        items={items}
+        autoplay={false}
+        duration={400}
+      />,
+    );
 
     const swiper = runtime.getRootWidget() as Swiper;
     expect((swiper as any).state.currentIndex).toBe(0);
@@ -151,19 +153,14 @@ describe('Swiper 动画测试', () => {
     const runtime = await Runtime.create(containerId);
 
     const items = [
-      { type: asType('Container'), key: 'p1', props: { color: 'red' } },
-      { type: asType('Container'), key: 'p2', props: { color: 'blue' } },
-      { type: asType('Container'), key: 'p3', props: { color: 'green' } },
+      <Container key="p1" color="red" />,
+      <Container key="p2" color="blue" />,
+      <Container key="p3" color="green" />,
     ];
 
-    await runtime.renderFromJSON({
-      type: asType('Swiper'),
-      key: 'swiper',
-      width: 800,
-      height: 600,
-      items: items,
-      autoplay: false,
-    });
+    await runtime.render(
+      <Swiper key="swiper" width={800} height={600} items={items} autoplay={false} />,
+    );
 
     const swiper = runtime.getRootWidget() as Swiper;
 

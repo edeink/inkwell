@@ -21,6 +21,7 @@ export interface MindMapNodeProps extends WidgetProps {
   active?: boolean;
   activeKey?: string | null;
   selected?: boolean;
+  enableLayer?: boolean; // 支持 RepaintBoundary 优化
   onActive?: (key: string | null) => void;
   onEdit?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
@@ -78,6 +79,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const ak = akFromProps;
     this.active = typeof data.active === 'boolean' ? (data.active as boolean) : ak === this.key;
     this._onMoveNode = data.onMoveNode;
+    if (data.enableLayer) {
+      this.isRepaintBoundary = true;
+    }
   }
 
   createElement(data: MindMapNodeProps): Widget<MindMapNodeProps> {
@@ -389,9 +393,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const theme = getTheme();
     const props = this.props as MindMapNodeProps;
     const editing = props.isEditing;
-    console.log(
-      `[MindMapNode] render key=${this.key} isEditing=${editing} props.isEditing=${props.isEditing}`,
-    );
     const selected = !!props.selected;
     const active = typeof props.active === 'boolean' ? props.active : props.activeKey === this.key;
     this.active = active;

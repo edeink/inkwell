@@ -1,61 +1,24 @@
 /** @jsxImportSource @/utils/compiler */
-import { afterAll, beforeAll, describe, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, it } from 'vitest';
 
 import Runtime from '../../../runtime';
 
 import { createFlexDomNodes } from './dom';
 import { buildFlexWidgetScene, updateFlexWidgetScene } from './widget';
 
-describe('Flex Benchmark Runner', () => {
+describe('Flex 性能基准测试运行器', () => {
   let container: HTMLElement;
   let runtime: Runtime;
 
   beforeAll(async () => {
-    // Mock HTMLCanvasElement.getContext
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
-      () =>
-        ({
-          fillRect: vi.fn(),
-          clearRect: vi.fn(),
-          getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(0) })),
-          putImageData: vi.fn(),
-          createImageData: vi.fn(),
-          setTransform: vi.fn(),
-          drawImage: vi.fn(),
-          save: vi.fn(),
-          fillText: vi.fn(),
-          restore: vi.fn(),
-          beginPath: vi.fn(),
-          moveTo: vi.fn(),
-          lineTo: vi.fn(),
-          closePath: vi.fn(),
-          stroke: vi.fn(),
-          translate: vi.fn(),
-          scale: vi.fn(),
-          rotate: vi.fn(),
-          arc: vi.fn(),
-          fill: vi.fn(),
-          measureText: vi.fn(() => ({ width: 0 })),
-          transform: vi.fn(),
-          getTransform: vi.fn(() => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })),
-          rect: vi.fn(),
-          clip: vi.fn(),
-        }) as any,
-    );
-
-    // Setup container
+    // 设置容器
     container = document.createElement('div');
     container.id = 'benchmark-stage';
     container.style.width = '800px';
     container.style.height = '600px';
     document.body.appendChild(container);
 
-    // Mock HTMLCanvasElement.getContext if needed (usually JSDOM has basic support, but Canvas2D might need help)
-    // But Canvas2DRenderer is used, let's see if it works out of the box with JSDOM + vitest-canvas-mock (if installed)
-    // or we might need to mock getContext.
-    // Assuming the project setup handles this as seen in other tests.
-
-    // Create runtime
+    // 创建运行时
     runtime = await Runtime.create('benchmark-stage', { renderer: 'canvas2d' });
   });
 
@@ -64,30 +27,30 @@ describe('Flex Benchmark Runner', () => {
     document.body.removeChild(container);
   });
 
-  it('runs benchmarks', async () => {
+  it('运行性能基准测试', async () => {
     const counts = [100, 1000, 5000];
 
-    console.log('--- Flex Benchmark Results ---');
-    console.log('Count | Type   | Build (ms) | Layout (ms) | Paint (ms) | Total (ms)');
+    console.log('--- Flex 基准测试结果 ---');
+    console.log('数量  | 类型   | 构建 (ms)  | 布局 (ms)   | 绘制 (ms)  | 总计 (ms)');
     console.log('------|--------|------------|-------------|------------|-----------');
 
     for (const count of counts) {
-      // DOM Benchmark
+      // DOM 基准测试
       const domTimings = await createFlexDomNodes(container, count);
       const domTotal = domTimings.buildMs + domTimings.layoutMs + domTimings.paintMs;
       console.log(
         `${count.toString().padEnd(5)} | DOM    | ${domTimings.buildMs.toFixed(2).padEnd(10)} | ${domTimings.layoutMs.toFixed(2).padEnd(11)} | ${domTimings.paintMs.toFixed(2).padEnd(10)} | ${domTotal.toFixed(2)}`,
       );
 
-      // Cleanup DOM
+      // 清理 DOM
       while (container && container.firstChild) {
         container.removeChild(container.firstChild);
       }
 
-      // Widget Benchmark
-      // We need to ensure the runtime container is cleared/reset
-      // Runtime.create usually attaches to the element.
-      // buildFlexWidgetScene uses runtime.container
+      // Widget 基准测试
+      // 我们需要确保运行时容器已清理/重置
+      // Runtime.create 通常会挂载到元素上。
+      // buildFlexWidgetScene 使用 runtime.container
 
       const widgetTimings = await buildFlexWidgetScene(container, runtime, count);
       const widgetTotal = widgetTimings.buildMs + widgetTimings.layoutMs + widgetTimings.paintMs;
@@ -95,7 +58,7 @@ describe('Flex Benchmark Runner', () => {
         `${count.toString().padEnd(5)} | Widget | ${widgetTimings.buildMs.toFixed(2).padEnd(10)} | ${widgetTimings.layoutMs.toFixed(2).padEnd(11)} | ${widgetTimings.paintMs.toFixed(2).padEnd(10)} | ${widgetTotal.toFixed(2)}`,
       );
 
-      // Widget Update Benchmark
+      // Widget 更新基准测试
       const updateTimings = await updateFlexWidgetScene(container, runtime, count);
       const updateTotal = updateTimings.buildMs + updateTimings.layoutMs + updateTimings.paintMs;
       console.log(
@@ -103,5 +66,5 @@ describe('Flex Benchmark Runner', () => {
       );
     }
     console.log('------------------------------');
-  });
+  }, 30000);
 });

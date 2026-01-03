@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Runtime from '../../runtime';
@@ -9,7 +10,7 @@ import type { ComponentType } from '@/core/type';
 // 辅助类型转换
 const asType = (type: string) => type as unknown as ComponentType;
 
-// 模拟 Canvas Context
+// 模拟 Canvas 上下文
 const mockContext = {
   canvas: { width: 800, height: 600 },
   scale: vi.fn(),
@@ -126,16 +127,11 @@ describe('PipelineOwner 与 Relayout Boundary', () => {
     const runtime = await Runtime.create(containerId);
 
     // 1. 初始渲染
-    await runtime.renderFromJSON({
-      type: asType('TestParent'),
-      key: 'root',
-      children: [
-        {
-          type: asType('TestChild'),
-          key: 'child1',
-        },
-      ],
-    });
+    await runtime.render(
+      <TestParent key="root">
+        <TestChild key="child1" />
+      </TestParent>,
+    );
 
     const root = runtime.getRootWidget() as TestParent;
     const child = root.children[0] as TestChild;
@@ -182,11 +178,11 @@ describe('PipelineOwner 与 Relayout Boundary', () => {
     // 创建松约束场景 - 类已移动到顶层
 
     const runtime = await Runtime.create(containerId);
-    await runtime.renderFromJSON({
-      type: asType('TestLooseParent'),
-      key: 'loose-parent',
-      children: [{ type: asType('TestChild'), key: 'child2' }],
-    });
+    await runtime.render(
+      <TestLooseParent key="loose-parent">
+        <TestChild key="child2" />
+      </TestLooseParent>,
+    );
 
     const root = runtime.getRootWidget() as TestLooseParent;
     const child = root.children[0] as TestChild;

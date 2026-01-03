@@ -102,8 +102,6 @@ export default class Runtime {
     this._canvas = null;
     this._container = null;
     this.dirtyWidgets.clear();
-
-    console.log(`Runtime ${this.canvasId} destroyed.`);
   }
 
   private constructor() {

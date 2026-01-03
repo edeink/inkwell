@@ -140,7 +140,6 @@ describe('计数器渲染计数', () => {
     let pendingUpdate: Promise<any> | null = null;
     vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
       rafCount++;
-      console.log(`RAF called. Count: ${rafCount}`);
       const result = fn(0) as any;
       if (result instanceof Promise) {
         pendingUpdate = result;

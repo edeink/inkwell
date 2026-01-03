@@ -73,8 +73,6 @@ describe('完整 Demo 标签页布局分析', () => {
     expect(columnWidth).toBeLessThan(viewportWidth); // 内容适应
     expect(Math.abs(x - expectedX)).toBeLessThan(1); // 居中
     expect(x).toBeGreaterThan(0);
-
-    console.log(`[桌面] 视口: ${viewportWidth}, 内容: ${columnWidth}, 偏移: ${x}`);
   });
 
   it('场景 2：大屏幕 (1200x800) - 应居中', () => {
@@ -100,8 +98,6 @@ describe('完整 Demo 标签页布局分析', () => {
 
     expect(columnWidth).toBeLessThan(viewportWidth);
     expect(Math.abs(x - expectedX)).toBeLessThan(1);
-
-    console.log(`[Large] Viewport: ${viewportWidth}, Content: ${columnWidth}, Offset: ${x}`);
   });
 
   it('场景 3：小屏幕 (400x800) - 应左对齐 (如果 ScrollView 行为正确)', () => {

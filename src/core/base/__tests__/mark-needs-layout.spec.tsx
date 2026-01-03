@@ -40,6 +40,8 @@ describe('markNeedsLayout 优化与约束缓存', () => {
 
     // 手动设置 child 为紧约束，模拟它是 RelayoutBoundary
     child.renderObject.constraints = createTightConstraints(100, 100);
+    // 必须手动更新 _relayoutBoundary，因为这通常是在 layout 阶段根据约束计算的
+    (child as any)._relayoutBoundary = child;
 
     // 重置状态
     (root as any)._needsLayout = false;

@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Runtime from '../../runtime';
@@ -9,7 +10,7 @@ import type { ComponentType } from '@/core/type';
 // 辅助类型转换
 const asType = (type: string) => type as unknown as ComponentType;
 
-// 模拟 Canvas Context
+// 模拟 Canvas 上下文
 const mockContext = {
   canvas: { width: 800, height: 600 },
   scale: vi.fn(),
@@ -121,22 +122,16 @@ describe('PipelineOwner 嵌套边界', () => {
     //   -> 子组件 B (TestLooseParent) [非边界]
     //      -> 孙组件 B1 (TestLeaf) [非边界]
 
-    await runtime.renderFromJSON({
-      type: asType('TestHybridParent'),
-      key: 'root',
-      children: [
-        {
-          type: asType('TestLooseParent'), // Child A
-          key: 'childA',
-          children: [{ type: asType('TestLeaf'), key: 'leafA1' }],
-        },
-        {
-          type: asType('TestLooseParent'), // Child B
-          key: 'childB',
-          children: [{ type: asType('TestLeaf'), key: 'leafB1' }],
-        },
-      ],
-    });
+    await runtime.render(
+      <TestHybridParent key="root">
+        <TestLooseParent key="childA">
+          <TestLeaf key="leafA1" />
+        </TestLooseParent>
+        <TestLooseParent key="childB">
+          <TestLeaf key="leafB1" />
+        </TestLooseParent>
+      </TestHybridParent>,
+    );
 
     // 获取组件实例
     const root = (runtime as any).rootWidget as TestHybridParent;

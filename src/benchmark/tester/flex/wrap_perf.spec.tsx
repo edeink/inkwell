@@ -53,7 +53,6 @@ describe('Wrap Performance Benchmark', () => {
 
   it('measures 100,000 nodes layout performance', async () => {
     const count = 100000;
-    console.log(`Starting benchmark with ${count} nodes...`);
 
     // Warmup
     // await buildFlexWidgetScene(container, runtime, 100);

@@ -92,6 +92,9 @@ describe('Swiper 组件', () => {
     // 直接调用内部方法或模拟事件比较复杂，这里直接测试 handleIndicatorClick
     swiper.handleIndicatorClick(2);
 
+    // 动画持续时间默认 400ms
+    vi.advanceTimersByTime(500);
+
     expect(swiper.state.currentIndex).toBe(2);
     expect(swiper.state.offset).toBe(0);
   });
