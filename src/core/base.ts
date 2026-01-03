@@ -125,10 +125,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 CSS pointer-events
    */
   pointerEvent: PointerEvents = 'auto';
-  /**
-   * @deprecated 请使用 pointerEvent
-   */
-  pointerEvents: PointerEvents = 'auto';
   cursor?: CursorType;
   ref?: Ref<unknown> | ((instance: unknown) => void);
 
@@ -138,6 +134,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   private _runtime?: Runtime;
   // 初始化默认没有布局，需要布局
   protected _needsLayout: boolean = true;
+  protected _needsPaint: boolean = true;
   protected _isBuilt: boolean = false;
   protected _dirty: boolean = false;
   protected _disposed: boolean = false;
@@ -145,7 +142,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   // RepaintBoundary 相关
   public isRepaintBoundary: boolean = false;
-  protected _needsPaint: boolean = true;
   protected _layer: {
     canvas: HTMLCanvasElement | OffscreenCanvas;
     ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -200,9 +196,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.skipEvent = !!data.skipEvent;
     // 优先使用 pointerEvent，其次 pointerEvents，默认为 auto
-    const pe = data.pointerEvent ?? data.pointerEvents ?? 'auto';
+    const pe = data.pointerEvent ?? 'auto';
     this.pointerEvent = pe;
-    this.pointerEvents = pe;
 
     this.cursor = data.cursor;
     this.ref = data.ref;
@@ -611,9 +606,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.zIndex = typeof nextData.zIndex === 'number' ? (nextData.zIndex as number) : this.zIndex;
 
     this.skipEvent = !!nextData.skipEvent;
-    const pe = nextData.pointerEvent ?? nextData.pointerEvents ?? 'auto';
+    const pe = nextData.pointerEvent ?? 'auto';
     this.pointerEvent = pe;
-    this.pointerEvents = pe;
 
     this.cursor = nextData.cursor;
 
@@ -1070,7 +1064,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (this.skipEvent) {
       return this.hitTestChildren(x, y);
     }
-    if (this.pointerEvent === 'none' || this.pointerEvents === 'none') {
+    if (this.pointerEvent === 'none') {
       return this.hitTestChildren(x, y);
     }
 

@@ -35,7 +35,7 @@ describe('ScrollView Coordinate & HitTest', () => {
       type: 'Container',
       width: 100,
       height: 300, // Increased height to allow scrolling
-      pointerEvents: 'auto', // Important: Container defaults to 'none'
+      pointerEvent: 'auto', // Important: Container defaults to 'none'
     });
 
     const scrollView = new ScrollView({
@@ -87,7 +87,7 @@ describe('ScrollView Coordinate & HitTest', () => {
       height: 100,
       // Add a known property or key to verify hit
       key: 'target-child',
-      pointerEvents: 'auto', // Important: Container defaults to 'none'
+      pointerEvent: 'auto', // Important: Container defaults to 'none'
       skipEvent: false, // Ensure container itself can be hit
     });
 

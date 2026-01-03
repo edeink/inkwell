@@ -93,7 +93,7 @@ function buildPath(target: Widget | null): Widget[] {
   const path: Widget[] = [];
   let cur = target;
   while (cur) {
-    const peNone = cur.pointerEvents === 'none';
+    const peNone = cur.pointerEvent === 'none';
     if (!peNone) {
       path.push(cur);
     }

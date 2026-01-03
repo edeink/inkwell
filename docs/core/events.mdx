@@ -121,7 +121,7 @@ class MyComponent extends Widget {
 ### Q: 为什么 `onClick` 不触发？
 1.  **检查尺寸**：使用 DevTools 查看组件的 `width` 和 `height` 是否为 0。如果是 0，点击无法命中。
 2.  **检查层级 (z-index)**：可能有其他透明组件覆盖在目标组件之上。
-3.  **检查 pointerEvents**：确认组件或父组件没有设置 `pointerEvents: 'none'`。
+3.  **检查 pointerEvent**：确认组件或父组件没有设置 `pointerEvent: 'none'`。
 
 ### Q: 如何处理 Canvas 之外的点击？
 Inkwell 的事件系统仅托管 Canvas 内部的事件。如果需要处理 Canvas 外部（如整个 Window）的点击（例如点击空白处关闭弹窗），请使用浏览器原生的 `document.addEventListener`。

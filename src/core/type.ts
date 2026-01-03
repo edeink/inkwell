@@ -236,10 +236,6 @@ export interface WidgetProps extends WidgetEventHandler {
    * 类似于 CSS pointer-events
    */
   pointerEvent?: PointerEvents;
-  /**
-   * @deprecated 请使用 pointerEvent
-   */
-  pointerEvents?: PointerEvents;
   cursor?: CursorType;
   // JSX 编译传入的 data 是 WidgetProps，调用了 BuildChildren 后生成 widget[]
   children?: WidgetProps[];

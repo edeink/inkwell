@@ -389,6 +389,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const theme = getTheme();
     const props = this.props as MindMapNodeProps;
     const editing = props.isEditing;
+    console.log(
+      `[MindMapNode] render key=${this.key} isEditing=${editing} props.isEditing=${props.isEditing}`,
+    );
     const selected = !!props.selected;
     const active = typeof props.active === 'boolean' ? props.active : props.activeKey === this.key;
     this.active = active;
@@ -455,7 +458,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         }
         textAlignVertical={TextAlignVertical.Top}
         lineHeight={st.title ? undefined : theme.placeholder.lineHeight}
-        pointerEvents={'none'}
+        pointerEvent={'none'}
       />
     );
 
