@@ -13,7 +13,7 @@ import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 import { DevTools } from '@/devtools';
 
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState<string>(DemoKey.Swiper);
+  const [activeKey, setActiveKey] = useState<string>(DemoKey.Mindmap);
   const [theme, setTheme] = useState<ThemeType>(ThemeType.Light);
 
   const toggleTheme = () => {

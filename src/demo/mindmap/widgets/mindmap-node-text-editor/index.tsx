@@ -903,6 +903,7 @@ export class MindMapNodeTextEditor extends StatefulWidget<MindMapNodeTextEditorP
       >
         {selectionWidgets}
         <Text
+          key="input"
           ref={(ref) => (this.textWidgetRef = ref as Text | null)}
           text={text}
           fontSize={fontSize}

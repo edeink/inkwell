@@ -28,6 +28,8 @@ export interface RuntimeOptions {
   background?: string;
   /** 背景透明度 */
   backgroundAlpha?: number;
+  /** 是否开启离屏渲染 */
+  enableOffscreenRendering?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export default class Runtime {
   private dirtyWidgets: Set<Widget> = new Set();
   private __layoutScheduled: boolean = false;
   private __layoutRaf: number | null = null;
+  public enableOffscreenRendering: boolean = true;
   static canvasRegistry: Map<
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
@@ -113,6 +116,7 @@ export default class Runtime {
 
   private async init(containerId: string, options: RuntimeOptions): Promise<void> {
     this._container = this.initContainer(containerId);
+    this.enableOffscreenRendering = options.enableOffscreenRendering ?? false;
     this.renderer = this.createRenderer(options.renderer || 'canvas2d');
     // 注意：渲染器将在 renderFromJSON 中根据布局尺寸进行初始化
     this.initEvent();
@@ -259,6 +263,22 @@ export default class Runtime {
     // 创建新渲染器
     this.renderer = this.createRenderer(rendererType);
     this.initRenderer(options);
+  }
+
+  /**
+   * 设置是否开启离屏渲染
+   * @param enabled 是否开启
+   */
+  setOffscreenRendering(enabled: boolean): void {
+    if (this.enableOffscreenRendering === enabled) {
+      return;
+    }
+    this.enableOffscreenRendering = enabled;
+    // 强制重绘
+    if (this.rootWidget) {
+      this.rootWidget.markNeedsPaint();
+      this.scheduleUpdate(this.rootWidget);
+    }
   }
 
   tick(dirty?: Widget[]): void {
@@ -512,6 +532,7 @@ export default class Runtime {
     const context: BuildContext = {
       renderer: this.renderer,
       dirtyRect,
+      enableOffscreenRendering: this.enableOffscreenRendering,
     };
 
     // 执行绘制

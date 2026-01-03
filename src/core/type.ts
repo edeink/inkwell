@@ -310,6 +310,7 @@ export interface BuildContext {
   renderer: IRenderer; // 渲染器实例
   worldMatrix?: [number, number, number, number, number, number];
   dirtyRect?: { x: number; y: number; width: number; height: number };
+  enableOffscreenRendering?: boolean;
   [key: string]: unknown;
 }
 

@@ -155,6 +155,26 @@ export class Canvas2DRenderer implements IRenderer {
   }
 
   /**
+   * 设置外部渲染上下文（用于离屏渲染）
+   * @param ctx 外部传入的 Context
+   * @returns 恢复原始 Context 的函数
+   */
+  setContext(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): () => void {
+    const oldCtx = this.ctx;
+    const oldCanvas = this.canvas;
+
+    // @ts-ignore
+    this.ctx = ctx;
+    // @ts-ignore
+    this.canvas = ctx.canvas;
+
+    return () => {
+      this.ctx = oldCtx;
+      this.canvas = oldCanvas;
+    };
+  }
+
+  /**
    * 保存当前绘图状态
    */
   save(): void {
@@ -463,10 +483,6 @@ export class Canvas2DRenderer implements IRenderer {
       this.ctx.stroke();
     }
     this.ctx.restore();
-  }
-
-  setContext(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void {
-    this.ctx = ctx as CanvasRenderingContext2D;
   }
 }
 

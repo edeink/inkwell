@@ -420,6 +420,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
             isEditing={props.isEditing}
             isRoot={props.isRoot}
             prefSide={n.prefSide}
+            enableLayer={true}
             cursor="pointer"
             onActive={handlers.onActive}
             onMoveNode={handlers.onMoveNode}

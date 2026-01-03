@@ -200,6 +200,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.pointerEvent = pe;
 
     this.cursor = data.cursor;
+    // RepaintBoundary 相关
+    this.isRepaintBoundary = !!data.isRepaintBoundary;
     this.ref = data.ref;
   }
 
@@ -611,6 +613,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.cursor = nextData.cursor;
 
+    // RepaintBoundary 相关
+    this.isRepaintBoundary = !!nextData.isRepaintBoundary;
+
     // 初始构建或 children 差异/需要更新时执行子树增量重建
     if (nextChildrenData.length > 0) {
       this.buildChildren(nextChildrenData);
@@ -804,7 +809,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       }
     }
 
-    if (this.isRepaintBoundary) {
+    if (this.isRepaintBoundary && context.enableOffscreenRendering !== false) {
       this._paintWithLayer(context);
       return;
     }
@@ -915,7 +920,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       // 使用 next (Global Matrix) 作为 worldMatrix，以便子节点计算正确的全局矩阵
       // 使用 offsetOverride: {0,0} 确保内容绘制在 Layer 原点
       this._performPaint(
-        { ...context, renderer: layerRenderer, worldMatrix: next },
+        { ...context, renderer: layerRenderer, worldMatrix: next, dirtyRect: undefined },
         { dx: 0, dy: 0 },
       );
 
