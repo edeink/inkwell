@@ -72,6 +72,13 @@ export class PipelineOwner {
   }
 
   /**
+   * 获取是否还有待处理的绘制任务
+   */
+  public get hasScheduledPaint(): boolean {
+    return this._nodesNeedingPaint.size > 0;
+  }
+
+  /**
    * 执行布局更新
    * 按照深度优先的顺序处理脏节点
    */
@@ -116,16 +123,42 @@ export class PipelineOwner {
 
   /**
    * 执行绘制更新
+   * 按照深度优先的顺序（最深节点优先）处理脏节点
+   * 这确保了子节点先于父节点绘制（如果需要），
+   * 或者父节点在绘制时可以使用子节点已更新的 Layer
    */
   public flushPaint(): void {
     const startTime = performance.now();
-    // 暂时只清理集合，实际绘制由 Runtime 统一处理
-    // 但我们需要统计绘制次数
-    const count = this._nodesNeedingPaint.size;
+
+    const dirtyNodes = Array.from(this._nodesNeedingPaint);
+    // 按照深度排序（最深节点优先）
+    // depth 越大越深
+    dirtyNodes.sort((a, b) => b.depth - a.depth);
+
     this._nodesNeedingPaint.clear();
 
+    let paintCount = 0;
+    for (const node of dirtyNodes) {
+      if (node.isDisposed()) {
+        continue;
+      }
+
+      // 只有当节点仍然标记为 dirty 时才更新
+      // 因为父节点的重绘可能会连带更新子节点（如果子节点不是 RepaintBoundary）
+      // 但在这里我们主要处理 RepaintBoundary
+      if (node.isPaintDirty()) {
+        paintCount++;
+        try {
+          // 调用节点的 updateLayer 方法更新其离屏 Canvas
+          node.updateLayer();
+        } catch (e) {
+          console.error(`Error painting node ${node.type}(${node.key}):`, e);
+        }
+      }
+    }
+
     const duration = performance.now() - startTime;
-    this.stats.paintCount += count;
+    this.stats.paintCount += paintCount;
     this.stats.lastPaintDuration = duration;
   }
 }

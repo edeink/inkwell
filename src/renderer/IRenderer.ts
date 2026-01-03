@@ -164,4 +164,13 @@ export interface IRenderer {
    * @param context 渲染上下文
    */
   setContext(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
+
+  /**
+   * 裁剪矩形区域
+   * @param x 起始X坐标
+   * @param y 起始Y坐标
+   * @param width 宽度
+   * @param height 高度
+   */
+  clipRect(x: number, y: number, width: number, height: number): void;
 }

@@ -484,6 +484,18 @@ export class Canvas2DRenderer implements IRenderer {
     }
     this.ctx.restore();
   }
+
+  /**
+   * 裁剪矩形区域
+   */
+  clipRect(x: number, y: number, width: number, height: number): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.beginPath();
+    this.ctx.rect(x, y, width, height);
+    this.ctx.clip();
+  }
 }
 
 function normalizeRadius(

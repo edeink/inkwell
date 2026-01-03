@@ -538,29 +538,14 @@ export default class Runtime {
     // 执行绘制
     try {
       this.renderer.save();
-      if (
-        dirtyRect &&
-        'clipRect' in this.renderer &&
-        typeof (this.renderer as unknown as { clipRect: unknown }).clipRect === 'function'
-      ) {
-        // 假设渲染器支持 clipRect 或者我们使用原始上下文
-        // 由于 IRenderer 接口中没有定义 clipRect，
-        // 我们可能需要访问原始实例或者在 paint 中手动剔除。
-        // 但对于“清除”，我们已经清除了该区域。
-        // 为了防止绘制溢出，裁剪是必要的。
-        // 再次检查 IRenderer，它有 save/restore。
-        // 如果没有 clip 方法，尝试使用原始实例。
-        const raw = this.renderer.getRawInstance() as CanvasRenderingContext2D;
-        if (raw) {
-          raw.beginPath();
-          raw.rect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
-          raw.clip();
-        }
+
+      // 处理裁剪逻辑
+      if (dirtyRect) {
+        this.renderer.clipRect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
       }
 
       this.rootWidget.paint(context);
       this.renderer.render();
-      this.renderer.restore();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (this.isCanvasOomErrorMessage(msg)) {
@@ -568,6 +553,13 @@ export default class Runtime {
         this.notifyOomRisk('检测到 Canvas 渲染异常，可能是内存溢出');
       }
       throw e;
+    } finally {
+      // 确保恢复状态，防止状态污染
+      try {
+        this.renderer.restore();
+      } catch (e) {
+        console.error('Failed to restore renderer state:', e);
+      }
     }
     this.monitorMemory();
   }
@@ -604,7 +596,12 @@ export default class Runtime {
         w.clearDirty();
       }
     }
-    if (!hasAnyUpdate && dirtyList.length === 0 && !this.pipelineOwner.hasScheduledLayout) {
+    if (
+      !hasAnyUpdate &&
+      dirtyList.length === 0 &&
+      !this.pipelineOwner.hasScheduledLayout &&
+      !this.pipelineOwner.hasScheduledPaint
+    ) {
       return;
     }
 
@@ -637,6 +634,9 @@ export default class Runtime {
         fullRepaint = true;
       }
     }
+
+    // 绘制阶段：处理 Repaint Boundary
+    this.pipelineOwner.flushPaint();
 
     let dirtyRect: { x: number; y: number; width: number; height: number } | undefined;
 
@@ -704,9 +704,6 @@ export default class Runtime {
       dirtyRect = undefined;
     }
 
-    // 绘制阶段：清除绘制脏标记 (如果实现了 PipelineOwner 的绘制调度)
-    this.pipelineOwner.flushPaint();
-
     this.clearCanvas(dirtyRect);
     this.performRender(dirtyRect);
   }
@@ -727,23 +724,21 @@ export default class Runtime {
       return;
     }
     const raw = this.renderer.getRawInstance();
-    if (raw && typeof (raw as CanvasRenderingContext2D).clearRect === 'function') {
-      try {
-        const ctx = raw as CanvasRenderingContext2D;
-        const canvas = ctx.canvas;
-        if (rect) {
-          ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (this.isCanvasOomErrorMessage(msg)) {
-          this.oomErrorCount++;
-          this.notifyOomRisk('清空画布时出现异常，可能是内存溢出');
-        }
-        throw e;
+    try {
+      const ctx = raw as CanvasRenderingContext2D;
+      const canvas = ctx.canvas;
+      if (rect) {
+        ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (this.isCanvasOomErrorMessage(msg)) {
+        this.oomErrorCount++;
+        this.notifyOomRisk('清空画布时出现异常，可能是内存溢出');
+      }
+      throw e;
     }
   }
 

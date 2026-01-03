@@ -289,9 +289,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (this._relayoutBoundary !== this) {
       this.markParentNeedsLayout();
     } else {
-      if (this.owner) {
-        this.owner.scheduleLayoutFor(this);
-      }
+      this.owner!.scheduleLayoutFor(this);
     }
   }
 
@@ -324,12 +322,50 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 如果是绘制边界，则无需向上传播
     // 因为父级只需要绘制缓存的 Layer，不需要重绘自身内容
     if (this.isRepaintBoundary) {
+      this.owner?.schedulePaintFor(this);
       return;
     }
 
     if (this.parent) {
       this.parent.markNeedsPaint();
     }
+  }
+
+  /**
+   * 检查是否需要重绘
+   */
+  public isPaintDirty(): boolean {
+    return this._needsPaint;
+  }
+
+  /**
+   * 更新 RepaintBoundary 图层
+   * 仅对 isRepaintBoundary 为 true 的节点有效
+   * 由 PipelineOwner 在 flushPaint 阶段调用
+   */
+  public updateLayer(): void {
+    if (!this.isRepaintBoundary || !this.runtime) {
+      return;
+    }
+
+    // 获取父节点的全局矩阵作为当前上下文的起始矩阵
+    // 注意：TypeScript 允许在类内部访问同类实例的 protected 成员
+    // @ts-ignore: 忽略 protected 访问限制（虽然在同类中通常允许，但为了保险起见）
+    const parentMatrix = this.parent?._worldMatrix ?? IDENTITY_MATRIX;
+
+    const renderer = this.runtime.getRenderer();
+    if (!renderer) {
+      return;
+    }
+
+    const context: BuildContext = {
+      renderer,
+      worldMatrix: parentMatrix,
+      enableOffscreenRendering: this.runtime.enableOffscreenRendering,
+      dirtyRect: undefined,
+    };
+
+    this._paintWithLayer(context, false);
   }
 
   public isDirty(): boolean {
@@ -870,7 +906,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     context.renderer?.restore?.();
   }
 
-  private _paintWithLayer(context: BuildContext): void {
+  private _paintWithLayer(context: BuildContext, composite: boolean = true): void {
     // 1. 计算当前边界的全局矩阵
     const steps = this.getSelfTransformSteps();
     const local = composeSteps(steps);
@@ -934,20 +970,22 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     // 3. 将图层绘制到主上下文
-    context.renderer.save();
-    applySteps(context.renderer, steps);
+    if (composite) {
+      context.renderer.save();
+      applySteps(context.renderer, steps);
 
-    if (this._layer && typeof context.renderer.drawImage === 'function') {
-      context.renderer.drawImage({
-        image: this._layer.canvas,
-        x: 0,
-        y: 0,
-        width: this.renderObject.size.width,
-        height: this.renderObject.size.height,
-      });
+      if (this._layer) {
+        context.renderer.drawImage({
+          image: this._layer.canvas,
+          x: 0,
+          y: 0,
+          width: this.renderObject.size.width,
+          height: this.renderObject.size.height,
+        });
+      }
+
+      context.renderer.restore();
     }
-
-    context.renderer.restore();
   }
 
   /**
