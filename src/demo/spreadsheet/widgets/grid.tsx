@@ -1,0 +1,180 @@
+/** @jsxImportSource @/utils/compiler */
+import type { SpreadsheetModel } from '../spreadsheet-model';
+import type { CellPosition, SelectionRange } from '../types';
+import type { WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/events/types';
+import type { JSXElement } from '@/utils/compiler/jsx-runtime';
+
+import { Container, Positioned, Stack, Text } from '@/core';
+import { EditableText } from '@/core/editable-text';
+import { StatefulWidget } from '@/core/state/stateful';
+import { TextAlign, TextAlignVertical } from '@/core/text';
+
+export interface SpreadsheetGridProps extends WidgetProps {
+  model: SpreadsheetModel;
+  scrollX: number;
+  scrollY: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  selection: SelectionRange | null;
+  editingCell: CellPosition | null;
+  onCellDown: (row: number, col: number, e: InkwellEvent) => void;
+  onCellDoubleClick: (row: number, col: number) => void;
+  onEditFinish: (value: string) => void;
+  onEditCancel: () => void;
+}
+
+export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
+  render() {
+    const {
+      model,
+      scrollX,
+      scrollY,
+      viewportWidth,
+      viewportHeight,
+      selection,
+      editingCell,
+      onCellDown,
+      onCellDoubleClick,
+      onEditFinish,
+      onEditCancel,
+    } = this.props;
+
+    const { config } = model;
+
+    // 计算可见区域
+    // 增加 1 行/列的缓冲区以防止闪烁
+    const startRow = model.getRowIndexAt(scrollY);
+    const endRow = model.getRowIndexAt(scrollY + viewportHeight) + 1;
+    const startCol = model.getColIndexAt(scrollX);
+    const endCol = model.getColIndexAt(scrollX + viewportWidth) + 1;
+
+    const cells: JSXElement[] = [];
+
+    // 渲染单元格
+    for (let r = startRow; r <= endRow; r++) {
+      if (r >= config.rowCount) {
+        break;
+      }
+      const rowHeight = model.getRowHeight(r);
+      const rowTop = model.getRowOffset(r);
+
+      // 优化：如果完全在视图外则跳过（虽然索引计算应该已经处理了大部分情况）
+      if (rowTop + rowHeight < scrollY || rowTop > scrollY + viewportHeight) {
+        continue;
+      }
+
+      for (let c = startCol; c <= endCol; c++) {
+        if (c >= config.colCount) {
+          break;
+        }
+        const colWidth = model.getColWidth(c);
+        const colLeft = model.getColOffset(c);
+
+        if (colLeft + colWidth < scrollX || colLeft > scrollX + viewportWidth) {
+          continue;
+        }
+
+        const cellData = model.getCell(r, c);
+        const isSelected =
+          selection &&
+          r >= Math.min(selection.startRow, selection.endRow) &&
+          r <= Math.max(selection.startRow, selection.endRow) &&
+          c >= Math.min(selection.startCol, selection.endCol) &&
+          c <= Math.max(selection.startCol, selection.endCol);
+
+        const isEditing = editingCell && editingCell.row === r && editingCell.col === c;
+        const style = cellData?.style || {};
+
+        if (isEditing) {
+          cells.push(
+            <Positioned
+              key={`cell-edit-${r}-${c}`}
+              left={colLeft}
+              top={rowTop}
+              width={colWidth}
+              height={rowHeight}
+            >
+              <Container color="white" border={{ width: 2, color: '#1a73e8' }}>
+                <EditableText
+                  value={cellData?.value || ''}
+                  fontSize={style.fontSize || 13}
+                  onFinish={onEditFinish}
+                  onCancel={onEditCancel}
+                />
+              </Container>
+            </Positioned>,
+          );
+        } else {
+          // 显示模式，使用间隙模拟网格线
+          const displayWidth = colWidth - 1;
+          const displayHeight = rowHeight - 1;
+
+          cells.push(
+            <Positioned
+              key={`cell-${r}-${c}`}
+              left={colLeft}
+              top={rowTop}
+              width={displayWidth}
+              height={displayHeight}
+            >
+              <Container
+                color={isSelected ? 'rgba(232, 240, 254, 1)' : style.backgroundColor || 'white'}
+                onPointerDown={(e) => onCellDown(r, c, e)}
+                onDblClick={() => onCellDoubleClick(r, c)}
+              >
+                {cellData?.value ? (
+                  <Text
+                    text={cellData.value}
+                    fontSize={style.fontSize || 13}
+                    fontFamily={style.fontFamily}
+                    fontWeight={style.bold ? 'bold' : 'normal'}
+                    color={style.color || '#333'}
+                    textAlign={
+                      style.textAlign === 'center'
+                        ? TextAlign.Center
+                        : style.textAlign === 'right'
+                          ? TextAlign.Right
+                          : TextAlign.Left
+                    }
+                    textAlignVertical={TextAlignVertical.Center}
+                  />
+                ) : null}
+              </Container>
+            </Positioned>,
+          );
+        }
+      }
+    }
+
+    // 渲染选中区域边框
+    if (selection) {
+      const { startRow, endRow, startCol, endCol } = selection;
+      const minR = Math.min(startRow, endRow);
+      const maxR = Math.max(startRow, endRow);
+      const minC = Math.min(startCol, endCol);
+      const maxC = Math.max(startCol, endCol);
+
+      const x = model.getColOffset(minC);
+      const y = model.getRowOffset(minR);
+      const w = model.getColOffset(maxC) + model.getColWidth(maxC) - x;
+      const h = model.getRowOffset(maxR) + model.getRowHeight(maxR) - y;
+
+      cells.push(
+        <Positioned key="selection-border" left={x} top={y} width={w} height={h}>
+          <Container
+            color="transparent"
+            border={{ width: 2, color: '#1a73e8' }}
+            pointerEvent="none"
+          />
+        </Positioned>,
+      );
+    }
+
+    return (
+      <Container width={model.getTotalWidth()} height={model.getTotalHeight()}>
+        <Stack>{cells as unknown as WidgetProps[]}</Stack>
+      </Container>
+    );
+  }
+}

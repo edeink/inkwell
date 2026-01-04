@@ -410,6 +410,12 @@ export class ScrollView extends Viewport {
     const dx = we.deltaX;
     const dy = we.deltaY;
 
+    // 优化：禁用 Chrome 原生的滑动返回功能
+    // 当检测到水平滑动意图时，阻止默认行为（防止触发浏览器历史导航）
+    if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > 0) {
+      we.preventDefault();
+    }
+
     // 只有在发生实际滚动时才阻止冒泡
     // 如果已到达边界且未开启弹性（或弹性处理未消耗），则允许冒泡给父级
     if (this.processScroll(dx, dy)) {

@@ -8,4 +8,5 @@ export enum DemoKey {
   WidgetGallery = 'widget-gallery',
   Swiper = 'swiper',
   Mindmap = 'mindmap',
+  Spreadsheet = 'spreadsheet',
 }

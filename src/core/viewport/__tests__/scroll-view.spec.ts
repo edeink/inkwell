@@ -87,6 +87,7 @@ describe('ScrollView', () => {
           deltaX: dx,
           deltaY: dy,
           stopPropagation: vi.fn(),
+          preventDefault: vi.fn(),
         } as unknown as WheelEvent,
         stopPropagation: vi.fn(),
       } as any;
@@ -242,6 +243,36 @@ describe('ScrollView', () => {
 
     expect(sv.scrollX).toBeCloseTo(0);
     expect(onBounceComplete).toHaveBeenCalled();
+  });
+
+  it('应当阻止 Chrome 默认的滑动返回行为 (should prevent default browser back navigation on horizontal swipe)', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+    });
+    sv.simulateLayout(100, 100, 200, 200);
+
+    // 水平滑动 (deltaX > deltaY)
+    const mockEvent = sv.simulateWheel(-10, 0);
+
+    // 验证 preventDefault 被调用
+    expect(mockEvent.nativeEvent.preventDefault).toHaveBeenCalled();
+  });
+
+  it('垂直滚动时不应阻止默认行为 (should not prevent default on vertical scroll)', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+    });
+    sv.simulateLayout(100, 100, 200, 200);
+
+    // 垂直滑动 (deltaY > deltaX)
+    const mockEvent = sv.simulateWheel(0, 10);
+
+    // 验证 preventDefault 未被调用
+    expect(mockEvent.nativeEvent.preventDefault).not.toHaveBeenCalled();
   });
 
   it('拖动时超过边界不应回弹 (should not bounce while dragging out of bounds)', () => {

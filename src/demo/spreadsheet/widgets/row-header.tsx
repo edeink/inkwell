@@ -1,0 +1,91 @@
+/** @jsxImportSource @/utils/compiler */
+import type { SpreadsheetModel } from '../spreadsheet-model';
+import type { SelectionRange } from '../types';
+import type { WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/events/types';
+import type { JSXElement } from '@/utils/compiler/jsx-runtime';
+
+import { Container, Positioned, Stack, Text } from '@/core';
+import { StatefulWidget } from '@/core/state/stateful';
+import { TextAlign, TextAlignVertical } from '@/core/text';
+
+export interface RowHeadersProps extends WidgetProps {
+  model: SpreadsheetModel;
+  scrollY: number;
+  viewportHeight: number;
+  selection: SelectionRange | null;
+  onResizeStart: (index: number, e: InkwellEvent) => void;
+}
+
+export class RowHeaders extends StatefulWidget<RowHeadersProps> {
+  render() {
+    const { model, scrollY, viewportHeight, selection, onResizeStart } = this.props;
+    const { config } = model;
+
+    const startRow = model.getRowIndexAt(scrollY);
+    const endRow = model.getRowIndexAt(scrollY + viewportHeight) + 1;
+
+    const headers: JSXElement[] = [];
+
+    for (let r = startRow; r <= endRow; r++) {
+      if (r >= config.rowCount) {
+        break;
+      }
+      const rowHeight = model.getRowHeight(r);
+      const rowTop = model.getRowOffset(r) - scrollY;
+
+      if (rowTop + rowHeight < 0 || rowTop > viewportHeight) {
+        continue;
+      }
+
+      const isSelected =
+        selection &&
+        r >= Math.min(selection.startRow, selection.endRow) &&
+        r <= Math.max(selection.startRow, selection.endRow);
+
+      headers.push(
+        <Positioned
+          key={`row-header-${r}`}
+          left={0}
+          top={rowTop}
+          width={config.headerWidth - 1}
+          height={rowHeight - 1}
+        >
+          <Container color={isSelected ? '#e8eaed' : '#f8f9fa'}>
+            <Text
+              text={`${r + 1}`}
+              fontSize={12}
+              color="#666"
+              textAlign={TextAlign.Center}
+              textAlignVertical={TextAlignVertical.Center}
+            />
+          </Container>
+        </Positioned>,
+      );
+
+      // 调整大小的手柄
+      headers.push(
+        <Positioned
+          key={`row-resizer-${r}`}
+          left={0}
+          top={rowTop + rowHeight - 4}
+          width={config.headerWidth}
+          height={8}
+          zIndex={10}
+        >
+          <Container
+            color="transparent"
+            cursor="row-resize"
+            onPointerDown={(e) => onResizeStart(r, e)}
+          />
+        </Positioned>,
+      );
+    }
+
+    return (
+      <Container width={config.headerWidth} height={viewportHeight} color="#f8f9fa">
+        <Stack>{headers as unknown as WidgetProps[]}</Stack>
+      </Container>
+    );
+  }
+}

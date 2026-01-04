@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
+import Spreadsheet, { meta as SpreadsheetMeta } from './spreadsheet';
 import Swiper, { meta as SwiperMeta } from './swiper';
 import { DemoKey, ThemeType } from './type';
 import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
@@ -13,7 +14,7 @@ import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 import { DevTools } from '@/devtools';
 
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState<string>(DemoKey.Mindmap);
+  const [activeKey, setActiveKey] = useState<string>(DemoKey.Spreadsheet);
   const [theme, setTheme] = useState<ThemeType>(ThemeType.Light);
 
   const toggleTheme = () => {
@@ -26,6 +27,7 @@ export default function UnifiedDemo() {
       { Component: WidgetGallery, ...WidgetGalleryMeta },
       { Component: Swiper, ...SwiperMeta },
       { Component: Mindmap, ...MindmapMeta },
+      { Component: Spreadsheet, ...SpreadsheetMeta },
     ],
     [],
   );
