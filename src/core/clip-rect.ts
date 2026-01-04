@@ -44,11 +44,7 @@ export class ClipRect extends Widget<ClipRectProps> {
     const { renderer } = context;
     const { width, height } = this.renderObject.size;
 
-    const ctx = renderer.getRawInstance() as CanvasRenderingContext2D | null;
-    if (ctx) {
-      ctx.beginPath();
-      ctx.rect(0, 0, width, height);
-      ctx.clip();
-    }
+    // 优先使用 renderer.clipRect
+    renderer.clipRect(0, 0, width, height);
   }
 }

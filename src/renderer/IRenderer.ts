@@ -53,6 +53,12 @@ export interface IRenderer {
   getResolution?(): number;
 
   /**
+   * 获取 Canvas 元素
+   * @returns Canvas 元素
+   */
+  getCanvas?(): HTMLCanvasElement | OffscreenCanvas | null;
+
+  /**
    * 获取原始渲染器实例
    * 用于访问特定渲染引擎的高级功能
    * @returns 原始渲染器实例
@@ -81,6 +87,17 @@ export interface IRenderer {
   scale(sx: number, sy: number): void;
 
   rotate(rad: number): void;
+
+  /**
+   * 设置变换矩阵
+   * @param a 水平缩放
+   * @param b 垂直倾斜
+   * @param c 水平倾斜
+   * @param d 垂直缩放
+   * @param e 水平移动
+   * @param f 垂直移动
+   */
+  setTransform(a: number, b: number, c: number, d: number, e: number, f: number): void;
 
   /**
    * 绘制文本

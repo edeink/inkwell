@@ -121,12 +121,7 @@ export class ScrollView extends Viewport {
       const { width, height } = this.renderObject.size;
       // 只有当尺寸有效时才裁剪
       if (width > 0 && height > 0) {
-        const ctx = context.renderer.getRawInstance() as CanvasRenderingContext2D | null;
-        if (ctx) {
-          ctx.beginPath();
-          ctx.rect(0, 0, width, height);
-          ctx.clip();
-        }
+        context.renderer.clipRect(0, 0, width, height);
       }
     }
 

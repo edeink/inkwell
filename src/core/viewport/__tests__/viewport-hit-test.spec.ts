@@ -20,6 +20,7 @@ const mockContext: BuildContext = {
     drawRect: vi.fn(), // Add drawRect
     fillRect: vi.fn(), // Might be needed
     strokeRect: vi.fn(), // Might be needed
+    clipRect: vi.fn(), // Add clipRect
     getRawInstance: vi.fn(() => ({
       beginPath: vi.fn(),
       rect: vi.fn(),
@@ -48,6 +49,10 @@ describe('ScrollView Coordinate & HitTest', () => {
     // Use any cast to bypass potential readonly/protected issues in test
     (scrollView as any).children = [child];
     child.parent = scrollView;
+    (scrollView as any).owner = {
+      scheduleLayoutFor: vi.fn(),
+      requestVisualUpdate: vi.fn(),
+    };
 
     // Initial layout
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
@@ -102,6 +107,10 @@ describe('ScrollView Coordinate & HitTest', () => {
     // Use any cast to bypass potential readonly/protected issues in test
     (scrollView as any).children = [child];
     child.parent = scrollView;
+    (scrollView as any).owner = {
+      scheduleLayoutFor: vi.fn(),
+      requestVisualUpdate: vi.fn(),
+    };
 
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
     scrollView.paint(mockContext);

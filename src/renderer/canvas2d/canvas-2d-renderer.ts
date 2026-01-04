@@ -147,6 +147,13 @@ export class Canvas2DRenderer implements IRenderer {
   }
 
   /**
+   * 获取 Canvas 元素
+   */
+  getCanvas(): HTMLCanvasElement | OffscreenCanvas | null {
+    return this.canvas;
+  }
+
+  /**
    * 获取原始渲染器实例
    * @returns Canvas 2D Context
    */
@@ -222,6 +229,13 @@ export class Canvas2DRenderer implements IRenderer {
       return;
     }
     this.ctx.rotate(rad);
+  }
+
+  setTransform(a: number, b: number, c: number, d: number, e: number, f: number): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.setTransform(a, b, c, d, e, f);
   }
 
   /**
