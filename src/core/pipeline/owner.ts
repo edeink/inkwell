@@ -79,6 +79,20 @@ export class PipelineOwner {
   }
 
   /**
+   * 检查节点是否已调度布局
+   */
+  public isScheduledForLayout(node: Widget): boolean {
+    return this._nodesNeedingLayout.has(node);
+  }
+
+  /**
+   * 检查节点是否已调度绘制
+   */
+  public isScheduledForPaint(node: Widget): boolean {
+    return this._nodesNeedingPaint.has(node);
+  }
+
+  /**
    * 执行布局更新
    * 按照深度优先的顺序处理脏节点
    */

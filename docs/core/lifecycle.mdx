@@ -46,12 +46,16 @@ graph TD
 
 ### 1. Mount (挂载)
 
-组件被首次创建并插入到 Widget 树中。
+组件被首次创建并插入到 Widget 树中。Inkwell 实现了安全的初始化流程，确保组件在未完全挂载前（即没有 owner/parent 时）修改属性不会导致布局系统的异常。
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
 | `constructor` | 组件实例化 | 初始化默认属性、Flex 配置、事件绑定 |
 | `initState` | 状态初始化 (StatefulWidget) | 初始化 State，订阅事件，启动定时器 |
+| `isMounted` | 挂载状态检查 | **新增**。检查组件是否已连接到 PipelineOwner。用于防止游离组件触发不必要的布局更新。 |
+
+> **初始化安全机制**：
+> 当在 `constructor` 或初始化阶段修改属性（如 Text 组件设置初始文本）触发 `markNeedsLayout` 时，框架会自动检测 `isMounted` 状态。如果组件尚未挂载，布局请求会被安全抑制或延迟，直到组件接入组件树，避免了"Trying to mark layout on a detached node"类警告。
 
 ### 2. Update (更新)
 

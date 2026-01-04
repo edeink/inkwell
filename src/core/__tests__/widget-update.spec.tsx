@@ -73,6 +73,10 @@ describe('Widget 属性更新机制', () => {
       fontSize: 12,
     });
 
+    // 模拟挂载 (设置 mock owner，使 isMounted 返回 true)
+    // @ts-ignore
+    text.owner = { scheduleLayoutFor: () => {}, schedulePaintFor: () => {} } as any;
+
     // 模拟挂载
     text.createElement(text.data);
 
@@ -104,6 +108,10 @@ describe('Widget 属性更新机制', () => {
       text: 'Hello',
       color: 'red',
     });
+
+    // 模拟挂载 (设置 mock owner)
+    // @ts-ignore
+    text.owner = { scheduleLayoutFor: () => {}, schedulePaintFor: () => {} } as any;
 
     text.createElement(text.data);
     // @ts-ignore

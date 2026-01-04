@@ -158,6 +158,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     return this._owner ?? this.runtime?.pipelineOwner;
   }
 
+  public get isMounted(): boolean {
+    return !!this.owner;
+  }
+
   public set owner(v: PipelineOwner | undefined) {
     this._owner = v;
   }
@@ -280,16 +284,19 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 markNeedsLayout 方法
    */
   markNeedsLayout(): void {
-    if (this._needsLayout) {
-      return;
-    }
+    // 修复：不要因为 _needsLayout 为 true 就提前返回
+    // 必须确保脏状态能够正确传播到 Relayout Boundary 或 PipelineOwner
     this._needsLayout = true;
     this.markNeedsPaint();
 
     if (this._relayoutBoundary !== this) {
       this.markParentNeedsLayout();
     } else {
-      this.owner!.scheduleLayoutFor(this);
+      if (this.owner) {
+        this.owner.scheduleLayoutFor(this);
+      }
+      // 如果没有 owner，可能是初始化阶段或游离节点
+      // 我们不在这里警告，因为 markParentNeedsLayout 会处理或者如果是根节点会在 attach 时处理
     }
   }
 
@@ -301,6 +308,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
     if (parent) {
       parent.markNeedsLayout();
+    } else {
+      // 智能警告抑制：仅当节点已挂载（有 owner）但找不到父节点时才警告
+      if (this.isMounted) {
+        // 如果是根节点，没有父节点是正常的，直接调度布局
+        if (this.runtime && this.runtime.getRootWidget() === this) {
+          this.owner?.scheduleLayoutFor(this);
+          return;
+        }
+
+        console.warn(`[Layout] 节点 ${this.type}(${this.key}) 试图向上标记布局但没有父节点`);
+      }
     }
   }
 

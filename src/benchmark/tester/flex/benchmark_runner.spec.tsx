@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { afterAll, beforeAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, it, vi } from 'vitest';
 
 import Runtime from '../../../runtime';
 
@@ -9,8 +9,33 @@ import { buildFlexWidgetScene, updateFlexWidgetScene } from './widget';
 describe('Flex 性能基准测试运行器', () => {
   let container: HTMLElement;
   let runtime: Runtime;
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
 
   beforeAll(async () => {
+    // Mock Canvas getContext
+    HTMLCanvasElement.prototype.getContext = vi.fn((contextId: string) => {
+      if (contextId === '2d') {
+        return {
+          clearRect: vi.fn(),
+          save: vi.fn(),
+          restore: vi.fn(),
+          scale: vi.fn(),
+          translate: vi.fn(),
+          drawImage: vi.fn(),
+          fillRect: vi.fn(),
+          measureText: vi.fn(() => ({ width: 0 })),
+          fillText: vi.fn(),
+          beginPath: vi.fn(),
+          moveTo: vi.fn(),
+          lineTo: vi.fn(),
+          stroke: vi.fn(),
+          fill: vi.fn(),
+          getTransform: vi.fn(() => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })),
+        } as unknown as CanvasRenderingContext2D;
+      }
+      return null;
+    }) as any;
+
     // 设置容器
     container = document.createElement('div');
     container.id = 'benchmark-stage';
@@ -23,8 +48,13 @@ describe('Flex 性能基准测试运行器', () => {
   });
 
   afterAll(() => {
-    runtime.destroy();
-    document.body.removeChild(container);
+    if (runtime) {
+      runtime.destroy();
+    }
+    if (container && container.parentNode) {
+      document.body.removeChild(container);
+    }
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
   it('运行性能基准测试', async () => {

@@ -268,9 +268,13 @@ export class Text extends Widget<TextProps> {
     }
 
     if (needsLayout) {
-      this.markNeedsLayout();
+      if (this.isMounted) {
+        this.markNeedsLayout();
+      }
     } else if (needsPaint) {
-      this.markNeedsPaint();
+      if (this.isMounted) {
+        this.markNeedsPaint();
+      }
     }
   }
 

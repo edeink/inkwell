@@ -300,11 +300,15 @@ export default class Runtime {
     if (!this.rootWidget || !this.renderer) {
       return;
     }
-    if (this.dirtyWidgets.size === 0) {
+    if (
+      this.dirtyWidgets.size === 0 &&
+      !this.pipelineOwner.hasScheduledLayout &&
+      !this.pipelineOwner.hasScheduledPaint
+    ) {
       // 若无脏节点，默认检查 rootWidget（防止空 tick 调用）
       this.dirtyWidgets.add(this.rootWidget);
     }
-    this.rebuild();
+    this.handleTick();
   }
 
   scheduleUpdate(widget: Widget): void {
@@ -312,21 +316,98 @@ export default class Runtime {
       return;
     }
     this.dirtyWidgets.add(widget);
-    this.ensureLayoutScheduled();
+    this.requestTick();
+  }
+
+  /**
+   * 请求一次新的 Tick 更新
+   */
+  public requestTick(): void {
+    if (!this.__layoutScheduled) {
+      this.__layoutScheduled = true;
+      this.__layoutRaf = requestAnimationFrame(() => {
+        this.handleTick();
+      });
+    }
   }
 
   private ensureLayoutScheduled() {
-    if (!this.__layoutScheduled) {
-      this.__layoutScheduled = true;
-      this.__layoutRaf = requestAnimationFrame(async () => {
-        try {
-          // 正常情况，tick 会消费所有的 dirtyWidget
-          // 此处只是为了二次确保所有的内容都被更新
-          await this.flushUpdates();
-        } catch (error) {
-          console.error('布局更新失败:', error);
+    this.requestTick();
+  }
+
+  private async handleTick() {
+    this.__layoutScheduled = false;
+    this.__layoutRaf = null;
+
+    const startTime = performance.now();
+    try {
+      // 正常情况，tick 会消费所有的 dirtyWidget
+      // 此处只是为了二次确保所有的内容都被更新
+      await this.flushUpdates();
+
+      // 定期扫描游离节点 (每 100 帧扫描一次)
+      this.tickCount++;
+      if (this.tickCount % 100 === 0) {
+        this.scanForOrphanNodes();
+      }
+    } catch (error) {
+      console.error('布局更新失败:', error);
+    }
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    // 简单的性能监控记录
+    if (duration > 16) {
+      // console.warn(`[Tick] 长任务警告: ${duration.toFixed(2)}ms`);
+    }
+  }
+
+  private tickCount: number = 0;
+
+  /**
+   * 扫描并修复游离节点
+   * 游离节点是指：标记为 dirty 但未被调度更新的节点
+   */
+  private scanForOrphanNodes() {
+    if (!this.rootWidget) {
+      return;
+    }
+
+    const visit = (node: Widget) => {
+      // 检查布局脏状态
+      if (node.isLayoutDirty()) {
+        if (node.isRelayoutBoundary) {
+          // 如果是边界节点，必须在 owner 的调度列表中
+          if (!this.pipelineOwner.isScheduledForLayout(node)) {
+            console.warn(
+              `[Orphan Node] RelayoutBoundary ${node.type}(${node.key}) 标记为脏但未调度，正在修复...`,
+            );
+            this.pipelineOwner.scheduleLayoutFor(node);
+          }
+        } else {
+          // 如果不是边界节点，父节点必须是脏的（或者父节点已调度）
+          if (node.parent && !node.parent.isLayoutDirty() && !node.parent.isDisposed()) {
+            // 检查父节点是否已调度（可能父节点是边界且已调度，但 dirty 标记被清除了？不，dirty 标记在 flush 时才清除）
+            // 只要父节点不脏，子节点就无法被访问到（除非父节点重新布局时会遍历子节点，但父节点不脏就不会重新布局）
+            console.warn(
+              `[Orphan Node] Node ${node.type}(${node.key}) 标记为脏但父节点是干净的，正在修复...`,
+            );
+            node.markParentNeedsLayout();
+          }
         }
-      });
+      }
+
+      // 递归检查子节点
+      // 注意：如果节点是脏的且是边界，我们可能不需要深入检查，因为 flushLayout 会处理它
+      // 但为了保险，还是遍历整个树
+      for (const child of node.children) {
+        visit(child);
+      }
+    };
+
+    try {
+      visit(this.rootWidget);
+    } catch (e) {
+      console.error('扫描游离节点时出错:', e);
     }
   }
 

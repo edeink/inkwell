@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Runtime from '../../runtime';
 import { Container, Text } from '../index';
@@ -11,6 +11,31 @@ describe('RepaintBoundary 显示与开关测试', () => {
   // 注册核心组件
   WidgetRegistry.registerType('Container', Container);
   WidgetRegistry.registerType('Text', Text);
+
+  // Mock Canvas getContext
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  beforeAll(() => {
+    HTMLCanvasElement.prototype.getContext = vi.fn((contextId: string) => {
+      if (contextId === '2d') {
+        return {
+          clearRect: vi.fn(),
+          save: vi.fn(),
+          restore: vi.fn(),
+          scale: vi.fn(),
+          translate: vi.fn(),
+          drawImage: vi.fn(),
+          fillRect: vi.fn(),
+          measureText: vi.fn(() => ({ width: 0 })),
+          fillText: vi.fn(),
+        } as unknown as CanvasRenderingContext2D;
+      }
+      return null;
+    }) as any;
+  });
+
+  afterAll(() => {
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
+  });
 
   it('RepaintBoundary 应正确绘制内容到主屏幕', async () => {
     // 1. 设置 Mock Renderer
