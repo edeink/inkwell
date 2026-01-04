@@ -5,7 +5,7 @@ import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
-import { Container, Positioned, Stack, Text } from '@/core';
+import { Center, Container, Positioned, Stack, Text } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
 
@@ -15,6 +15,7 @@ export interface ColumnHeadersProps extends WidgetProps {
   viewportWidth: number;
   selection: SelectionRange | null;
   onResizeStart: (index: number, e: InkwellEvent) => void;
+  onHeaderClick: (index: number, e: InkwellEvent) => void;
 }
 
 export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
@@ -29,7 +30,7 @@ export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
   }
 
   render() {
-    const { model, scrollX, viewportWidth, selection, onResizeStart } = this.props;
+    const { model, scrollX, viewportWidth, selection, onResizeStart, onHeaderClick } = this.props;
     const { config } = model;
 
     const startCol = model.getColIndexAt(scrollX);
@@ -65,14 +66,19 @@ export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
           width={colWidth - 1}
           height={config.headerHeight - 1}
         >
-          <Container color={isSelected ? '#e8eaed' : '#f8f9fa'}>
-            <Text
-              text={colName}
-              fontSize={12}
-              color="#666"
-              textAlign={TextAlign.Center}
-              textAlignVertical={TextAlignVertical.Center}
-            />
+          <Container
+            color={isSelected ? '#e8eaed' : '#f8f9fa'}
+            onPointerDown={(e) => onHeaderClick(c, e)}
+          >
+            <Center>
+              <Text
+                text={colName}
+                fontSize={12}
+                color="#666"
+                textAlign={TextAlign.Center}
+                textAlignVertical={TextAlignVertical.Center}
+              />
+            </Center>
           </Container>
         </Positioned>,
       );

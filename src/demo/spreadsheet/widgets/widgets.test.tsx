@@ -69,6 +69,8 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
 
       const el = (
         <SpreadsheetGrid
+          showGridLines={true}
+          gridLineColor="#E5E5E5"
           model={model}
           scrollX={0}
           scrollY={0}
@@ -94,11 +96,14 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <ColumnHeaders
+          showGridLines={true}
+          gridLineColor="#E5E5E5"
           model={model}
           scrollX={0}
           viewportWidth={500}
           selection={null}
           onResizeStart={vi.fn()}
+          onHeaderClick={vi.fn()}
         />
       );
 
@@ -120,11 +125,14 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <RowHeaders
+          showGridLines={true}
+          gridLineColor="#E5E5E5"
           model={model}
           scrollY={0}
           viewportHeight={500}
           selection={null}
           onResizeStart={vi.fn()}
+          onHeaderClick={vi.fn()}
         />
       );
 

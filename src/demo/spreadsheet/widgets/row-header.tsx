@@ -5,7 +5,7 @@ import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
-import { Container, Positioned, Stack, Text } from '@/core';
+import { Center, Container, Positioned, Stack, Text } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
 
@@ -15,11 +15,12 @@ export interface RowHeadersProps extends WidgetProps {
   viewportHeight: number;
   selection: SelectionRange | null;
   onResizeStart: (index: number, e: InkwellEvent) => void;
+  onHeaderClick: (index: number, e: InkwellEvent) => void;
 }
 
 export class RowHeaders extends StatefulWidget<RowHeadersProps> {
   render() {
-    const { model, scrollY, viewportHeight, selection, onResizeStart } = this.props;
+    const { model, scrollY, viewportHeight, selection, onResizeStart, onHeaderClick } = this.props;
     const { config } = model;
 
     const startRow = model.getRowIndexAt(scrollY);
@@ -51,14 +52,19 @@ export class RowHeaders extends StatefulWidget<RowHeadersProps> {
           width={config.headerWidth - 1}
           height={rowHeight - 1}
         >
-          <Container color={isSelected ? '#e8eaed' : '#f8f9fa'}>
-            <Text
-              text={`${r + 1}`}
-              fontSize={12}
-              color="#666"
-              textAlign={TextAlign.Center}
-              textAlignVertical={TextAlignVertical.Center}
-            />
+          <Container
+            color={isSelected ? '#e8eaed' : '#f8f9fa'}
+            onPointerDown={(e) => onHeaderClick(r, e)}
+          >
+            <Center>
+              <Text
+                text={`${r + 1}`}
+                fontSize={12}
+                color="#666"
+                textAlign={TextAlign.Center}
+                textAlignVertical={TextAlignVertical.Center}
+              />
+            </Center>
           </Container>
         </Positioned>,
       );

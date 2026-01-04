@@ -25,6 +25,16 @@ export interface SpreadsheetProps extends WidgetProps {
   width: number;
   height: number;
   model?: SpreadsheetModel;
+  /**
+   * 是否显示网格线
+   * @default true
+   */
+  showGridLines?: boolean;
+  /**
+   * 网格线颜色
+   * @default '#E5E5E5'
+   */
+  gridLineColor?: string;
   [key: string]: unknown;
 }
 
@@ -36,15 +46,20 @@ interface SpreadsheetState {
   resizing: ResizingState | null;
   // 用于强制更新
   version: number;
+  isDarkMode: boolean;
   [key: string]: unknown;
 }
 
 export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetState> {
   model: SpreadsheetModel;
+  private darkModeQuery: MediaQueryList;
 
   constructor(props: SpreadsheetProps) {
     super(props);
     this.model = props.model || new SpreadsheetModel();
+
+    this.darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
     this.state = {
       scrollX: 0,
       scrollY: 0,
@@ -52,12 +67,45 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
       editingCell: null,
       resizing: null,
       version: 0,
+      isDarkMode: this.darkModeQuery.matches,
     };
 
+    this.darkModeQuery.addEventListener('change', this.handleThemeChange);
     window.addEventListener('keydown', this.handleKeyDown);
   }
 
+  private handleThemeChange = (e: MediaQueryListEvent) => {
+    this.setState({ isDarkMode: e.matches });
+  };
+
+  private handleRowHeaderClick = (rowIndex: number, e: InkwellEvent) => {
+    // 选中整行
+    this.setState({
+      selection: {
+        startRow: rowIndex,
+        endRow: rowIndex,
+        startCol: 0,
+        endCol: this.model.config.colCount - 1,
+      },
+      editingCell: null,
+    });
+  };
+
+  private handleColHeaderClick = (colIndex: number, e: InkwellEvent) => {
+    // 选中整列
+    this.setState({
+      selection: {
+        startRow: 0,
+        endRow: this.model.config.rowCount - 1,
+        startCol: colIndex,
+        endCol: colIndex,
+      },
+      editingCell: null,
+    });
+  };
+
   dispose() {
+    this.darkModeQuery.removeEventListener('change', this.handleThemeChange);
     window.removeEventListener('keydown', this.handleKeyDown);
     super.dispose();
   }
@@ -336,6 +384,8 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
               overflow="hidden"
             >
               <SpreadsheetGrid
+                showGridLines={this.props.showGridLines ?? true}
+                gridLineColor={this.props.gridLineColor ?? '#E5E5E5'}
                 model={this.model}
                 scrollX={scrollX}
                 scrollY={scrollY}
@@ -365,6 +415,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
                 viewportWidth={viewportWidth}
                 selection={selection}
                 onResizeStart={(idx, e) => this.handleResizeStart('col', idx, e)}
+                onHeaderClick={this.handleColHeaderClick}
               />
             </Container>
           </Positioned>
@@ -383,6 +434,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
                 viewportHeight={viewportHeight}
                 selection={selection}
                 onResizeStart={(idx, e) => this.handleResizeStart('row', idx, e)}
+                onHeaderClick={this.handleRowHeaderClick}
               />
             </Container>
           </Positioned>

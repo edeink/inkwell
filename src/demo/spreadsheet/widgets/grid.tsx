@@ -18,6 +18,7 @@ export interface SpreadsheetGridProps extends WidgetProps {
   viewportHeight: number;
   selection: SelectionRange | null;
   editingCell: CellPosition | null;
+  showGridLines: boolean;
   onCellDown: (row: number, col: number, e: InkwellEvent) => void;
   onCellDoubleClick: (row: number, col: number) => void;
   onEditFinish: (value: string) => void;
@@ -34,6 +35,8 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       viewportHeight,
       selection,
       editingCell,
+      showGridLines,
+      gridLineColor,
       onCellDown,
       onCellDoubleClick,
       onEditFinish,
@@ -74,6 +77,9 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
         if (colLeft + colWidth < scrollX || colLeft > scrollX + viewportWidth) {
           continue;
         }
+
+        const displayWidth = showGridLines ? colWidth - 1 : colWidth;
+        const displayHeight = showGridLines ? rowHeight - 1 : rowHeight;
 
         const cellData = model.getCell(r, c);
         const isSelected =
@@ -120,8 +126,14 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
             >
               <Container
                 color={isSelected ? 'rgba(232, 240, 254, 1)' : style.backgroundColor || 'white'}
-                onPointerDown={(e) => onCellDown(r, c, e)}
-                onDblClick={() => onCellDoubleClick(r, c)}
+                onPointerDown={(e) => {
+                  console.log('[SpreadsheetGrid] Cell pointer down:', r, c);
+                  onCellDown(r, c, e);
+                }}
+                onDblClick={() => {
+                  console.log('[SpreadsheetGrid] Cell double click:', r, c);
+                  onCellDoubleClick(r, c);
+                }}
               >
                 {cellData?.value ? (
                   <Text
