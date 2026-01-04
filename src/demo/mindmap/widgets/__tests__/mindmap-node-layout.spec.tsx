@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { CustomComponentType } from '../../type';
 import { MindMapNode } from '../mindmap-node';
 
+import type { BoxConstraints } from '@/core/type';
+
 import { Widget } from '@/core/base';
 import { Container } from '@/core/container';
 import { WidgetRegistry } from '@/core/registry';
 import { Text } from '@/core/text';
-import { BoxConstraints } from '@/core/type';
 
 // Mock getTheme
 vi.mock('../../constants/theme', () => ({
@@ -38,16 +39,16 @@ describe('MindMapNode Layout Update', () => {
   WidgetRegistry.registerType('Container', Container);
   WidgetRegistry.registerType('Text', Text);
 
-  class MockEditor extends Widget {
+  class MockEditableText extends Widget {
     constructor(props: any) {
-      super({ ...props, type: 'MindMapNodeTextEditor' });
+      super({ ...props, type: 'EditableText' });
     }
     // Mock layout to avoid errors if layout is called
     protected performLayout(constraints: BoxConstraints) {
       return { width: 100, height: 20 };
     }
   }
-  WidgetRegistry.registerType('MindMapNodeTextEditor', MockEditor);
+  WidgetRegistry.registerType('EditableText', MockEditableText);
 
   it('场景1: 从编辑状态切换回阅读状态时，Container应该标记为需要布局', () => {
     const initialProps = {
@@ -68,7 +69,7 @@ describe('MindMapNode Layout Update', () => {
 
     const container = node.children[0] as Container;
     expect(container).toBeInstanceOf(Container);
-    expect(container.children[0].type).toBe('MindMapNodeTextEditor');
+    expect(container.children[0].type).toBe('EditableText');
 
     // Clear dirty flags to simulate stable state
     (container as any)._needsLayout = false;
@@ -106,7 +107,7 @@ describe('MindMapNode Layout Update', () => {
 
     // Cycle 1: Read -> Edit
     node.createElement({ ...props, isEditing: true });
-    expect(container.children[0].type).toBe('MindMapNodeTextEditor');
+    expect(container.children[0].type).toBe('EditableText');
     expect((container as any)._needsLayout).toBe(true);
 
     // Reset flag
@@ -136,7 +137,7 @@ describe('MindMapNode Layout Update', () => {
 
     // Switch to edit
     node.createElement({ ...props, isEditing: true });
-    expect(container.children[0].type).toBe('MindMapNodeTextEditor');
+    expect(container.children[0].type).toBe('EditableText');
 
     // Switch back
     (container as any)._needsLayout = false;

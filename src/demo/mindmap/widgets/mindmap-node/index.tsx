@@ -3,12 +3,11 @@
 import { getTheme } from '../../constants/theme';
 import { CustomComponentType, Side } from '../../type';
 import { Connector } from '../connector';
-import { MindMapNodeTextEditor } from '../mindmap-node-text-editor';
 
 import type { CursorType, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
-import { Container, Text } from '@/core';
+import { Container, EditableText, Text } from '@/core';
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { StatefulWidget } from '@/core/state/stateful';
@@ -429,13 +428,15 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     const cursor = (localConfig[state] || defaults[state] || 'default') as CursorType;
 
     const content = editing ? (
-      <MindMapNodeTextEditor
+      <EditableText
         key="editor"
-        text={st.title}
-        placeholder="输入文本"
+        value={st.title}
         fontSize={14}
         color={theme.textColor}
-        onFinish={(val) => {
+        selectionColor={theme.nodeTextSelectionFillColor}
+        cursorColor={theme.textColor}
+        stopTraversalAt={(node) => node.type === CustomComponentType.MindMapViewport}
+        onFinish={(val: string) => {
           this.setState({ title: val });
           if (props.onEdit) {
             props.onEdit(null);

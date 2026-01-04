@@ -91,9 +91,3 @@ import { MindmapDemo } from '@mindmap/app';
 *   `src/demo/mindmap/custom-widget/mindmap-layout.ts`: 布局算法实现。
 *   `src/demo/mindmap/custom-widget/connector.ts`: 连接线实现。
 
-## 文本编辑组件 (MindMapNodeTextEditor)
-
-文本编辑采用隐藏的原生 `input` 元素实现，以支持输入法和原生光标操作。
-
-*   **架构调整**: 键盘事件处理逻辑已从组件类的 `handleKeyDown` 迁移至内部 `input` 元素的 `keydown` 事件监听器中 (`handleInputKeyDown`)。
-*   **废弃接口**: `MindMapNodeTextEditor.handleKeyDown` 已废弃，不再承担事件处理职责。
