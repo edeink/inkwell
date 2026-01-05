@@ -168,4 +168,34 @@ describe('Keyboard Event Dispatch Integration', () => {
     expect(vp).toBeDefined();
     expect(vp.onKeyDown).toHaveBeenCalled();
   });
+
+  it('should NOT dispatch keydown event if target is an editable input', async () => {
+    // 1. Render the tree
+    const root = new TestRoot();
+    (runtime as any).rootWidget = root;
+    root.runtime = runtime;
+    root.createElement({});
+
+    // Force binding
+    EventManager.bind(runtime);
+
+    // 2. Create an input element inside container
+    const input = document.createElement('input');
+    container.appendChild(input);
+
+    // 3. Dispatch event on input
+    const event = new KeyboardEvent('keydown', {
+      key: 'Delete',
+      code: 'Delete',
+      bubbles: true,
+      cancelable: true,
+    });
+
+    input.dispatchEvent(event);
+
+    // 4. Check results
+    const vp = findWidget(root, `#${CustomComponentType.MindMapViewport}`) as TestViewport;
+    expect(vp).toBeDefined();
+    expect(vp.onKeyDown).not.toHaveBeenCalled();
+  });
 });

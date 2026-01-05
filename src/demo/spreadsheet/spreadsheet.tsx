@@ -13,6 +13,7 @@ import type { InkwellEvent } from '@/core/events/types';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Container, Positioned, Stack } from '@/core';
+import { isEditableElement } from '@/core/events/helper';
 import { StatefulWidget } from '@/core/state/stateful';
 import { ScrollView } from '@/core/viewport/scroll-view';
 
@@ -129,6 +130,18 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
+    // 如果焦点在可编辑元素上（如输入框），则不应拦截快捷键
+    if (isEditableElement(e.target)) {
+      return;
+    }
+
+    // 如果当前有原生 DOM 文本选区（且不是在 canvas 内），也不应拦截复制/粘贴
+    // 这样用户可以复制页面上的普通文本
+    const nativeSelection = window.getSelection();
+    if (nativeSelection && !nativeSelection.isCollapsed && nativeSelection.toString().length > 0) {
+      return;
+    }
+
     if (this.state.editingCell) {
       // EditableText 处理自己的输入，但如果需要，我们可以通过在此处捕获 Enter 键。
       return;

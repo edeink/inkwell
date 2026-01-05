@@ -32,5 +32,13 @@ export const toEventType = (base: string): EventType | null => {
     keyup: 'keyup',
     keypress: 'keypress',
   };
-  return map[lower] ?? null;
+  return map[lower] || null;
 };
+
+export function isEditableElement(el: EventTarget | null): boolean {
+  if (!el || !(el instanceof Element)) {
+    return false;
+  }
+  const tagName = el.tagName.toLowerCase();
+  return tagName === 'input' || tagName === 'textarea' || (el as HTMLElement).isContentEditable;
+}

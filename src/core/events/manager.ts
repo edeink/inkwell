@@ -14,6 +14,7 @@
  * - 为确保可聚焦以接收键盘事件，Canvas 在绑定时会设置 tabIndex=0。
  */
 import { dispatchAt } from './dispatcher';
+import { isEditableElement } from './helper';
 
 import type { EventType } from './types';
 import type Runtime from '@/runtime';
@@ -63,17 +64,6 @@ function isKeyboard(type: EventType): boolean {
 }
 
 const delegatedTypes: EventType[] = allTypes.filter((t) => !isKeyboard(t));
-
-function isEditableElement(el: Element | null): boolean {
-  if (!el) {
-    return false;
-  }
-  return (
-    el instanceof HTMLInputElement ||
-    el instanceof HTMLTextAreaElement ||
-    (el as HTMLElement).isContentEditable
-  );
-}
 
 class EventManagerImpl {
   private map: ListenerMap = new Map();
@@ -254,6 +244,12 @@ class EventManagerImpl {
         continue;
       }
       const fn = (e: Event) => {
+        // 如果事件目标是可编辑元素（如 input/textarea），则不要分发到 Inkwell
+        // 这样可以确保原生输入行为（如复制/粘贴/输入）不被框架拦截
+        if (isEditableElement(e.target)) {
+          return;
+        }
+
         dispatchAt(
           runtime,
           type,
