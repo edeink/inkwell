@@ -72,6 +72,7 @@ const config: Config = {
                 '@site/src': path.resolve(__dirname, './src/docusaurus'),
                 '@demo': path.resolve(__dirname, './src/demo'),
                 '@mindmap': path.resolve(__dirname, './src/demo/mindmap'),
+                '@spreadsheet': path.resolve(__dirname, './src/demo/spreadsheet'),
               },
             },
             module: {

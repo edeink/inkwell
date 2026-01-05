@@ -32,7 +32,7 @@ export class RowHeaders extends StatefulWidget<RowHeadersProps> {
     const headers: JSXElement[] = [];
 
     for (let r = startRow; r <= endRow; r++) {
-      if (r >= config.rowCount) {
+      if (r >= model.getRowCount()) {
         break;
       }
       const rowHeight = model.getRowHeight(r);

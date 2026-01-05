@@ -24,14 +24,14 @@ sidebar_position: 1
 ### Q: 为什么我的组件没有显示？
 **A**: 请检查以下几点：
 1.  **尺寸约束**：父组件是否提供了有效的尺寸约束？如果父组件是 `unbounded`（如 `Row` 的水平方向），子组件必须有明确宽度。
-2.  **绘制方法**：如果是自定义 `RenderObject`，确保 `paint` 方法已被正确实现且 `context` 操作在可视区域内。
+2.  **绘制方法**：如果是自定义 Widget，确保 `paint` 方法已被正确实现且 `context` 操作在可视区域内。
 3.  **层级关系**：检查 `z-index` 或绘制顺序，可能被其他组件覆盖。
 
 ### Q: 如何给组件添加点击事件？
 ```tsx
   <Container color="blue" width={100} height={100} onClick={() => console.log('Container Clicked')} />
 ```
-注意：`RenderObject` 需要实现 `hitTest` 方法才能响应事件。
+注意：Widget 需要实现 `hitTest` 方法才能响应事件。
 
 ## 布局与样式
 
@@ -71,4 +71,4 @@ sidebar_position: 1
 **A**: 
 1.  使用 Inkwell DevTools (参阅 [开发者工具](../advanced/devtools))。
 2.  在控制台挂载了全局变量 `__INKWELL_DEVTOOLS_HOOK__`。
-3.  直接在代码中打印 `this.element` 查看当前节点树。
+3.  直接在代码中打印 `this` 查看当前节点树。

@@ -4,8 +4,6 @@ import { FunctionalButton } from './widgets/functional-button';
 import { PerformanceMonitor } from './widgets/performance-monitor';
 import { RawButton } from './widgets/raw-button';
 
-import type { ThemePalette } from '@/styles/theme';
-
 import {
   Column,
   MainAxisAlignment,
@@ -17,9 +15,10 @@ import {
   type WidgetProps,
 } from '@/core';
 import Runtime from '@/runtime';
+import { Themes, type ThemePalette } from '@/styles/theme';
 
 export interface InteractiveCounterDemoProps extends WidgetProps {
-  theme: ThemePalette;
+  theme?: ThemePalette;
 }
 
 export interface InteractiveCounterDemoState {
@@ -59,7 +58,9 @@ export class InteractiveCounterDemo extends StatefulWidget<
   };
 
   render() {
-    const { theme } = this.props;
+    // 确保 theme 及其必要的子属性存在，防止传入部分 theme 或空对象导致崩溃
+    const rawTheme = this.props.theme || Themes.light;
+    const theme = rawTheme.text ? rawTheme : Themes.light;
 
     return (
       <Padding padding={24}>

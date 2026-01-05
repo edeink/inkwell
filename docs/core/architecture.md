@@ -6,107 +6,160 @@ sidebar_position: 1
 
 # 架构设计
 
-Inkwell 的核心架构深受 Flutter 启发，但针对 React 生态进行了适配。它提供了一个高性能、声明式的 Canvas UI 渲染系统。
+本文档详细描述 Inkwell 框架的架构设计、模块划分及运行时机制。
 
-## 系统概览
+## 1. 核心架构图
 
-Inkwell 的运行时（Runtime）负责协调整个渲染流程。它管理着 Widget 树、渲染器（Renderer）以及更新循环（Tick）。
+Inkwell 采用分层架构设计，自底向上分为：**渲染层**、**运行时层**、**核心框架层**和**应用层**。
 
 ```mermaid
 graph TD
-    Runtime[Runtime] -->|Manages| WidgetTree[Widget Tree]
-    Runtime -->|Manages| Renderer["IRenderer (Canvas2D)"]
-    Runtime -->|Compiles| JSX[JSX / React Elements]
-    JSX -->|Compiler| ComponentData["ComponentData (JSON)"]
-    ComponentData -->|Hydrates| WidgetTree
-    WidgetTree -->|Layout & Paint| Renderer
+    subgraph Application ["应用层 (src/demo)"]
+        Mindmap[Mindmap Demo]
+        Gallery[Widget Gallery]
+    end
+
+    subgraph Framework ["核心框架层 (src/core)"]
+        Widget[Widget System]
+        Events[Event System]
+        Pipeline[Pipeline Owner]
+        Base[Base Definitions]
+    end
+
+    subgraph Runtime ["运行时层 (src/runtime)"]
+        RT[Runtime Engine]
+        Scheduler[Scheduler / Tick]
+        ComponentData[ComponentData]
+    end
+
+    subgraph Utils ["工具层 (src/utils)"]
+        Compiler[JSX Compiler]
+    end
+
+    subgraph Renderer ["渲染层 (src/renderer)"]
+        Canvas2D[Canvas2D Renderer]
+        IRenderer[IRenderer Interface]
+    end
+
+    Application -->|JSX| Compiler
+    Compiler -->|JSON| Runtime
+    Runtime -->|Manages| Framework
+    Framework -->|Draws| Renderer
+    Runtime -->|Controls| Renderer
 ```
 
-## 核心概念 
+## 2. 核心模块划分
 
+参考 `src` 目录结构，主要模块如下：
 
-### 1. Widget
-Widget 是 UI 的基本构建块。在 Inkwell 中，Widget 既是配置也是逻辑载体。
+### 2.1 Runtime (运行时) - `src/runtime`
+整个引擎的"心脏"。
+- **Runtime Class**: 负责初始化环境、管理 Canvas 实例、持有根节点 (`rootWidget`)。
+- **Tick Loop**: 通过 `requestAnimationFrame` 驱动渲染循环。
+- **Error Handling**: 捕获渲染错误并以覆盖层形式展示（类似 Flutter 的红屏报错）。
 
-- **Widget (Abstract)**: 所有组件的基类。定义了 `layout`, `paint`, `hitTest` 等核心方法。
-  - 包含 `RenderObject`：存储布局结果（`offset`, `size`）。
-  - 包含 `BoxConstraints`：父级传递的布局约束。
-  - 包含 `BuildContext`：提供渲染上下文（如 `worldMatrix`, `renderer`）。
-- **StatelessWidget**: 用于组合其他 Widget，不维护内部状态。通过 `render()` 方法返回子组件结构。
-- **StatefulWidget**: 维护内部 `State`，状态变化会触发组件及其子树的重建。
+### 2.2 Core (核心框架) - `src/core`
+构建 UI 的基础构件。
+- **Widget Base** (`src/core/base.ts`): 定义了 `Widget` 抽象基类。
+    - **统一树结构**: Inkwell 的 Widget 实例同时包含配置信息、状态（`State`）和布局渲染逻辑（类似 Flutter 的 `RenderObject`）。
+- **Pipeline** (`src/core/pipeline`): `PipelineOwner` 负责管理布局和绘制的脏列表 (`_nodesNeedingLayout`, `_nodesNeedingPaint`)，并执行 `flushLayout` 和 `flushPaint`。
+- **Events** (`src/core/events`): 实现了类似 DOM 的事件冒泡机制。`Dispatcher` 负责将原生 Canvas 事件转换为 Inkwell 事件。
 
-### 2. Runtime
-`Runtime` 是整个引擎的指挥官。
-- **调度更新**: 维护 `dirtyWidgets` 集合，通过 `requestAnimationFrame` 批量处理布局和重绘。
-- **JSX 编译**: 通过 `renderFromJSX` 将 JSX 元素编译为 `ComponentData`，再转换为 Widget 树。
-- **生命周期**: 管理 Widget 的挂载、更新和卸载。
+### 2.3 Renderer (渲染器) - `src/renderer`
+- **IRenderer**: 定义绘制接口（如 `drawRect`, `drawText`）。
+- **Canvas2DRenderer**: 基于 HTML5 Canvas 2D Context 的具体实现。支持离屏渲染优化。
 
-### 3. RenderObject
-虽然没有独立的 `RenderObject` 类层次结构，但每个 `Widget` 实例都持有一个 `renderObject` 属性，用于存储布局和渲染状态。
-- **Layout**: 接收 `BoxConstraints`，计算自身 `Size`。
-- **Paint**: 使用 `IRenderer` 接口进行绘制。支持局部坐标系转换（Transform）。
-- **HitTest**: 基于布局信息进行点击检测。
+### 2.4 Compiler (编译器) - `src/utils/compiler`
+- **compileElement**: 在运行时将 React JSX 元素转换为轻量级的 JSON 数据 (`ComponentData`)，供 `Runtime` 消费。这使得我们可以使用 React 的语法，但不依赖 React 的 Reconciler。
 
-### 4. Compiler (JSX Compiler)
-位于 `src/utils/compiler`，负责将 React 的 JSX 语法转换为 Inkwell 可理解的中间格式 (`ComponentData`)。
-- **compileElement**: 将 JSX Element 转换为 JSON 描述。
-- **WidgetRegistry**: 负责 Widget 类型的注册和查找，确保 JSON 可以被正确实例化。
+## 3. 运行时机制
 
-## 渲染管线 (Rendering Pipeline)
+Inkwell 的渲染流程是**按需更新**的。
 
-1.  **Compile & Build**: 
-    - 用户编写 JSX。
-    - `Runtime` 调用 `compileElement` 生成数据。
-    - 数据被实例化为 `Widget` 树。
-2.  **Dirty Check**:
-    - `setState` 或 `markDirty` 标记 Widget 为脏（dirty）。
-    - `Runtime.tick` 收集脏节点。
-3.  **Layout**: 
-    - 从根节点或脏节点开始，向下传递 `Constraints`。
-    - Widget 计算自身大小，并向上返回 `Size`。
-    - `RenderObject` 更新 `offset` 和 `size`。
-4.  **Paint**: 
+### 3.1 启动流程
+参考 `src/demo/mindmap/app.tsx`:
+```typescript
+export function runApp(runtime: Runtime, width: number, height: number): void {
+  // 1. 编译 JSX 为 ComponentData
+  // 2. Runtime 创建 Widget 树
+  // 3. 触发初始 Layout 和 Paint
+  runtime.render(<MindmapDemo width={width} height={height} />);
+}
+```
+
+### 3.2 更新循环 (The Tick)
+当组件状态改变时（例如 `setState`）：
+1.  **Mark Dirty**: 调用 `markNeedsLayout()` 或 `markNeedsPaint()`。
+2.  **Schedule**: 组件被加入 `PipelineOwner` 的脏列表中。`Runtime` 请求下一帧。
+3.  **Flush Layout**:
+    - `Runtime` 调用 `pipelineOwner.flushLayout()`。
+    - 按**深度优先**顺序遍历脏节点。
+    - 执行 `layout()` 计算尺寸（遵循 Constraints 协议）。
+4.  **Flush Paint**:
     - `Runtime` 清除画布。
-    - 遍历 Widget 树，计算世界变换矩阵（World Matrix）。
-    - 调用 Widget 的 `paint` 方法，通过 `IRenderer` 绘制图形。
+    - 从根节点开始遍历绘制（或仅重绘 `RepaintBoundary`）。
 
-## 事件系统 (Event System)
+### 3.3 布局协议
+与 Flutter 一致：
+> **Constraints go down. Sizes go up. Parent sets position.**
 
-- **EventRegistry**: 注册和管理事件监听器。
-- **Dispatcher**: 
-    - 监听 Canvas 容器的原生事件。
-    - 执行 Hit Test 找到目标 Widget。
-    - 模拟事件冒泡（Bubbling），将事件分发给 Widget 及其父级。
-
-## 关键接口
-
-### Widget
 ```typescript
-abstract class Widget<TData extends WidgetProps = WidgetProps> {
-  // 布局
-  abstract performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size;
-  // 绘制
-  paint(context: BuildContext): void;
-  // 交互
-  hitTest(x: number, y: number): boolean;
+// src/core/base.ts (简化)
+abstract class Widget {
+  // 父级传递 constraints，返回自身 size
+  abstract layout(constraints: BoxConstraints): Size;
+  
+  // 渲染自身
+  abstract paint(context: BuildContext): void;
 }
 ```
 
-### BuildContext
-```typescript
-interface BuildContext {
-  renderer: IRenderer;
-  worldMatrix?: [number, number, number, number, number, number];
-}
-```
+## 4. 与 Flutter 的主要差异
 
-### IRenderer
-抽象渲染层，目前实现为 `Canvas2DRenderer`。
+尽管设计深受 Flutter 启发，但为了适应 Web 和 JS 生态，Inkwell 做了以下权衡：
+
+| 特性 | Flutter | Inkwell | 原因 |
+| :--- | :--- | :--- | :--- |
+| **树结构** | **三棵树** (Widget, Element, RenderObject) | **单棵树** (Widget 实例) | 简化 JS 对象模型，减少 GC 压力；降低理解成本。 |
+| **语言** | Dart | TypeScript + JSX | 利用 React 生态和前端开发者的现有技能。 |
+| **编译方式** | AOT / JIT | Runtime Compilation (JSX -> JSON) | 保持动态性，允许在浏览器中直接运行 JSX。 |
+| **布局系统** | RenderBox | Widget 内置 layout 方法 | 由于单树结构，布局逻辑直接存在于 Widget 中。 |
+
+### 差异详解：单树结构
+在 Flutter 中，`Widget` 是不可变的配置，`Element` 管理生命周期，`RenderObject` 管理渲染。
+在 Inkwell 中，为了减少对象创建（JS 引擎对大量短生命周期对象敏感），我们将这三者合并：
+- `Widget` 类实例是可变的（Mutable）。
+- 它持有 `props` (Configuration)。
+- 它持有 `state` (State management)。
+- 它直接实现 `layout` 和 `paint` (Render logic)。
+
+这种设计使得 Inkwell 更像是一个 "Stateful Render Object Tree"。
+
+## 5. 代码示例
+
+### 自定义组件
 ```typescript
-interface IRenderer {
-  save(): void;
-  restore(): void;
-  translate(x: number, y: number): void;
-  // ... 绘制指令
+// src/demo/mindmap/widgets/mindmap-node/index.tsx
+export class MindMapNode extends StatefulWidget<NodeProps, NodeState> {
+  constructor(props: NodeProps) {
+    super(props);
+    this.state = { hover: false };
+  }
+
+  // 布局实现
+  layout(constraints: BoxConstraints): Size {
+    // 测量文本，计算宽高
+    const textSize = measureText(this.props.title);
+    return { width: textSize.width + 20, height: 40 };
+  }
+
+  // 绘制实现
+  paint(context: BuildContext): void {
+    const { canvas } = context;
+    // 绘制背景
+    canvas.drawRect({ color: this.state.hover ? 'blue' : 'gray' });
+    // 绘制文本
+    canvas.drawText(this.props.title, { x: 10, y: 20 });
+  }
 }
 ```

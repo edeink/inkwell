@@ -37,6 +37,10 @@ export interface SpreadsheetProps extends WidgetProps {
    * @default '#E5E5E5'
    */
   gridLineColor?: string;
+  /**
+   * 外部数据版本号，用于触发重绘
+   */
+  dataVersion?: number;
   [key: string]: unknown;
 }
 
@@ -87,7 +91,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
         startRow: rowIndex,
         endRow: rowIndex,
         startCol: 0,
-        endCol: this.model.config.colCount - 1,
+        endCol: this.model.getColCount() - 1,
       },
       editingCell: null,
     });
@@ -98,7 +102,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     this.setState({
       selection: {
         startRow: 0,
-        endRow: this.model.config.rowCount - 1,
+        endRow: this.model.getRowCount() - 1,
         startCol: colIndex,
         endCol: colIndex,
       },
@@ -151,8 +155,8 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
           return;
       }
 
-      newRow = Math.max(0, Math.min(newRow, this.model.config.rowCount - 1));
-      newCol = Math.max(0, Math.min(newCol, this.model.config.colCount - 1));
+      newRow = Math.max(0, Math.min(newRow, this.model.getRowCount() - 1));
+      newCol = Math.max(0, Math.min(newCol, this.model.getColCount() - 1));
 
       if (newRow !== startRow || newCol !== startCol) {
         e.preventDefault();
@@ -219,7 +223,15 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
           // 粘贴逻辑：简单覆盖
           const targetR = startRow + rIdx;
           const targetC = startCol + cIdx;
-          if (targetR < this.model.config.rowCount && targetC < this.model.config.colCount) {
+
+          // 检查边界或扩展
+          const maxRows = this.model.config.rowCount;
+          const maxCols = this.model.config.colCount;
+
+          if (
+            (maxRows === undefined || targetR < maxRows) &&
+            (maxCols === undefined || targetC < maxCols)
+          ) {
             const cell = this.model.getCell(targetR, targetC) || { value: '' };
             this.model.setCell(targetR, targetC, { ...cell, value: val });
             maxR = Math.max(maxR, targetR);
@@ -279,6 +291,24 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   private handleScroll = (scrollX: number, scrollY: number) => {
     // 将 ScrollView 状态与我们的状态同步
     this.setState({ scrollX, scrollY });
+
+    // 检查是否需要扩展视图（无限滚动）
+    const { width, height } = this.props;
+    const { config } = this.model;
+    const viewportWidth = width - config.headerWidth;
+    const viewportHeight = height - config.headerHeight;
+
+    const bottomRow = this.model.getRowIndexAt(scrollY + viewportHeight);
+    const rightCol = this.model.getColIndexAt(scrollX + viewportWidth);
+
+    // 如果接近边界，请求扩展
+    // ensureVisible 内部会检查 rowCount/colCount 是否为 undefined
+    const changed = this.model.ensureVisible(bottomRow, rightCol);
+
+    if (changed) {
+      // 如果边界改变了，强制刷新以更新滚动区域大小
+      this.setState({ version: this.state.version + 1 });
+    }
   };
 
   private handleCellDown = (row: number, col: number, e: InkwellEvent) => {
@@ -353,6 +383,17 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     }
   };
 
+  protected didUpdateWidget(oldProps: SpreadsheetProps): void {
+    if (this.props.model && this.props.model !== oldProps.model) {
+      this.model = this.props.model;
+    }
+    // 如果数据版本发生变化，强制重绘
+    if (this.props.dataVersion !== oldProps.dataVersion) {
+      this.markNeedsPaint();
+    }
+    super.didUpdateWidget(oldProps);
+  }
+
   render() {
     const { width, height, theme } = this.props;
     const { config } = this.model;
@@ -389,6 +430,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
                 showGridLines={this.props.showGridLines ?? true}
                 gridLineColor={this.props.gridLineColor ?? theme.border.base}
                 model={this.model}
+                dataVersion={this.props.dataVersion}
                 theme={theme}
                 scrollX={scrollX}
                 scrollY={scrollY}

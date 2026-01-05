@@ -9,44 +9,55 @@ sidebar_position: 1
 ## 核心类 (Core Classes)
 
 ### Widget
-所有 UI 组件的基类。
+Inkwell 的核心构建单元。与 Flutter 不同，Inkwell 采用单树结构，Widget 同时承载配置、状态和渲染逻辑。
 
-- `StatelessWidget`: `build(context)` 方法返回构建的 Widget 子树。
-- `StatefulWidget`: `createState()` 方法返回关联的 State 对象。
-- `RenderObjectWidget`: `createRenderObject(context)` 方法创建 RenderObject。
+- **StatelessWidget**: 无状态组件。
+  - `build(context)`: 返回构建的 Widget 子树。
+- **StatefulWidget**: 有状态组件。
+  - `createState()`: 返回关联的 State 对象。
+- **RenderWidget** (内部基类): 负责具体的渲染和布局。
+  - `layout(constraints)`: 计算自身大小。
+  - `paint(context)`: 绘制内容。
 
-### Element
-Widget 的实例化对象。
+### State
+`StatefulWidget` 的逻辑和状态持有者。
 
-- `ComponentElement`: 对应 Stateless/Stateful Widget。
-- `RenderObjectElement`: 对应 RenderObject Widget。
-
-### RenderObject
-负责渲染和布局。
-
-- `constraints`: 父级传递的布局约束。
-- `size`: 自身的计算大小。
-- `parentData`: 父级存储的关于子级的数据（如位置）。
-- `performLayout()`: 执行布局计算。
-- `paint(context, offset)`: 执行绘制。
+- `setState(fn)`: 更新状态并触发重绘。
+- `initState()`: 初始化状态。
+- `dispose()`: 销毁时清理资源。
 
 ### BuildContext
-构建上下文，提供对 Element 树的访问能力（如查找祖先 Widget）。
+构建上下文，提供对 Widget 树的访问能力（如查找祖先 Widget）。
+
+- `findAncestorWidgetOfExactType(type)`: 查找指定类型的祖先 Widget。
+
+### BoxConstraints
+布局约束，定义了组件的最小和最大宽高。
+
+- `minWidth`, `maxWidth`
+- `minHeight`, `maxHeight`
+
+### Size
+组件的大小。
+
+- `width`, `height`
 
 ## 常用 Widget
 
 ### 布局 (Layout)
 - `Container`: 组合绘制、定位、尺寸调整的便捷组件。
-- `Row` / `Column`: Flex 布局组件。
-- `Stack`: 层叠布局组件。
-- `Positioned`: 在 Stack 中定位。
+- `Row` / `Column`: Flex 布局组件，支持 `mainAxisAlignment` 和 `crossAxisAlignment`。
+- `Stack`: 层叠布局组件，配合 `Positioned` 使用。
+- `Positioned`: 在 Stack 中定位子组件。
 - `Expanded`: 在 Row/Column 中填充剩余空间。
+- `Wrap`: 流式布局组件。
+- `Viewport` / `ScrollView`: 滚动视图组件。
 
 ### 内容 (Content)
-- `Text`: 文本渲染。
-- `Image`: 图片渲染。
+- `Text`: 文本渲染，支持 `fontSize`, `color`, `fontWeight` 等样式。
+- `Image`: 图片渲染，支持 `src`, `fit` 等属性。
 
 ### 辅助 (Helper)
 - `Padding`: 添加内边距。
-- `Center`: 居中对齐。
+- `Center`: 居中对齐子组件。
 - `SizedBox`: 强制指定大小。

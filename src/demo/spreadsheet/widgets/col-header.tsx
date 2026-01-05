@@ -42,7 +42,7 @@ export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
     const headers: JSXElement[] = [];
 
     for (let c = startCol; c <= endCol; c++) {
-      if (c >= config.colCount) {
+      if (c >= model.getColCount()) {
         break;
       }
       const colWidth = model.getColWidth(c);

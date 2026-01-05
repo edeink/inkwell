@@ -106,6 +106,10 @@ export class SpreadsheetModel {
   private colManager: SizeManager;
   config: SheetConfig;
 
+  // 追踪数据边界
+  private maxRow: number = 0;
+  private maxCol: number = 0;
+
   constructor(config: SheetConfig = DEFAULT_CONFIG) {
     this.config = config;
     this.rowManager = new SizeManager(config.defaultRowHeight);
@@ -120,8 +124,81 @@ export class SpreadsheetModel {
     return this.cells.get(this.getKey(row, col));
   }
 
-  setCell(row: number, col: number, data: CellData) {
-    this.cells.set(this.getKey(row, col), data);
+  getDisplayValue(row: number, col: number): string {
+    const cell = this.getCell(row, col);
+    if (!cell) {
+      return '';
+    }
+    const value = cell.value;
+    if (value.startsWith('=')) {
+      try {
+        return this.evaluateFormula(value.substring(1));
+      } catch (e) {
+        return '#ERROR!';
+      }
+    }
+    return value;
+  }
+
+  private evaluateFormula(expression: string): string {
+    // 简单的公式解析：支持 + - * / 和单元格引用 (A1, B2)
+    // 替换单元格引用为数值
+    const resolvedExpression = expression.replace(/[A-Z]+[0-9]+/g, (match) => {
+      const { row, col } = this.parseCellReference(match);
+      const cell = this.getCell(row, col);
+      const val = cell?.value;
+      if (!val) {
+        return '0';
+      }
+      // 如果引用的单元格也是公式，递归计算 (简单处理，暂不处理循环引用)
+      if (val.startsWith('=')) {
+        return this.evaluateFormula(val.substring(1));
+      }
+      return isNaN(Number(val)) ? '0' : val;
+    });
+
+    try {
+      // 使用 Function 构造函数进行安全计算
+      // 注意：实际生产环境应使用专门的表达式解析库
+
+      return new Function(`return ${resolvedExpression}`)().toString();
+    } catch (e) {
+      return '#ERROR!';
+    }
+  }
+
+  private parseCellReference(ref: string): { row: number; col: number } {
+    const colStr = ref.match(/[A-Z]+/)?.[0] || '';
+    const rowStr = ref.match(/[0-9]+/)?.[0] || '';
+
+    let col = 0;
+    for (let i = 0; i < colStr.length; i++) {
+      col = col * 26 + (colStr.charCodeAt(i) - 65 + 1);
+    }
+
+    return {
+      row: parseInt(rowStr, 10) - 1,
+      col: col - 1,
+    };
+  }
+
+  setCell(row: number, col: number, data: CellData | undefined) {
+    const key = this.getKey(row, col);
+    if (!data || (!data.value && !data.style)) {
+      this.cells.delete(key);
+      return;
+    }
+    this.cells.set(key, data);
+    this.maxRow = Math.max(this.maxRow, row);
+    this.maxCol = Math.max(this.maxCol, col);
+  }
+
+  getRowCount(): number {
+    return this.config.rowCount ?? Math.max(this.maxRow + 100, 100);
+  }
+
+  getColCount(): number {
+    return this.config.colCount ?? Math.max(this.maxCol + 26, 26);
   }
 
   getRowHeight(row: number): number {
@@ -159,18 +236,34 @@ export class SpreadsheetModel {
   }
 
   getRowIndexAt(offset: number): number {
-    return Math.min(Math.max(0, this.rowManager.getIndex(offset)), this.config.rowCount - 1);
+    const index = this.rowManager.getIndex(offset);
+    return Math.min(Math.max(0, index), this.getRowCount() - 1);
   }
 
   getColIndexAt(offset: number): number {
-    return Math.min(Math.max(0, this.colManager.getIndex(offset)), this.config.colCount - 1);
+    const index = this.colManager.getIndex(offset);
+    return Math.min(Math.max(0, index), this.getColCount() - 1);
   }
 
   getTotalWidth(): number {
-    return this.colManager.getTotalSize(this.config.colCount);
+    return this.colManager.getTotalSize(this.getColCount());
   }
 
   getTotalHeight(): number {
-    return this.rowManager.getTotalSize(this.config.rowCount);
+    return this.rowManager.getTotalSize(this.getRowCount());
+  }
+
+  // 扩展边界以支持无限滚动
+  ensureVisible(row: number, col: number) {
+    let changed = false;
+    if (this.config.rowCount === undefined && row > this.maxRow) {
+      this.maxRow = row;
+      changed = true;
+    }
+    if (this.config.colCount === undefined && col > this.maxCol) {
+      this.maxCol = col;
+      changed = true;
+    }
+    return changed;
   }
 }

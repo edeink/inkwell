@@ -17,19 +17,30 @@ export const meta = {
 export default function SwiperDemo() {
   const theme = useTheme();
   const runtimeRef = useRef<Runtime | null>(null);
+  const sizeRef = useRef({ width: 0, height: 0 });
 
   const handleRuntimeReady = (runtime: Runtime) => {
     runtimeRef.current = runtime;
-    runApp(runtime, theme);
+    runApp(runtime, sizeRef.current.width, sizeRef.current.height, theme);
+  };
+
+  const handleResize = (width: number, height: number, runtime: Runtime) => {
+    sizeRef.current = { width, height };
+    runtimeRef.current = runtime;
+    runApp(runtime, width, height, theme);
   };
 
   useEffect(() => {
     if (runtimeRef.current) {
-      runApp(runtimeRef.current, theme);
+      runApp(runtimeRef.current, sizeRef.current.width, sizeRef.current.height, theme);
     }
   }, [theme]);
 
   return (
-    <InkwellCanvas style={{ width: '100%', height: '100%' }} onRuntimeReady={handleRuntimeReady} />
+    <InkwellCanvas
+      style={{ width: '100%', height: '100%' }}
+      onRuntimeReady={handleRuntimeReady}
+      onResize={handleResize}
+    />
   );
 }

@@ -55,7 +55,7 @@ pnpm test
 
 ```bash
 src/
-├── core/           # Core framework (Widgets, Elements, RenderObjects)
+├── core/           # Core framework (Widgets, Events, Pipeline)
 ├── renderer/       # Rendering implementations (Canvas2D)
 ├── utils/          # Utilities & Custom JSX Compiler
 ├── demo/           # Example applications (Mindmap, etc.)

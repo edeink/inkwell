@@ -52,7 +52,7 @@ graph TD
 |------|------|----------|
 | `constructor` | 组件实例化 | 初始化默认属性、Flex 配置、事件绑定 |
 | `initState` | 状态初始化 (StatefulWidget) | 初始化 State，订阅事件，启动定时器 |
-| `isMounted` | 挂载状态检查 | **新增**。检查组件是否已连接到 PipelineOwner。用于防止游离组件触发不必要的布局更新。 |
+| `isMounted` | 挂载状态检查 | **v0.8.0 新增**。检查组件是否已连接到 PipelineOwner。用于防止游离组件触发不必要的布局更新。 |
 
 > **初始化安全机制**：
 > 当在 `constructor` 或初始化阶段修改属性（如 Text 组件设置初始文本）触发 `markNeedsLayout` 时，框架会自动检测 `isMounted` 状态。如果组件尚未挂载，布局请求会被安全抑制或延迟，直到组件接入组件树，避免了"Trying to mark layout on a detached node"类警告。
@@ -65,7 +65,23 @@ graph TD
 |------|------|----------|
 | `build` / `render` | 构建 UI 结构 | 组合子组件，返回新的 Widget 树 |
 | `rebuild` | 框架内部机制 | 对比新旧数据 (Diff)，决定是否需要更新子树 |
-| `createElement` | 更新元素 | 更新 Props，处理子节点的复用与重建 |
+| `markDirty` | 标记脏节点 | **核心方法**。手动触发更新流程。不仅标记脏状态，还会级联触发 `markNeedsLayout`，确保视图数据同步。 |
+
+#### API 详解: `markDirty`
+
+```typescript
+/**
+ * 标记组件为"脏"状态，请求重新构建
+ * 触发路径：markDirty -> scheduleUpdate -> rebuild -> layout -> paint
+ */
+public markDirty(): void
+```
+
+- **触发条件**: 状态改变，需要重新运行 `build` 逻辑。
+- **执行流程**:
+    1. 设置 `_dirty = true`。
+    2. 调用 `runtime.scheduleUpdate(this)` 将自身加入 Runtime 的全局脏节点列表。
+    3. 自动调用 `markNeedsLayout()`，确保更新后的结构能被正确布局。
 
 ### 3. Layout (布局)
 
@@ -73,10 +89,25 @@ graph TD
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
-| `markNeedsLayout` | 标记脏布局 | 通知框架当前节点需要重新计算布局 |
+| `markNeedsLayout` | 标记脏布局 | **核心方法**。通知框架当前节点布局失效。会自动向上寻找最近的**重布局边界 (Relayout Boundary)**，从而避免全树重新布局。 |
 | `performLayout` | 执行布局计算 | **核心方法**。接收父级约束，计算自身 Size，并决定子节点尺寸 |
 | `layoutChildren` | 布局子节点 | 将约束传递给子节点，获取子节点尺寸 |
 | `positionChildren` | 定位子节点 | 在自身尺寸确定后，设置子节点的相对偏移量 (Offset) |
+
+#### API 详解: `markNeedsLayout`
+
+```typescript
+/**
+ * 标记布局失效
+ * 触发路径：markNeedsLayout -> (upwards to RelayoutBoundary) -> scheduleLayout -> flushLayout
+ */
+public markNeedsLayout(): void
+```
+
+- **触发条件**: 修改了 `width`, `height`, `flex`, `padding` 等影响几何属性的值。
+- **优化机制**:
+    - 如果当前节点是 **Relayout Boundary**（如根节点或大小固定的节点），则停止向上传播，直接调度自身布局。
+    - 否则，递归调用 `parent.markNeedsLayout()`。
 
 ### 4. Paint (绘制)
 
@@ -84,9 +115,26 @@ graph TD
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
+| `markNeedsPaint` | 标记脏绘制 | **核心方法**。通知框架当前节点外观已改变。会自动向上寻找最近的**重绘边界 (Repaint Boundary)**，实现局部重绘。 |
 | `paint` | 绘制入口 | 处理变换矩阵 (Transform)，保存/恢复 Canvas 上下文 |
 | `paintSelf` | 绘制自身内容 | **核心方法**。使用 `context.renderer` 绘制形状、文本、图片等 |
 | `paintChildren` | 绘制子节点 | 按 z-index 顺序递归绘制子组件 |
+| `isRepaintBoundary` | 重绘边界属性 | **核心属性**。设置为 `true` 时，该组件及其子树将形成独立的绘制层。子组件重绘不会污染父组件，父组件重绘也不必重绘子组件。 |
+
+#### API 详解: `markNeedsPaint`
+
+```typescript
+/**
+ * 标记绘制失效
+ * 触发路径：markNeedsPaint -> (upwards to RepaintBoundary) -> schedulePaint -> flushPaint
+ */
+public markNeedsPaint(): void
+```
+
+- **触发条件**: 修改了 `color`, `opacity` 等仅影响外观的属性。
+- **优化机制**:
+    - 向上查找最近的 `isRepaintBoundary = true` 的节点。
+    - 仅重绘该边界内的内容，边界外的父节点只需合成缓存的 Layer。
 
 ### 5. Unmount (卸载)
 

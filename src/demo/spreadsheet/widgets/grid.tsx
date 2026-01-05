@@ -21,6 +21,10 @@ export interface SpreadsheetGridProps extends WidgetProps {
   selection: SelectionRange | null;
   editingCell: CellPosition | null;
   showGridLines: boolean;
+  /**
+   * 外部数据版本号
+   */
+  dataVersion?: number;
   onCellDown: (row: number, col: number, e: InkwellEvent) => void;
   onCellDoubleClick: (row: number, col: number) => void;
   onEditFinish: (value: string) => void;
@@ -59,7 +63,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
 
     // 渲染单元格
     for (let r = startRow; r <= endRow; r++) {
-      if (r >= config.rowCount) {
+      if (r >= model.getRowCount()) {
         break;
       }
       const rowHeight = model.getRowHeight(r);
@@ -71,7 +75,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       }
 
       for (let c = startCol; c <= endCol; c++) {
-        if (c >= config.colCount) {
+        if (c >= model.getColCount()) {
           break;
         }
         const colWidth = model.getColWidth(c);
@@ -140,7 +144,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
                 }}
               >
                 <Text
-                  text={cellData?.value || ''}
+                  text={model.getDisplayValue(r, c)}
                   fontSize={14}
                   color={textColor}
                   textAlign={(style.textAlign as TextAlign) || TextAlign.Left}

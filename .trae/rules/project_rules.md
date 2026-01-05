@@ -34,9 +34,10 @@ This document defines the coding standards, architectural overview, and collabor
 
 ### Directory Structure
 - `src/core`: **Core Framework**. Contains the Widget system, Element tree, RenderObject tree, and Event system.
-- `src/renderer`: **Rendering Layer**. Currently implements `Canvas2DRenderer`.
-- `src/utils/compiler`: **JSX Compiler**. Custom runtime to compile JSX into Widgets.
-- `src/demo`: **Applications**. Example apps like `mindmap`.
+- `src/runtime`: **Runtime Engine**. Manages the main loop (Tick), Scheduler, and Renderer coordination.
+- `src/renderer`: **Rendering Layer**. Abstraction for drawing (currently `Canvas2DRenderer`).
+- `src/utils/compiler`: **JSX Compiler**. Transforms JSX into `ComponentData` for the runtime.
+- `src/demo`: **Applications**. Real-world examples like `mindmap` showing framework usage.
 - `src/devtools`: **Debugging**. Tools to inspect the widget tree.
 
 ## 3. Coding Standards

@@ -17,6 +17,7 @@
   --ink-space-4: 24px;
   --ink-space-5: 32px;
   --ink-space-6: 48px;
+  --ink-shadow-lg: 0 8px 24px rgb(0 0 0 / 15%);
 }
 
 html[data-theme='dark'] {
@@ -25,6 +26,7 @@ html[data-theme='dark'] {
   --ink-text: #e6edf3;
   --ink-text-muted: #9aa4b2;
   --ink-muted: #3d4350;
+  --ink-shadow-lg: 0 8px 24px rgb(255 255 255 / 15%);
 }
 
 .breadcrumbs {
@@ -154,7 +156,7 @@ html[data-theme='dark'] {
   margin: var(--ink-space-6) 0;
 }
 
-@media (width <= 996px) {
+@media (width <=996px) {
   .home-hero {
     grid-template-columns: 1fr;
   }
@@ -172,7 +174,7 @@ html[data-theme='dark'] {
   }
 }
 
-@media (width <= 560px) {
+@media (width <=560px) {
   .home-hero__content h1 {
     font-size: 2rem;
   }

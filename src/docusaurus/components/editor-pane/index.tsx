@@ -48,37 +48,60 @@ export default function EditorPane({
     return () => window.removeEventListener('resize', onResize);
   }, [checkOverflow]);
 
+  const showFeedback = React.useCallback((result: 'success' | 'error') => {
+    setCopyResult(result);
+    if (copyTimerRef.current) {
+      window.clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopyResult(null);
+      copyTimerRef.current = null;
+    }, 2000);
+  }, []);
+
   const onCopy = React.useCallback(() => {
     if (copying) {
       return;
     }
     setCopying(true);
-    navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        setCopyResult('success');
-        if (copyTimerRef.current) {
-          window.clearTimeout(copyTimerRef.current);
-        }
-        copyTimerRef.current = window.setTimeout(() => {
-          setCopyResult(null);
-          copyTimerRef.current = null;
-        }, 1800);
-      })
-      .catch(() => {
-        setCopyResult('error');
-        if (copyTimerRef.current) {
-          window.clearTimeout(copyTimerRef.current);
-        }
-        copyTimerRef.current = window.setTimeout(() => {
-          setCopyResult(null);
-          copyTimerRef.current = null;
-        }, 2000);
-      })
-      .finally(() => {
-        setCopying(false);
-      });
-  }, [value, copying]);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(value)
+        .then(() => {
+          showFeedback('success');
+        })
+        .catch(() => {
+          showFeedback('error');
+        })
+        .finally(() => {
+          setCopying(false);
+        });
+    } else {
+      // Fallback for older browsers
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        // Ensure it's not visible but part of DOM
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showFeedback('success');
+      } catch (e) {
+        showFeedback('error');
+      }
+      setCopying(false);
+    }
+  }, [value, copying, showFeedback]);
+
+  const onEditorCopy = React.useCallback(() => {
+    // When user presses Ctrl+C or uses context menu, the browser handles the copy.
+    // We just show the feedback.
+    showFeedback('success');
+  }, [showFeedback]);
 
   React.useEffect(() => {
     return () => {
@@ -120,17 +143,7 @@ export default function EditorPane({
           {copyResult === 'success' ? '复制成功' : '复制失败，请重试'}
         </div>
       )}
-      <div
-        ref={contentRef}
-        className={styles.editorContent}
-        onCopyCapture={(e) => {
-          e.preventDefault();
-        }}
-        onCutCapture={(e) => {
-          e.preventDefault();
-        }}
-        aria-live="off"
-      >
+      <div ref={contentRef} className={styles.editorContent} onCopy={onEditorCopy} aria-live="off">
         <LiveProvider code={value} scope={scope} noInline>
           <LiveEditor
             onChange={readOnly ? () => {} : onChange}

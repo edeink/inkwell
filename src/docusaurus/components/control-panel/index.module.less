@@ -64,8 +64,8 @@
   padding: 4px 8px;
   border: 1px solid var(--ifm-toc-border-color);
   border-radius: var(--ink-radius);
-  background: var(--ink-card);
-  color: var(--ink-text-muted);
+  background: var(--ink-demo-bg-container);
+  color: var(--ink-demo-text-secondary);
   cursor: pointer;
 
   &:hover {
@@ -80,7 +80,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-text-default, black);
+  color: var(--ink-demo-text-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -91,7 +91,7 @@
     background 0.15s ease;
 
   &:hover {
-    background: var(--ink-bg-hover, rgb(0 0 0 / 20%));
+    background: var(--ink-demo-header-bg-active);
   }
 
   &:disabled {

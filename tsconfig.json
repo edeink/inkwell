@@ -13,6 +13,9 @@
       ],
       "@mindmap/*": [
         "./src/demo/mindmap/*"
+      ],
+      "@spreadsheet/*": [
+        "./src/demo/spreadsheet/*"
       ]
     }
   }

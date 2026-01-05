@@ -10,9 +10,9 @@ import InkPlayground from '@site/src/docusaurus/components/ink-playground';
 import styles from './index.module.less';
 
 export const showcaseCode = `
-<Container padding={24} borderRadius={16} color="#0d1117" width={500}>
+<Container padding={24} borderRadius={16} color="#000000" width={500}>
   <Column spacing={16} crossAxisAlignment="center" mainAxisSize="min">
-    <Text text="InkWell Studio" fontSize={24} color="#1677ff" fontWeight={700} />
+    <Text text="InkWell Studio" fontSize={24} color="#ffffff" fontWeight={700} />
     <Wrap spacing={16} runSpacing={24}>
       {[
         { text: '像素直控', color: '#003a8c' },
@@ -24,7 +24,7 @@ export const showcaseCode = `
       ].map(({ text, color }) => (
         <Container width={140} height={90} color={color} borderRadius={12}>
           <Center>
-            <Text text={text} fontSize={16} color="#f0f0f0" fontWeight={600} />
+            <Text text={text} fontSize={16} color="#ffffff" fontWeight={600} />
           </Center>
         </Container>
       ))}
@@ -116,7 +116,7 @@ export const showcaseCode = `
       </div>
       <p className={styles.perfDesc}>备注：2000+ 节点基准测试结果</p>
       <div style={{ textAlign: 'center' }}>
-        <a className={styles.perfBtn} href="/docs/benchmark">在线测试</a>
+        <a className={styles.perfBtn} href="/docs/meta/test-benchmark">在线测试</a>
       </div>
     </div>
   </section>

@@ -3,21 +3,22 @@ import * as Babel from '@babel/standalone';
 import classnames from 'classnames';
 import React from 'react';
 
-import { InteractiveCounterDemo } from '@/demo/interactive-counter/app';
-import { MindmapDemo } from '@/demo/mindmap/app';
-import { WidgetGalleryDemo } from '@/demo/widget-gallery/app';
-
-// Mock Scene if not available
-const Scene = {};
-
 import styles from './index.module.less';
 
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import * as Core from '@/core';
+import { InteractiveCounterDemo } from '@/demo/interactive-counter/app';
+import { MindmapDemo } from '@/demo/mindmap/app';
+import { SpreadsheetDemoApp } from '@/demo/spreadsheet/app';
+import { Swiper } from '@/demo/swiper/widgets/swiper';
+import { WidgetGalleryDemo } from '@/demo/widget-gallery/app';
 import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
+
+// Mock Scene if not available
+const Scene = {};
 
 /**
  * Inkwell 组件：在画布上渲染 TSX/JSX 示例，并将示例中的日志输出收敛到组件实例范围。
@@ -142,6 +143,8 @@ export default function Inkwell({
           'MindmapDemo',
           'InteractiveCounterDemo',
           'WidgetGalleryDemo',
+          'SpreadsheetDemoApp',
+          'SwiperDemoApp',
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
@@ -157,6 +160,8 @@ export default function Inkwell({
           MindmapDemo,
           InteractiveCounterDemo,
           WidgetGalleryDemo,
+          SpreadsheetDemoApp,
+          Swiper,
           ...Object.values(Core),
         );
         await runtime.renderTemplate(tplFn as () => JSXElement);

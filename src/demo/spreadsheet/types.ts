@@ -26,8 +26,8 @@ export interface SelectionRange {
 }
 
 export interface SheetConfig {
-  rowCount: number;
-  colCount: number;
+  rowCount?: number;
+  colCount?: number;
   defaultRowHeight: number;
   defaultColWidth: number;
   headerHeight: number;
@@ -35,8 +35,7 @@ export interface SheetConfig {
 }
 
 export const DEFAULT_CONFIG: SheetConfig = {
-  rowCount: 100000, // 百万级行
-  colCount: 26 * 10, // 260 列
+  // 默认不设置行列数，启用无限滚动
   defaultRowHeight: 24,
   defaultColWidth: 100,
   headerHeight: 24,

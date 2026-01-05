@@ -101,17 +101,23 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
     }
 
     const ro = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      const { width, height } = entry.contentRect;
+      window.requestAnimationFrame(() => {
+        if (!Array.isArray(entries) || !entries.length) {
+          return;
+        }
 
-      // 确保尺寸有效
-      if (width === 0 || height === 0) {
-        return;
-      }
+        const entry = entries[0];
+        const { width, height } = entry.contentRect;
 
-      if (runtimeRef.current && onResizeRef.current) {
-        onResizeRef.current(width, height, runtimeRef.current);
-      }
+        // 确保尺寸有效
+        if (width === 0 || height === 0) {
+          return;
+        }
+
+        if (runtimeRef.current && onResizeRef.current) {
+          onResizeRef.current(width, height, runtimeRef.current);
+        }
+      });
     });
 
     ro.observe(el);

@@ -27,112 +27,138 @@ sidebar_position: 2
 
 1.  **父组件 Build**: 父组件执行 `build()` 方法，生成新的 Widget 配置数据。
 2.  **子组件更新**: 框架对比新旧 Widget 配置。
-3.  **Element 更新**: 调用子组件 Element 的 `update()` 方法，传入新的 Props。
+3.  **Widget 更新**: 调用子组件的 `update()` 方法，传入新的 Props。
 4.  **重建**: 子组件被标记为需要重建，并在当前遍历中立即执行 `rebuild`（递归过程）。
 
-## 2. 更新流程可视化
+## 2. 核心更新 API 详解
 
-### 2.1 完整更新生命周期
+为了支持更细粒度的性能优化，框架在 `v0.8.0` 引入了以下核心 API。
+
+### 2.1 markDirty()
+
+标记当前组件为"脏"状态，请求重新构建。
+
+- **API**: `markDirty(): void`
+- **触发**: `setState` 内部自动调用，或在特殊情况下手动调用。
+- **机制**:
+    1.  将 `_dirty` 标志置为 `true`。
+    2.  调用 `runtime.scheduleUpdate(this)` 将自身加入调度队列。
+    3.  **关键联动**: 自动调用 `markNeedsLayout()`，因为重建通常意味着布局可能改变。
+
+```typescript
+// 示例：自定义交互组件手动触发更新
+class InteractiveBox extends StatefulWidget {
+  onHover() {
+    this.highlight = true;
+    this.markDirty(); // 手动触发更新
+  }
+}
+```
+
+### 2.2 markNeedsLayout()
+
+标记当前组件布局失效。
+
+- **API**: `markNeedsLayout(): void`
+- **触发**: 修改了影响尺寸或位置的属性（如 `width`, `flex`）。
+- **机制 (Relayout Boundary)**:
+    -   框架会向上查找最近的 **重布局边界 (Relayout Boundary)**。
+    -   如果组件自身大小由父级紧约束决定（如 `FixedSize`），它本身就是边界。
+    -   **优化**: 只有边界内的子树会重新布局，边界外的父级不受影响。
+
+```typescript
+class ResizableBox extends Widget {
+  setSize(w, h) {
+    this.width = w;
+    this.height = h;
+    this.markNeedsLayout(); // 仅触发布局，跳过 Build 阶段
+  }
+}
+```
+
+### 2.3 markNeedsPaint()
+
+标记当前组件需要重绘。
+
+- **API**: `markNeedsPaint(): void`
+- **触发**: 修改了仅影响外观不影响布局的属性（如 `color`, `opacity`）。
+- **机制**:
+    -   将 `_needsPaint` 置为 `true`。
+    -   向上递归调用父级的 `markNeedsPaint`，直到遇到 **重绘边界 (Repaint Boundary)**。
+    -   **PipelineOwner**: 最终会调用 `owner.schedulePaintFor(boundaryNode)`，将边界节点加入待重绘列表。
+
+#### 更新传播示意图
 
 ```mermaid
 graph TD
-    subgraph Trigger [触发源]
-        A[setState] -->|State Change| B(markDirty)
-        C[Parent Rebuild] -->|Props Change| D(Element.update)
-    end
-
-    subgraph Runtime [调度器]
-        B --> E{Is Batching?}
-        E -- No --> F[Schedule Frame]
-        E -- Yes --> G[Wait for Tick]
-        F --> G
-        G --> H[flushUpdates]
-    end
-
-    subgraph Rebuild [重建过程]
-        H --> I[Sort by Depth]
-        I --> J[Iterate Dirty Widgets]
-        J --> K{Is Disposed?}
-        K -- Yes --> L[Skip]
-        K -- No --> M[rebuild]
-        M --> N[build / render]
-        N --> O[Diff & Patch Children]
-    end
-
-    D --> M
+    A[Child Node] -- markNeedsPaint --> B{isRepaintBoundary?}
+    B -- No --> C[Parent Node]
+    C -- markNeedsPaint --> D{isRepaintBoundary?}
+    B -- Yes --> E[PipelineOwner.schedulePaintFor]
+    D -- Yes --> E
 ```
 
-### 2.2 关键 Hook 执行时序
-
-```mermaid
-sequenceDiagram
-    participant P as Parent
-    participant C as Child (Stateful)
-    participant R as Runtime
-
-    Note over C: State Change
-    C->>C: setState(newState)
-    C->>R: markDirty(this)
-    R->>R: Schedule Flush
-
-    Note over R: Next Frame
-    R->>R: sort dirtyWidgets by depth
-    R->>C: rebuild()
-    C->>C: build()
-    C->>C: clean() (Cleanup old children)
-    C-->>R: New Widget Tree
-    R->>R: Layout & Paint
+```typescript
+class ColorBox extends Widget {
+  setColor(c) {
+    this.color = c;
+    this.markNeedsPaint(); // 极速更新：无 Build，无 Layout，仅 Paint
+  }
+}
 ```
 
-## 3. 核心优化策略
+### 2.4 isRepaintBoundary
 
-近期框架进行了三次主要更新，重点优化了更新机制以减少不必要的渲染。
+控制重绘边界的核心属性。
 
-### 3.1 深度优先更新 (Depth-Based Scheduling)
+- **类型**: `boolean`
+- **默认值**: `false`
+- **作用**: 当设置为 `true` 时，该组件会拥有独立的离屏 Canvas (Layer)。
+    -   **隔离**: 子组件重绘不影响父组件。
+    -   **缓存**: 父组件重绘时，如果该组件未脏，直接合成其缓存的 Canvas，无需重绘子树。
 
-**问题**: 在旧版本中，如果父组件和子组件在同一帧内都调用了 `setState`，运行时可能会先处理子组件，然后父组件重建时再次更新子组件，导致子组件渲染两次。
+#### 典型应用场景
 
-**优化**: `Runtime` 现在维护组件的 `depth` (深度) 属性。在 `flushUpdates` 时，按 `depth` 从小到大（父到子）排序。
--   先处理父组件。
--   父组件重建时，如果更新了子组件的 Props，子组件会被移出脏列表（或标记为已处理），避免重复渲染。
+1.  **复杂子树**: 如包含大量节点的图表、地图。
+2.  **频繁更新**: 如秒表、动画光标。
+3.  **静态背景**: 内容基本不变的背景层。
 
-### 3.2 智能脏列表管理
+```typescript
+// 示例：将秒表组件设为重绘边界，避免每秒重绘整个页面
+class Stopwatch extends StatefulWidget {
+  constructor(props) {
+    super(props);
+    this.type = 'Stopwatch'; // 确保 WidgetRegistry 能正确识别
+    this.isRepaintBoundary = true; // 开启重绘边界
+  }
+  // ...
+}
+```
 
-**优化**:
--   **跳过已销毁组件**: 在遍历脏列表时，增加 `isDisposed()` 检查。如果组件在等待更新期间被卸载，直接跳过。
--   **重复检测**: 如果一个组件已经被父组件更新过，再次遇到它时会跳过。
+## 3. 性能对比
 
-## 4. 性能优化最佳实践
+理解不同更新方式的开销对于优化应用至关重要。
 
-### 4.1 避免在 Render 中执行副作用
+| 更新方式 | 涉及阶段 | 复杂度 | 推荐场景 |
+|----------|----------|--------|----------|
+| `markDirty` | Build -> Layout -> Paint | 高 (O(N)) | 结构变化、增删节点 |
+| `markNeedsLayout` | Layout -> Paint | 中 (O(logN) ~ O(N)) | 尺寸变化、位置移动 |
+| `markNeedsPaint` | Paint | 低 (O(1) ~ O(Subtree)) | 颜色变化、透明度变化 |
 
-不要在 `render` 或 `build` 方法中调用 `setState` 或触发会导致更新的函数。这会导致无限循环或不可预测的渲染行为。
+> **性能提示**:
+> 1. 尽可能使用 `markNeedsPaint` 而非 `markDirty`。
+> 2. 合理使用 `isRepaintBoundary` 隔离频繁更新的区域。
+> 3. 在不需要改变大小时，尽量使用固定尺寸的组件作为 Relayout Boundary。
 
-### 4.2 合理使用 Keys
+## 4. 脏检查与调度
 
-在列表渲染中，务必提供唯一且稳定的 `key`。
--   **错误**: `key={Math.random()}` (导致每次都卸载重挂载)
--   **错误**: `key={index}` (导致列表重排时状态错乱)
--   **正确**: `key={item.id}`
+### 脏检查 (Dirty Checking)
+Inkwell 维护了两个主要的脏列表：
+1.  **Layout Dirty List**: 需要重新布局的节点。
+2.  **Paint Dirty List**: 需要重新绘制的节点（通常是 Repaint Boundary）。
 
-### 4.3 状态管理原则
+### 调度流程 (Pipeline)
+每一帧 (`flushUpdates`) 的执行顺序：
 
--   **状态提升**: 如果两个组件的状态需要同步，将状态提升到共同的父组件。
--   **单一数据源**: 避免 "Props 衍生 State" 的反模式，尽量直接使用 Props。
-
-### 4.4 谨慎使用 Ref 触发更新
-
-通过 `ref` 直接调用子组件方法修改状态（如 `changeColor`）虽然方便，但打破了单向数据流。
--   **建议**: 优先通过 Props 传递状态（受控组件）。
--   **注意**: 如果必须使用 Ref，请确保理解其对更新调度的影响。
-
-## 5. 警告与注意事项
-
-:::tip 注意
-**不要在构造函数中中调用 `setState`**。
-在 `constructor` 阶段组件尚未挂载，直接赋值 `this.state` 即可。
-:::
-
-:::tip 提示
-利用 `src/devtools` 工具可以可视化组件树和更新区域，帮助定位多余的渲染。
-:::
+1.  **Flush Layout**: 按深度 **从小到大** (浅 -> 深) 处理脏布局节点。确保父节点先计算约束，传递给子节点。
+2.  **Flush Paint**: 按深度 **从大到小** (深 -> 浅) 处理脏绘制节点。确保子节点先更新 Layer，父节点合成时能取到最新内容。

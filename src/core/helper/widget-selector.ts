@@ -162,7 +162,7 @@ function matchSimple(w: Widget, sel: SimpleSelector): boolean {
       if (p === 'active') {
         const data = w.data as unknown as { active?: unknown };
         const dataActive = data?.active === true;
-        const instanceActive = (w as any).active === true;
+        const instanceActive = (w as unknown as Record<string, unknown>).active === true;
         if (!dataActive && !instanceActive) {
           return false;
         }

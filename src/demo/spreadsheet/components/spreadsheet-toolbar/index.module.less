@@ -1,0 +1,41 @@
+.toolbar {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-base);
+  background: var(--background-surface);
+  transition: all 0.3s;
+
+  .title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-right: 20px;
+  }
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  font-size: 16px;
+
+  &:hover {
+    background: var(--action-hover);
+    color: var(--text-primary);
+  }
+
+  &:active {
+    background: var(--action-selected);
+  }
+}
