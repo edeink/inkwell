@@ -6,6 +6,7 @@ import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer'
 import Runtime from '../../../runtime';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { getThemeColor } from '../../utils/theme';
 
 import type { BoxConstraints, BuildContext } from '../../../core/base';
 import type { RendererOptions } from '../../../renderer/IRenderer';
@@ -16,11 +17,12 @@ import type { RendererOptions } from '../../../renderer/IRenderer';
  * @param color 方块颜色
  * @returns JSX 树
  */
-function buildFlexJSX(count: number, color = '#888') {
+function buildFlexJSX(count: number, color?: string) {
+  const finalColor = color || getThemeColor('--ink-demo-primary');
   return (
     <Wrap key="perf-flex" spacing={4} runSpacing={4}>
       {Array.from({ length: count }).map((_, i) => (
-        <Container key={`c-${i}`} width={4} height={4} color={color} />
+        <Container key={`c-${i}`} width={4} height={4} color={finalColor} />
       ))}
     </Wrap>
   );
@@ -34,7 +36,8 @@ function buildFlexJSX(count: number, color = '#888') {
  * @param color 方块颜色
  * @returns JSX 树
  */
-function buildFlexRowColJSX(count: number, stageWidth: number, color = '#888') {
+function buildFlexRowColJSX(count: number, stageWidth: number, color?: string) {
+  const finalColor = color || getThemeColor('--ink-demo-primary');
   const itemSize = 4;
   const spacing = 4;
   // 计算每行能容纳的方块数量: n * w + (n - 1) * s <= W  =>  n <= (W + s) / (w + s)
@@ -51,7 +54,9 @@ function buildFlexRowColJSX(count: number, stageWidth: number, color = '#888') {
     const end = Math.min(start + effectiveCols, count);
 
     for (let i = start; i < end; i++) {
-      rowItems.push(<Container key={`c-${i}`} width={itemSize} height={itemSize} color={color} />);
+      rowItems.push(
+        <Container key={`c-${i}`} width={itemSize} height={itemSize} color={finalColor} />,
+      );
     }
 
     rows.push(

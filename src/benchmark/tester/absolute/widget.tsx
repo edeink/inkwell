@@ -6,6 +6,7 @@ import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer'
 import Runtime from '../../../runtime';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { getThemeColor } from '../../utils/theme';
 
 import type { BoxConstraints, BuildContext } from '../../../core/base';
 import type { RendererOptions } from '../../../renderer/IRenderer';
@@ -18,6 +19,7 @@ import type { RendererOptions } from '../../../renderer/IRenderer';
  * @returns JSX 树
  */
 function buildAbsoluteJSX(count: number, W: number, H: number) {
+  const color = getThemeColor('--ink-demo-primary');
   return (
     <Stack key="perf-root">
       {Array.from({ length: count }).map((_, i) => {
@@ -25,7 +27,7 @@ function buildAbsoluteJSX(count: number, W: number, H: number) {
         const y = Math.floor(Math.random() * Math.max(1, H - 4));
         return (
           <Positioned key={`p-${i}`} left={x} top={y}>
-            <Container key={`c-${i}`} width={4} height={4} color="#888" />
+            <Container key={`c-${i}`} width={4} height={4} color={color} />
           </Positioned>
         );
       })}

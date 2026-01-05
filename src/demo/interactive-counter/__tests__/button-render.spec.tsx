@@ -6,11 +6,12 @@ import { ClassButton as Button } from '../widgets/class-button';
 import { Center, Widget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
+import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('ButtonElement 渲染与递归编译', () => {
   it('ButtonElement 生成包含子节点的 Button', () => {
-    const json = compileElement(<Button />);
+    const json = compileElement(<Button theme={Themes.light} />);
     const btn = WidgetRegistry.createWidget(json)!;
     btn.createElement(btn.data);
     expect(btn.type).toBe('ClassButton');
@@ -23,7 +24,7 @@ describe('ButtonElement 渲染与递归编译', () => {
   it('嵌套组件递归处理，结构保持完整', () => {
     const json = compileElement(
       <Center>
-        <Button />
+        <Button theme={Themes.light} />
       </Center>,
     );
     const root = WidgetRegistry.createWidget(json)!;

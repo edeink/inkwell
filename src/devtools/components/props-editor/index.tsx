@@ -125,6 +125,9 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
                       onChangeComplete={(c: { toHexString: () => string }) =>
                         updateField(k, c.toHexString())
                       }
+                      getPopupContainer={(trigger) =>
+                        (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                      }
                     />
                   </Space>
                 );

@@ -1,7 +1,32 @@
+@space-1: 8px;
+@space-2: 16px;
+@space-3: 24px;
+@color-bg: var(--ink-demo-bg-base, #ffffff);
+@color-surface: var(--ink-demo-bg-surface, #f7f7f7);
+@color-border: var(--ink-demo-border, #e5e7eb);
+@text-muted: var(--ink-demo-text-secondary, #6b7280);
+@text-default: var(--ink-demo-text-primary, #111827);
+
+@color-primary: var(--ink-demo-primary, #1890ff);
+@color-success: var(--ink-demo-success, #52c41a);
+@color-warning: var(--ink-demo-warning, #faad14);
+@color-error: var(--ink-demo-error, #ff4d4f);
+
+/* Semantic backgrounds for report cards */
+
+/* Using opacity for subtle backgrounds that work in both light/dark */
+@bg-info: color-mix(in srgb, @color-primary 10%, @color-bg);
+@bg-success: color-mix(in srgb, @color-success 10%, @color-bg);
+@bg-warning: color-mix(in srgb, @color-warning 10%, @color-bg);
+@bg-neutral: color-mix(in srgb, @text-default 5%, @color-bg);
+
 .report {
   padding: 24px;
-  background: #fff;
+  background: @color-bg;
   border-radius: 8px;
+
+  /* Ensure border matches theme */
+  border: 1px solid @color-border;
 }
 
 .header {
@@ -9,7 +34,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid @color-border;
   padding-bottom: 16px;
 }
 
@@ -17,9 +42,58 @@
   font-size: 16px;
   font-weight: 600;
   padding: 6px 16px;
-  background: #e6f7ff;
-  border: 1px solid #91d5ff;
+  background: @bg-info;
+  border: 1px solid @color-primary;
   border-radius: 6px;
-  color: #0050b3;
+  color: @color-primary;
   box-shadow: 0 2px 0 rgb(0 0 0 / 2%);
+}
+
+.cardTotal {
+  background: @bg-neutral !important;
+}
+
+.cardBuild {
+  background: @bg-info !important;
+}
+
+.cardLayout {
+  background: @bg-success !important;
+}
+
+.cardPaint {
+  background: @bg-warning !important;
+}
+
+.statValue {
+  font-weight: bold;
+}
+
+.statValueBuild {
+  color: @color-primary !important;
+}
+
+.statValueLayout {
+  color: @color-success !important;
+}
+
+.statValuePaint {
+  color: @color-warning !important;
+}
+
+.statLabel {
+  margin-top: 8px;
+  color: @text-muted;
+  font-size: 12px;
+}
+
+.cardTotal,
+.cardBuild,
+.cardLayout,
+.cardPaint {
+  :global {
+    .ant-statistic-title {
+      color: var(--ink-demo-text-secondary);
+    }
+  }
 }

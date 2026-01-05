@@ -119,6 +119,9 @@ export default function Charts({
       symbolSize: byTest[name].length === 1 ? 8 : 4,
     }));
     return {
+      textStyle: {
+        color: 'var(--ink-demo-text-primary)',
+      },
       title: {
         text: '总耗时（ms） vs 节点数',
       },
@@ -144,6 +147,9 @@ export default function Charts({
       symbolSize: byTest[name].length === 1 ? 8 : 4,
     }));
     return {
+      textStyle: {
+        color: 'var(--ink-demo-text-primary)',
+      },
       title: {
         text: '内存占用（bytes） vs 节点数',
       },

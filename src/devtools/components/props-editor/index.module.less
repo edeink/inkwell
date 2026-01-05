@@ -43,16 +43,6 @@
       width: 100%;
       min-width: 0;
     }
-
-    :global(.ant-input),
-    :global(.ant-input-number),
-    :global(.ant-input-number-input) {
-      width: 100%;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
   }
 
   .formActions {
@@ -62,7 +52,7 @@
   }
 
   .emptyHint {
-    color: #525252;
+    color: var(--ink-demo-text-secondary);
     font-size: var(--font-size);
     line-height: var(--line-height);
   }
@@ -78,9 +68,9 @@
   padding: 0 6px;
   font-size: 12px;
   line-height: 18px;
-  color: #1677ff;
-  background: rgb(22 119 255 / 10%);
-  border: 1px solid rgb(22 119 255 / 20%);
+  color: var(--ink-demo-primary);
+  background: color-mix(in srgb, var(--ink-demo-primary), transparent 90%);
+  border: 1px solid color-mix(in srgb, var(--ink-demo-primary), transparent 80%);
   border-radius: 6px;
 }
 
@@ -95,19 +85,26 @@
   flex: 1;
   justify-content: space-between;
   gap: 8px;
-  background: rgb(245 245 245);
-  border: 1px solid #e5e7eb;
+  background: var(--ink-demo-bg-surface);
+  border: 1px solid var(--ink-demo-border-secondary);
   border-radius: 6px;
-  padding: 4px 12px;
-  font-size: 14px;
+  padding: 6px 10px;
+  align-items: center;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--ink-demo-border);
+    background: var(--ink-demo-header-bg);
+  }
 
   .readonlyLabel {
-    color: #6b7280;
-    margin-right: 4px;
+    color: var(--ink-demo-text-secondary);
+    font-size: 12px;
   }
 
   .readonlyValue {
-    color: #111827;
-    text-align: right;
+    color: var(--ink-demo-primary);
+    font-family: monospace;
+    font-weight: 500;
   }
 }

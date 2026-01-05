@@ -4,6 +4,8 @@ import { InteractiveCounterDemo } from '../app';
 
 import type { InkwellEvent } from '@/core';
 
+import { Themes } from '@/styles/theme';
+
 // 模拟 Canvas getContext 以避免“未实现”错误
 beforeAll(() => {
   if (typeof HTMLCanvasElement !== 'undefined' && !HTMLCanvasElement.prototype.getContext) {
@@ -30,7 +32,10 @@ beforeAll(() => {
 describe('计数器标签页功能按钮', () => {
   it('点击函数式按钮应增加计数', () => {
     // 实例化模板
-    const template = new InteractiveCounterDemo({ type: 'InteractiveCounterDemo' });
+    const template = new InteractiveCounterDemo({
+      type: 'InteractiveCounterDemo',
+      theme: Themes.light,
+    });
 
     // 初始状态
     expect(template.state.count).toBe(0);

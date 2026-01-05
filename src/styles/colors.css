@@ -1,0 +1,48 @@
+:root {
+  /* 基础语义色 - 对应 Docusaurus 主题变量 */
+  --ink-demo-primary: var(--ifm-color-primary);
+  --ink-demo-secondary: var(--ifm-color-secondary);
+  --ink-demo-success: var(--ifm-color-success);
+  --ink-demo-warning: var(--ifm-color-warning);
+  --ink-demo-danger: var(--ifm-color-danger);
+
+  /* 背景色 */
+  --ink-demo-bg-base: #fff;
+  --ink-demo-bg-surface: #f5f5f5;
+  --ink-demo-bg-container: #fff;
+
+  /* 文本色 */
+  --ink-demo-text-primary: #1f1f1f;
+  --ink-demo-text-secondary: #8c8c8c;
+  --ink-demo-text-placeholder: #bfbfbf;
+
+  /* 边框色 */
+  --ink-demo-border: #d9d9d9;
+  --ink-demo-border-secondary: #f0f0f0;
+
+  /* 组件特定 */
+  --ink-demo-grid-line: #e0e0e0;
+  --ink-demo-header-bg: #f8f9fa;
+  --ink-demo-header-bg-active: #e8eaed;
+}
+
+html[data-theme='dark'] {
+  /* 背景色 */
+  --ink-demo-bg-base: #1b1b1d;
+  --ink-demo-bg-surface: #242526;
+  --ink-demo-bg-container: #242526;
+
+  /* 文本色 */
+  --ink-demo-text-primary: #e6f4ff;
+  --ink-demo-text-secondary: #bfbfbf;
+  --ink-demo-text-placeholder: #5c5c5c;
+
+  /* 边框色 */
+  --ink-demo-border: #434343;
+  --ink-demo-border-secondary: #303030;
+
+  /* 组件特定 */
+  --ink-demo-grid-line: #424242;
+  --ink-demo-header-bg: #2c2c2e;
+  --ink-demo-header-bg-active: #3a3a3c;
+}

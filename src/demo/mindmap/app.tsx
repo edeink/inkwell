@@ -9,6 +9,7 @@ import { MindMapNode } from './widgets/mindmap-node';
 import { MindMapNodeToolbar } from './widgets/mindmap-node-toolbar';
 import { MindMapViewport } from './widgets/mindmap-viewport';
 
+import type { ThemePalette } from './constants/theme';
 import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from './type';
 import type { MindMapViewport as MindMapViewportCls } from './widgets/mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
@@ -21,6 +22,7 @@ import Runtime from '@/runtime';
 interface SceneProps extends WidgetProps {
   width?: number;
   height?: number;
+  theme?: ThemePalette;
 }
 type SceneState = {
   graph: GraphState;
@@ -46,10 +48,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       active: boolean;
       isEditing: boolean;
       isRoot: boolean;
+      theme?: ThemePalette;
     }
   > = new Map();
-  private nodeElementCache: Map<NodeId, WidgetProps> = new Map();
-  private edgeElementCache: Map<string, WidgetProps> = new Map();
+  private nodeElementCache: Map<NodeId, MindMapNode> = new Map();
+  private edgeElementCache: Map<string, Connector> = new Map();
 
   constructor(data: SceneProps) {
     super(data);
@@ -364,6 +367,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       onEdit: (key: string | null) => void;
       getViewState: () => { scale: number; tx: number; ty: number };
     },
+    theme?: ThemePalette,
   ) {
     const ids = new Set<string>();
     const hasParent = new Set<string>();
@@ -389,7 +393,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         this.edgeElementCache.delete(k);
       }
     }
-    const nodes: WidgetProps[] = [];
+    const nodes: MindMapNode[] = [];
     const activeKey = (this.state as SceneState).activeKey;
     for (const [id, n] of state.nodes.entries()) {
       const props = {
@@ -399,6 +403,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         active: activeKey === id,
         isEditing: (this.state as SceneState).editingKey === id,
         isRoot: !hasParent.has(id),
+        theme,
       };
       const prev = this.nodePropsCache.get(id);
       let el = this.nodeElementCache.get(id);
@@ -409,7 +414,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         prev.activeKey !== props.activeKey ||
         prev.active !== props.active ||
         prev.isEditing !== props.isEditing ||
-        prev.isRoot !== props.isRoot;
+        prev.isRoot !== props.isRoot ||
+        prev.theme !== props.theme;
       if (changed) {
         el = (
           <MindMapNode
@@ -426,6 +432,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
             onMoveNode={handlers.onMoveNode}
             onEdit={handlers.onEdit}
             getViewState={handlers.getViewState}
+            theme={theme}
           />
         );
         this.nodePropsCache.set(id, props);
@@ -433,11 +440,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       }
       nodes.push(el!);
     }
-    const edges: WidgetProps[] = [];
+    const edges: Connector[] = [];
     for (const e of state.edges) {
       const k = `e-${e.from}-${e.to}`;
-      let el = this.edgeElementCache.get(k);
-      if (!el) {
+      let el = this.edgeElementCache.get(k) as unknown as Connector | null;
+      if (!el || (theme && theme.connectorColor && el.props.color !== theme.connectorColor)) {
         el = (
           <Connector
             key={k}
@@ -445,7 +452,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
             toKey={e.to}
             style={ConnectorStyle.Elbow}
             strokeWidth={2}
-            color="#4a90e2"
+            color={theme ? theme.connectorColor : '#4a90e2'}
             dashArray="5,3"
           />
         );
@@ -460,6 +467,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         onAddSibling={handlers.onAddSibling}
         onAddChildSide={handlers.onAddChildSide}
         activeKey={activeKey}
+        theme={theme}
       />
     );
     return { elements: [...nodes, ...edges], toolbar };
@@ -573,19 +581,25 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     const view = (this.state as SceneState).viewState;
     const width = (this.props as SceneProps).width ?? 800;
     const height = (this.props as SceneProps).height ?? 600;
-    const { elements, toolbar } = this.renderGraphCached(s, {
-      onActive: (key) => this.onActive(key),
-      onMoveNode: (key, dx, dy) => this.onMoveNode(key, dx, dy),
-      onAddSibling: (refKey, dir, side) => this.onAddSibling(refKey, dir, side),
-      onAddChildSide: (refKey, side) => this.onAddChildSide(refKey, side),
-      onEdit: (key) => this.onEditingKeyChange(key),
-      getViewState: () => this.state.viewState,
-    });
+    const theme = (this.props as SceneProps).theme;
+    const { elements, toolbar } = this.renderGraphCached(
+      s,
+      {
+        onActive: (key) => this.onActive(key),
+        onMoveNode: (key, dx, dy) => this.onMoveNode(key, dx, dy),
+        onAddSibling: (refKey, dir, side) => this.onAddSibling(refKey, dir, side),
+        onAddChildSide: (refKey, side) => this.onAddChildSide(refKey, side),
+        onEdit: (key) => this.onEditingKeyChange(key),
+        getViewState: () => this.state.viewState,
+      },
+      theme,
+    );
     return (
       <MindMapViewport
         key={CustomComponentType.MindMapViewport}
         width={width}
         height={height}
+        theme={theme ? theme : undefined}
         scale={view.scale}
         tx={view.tx}
         ty={view.ty}
@@ -619,6 +633,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   }
 }
 
-export function runApp(runtime: Runtime, width: number, height: number): void {
-  runtime.render(<MindmapDemo width={width} height={height} />);
+export function runApp(
+  runtime: Runtime,
+  width: number,
+  height: number,
+  theme?: ThemePalette,
+): void {
+  runtime.render(<MindmapDemo width={width} height={height} theme={theme} />);
 }

@@ -18,8 +18,8 @@ export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<T
 
   for (let i = 0; i < count; i++) {
     const d = document.createElement('div');
-    // 对应 Container width=4, height=4, color=#888
-    d.style.cssText = `width:4px;height:4px;background:#888;flex-shrink:0;`;
+    // 对应 Container width=4, height=4, color=var(--ink-demo-primary)
+    d.style.cssText = `width:4px;height:4px;background:var(--ink-demo-primary);flex-shrink:0;`;
     container.appendChild(d);
   }
   const tBuild1 = performance.now();
@@ -74,7 +74,7 @@ export function createFlexRowColDomNodes(stage: HTMLElement, count: number): Pro
 
     for (let i = start; i < end; i++) {
       const d = document.createElement('div');
-      d.style.cssText = `width:4px;height:4px;background:#888;flex-shrink:0;`;
+      d.style.cssText = `width:4px;height:4px;background:var(--ink-demo-primary);flex-shrink:0;`;
       row.appendChild(d);
     }
     column.appendChild(row);

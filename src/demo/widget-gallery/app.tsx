@@ -1,7 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
-import { Colors } from './constants/colors';
 import { DemoCard } from './widgets/demo-card';
 import { Section } from './widgets/section';
+
+import type { ThemePalette } from '@/styles/theme';
 
 import {
   Center,
@@ -27,7 +28,15 @@ import Runtime from '@/runtime';
  * 演示页面的主入口
  * 展示了核心组件的组合使用方式，包括布局、定位、交互等
  */
-export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: number }) => (
+export const WidgetGalleryDemo = ({
+  width,
+  height,
+  theme,
+}: {
+  width?: number;
+  height?: number;
+  theme: ThemePalette;
+}) => (
   <ScrollView key="root-scroll-view" width={width} height={height}>
     <Container minWidth={width} alignment="center">
       <Column
@@ -46,27 +55,27 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
             fontSize={32}
             height={40}
             lineHeight={40}
-            color={Colors.Text.Title}
+            color={theme.text.primary}
             fontWeight="bold"
           />
           <Text
             key="demo-subtitle"
             text="基于 Canvas 的高性能 UI 渲染框架演示"
             fontSize={16}
-            color={Colors.Text.Light}
+            color={theme.text.secondary}
           />
         </Column>
 
         {/* 基础布局组件 (Container & Padding) */}
-        <Section title="1. 基础容器 (Container & Padding)">
+        <Section title="1. 基础容器 (Container & Padding)" theme={theme}>
           <Row key="container-examples" spacing={20} mainAxisSize={MainAxisSize.Min}>
             {/* 基础容器 */}
-            <DemoCard title="基础样式">
+            <DemoCard title="基础样式" theme={theme}>
               <Container
                 key="basic-container"
                 width={120}
                 height={80}
-                color={Colors.Primary}
+                color={theme.primary}
                 padding={12}
               >
                 <Center>
@@ -74,7 +83,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                     key="basic-text"
                     text="盒子"
                     fontSize={16}
-                    color={Colors.Text.White}
+                    color="#FFFFFF"
                     fontWeight="bold"
                   />
                 </Center>
@@ -82,21 +91,21 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
             </DemoCard>
 
             {/* 圆角容器 */}
-            <DemoCard title="圆角与边框">
+            <DemoCard title="圆角与边框" theme={theme}>
               <Container
                 key="rounded-container"
                 width={120}
                 height={80}
-                color={Colors.Secondary}
+                color={theme.success}
                 borderRadius={12}
-                border={{ width: 2, color: Colors.Warning }}
+                border={{ width: 2, color: theme.warning }}
               >
                 <Center>
                   <Text
                     key="rounded-text"
                     text="圆角"
                     fontSize={16}
-                    color={Colors.Text.White}
+                    color="#FFFFFF"
                     fontWeight="bold"
                   />
                 </Center>
@@ -106,14 +115,14 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
         </Section>
 
         {/* 弹性布局 (Row & Column) */}
-        <Section title="2. 弹性布局 (Row & Column)">
+        <Section title="2. 弹性布局 (Row & Column)" theme={theme}>
           <Column key="flex-examples" spacing={16} mainAxisSize={MainAxisSize.Min}>
-            <DemoCard title="水平布局: 两端对齐" width={400}>
+            <DemoCard title="水平布局: 两端对齐" width={400} theme={theme}>
               <Container
                 key="row-container"
                 width={360}
                 height={60}
-                color={Colors.Background.Base}
+                color={theme.background.surface}
                 padding={8}
                 borderRadius={4}
               >
@@ -128,11 +137,11 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                       key={`row-item-${i}`}
                       width={60}
                       height={44}
-                      color={Colors.Primary}
+                      color={theme.primary}
                       borderRadius={4}
                     >
                       <Center>
-                        <Text key={`t-${i}`} text={`${i}`} color={Colors.Text.White} />
+                        <Text key={`t-${i}`} text={`${i}`} color="#FFFFFF" />
                       </Center>
                     </Container>
                   ))}
@@ -140,12 +149,12 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
               </Container>
             </DemoCard>
 
-            <DemoCard title="垂直布局: 起始对齐" width={400}>
+            <DemoCard title="垂直布局: 起始对齐" width={400} theme={theme}>
               <Container
                 key="col-container"
                 width={360}
                 height={120}
-                color={Colors.Background.Base}
+                color={theme.background.surface}
                 padding={8}
                 borderRadius={4}
               >
@@ -160,11 +169,11 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                       key={`col-item-${i}`}
                       width={100 + i * 40}
                       height={30}
-                      color={Colors.Secondary}
+                      color={theme.success}
                       borderRadius={4}
                     >
                       <Center>
-                        <Text key={`tc-${i}`} text={`项目 ${i}`} color={Colors.Text.White} />
+                        <Text key={`tc-${i}`} text={`项目 ${i}`} color="#FFFFFF" />
                       </Center>
                     </Container>
                   ))}
@@ -175,13 +184,13 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
         </Section>
 
         {/* 层叠布局 (Stack & Positioned) */}
-        <Section title="3. 层叠布局 (Stack & Positioned)">
-          <DemoCard title="头像角标示例">
+        <Section title="3. 层叠布局 (Stack & Positioned)" theme={theme}>
+          <DemoCard title="头像角标示例" theme={theme}>
             <Container
               key="stack-container"
               width={100}
               height={100}
-              color={Colors.Background.Base}
+              color={theme.background.surface}
               borderRadius={8}
             >
               <Stack key="stack-demo">
@@ -190,7 +199,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                   key="avatar"
                   width={80}
                   height={80}
-                  color={Colors.Primary}
+                  color={theme.primary}
                   borderRadius={40}
                   margin={{ left: 10, top: 10 }}
                 />
@@ -200,16 +209,16 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                     key="badge-container"
                     width={24}
                     height={24}
-                    color={Colors.Error}
+                    color={theme.danger}
                     borderRadius={12}
-                    border={{ width: 2, color: Colors.Text.White }}
+                    border={{ width: 2, color: '#FFFFFF' }}
                   >
                     <Center>
                       <Text
                         key="badge-text"
                         text="1"
                         fontSize={12}
-                        color={Colors.Text.White}
+                        color="#FFFFFF"
                         fontWeight="bold"
                       />
                     </Center>
@@ -221,30 +230,30 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
         </Section>
 
         {/* 自动伸缩 (Expanded) */}
-        <Section title="5. 自动伸缩 (Expanded)">
-          <DemoCard title="填充剩余空间" width={400}>
-            <Container key="expanded-container" color={Colors.Background.Base} borderRadius={4}>
+        <Section title="5. 自动伸缩 (Expanded)" theme={theme}>
+          <DemoCard title="填充剩余空间" width={400} theme={theme}>
+            <Container key="expanded-container" color={theme.background.surface} borderRadius={4}>
               <Row key="expanded-row" mainAxisSize={MainAxisSize.Max}>
-                <Container key="fixed-left" width={60} height={50} color={Colors.Primary} />
+                <Container key="fixed-left" width={60} height={50} color={theme.primary} />
                 <Expanded key="expanded-middle" flex={{ flex: 1 }}>
-                  <Container key="flex-content" height={50} color={Colors.Secondary}>
+                  <Container key="flex-content" height={50} color={theme.success}>
                     <Center>
-                      <Text key="flex-text" text="Flex: 1" color={Colors.Text.White} />
+                      <Text key="flex-text" text="Flex: 1" color="#FFFFFF" />
                     </Center>
                   </Container>
                 </Expanded>
-                <Container key="fixed-right" width={60} height={50} color={Colors.Primary} />
+                <Container key="fixed-right" width={60} height={50} color={theme.primary} />
               </Row>
             </Container>
           </DemoCard>
         </Section>
 
         {/* 流式布局 (Wrap) */}
-        <Section title="6. 流式布局 (Wrap)">
-          <DemoCard title="自动换行布局 (响应式宽度)">
+        <Section title="6. 流式布局 (Wrap)" theme={theme}>
+          <DemoCard title="自动换行布局 (响应式宽度)" theme={theme}>
             <Container
               key="wrap-container"
-              color={Colors.Background.Base}
+              color={theme.background.surface}
               padding={10}
               borderRadius={4}
             >
@@ -254,14 +263,14 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                     key={`wrap-item-${i}`}
                     width={80}
                     height={40}
-                    color={Colors.Primary}
+                    color={theme.primary}
                     borderRadius={4}
                   >
                     <Center>
                       <Text
                         key={`wrap-text-${i}`}
                         text={`项目 ${i}`}
-                        color={Colors.Text.White}
+                        color="#FFFFFF"
                         fontSize={12}
                       />
                     </Center>
@@ -273,15 +282,15 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
         </Section>
 
         {/* 图片组件 (Image) */}
-        <Section title="7. 图片展示 (Image)">
-          <DemoCard title="图片填充模式">
+        <Section title="7. 图片展示 (Image)" theme={theme}>
+          <DemoCard title="图片填充模式" theme={theme}>
             <Row key="image-row" spacing={20} mainAxisSize={MainAxisSize.Min}>
               <Column key="image-col-contain" spacing={8} mainAxisSize={MainAxisSize.Min}>
                 <Container
                   key="img-container-1"
                   width={100}
                   height={100}
-                  border={{ width: 1, color: Colors.Border }}
+                  border={{ width: 1, color: theme.border.base }}
                 >
                   <Image
                     key="img-contain"
@@ -290,38 +299,41 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                     fit={ImageFit.Contain}
                   />
                 </Container>
-                <Text key="txt-contain" text="Contain" fontSize={12} color={Colors.Text.Body} />
+                <Text key="txt-contain" text="Contain" fontSize={12} color={theme.text.primary} />
               </Column>
               <Column key="image-col-cover" spacing={8} mainAxisSize={MainAxisSize.Min}>
                 <Container
                   key="img-container-2"
                   width={100}
                   height={100}
-                  border={{ width: 1, color: Colors.Border }}
+                  border={{ width: 1, color: theme.border.base }}
                 >
                   <Image key="img-cover" type="image" src="/assets/logo.png" fit={ImageFit.Cover} />
                 </Container>
-                <Text key="txt-cover" text="Cover" fontSize={12} color={Colors.Text.Body} />
+                <Text key="txt-cover" text="Cover" fontSize={12} color={theme.text.primary} />
               </Column>
             </Row>
           </DemoCard>
         </Section>
 
         {/* 间距组件 (SizedBox) */}
-        <Section title="8. 间距组件 (SizedBox)">
-          <DemoCard title="固定间距">
+        <Section title="8. 间距组件 (SizedBox)" theme={theme}>
+          <DemoCard title="固定间距" theme={theme}>
             <Row key="sizedbox-row" mainAxisSize={MainAxisSize.Min}>
-              <Container key="box1" width={50} height={50} color={Colors.Primary} />
+              <Container key="box1" width={50} height={50} color={theme.primary} />
               <SizedBox key="spacer" width={30} />
-              <Container key="box2" width={50} height={50} color={Colors.Secondary} />
+              <Container key="box2" width={50} height={50} color={theme.success} />
             </Row>
           </DemoCard>
         </Section>
 
         {/* 滚动视图 (ScrollView) */}
-        <Section title="9. 滚动视图 (ScrollView)">
-          <DemoCard title="可滚动内容">
-            <Container key="scroll-container-wrapper" border={{ width: 1, color: Colors.Border }}>
+        <Section title="9. 滚动视图 (ScrollView)" theme={theme}>
+          <DemoCard title="可滚动内容" theme={theme}>
+            <Container
+              key="scroll-container-wrapper"
+              border={{ width: 1, color: theme.border.base }}
+            >
               <ScrollView key="inner-scroll-view" width={200} height={150}>
                 <Column key="scroll-col" spacing={10} padding={10} mainAxisSize={MainAxisSize.Min}>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -329,14 +341,14 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                       key={`scroll-item-${i}`}
                       width={160}
                       height={30}
-                      color={i % 2 === 0 ? Colors.Primary : Colors.Secondary}
+                      color={i % 2 === 0 ? theme.primary : theme.success}
                       borderRadius={4}
                     >
                       <Center>
                         <Text
                           key={`scroll-text-${i}`}
                           text={`滚动项目 ${i}`}
-                          color={Colors.Text.White}
+                          color="#FFFFFF"
                           fontSize={12}
                         />
                       </Center>
@@ -349,20 +361,20 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
         </Section>
 
         {/* 交互演示 (Interaction) */}
-        <Section title="10. 交互演示 (Interaction)">
-          <DemoCard title="点击与光标">
+        <Section title="10. 交互演示 (Interaction)" theme={theme}>
+          <DemoCard title="点击与光标" theme={theme}>
             <Row key="interaction-row" spacing={20} mainAxisSize={MainAxisSize.Min}>
               <Container
                 key="btn-click"
                 width={100}
                 height={40}
-                color={Colors.Primary}
+                color={theme.primary}
                 borderRadius={4}
                 cursor="pointer"
                 onClick={() => console.log('点击了按钮')}
               >
                 <Center>
-                  <Text key="btn-text" text="点击我" color={Colors.Text.White} />
+                  <Text key="btn-text" text="点击我" color="#FFFFFF" />
                 </Center>
               </Container>
 
@@ -370,12 +382,12 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
                 key="btn-hover"
                 width={100}
                 height={40}
-                color={Colors.Secondary}
+                color={theme.success}
                 borderRadius={4}
                 cursor="not-allowed"
               >
                 <Center>
-                  <Text key="hover-text" text="禁止点击" color={Colors.Text.White} />
+                  <Text key="hover-text" text="禁止点击" color="#FFFFFF" />
                 </Center>
               </Container>
             </Row>
@@ -388,7 +400,7 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
             key="scroll-end"
             text="已经到达底部，没有更多了"
             fontSize={12}
-            color={Colors.Text.Body}
+            color={theme.text.primary}
           />
         </Padding>
       </Column>
@@ -396,6 +408,6 @@ export const WidgetGalleryDemo = ({ width, height }: { width?: number; height?: 
   </ScrollView>
 );
 
-export function runApp(runtime: Runtime, width: number, height: number) {
-  runtime.render(<WidgetGalleryDemo width={width} height={height} />);
+export function runApp(runtime: Runtime, width: number, height: number, theme: ThemePalette) {
+  runtime.render(<WidgetGalleryDemo width={width} height={height} theme={theme} />);
 }

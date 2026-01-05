@@ -5,6 +5,7 @@ import { detPos } from './helper';
 import type { Timings } from '@/benchmark/metrics/collector';
 
 import { measureNextPaint } from '@/benchmark/metrics/collector';
+import { getThemeColor } from '@/benchmark/utils/theme';
 import { NextText, Positioned, Stack } from '@/core';
 import { WidgetRegistry } from '@/core/registry';
 import { Canvas2DRenderer } from '@/renderer/canvas2d/canvas-2d-renderer';
@@ -12,6 +13,7 @@ import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 function buildTextJSX(count: number, W: number, H: number) {
+  const textColor = getThemeColor('--ink-demo-text-primary');
   return (
     <Stack key="perf-text-v2">
       {Array.from({ length: count }).map((_, i) => {
@@ -24,7 +26,7 @@ function buildTextJSX(count: number, W: number, H: number) {
               fontSize={12}
               lineHeight={12}
               fontWeight={'normal'}
-              color={'#111827'}
+              color={textColor}
               fontFamily={'Arial, sans-serif'}
             />
           </Positioned>

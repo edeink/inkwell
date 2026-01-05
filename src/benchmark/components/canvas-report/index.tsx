@@ -2,6 +2,8 @@ import { Card, Col, Row, Statistic, Typography } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
 
+import { getThemeColor } from '../../utils/theme';
+
 import styles from './index.module.less';
 
 import type { TestResult } from '../../index.types';
@@ -40,8 +42,19 @@ export default function CanvasReport({ results }: Props) {
     if (!metrics) {
       return {};
     }
+    const bgBase = getThemeColor('--ink-demo-bg-base');
+    const colorPrimary = getThemeColor('--ink-demo-primary');
+    const colorSuccess = getThemeColor('--ink-demo-success');
+    const colorWarning = getThemeColor('--ink-demo-warning');
+    // 文本颜色可以使用 var 变量，ECharts 在 textStyle 中支持
+    const textPrimary = 'var(--ink-demo-text-primary)';
+
     return {
-      title: { text: '阶段耗时占比', left: 'center' },
+      title: {
+        text: '阶段耗时占比',
+        left: 'center',
+        textStyle: { color: textPrimary },
+      },
       tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
       series: [
         {
@@ -51,7 +64,7 @@ export default function CanvasReport({ results }: Props) {
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
-            borderColor: '#fff',
+            borderColor: bgBase,
             borderWidth: 2,
           },
           label: {
@@ -63,6 +76,7 @@ export default function CanvasReport({ results }: Props) {
               show: true,
               fontSize: 20,
               fontWeight: 'bold',
+              color: textPrimary,
             },
           },
           labelLine: {
@@ -72,17 +86,17 @@ export default function CanvasReport({ results }: Props) {
             {
               value: parseFloat(metrics.buildPct.toFixed(1)),
               name: 'Build',
-              itemStyle: { color: '#1890ff' },
+              itemStyle: { color: colorPrimary },
             },
             {
               value: parseFloat(metrics.layoutPct.toFixed(1)),
               name: 'Layout',
-              itemStyle: { color: '#52c41a' },
+              itemStyle: { color: colorSuccess },
             },
             {
               value: parseFloat(metrics.paintPct.toFixed(1)),
               name: 'Paint',
-              itemStyle: { color: '#faad14' },
+              itemStyle: { color: colorWarning },
             },
           ],
         },
@@ -94,8 +108,17 @@ export default function CanvasReport({ results }: Props) {
     if (!metrics) {
       return {};
     }
+    const colorPrimary = getThemeColor('--ink-demo-primary');
+    const colorSuccess = getThemeColor('--ink-demo-success');
+    const colorWarning = getThemeColor('--ink-demo-warning');
+    const textPrimary = 'var(--ink-demo-text-primary)';
+
     return {
-      title: { text: '总耗时分解 (ms)' },
+      textStyle: { color: textPrimary },
+      title: {
+        text: '总耗时分解 (ms)',
+        textStyle: { color: textPrimary },
+      },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', data: ['Total Time Breakdown'] },
@@ -106,21 +129,21 @@ export default function CanvasReport({ results }: Props) {
           type: 'bar',
           stack: 'total',
           data: [metrics.build],
-          itemStyle: { color: '#1890ff' },
+          itemStyle: { color: colorPrimary },
         },
         {
           name: 'Layout',
           type: 'bar',
           stack: 'total',
           data: [metrics.layout],
-          itemStyle: { color: '#52c41a' },
+          itemStyle: { color: colorSuccess },
         },
         {
           name: 'Paint',
           type: 'bar',
           stack: 'total',
           data: [metrics.paint],
-          itemStyle: { color: '#faad14' },
+          itemStyle: { color: colorWarning },
         },
       ],
     };
@@ -133,7 +156,7 @@ export default function CanvasReport({ results }: Props) {
   return (
     <div className={styles.report}>
       <div className={styles.header}>
-        <Title level={4} style={{ margin: 0 }}>
+        <Title level={4} style={{ margin: 0, color: 'var(--ink-demo-text-primary)' }}>
           性能测试报告
         </Title>
         <div className={styles.nodeCount}>节点数量: {metrics.nodes}</div>
@@ -141,56 +164,50 @@ export default function CanvasReport({ results }: Props) {
 
       <Row gutter={16}>
         <Col span={6}>
-          <Card bordered={false} style={{ background: '#fafafa' }}>
+          <Card bordered={false} className={styles.cardTotal}>
             <Statistic
               title="Total Duration"
               value={metrics.totalTime}
               precision={1}
               suffix="ms"
-              valueStyle={{ fontWeight: 'bold' }}
+              valueStyle={{ fontWeight: 'bold', color: 'var(--ink-demo-text-primary)' }}
             />
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ background: '#f0f5ff' }}>
+          <Card bordered={false} className={styles.cardBuild}>
             <Statistic
               title="Build"
               value={metrics.buildPct}
               precision={1}
               suffix="%"
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: 'var(--ink-demo-primary)' }}
             />
-            <div style={{ marginTop: 8, color: '#666', fontSize: 12 }}>
-              耗时: {metrics.build.toFixed(1)}ms
-            </div>
+            <div className={styles.statLabel}>耗时: {metrics.build.toFixed(1)}ms</div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ background: '#f6ffed' }}>
+          <Card bordered={false} className={styles.cardLayout}>
             <Statistic
               title="Layout"
               value={metrics.layoutPct}
               precision={1}
               suffix="%"
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: 'var(--ink-demo-success)' }}
             />
-            <div style={{ marginTop: 8, color: '#666', fontSize: 12 }}>
-              耗时: {metrics.layout.toFixed(1)}ms
-            </div>
+            <div className={styles.statLabel}>耗时: {metrics.layout.toFixed(1)}ms</div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ background: '#fff7e6' }}>
+          <Card bordered={false} className={styles.cardPaint}>
             <Statistic
               title="Paint"
               value={metrics.paintPct}
               precision={1}
               suffix="%"
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: 'var(--ink-demo-warning)' }}
             />
-            <div style={{ marginTop: 8, color: '#666', fontSize: 12 }}>
-              耗时: {metrics.paint.toFixed(1)}ms
-            </div>
+            <div className={styles.statLabel}>耗时: {metrics.paint.toFixed(1)}ms</div>
           </Card>
         </Col>
       </Row>

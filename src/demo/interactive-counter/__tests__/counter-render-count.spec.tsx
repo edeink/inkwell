@@ -5,6 +5,7 @@ import { InteractiveCounterDemo } from '../app';
 import { ClassButton as Button } from '../widgets/class-button';
 
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 
 // 模拟 Canvas 注册表和渲染器
 const mockRenderer = {
@@ -131,7 +132,10 @@ describe('计数器渲染计数', () => {
     // const renderSpy = vi.spyOn(Button.prototype, 'render');
 
     // 挂载 Template
-    const root = new InteractiveCounterDemo({ type: 'InteractiveCounterDemo' });
+    const root = new InteractiveCounterDemo({
+      type: 'InteractiveCounterDemo',
+      theme: Themes.light,
+    });
     (runtime as any).rootWidget = root;
     root.runtime = runtime;
 

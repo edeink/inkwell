@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import Runtime from '@/runtime';
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
 export interface InkwellCanvasProps {
   className?: string;
@@ -27,7 +28,7 @@ export interface InkwellCanvasProps {
 export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
   className,
   style,
-  background = '#ffffff',
+  background,
   backgroundAlpha = 1,
   onRuntimeReady,
   onResize,
@@ -57,14 +58,13 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
     let isActive = true;
 
     const initRuntime = async () => {
-      // 如果通过 prop 提供了自定义设置逻辑，我们不会在此处自动创建 runtime
-      // 但目前 InkwellCanvas 设计为创建 runtime。
-      // 为了支持外部控制，我们可能需要更改此设置。
-      // 然而，目前让我们保持简单：创建 runtime，然后调用 onRuntimeReady。
+      // 获取当前主题背景色
+      const themeBg = Themes[getCurrentThemeMode()].background.base;
+      const finalBackground = background || themeBg;
 
       const runtime = await Runtime.create(containerId, {
         renderer: 'canvas2d',
-        background,
+        background: finalBackground,
         backgroundAlpha,
       });
 

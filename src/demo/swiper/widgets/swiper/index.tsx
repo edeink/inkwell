@@ -2,6 +2,8 @@
 // @ts-nocheck
 import { easeSharp } from './easing';
 
+import type { ThemePalette } from '@/styles/theme';
+
 import {
   Center,
   ClipRect,
@@ -24,6 +26,7 @@ export interface SwiperProps extends WidgetProps {
   autoplay?: boolean;
   interval?: number; // 默认 3000ms
   duration?: number; // 默认 300ms
+  theme?: ThemePalette;
 }
 
 interface SwiperState {
@@ -231,10 +234,11 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
     const { currentIndex, offset } = this.state;
 
     if (!items || items.length === 0) {
+      const { theme } = this.props;
       return (
-        <Container width={width} height={height} color="#f0f0f0">
+        <Container width={width} height={height} color={theme?.background?.surface ?? '#f0f0f0'}>
           <Center>
-            <Text text="No Items" />
+            <Text text="No Items" color={theme?.text?.primary ?? '#000000'} />
           </Center>
         </Container>
       );

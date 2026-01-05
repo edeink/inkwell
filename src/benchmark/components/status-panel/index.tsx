@@ -74,7 +74,7 @@ export default function StatusPanel({
               </span>
               <Tooltip title="展示整体测试完成度">
                 <span className={styles.hourglass} data-testid="hourglass">
-                  <HourglassTwoTone twoToneColor="#1677ff" />
+                  <HourglassTwoTone twoToneColor="var(--ink-demo-primary)" />
                 </span>
               </Tooltip>
             </>
@@ -93,7 +93,12 @@ export default function StatusPanel({
           )}
         </Space>
         <div className={styles.progressRow}>
-          <Progress percent={overallPercent} size="small" />
+          <Progress
+            percent={overallPercent}
+            size="small"
+            strokeColor="var(--ink-demo-primary)"
+            trailColor="var(--ink-demo-bg-surface)"
+          />
         </div>
       </div>
 
@@ -103,10 +108,14 @@ export default function StatusPanel({
             <span className={styles.taskTitle}>{it.name}</span>
             <div className={styles.taskRight}>
               {it.status === TestStatus.Done ? (
-                <CheckCircleTwoTone twoToneColor="#52c41a" />
+                <CheckCircleTwoTone twoToneColor="var(--ink-demo-success)" />
               ) : (
                 <ClockCircleTwoTone
-                  twoToneColor={it.status === TestStatus.Running ? '#1677ff' : '#aaa'}
+                  twoToneColor={
+                    it.status === TestStatus.Running
+                      ? 'var(--ink-demo-primary)'
+                      : 'var(--ink-demo-text-secondary)'
+                  }
                 />
               )}
               <Tag

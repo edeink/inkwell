@@ -9,6 +9,9 @@
     gap: 8px;
     align-items: center;
     position: relative;
+    background: var(--ink-demo-bg-surface);
+    border: 1px solid var(--ink-demo-border-secondary);
+    border-radius: 6px;
 
     &::before {
       content: '';
@@ -17,7 +20,7 @@
       top: 0;
       bottom: 0;
       width: 2px;
-      background: rgb(0 0 0 / 6%);
+      background: var(--ink-demo-border-secondary);
       border-radius: 2px;
     }
 
@@ -28,10 +31,6 @@
       min-width: 0;
 
       .kvKey {
-        width: 100%;
-      }
-
-      :global(.ant-input) {
         width: 100%;
       }
     }
@@ -45,16 +44,6 @@
       .kvValue {
         width: 100%;
         min-width: 0;
-      }
-
-      :global(.ant-input),
-      :global(.ant-input-number),
-      :global(.ant-input-number-input) {
-        width: 100%;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
 
       .nested {

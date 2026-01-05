@@ -103,7 +103,7 @@ function DevToolsPanel(props: DevToolsProps) {
           <Button
             type="text"
             aria-pressed={activeInspect}
-            style={{ color: activeInspect ? '#1677ff' : undefined }}
+            style={{ color: activeInspect ? 'var(--ink-demo-primary)' : undefined }}
             icon={<AimOutlined />}
             onClick={() => setActiveInspect((v) => !v)}
           />

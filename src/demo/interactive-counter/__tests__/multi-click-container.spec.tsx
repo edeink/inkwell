@@ -6,11 +6,12 @@ import { InteractiveCounterDemo } from '../app';
 import { dispatchToTree } from '@/core/events';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
+import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('Container onClick 可多次触发（计数累加）', () => {
   it('连续两次点击均触发 onClick，状态累计为 2', () => {
-    const json = compileElement(<InteractiveCounterDemo />);
+    const json = compileElement(<InteractiveCounterDemo theme={Themes.light} />);
     const root = WidgetRegistry.createWidget(json)!;
     root.createElement(root.data);
     const btn = findWidget(root as any, '#counter-btn') as any;

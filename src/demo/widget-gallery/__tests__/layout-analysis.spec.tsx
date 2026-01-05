@@ -5,6 +5,7 @@ import { WidgetGalleryDemo } from '../app';
 import { createBoxConstraints, Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
 import { ScrollView } from '@/core/viewport/scroll-view';
+import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 // 按 key 查找 Widget 的辅助函数
@@ -50,7 +51,9 @@ describe('完整 Demo 标签页布局分析', () => {
   it('场景 1：标准桌面 (800x600) - 应居中', () => {
     const viewportWidth = 800;
     const viewportHeight = 600;
-    const template = <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} />;
+    const template = (
+      <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} theme={Themes.light} />
+    );
     const root = buildTree(template) as ScrollView;
 
     // 执行布局
@@ -78,7 +81,9 @@ describe('完整 Demo 标签页布局分析', () => {
   it('场景 2：大屏幕 (1200x800) - 应居中', () => {
     const viewportWidth = 1200;
     const viewportHeight = 800;
-    const template = <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} />;
+    const template = (
+      <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} theme={Themes.light} />
+    );
     const root = buildTree(template) as ScrollView;
 
     root.layout(
@@ -110,7 +115,9 @@ describe('完整 Demo 标签页布局分析', () => {
 
     const viewportWidth = 350; // < 432 (卡片宽度 200 * 2 + spacing 16 + padding 16 = 432?)
     const viewportHeight = 800;
-    const template = <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} />;
+    const template = (
+      <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} theme={Themes.light} />
+    );
     const root = buildTree(template) as ScrollView;
 
     root.layout(
@@ -145,7 +152,9 @@ describe('完整 Demo 标签页布局分析', () => {
   it('Scenario 4: Short Screen (800x400) - Should Scroll Vertical', () => {
     const viewportWidth = 800;
     const viewportHeight = 400;
-    const template = <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} />;
+    const template = (
+      <WidgetGalleryDemo width={viewportWidth} height={viewportHeight} theme={Themes.light} />
+    );
     const root = buildTree(template) as ScrollView;
 
     root.layout(

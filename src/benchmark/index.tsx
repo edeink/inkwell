@@ -3,6 +3,7 @@ import { Button, Modal, Space } from 'antd';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import '../styles/colors.css';
 import CanvasReport from './components/canvas-report';
 import CompareView from './components/compare-view';
 import ControlPanel from './components/control-panel';
@@ -469,6 +470,13 @@ function App() {
         styles={{
           body: {
             padding: 0,
+            backgroundColor: 'var(--ink-demo-bg-base)',
+          },
+          content: {
+            backgroundColor: 'var(--ink-demo-bg-base)',
+          },
+          header: {
+            backgroundColor: 'var(--ink-demo-bg-base)',
           },
         }}
         onCancel={stop}

@@ -9,6 +9,7 @@ import { RowHeaders } from './widgets/row-header';
 import type { CellPosition, SelectionRange } from './types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
+import type { ThemePalette } from '@/styles/theme';
 
 import { Container, Positioned, Stack } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
@@ -24,6 +25,7 @@ interface ResizingState {
 export interface SpreadsheetProps extends WidgetProps {
   width: number;
   height: number;
+  theme: ThemePalette;
   model?: SpreadsheetModel;
   /**
    * 是否显示网格线
@@ -352,7 +354,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   };
 
   render() {
-    const { width, height } = this.props;
+    const { width, height, theme } = this.props;
     const { config } = this.model;
     const { scrollX, scrollY, selection, editingCell, resizing } = this.state;
 
@@ -363,7 +365,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
       <Container
         width={width}
         height={height}
-        color="#ffffff"
+        color={theme.background.base}
         onPointerMove={resizing ? this.handleResizeMove : undefined}
         onPointerUp={resizing ? this.handleResizeEnd : undefined}
       >
@@ -385,8 +387,9 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
             >
               <SpreadsheetGrid
                 showGridLines={this.props.showGridLines ?? true}
-                gridLineColor={this.props.gridLineColor ?? '#E5E5E5'}
+                gridLineColor={this.props.gridLineColor ?? theme.border.base}
                 model={this.model}
+                theme={theme}
                 scrollX={scrollX}
                 scrollY={scrollY}
                 viewportWidth={viewportWidth}
@@ -401,47 +404,45 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
             </ScrollView>
           </Positioned>
 
-          {/* 2. 列头 (顶部固定) */}
+          {/* 2. 列头 (固定在顶部) */}
           <Positioned
             left={config.headerWidth}
             top={0}
             width={viewportWidth}
             height={config.headerHeight}
           >
-            <Container overflow="hidden">
-              <ColumnHeaders
-                model={this.model}
-                scrollX={scrollX}
-                viewportWidth={viewportWidth}
-                selection={selection}
-                onResizeStart={(idx, e) => this.handleResizeStart('col', idx, e)}
-                onHeaderClick={this.handleColHeaderClick}
-              />
-            </Container>
+            <ColumnHeaders
+              model={this.model}
+              theme={theme}
+              scrollX={scrollX}
+              viewportWidth={viewportWidth}
+              selection={selection}
+              onResizeStart={(idx, e) => this.handleResizeStart('col', idx, e)}
+              onHeaderClick={(colIndex, e) => this.handleColHeaderClick(colIndex, e)}
+            />
           </Positioned>
 
-          {/* 3. 行头 (左侧固定) */}
+          {/* 3. 行头 (固定在左侧) */}
           <Positioned
             left={0}
             top={config.headerHeight}
             width={config.headerWidth}
             height={viewportHeight}
           >
-            <Container overflow="hidden">
-              <RowHeaders
-                model={this.model}
-                scrollY={scrollY}
-                viewportHeight={viewportHeight}
-                selection={selection}
-                onResizeStart={(idx, e) => this.handleResizeStart('row', idx, e)}
-                onHeaderClick={this.handleRowHeaderClick}
-              />
-            </Container>
+            <RowHeaders
+              model={this.model}
+              theme={theme}
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              selection={selection}
+              onResizeStart={(idx, e) => this.handleResizeStart('row', idx, e)}
+              onHeaderClick={(rowIndex, e) => this.handleRowHeaderClick(rowIndex, e)}
+            />
           </Positioned>
 
           {/* 4. 角落表头 */}
           <Positioned left={0} top={0} width={config.headerWidth} height={config.headerHeight}>
-            <CornerHeader width={config.headerWidth} height={config.headerHeight} />
+            <CornerHeader width={config.headerWidth} height={config.headerHeight} theme={theme} />
           </Positioned>
         </Stack>
       </Container>

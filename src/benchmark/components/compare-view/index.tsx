@@ -114,13 +114,13 @@ export default function CompareView({
         .map(
           (d) =>
             `<li><strong>${d.field}</strong>: ${d.baseline.toFixed(1)} → ` +
-            `<span style="color:#dc2626">${d.current.toFixed(1)} ` +
+            `<span style="color:var(--ink-demo-error)">${d.current.toFixed(1)} ` +
             `(${(d.deltaPercent * 100).toFixed(1)}%)</span></li>`,
         )
         .join('');
       return `<div><h4 style="margin:6px 0">${name} @ ${nodes}</h4><ul>${items}</ul></div>`;
     });
-    return `<div><h3 style="margin:6px 0;color:#dc2626">性能劣化警报（>${(
+    return `<div><h3 style="margin:6px 0;color:var(--ink-demo-error)">性能劣化警报（>${(
       thresholdPercent * 100
     ).toFixed(0)}%）</h3>${rows.join('')}</div>`;
   }, [showHistory, baseline, results, thresholdPercent]);

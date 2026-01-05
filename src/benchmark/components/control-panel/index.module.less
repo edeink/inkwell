@@ -1,11 +1,11 @@
 @space-1: 8px;
 @space-2: 16px;
 @space-3: 24px;
-@color-bg: #ffffff;
-@color-surface: #f7f7f7;
-@color-border: #e5e7eb;
-@text-muted: #6b7280;
-@text-default: #111827;
+@color-bg: var(--ink-demo-bg-base, #ffffff);
+@color-surface: var(--ink-demo-bg-surface, #f7f7f7);
+@color-border: var(--ink-demo-border, #e5e7eb);
+@text-muted: var(--ink-demo-text-secondary, #6b7280);
+@text-default: var(--ink-demo-text-primary, #111827);
 
 .panel {
   display: flex;
@@ -64,7 +64,7 @@
 
 .textSmall {
   font-size: 12px;
-  color: #374151;
+  color: var(--ink-demo-text-primary, #374151);
 }
 
 .divider {
@@ -98,25 +98,40 @@
   filter: brightness(0.98);
 }
 
-.actionButton:active,
-.presetButton:active {
-  transform: translateY(1px);
+.stopButton {
+  /* Ensure stop button uses error color from theme */
+  color: var(--ink-demo-error) !important;
+  border-color: var(--ink-demo-error) !important;
+  background: transparent;
+
+  &:hover:not(:disabled) {
+    color: var(--ink-demo-error) !important;
+    border-color: var(--ink-demo-error) !important;
+    background: color-mix(in srgb, var(--ink-demo-error) 10%, transparent);
+  }
 }
 
-@media (width <= 480px) {
-  .sectionTitle {
-    font-size: 14px;
-  }
+.tabs {
+  /* Ensure tabs respond to theme */
+  :global {
+    .ant-tabs-tab {
+      color: var(--ink-demo-text-secondary);
 
-  .label {
-    font-size: 12px;
-  }
+      &:hover {
+        color: var(--ink-demo-primary);
+      }
+    }
 
-  .fieldRow {
-    grid-template-columns: 1fr;
-  }
+    .ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: var(--ink-demo-primary) !important;
+    }
 
-  .actions {
-    justify-content: stretch;
+    .ant-tabs-ink-bar {
+      background: var(--ink-demo-primary) !important;
+    }
   }
+}
+
+.hint {
+  color: var(--ink-demo-text-secondary) !important;
 }

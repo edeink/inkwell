@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+
+import { useTheme } from '../../styles/theme';
 import { InkwellCanvas } from '../common/inkwell-canvas';
 
 import { runApp } from './app';
@@ -11,13 +14,26 @@ export const meta = {
 };
 
 export default function WidgetGalleryDemo() {
+  const theme = useTheme();
+  const runtimeRef = useRef<Runtime | null>(null);
+  const sizeRef = useRef({ width: 0, height: 0 });
+
   const handleRuntimeReady = (runtime: Runtime) => {
-    runApp(runtime, 0, 0);
+    runtimeRef.current = runtime;
+    runApp(runtime, sizeRef.current.width, sizeRef.current.height, theme);
   };
 
   const handleResize = (width: number, height: number, runtime: Runtime) => {
-    runApp(runtime, width, height);
+    sizeRef.current = { width, height };
+    runtimeRef.current = runtime;
+    runApp(runtime, width, height, theme);
   };
+
+  useEffect(() => {
+    if (runtimeRef.current) {
+      runApp(runtimeRef.current, sizeRef.current.width, sizeRef.current.height, theme);
+    }
+  }, [theme]);
 
   return (
     <InkwellCanvas

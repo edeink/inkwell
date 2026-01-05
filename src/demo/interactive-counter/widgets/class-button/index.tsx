@@ -1,4 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
+import type { ThemePalette } from '@/styles/theme';
+
 import {
   Container,
   MainAxisAlignment,
@@ -13,6 +15,7 @@ import {
 
 export interface ButtonProps extends WidgetProps {
   onClick?: (e: InkwellEvent) => void;
+  theme: ThemePalette;
 }
 
 export interface ButtonState {
@@ -34,7 +37,7 @@ export class ClassButton extends StatefulWidget<ButtonProps, ButtonState> {
         key="counter-btn"
         width={180}
         height={48}
-        color={'#1677ff'}
+        color={this.props.theme.primary}
         borderRadius={8}
         onClick={this.props.onClick}
       >

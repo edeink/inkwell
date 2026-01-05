@@ -253,7 +253,10 @@ export default function ControlPanel({
               onChange={(v) => v && setCanvasNodeCount(Number(v))}
             />
           </div>
-          <div className={styles.hint} style={{ color: '#999', fontSize: 12, marginTop: 8 }}>
+          <div
+            className={styles.hint}
+            style={{ color: 'var(--ink-demo-text-secondary)', fontSize: 12, marginTop: 8 }}
+          >
             * 该模式下仅执行单次测试，不进行 DOM 对比
           </div>
         </div>
@@ -269,12 +272,13 @@ export default function ControlPanel({
         items={items}
         centered
         style={{ marginBottom: 16 }}
+        className={styles.tabs}
       />
 
       <div className={styles.section}>
         <div className={styles.actions}>
           <Button
-            className={styles.actionButton}
+            className={`${styles.actionButton} ${styles.stopButton}`}
             danger
             onClick={stop}
             disabled={!loading}

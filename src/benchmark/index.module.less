@@ -1,6 +1,6 @@
 .runningHint {
   margin: 12px 0;
-  color: #1677ff;
+  color: var(--ink-demo-primary, #1677ff);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -62,11 +62,22 @@
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
-  background: #ff4d4f;
+  background: var(--ink-demo-danger, #ff4d4f);
   color: #fff;
   font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.stopBtn:hover {
+  opacity: 0.85;
 }
 
 .modalBodyWrap {
   position: relative;
+  background-color: var(--ink-demo-bg-base, #fff);
+}
+
+.modalContent {
+  background-color: var(--ink-demo-bg-base, #fff) !important;
 }

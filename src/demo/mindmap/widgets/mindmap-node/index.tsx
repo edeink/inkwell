@@ -389,8 +389,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    */
   render() {
     const st = this.state as MindMapNodeProps;
-    const theme = getTheme();
     const props = this.props as MindMapNodeProps;
+    const theme = props.theme || getTheme();
     const editing = props.isEditing;
     const selected = !!props.selected;
     const active = typeof props.active === 'boolean' ? props.active : props.activeKey === this.key;

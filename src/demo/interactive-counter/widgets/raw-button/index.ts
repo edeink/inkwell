@@ -1,4 +1,5 @@
 import type { BoxConstraints, BuildContext, InkwellEvent, Size, WidgetProps } from '@/core';
+import type { ThemePalette } from '@/styles/theme';
 
 import { Widget } from '@/core';
 
@@ -6,6 +7,7 @@ export interface RawButtonProps extends WidgetProps {
   onClick?: (e: InkwellEvent) => void;
   width?: number;
   height?: number;
+  theme: ThemePalette;
 }
 
 /**
@@ -51,6 +53,7 @@ export class RawButton extends Widget<RawButtonProps> {
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const { size } = this.renderObject;
+    const { theme } = this.props;
 
     // 绘制背景 (圆角矩形)
     renderer.drawRect({
@@ -58,7 +61,7 @@ export class RawButton extends Widget<RawButtonProps> {
       y: 0,
       width: size.width,
       height: size.height,
-      fill: '#1677ff',
+      fill: theme.primary,
       borderRadius: 8,
     });
 

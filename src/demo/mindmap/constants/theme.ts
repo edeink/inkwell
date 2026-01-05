@@ -3,12 +3,21 @@
  * 提供两套配色方案（dark / light），并暴露全局订阅与切换 API。
  * 组件通过导入本模块获取语义化颜色，避免使用硬编码颜色值。
  *
+ * 注意：本模块已重构为使用全局主题系统 (@/demo/styles/theme) 作为数据源。
+ *
  * @module ThemeConfig
  */
 
 import React from 'react';
 
-export type ThemeName = 'light' | 'dark';
+import {
+  Themes as GlobalThemes,
+  getCurrentThemeMode,
+  subscribeToThemeChange,
+  type ThemeMode,
+} from '../../../styles/theme';
+
+export type ThemeName = ThemeMode;
 
 export interface ThemePalette {
   primaryColor: string;
@@ -43,24 +52,6 @@ export interface ThemePalette {
 /**
  * 语义化颜色配置对象
  * @typedef {Object} ThemePalette
- * @property {string} primaryColor 主色
- * @property {string} secondaryColor 次要色
- * @property {string} backgroundColor 背景色
- * @property {string} textColor 文本色
- * @property {string} highlightColor 高亮主色（描边）
- * @property {string} highlightFillColor 高亮填充色
- * @property {string} minimapBackgroundColor 小地图背景色
- * @property {string} nodeFillColor 节点填充色
- * @property {string} connectorColor 连接线颜色
- * @property {string} nodeActiveBorderColor 节点激活边框色
- * @property {string} nodeActiveFillColor 节点激活填充色
- * @property {string} nodeSelectedBorderColor 节点选中边框色
- * @property {string} nodeSelectedFillColor 节点选中填充色
- * @property {string} nodeHoverBorderColor 节点悬停边框色
- * @property {string} nodeDefaultBorderColor 节点默认边框色
- * @property {string} nodeEditBorderColor 节点编辑边框色
- * @property {string} nodeEditFillColor 节点编辑填充色
- * @property {string} nodeTextSelectionFillColor 节点文本选区填充色
  */
 
 /**
@@ -69,10 +60,10 @@ export interface ThemePalette {
  */
 export const Themes: Record<ThemeName, ThemePalette> = {
   light: {
-    primaryColor: '#1677ff',
-    secondaryColor: '#8c8c8c',
-    backgroundColor: '#ffffff',
-    textColor: '#1f1f1f',
+    primaryColor: GlobalThemes.light.primary,
+    secondaryColor: GlobalThemes.light.secondary,
+    backgroundColor: GlobalThemes.light.background.base,
+    textColor: GlobalThemes.light.text.primary,
     highlightColor: 'rgba(64,158,255,0.95)',
     highlightFillColor: 'rgba(64,158,255,0.18)',
     minimapBackgroundColor: 'rgba(0,0,0,0.08)',
@@ -88,17 +79,17 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeEditFillColor: 'rgba(22, 119, 255, 0.15)',
     nodeTextSelectionFillColor: 'rgba(22, 119, 255, 0.3)',
     placeholder: {
-      textColor: '#999999',
+      textColor: GlobalThemes.light.text.placeholder,
       fontSize: 14,
       textAlign: 'left',
       lineHeight: 1.5,
     },
   },
   dark: {
-    primaryColor: '#1677ff',
-    secondaryColor: '#bfbfbf',
-    backgroundColor: '#141414',
-    textColor: '#e6f4ff',
+    primaryColor: GlobalThemes.dark.primary,
+    secondaryColor: GlobalThemes.dark.secondary,
+    backgroundColor: GlobalThemes.dark.background.base,
+    textColor: GlobalThemes.dark.text.primary,
     highlightColor: 'rgba(91,169,255,0.95)',
     highlightFillColor: 'rgba(91,169,255,0.24)',
     minimapBackgroundColor: 'rgba(255,255,255,0.08)',
@@ -114,7 +105,7 @@ export const Themes: Record<ThemeName, ThemePalette> = {
     nodeEditFillColor: 'rgba(23, 125, 220, 0.3)',
     nodeTextSelectionFillColor: 'rgba(23, 125, 220, 0.4)',
     placeholder: {
-      textColor: 'rgba(255, 255, 255, 0.45)',
+      textColor: GlobalThemes.dark.text.placeholder,
       fontSize: 14,
       textAlign: 'left',
       lineHeight: 1.5,
@@ -122,18 +113,12 @@ export const Themes: Record<ThemeName, ThemePalette> = {
   },
 };
 
-/** 当前主题名 */
-let currentThemeName: ThemeName = 'light';
-
-/** 主题变化事件分发器 */
-const themeBus = new EventTarget();
-
 /**
  * 获取当前主题名
  * @returns {'light'|'dark'} 当前主题名
  */
 export function getThemeName(): ThemeName {
-  return currentThemeName;
+  return getCurrentThemeMode();
 }
 
 /**
@@ -141,7 +126,7 @@ export function getThemeName(): ThemeName {
  * @returns {ThemePalette} 当前调色板
  */
 export function getTheme(): ThemePalette {
-  return Themes[currentThemeName];
+  return Themes[getCurrentThemeMode()];
 }
 
 /**
@@ -150,14 +135,9 @@ export function getTheme(): ThemePalette {
  * @returns {void}
  */
 export function setTheme(name: ThemeName): void {
-  if (!Themes[name]) {
-    return;
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', name);
   }
-  if (currentThemeName === name) {
-    return;
-  }
-  currentThemeName = name;
-  themeBus.dispatchEvent(new Event('themechange'));
 }
 
 /**
@@ -166,9 +146,7 @@ export function setTheme(name: ThemeName): void {
  * @returns {() => void} 取消订阅
  */
 export function subscribe(listener: () => void): () => void {
-  const fn: EventListener = () => listener();
-  themeBus.addEventListener('themechange', fn);
-  return () => themeBus.removeEventListener('themechange', fn);
+  return subscribeToThemeChange(() => listener());
 }
 
 /**
@@ -178,7 +156,7 @@ export function subscribe(listener: () => void): () => void {
 export function useThemePalette(): ThemePalette {
   const [palette, setPalette] = React.useState(() => getTheme());
   React.useEffect(() => {
-    const off = subscribe(() => setPalette(getTheme()));
+    const off = subscribeToThemeChange(() => setPalette(getTheme()));
     return () => off();
   }, []);
   return palette;

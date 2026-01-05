@@ -5,6 +5,7 @@ import { Spreadsheet } from './spreadsheet';
 import { SpreadsheetModel } from './spreadsheet-model';
 
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 
 // 全局模拟 Canvas API
 if (typeof HTMLCanvasElement !== 'undefined') {
@@ -112,7 +113,7 @@ describe('Spreadsheet Component', () => {
     model.setCell(10, 0, { value: 'A11' }); // Should be visible
     model.setCell(1000, 0, { value: 'Hidden' }); // Should be hidden
 
-    const el = <Spreadsheet width={800} height={600} model={model} />;
+    const el = <Spreadsheet width={800} height={600} model={model} theme={Themes.light} />;
     await runtime.renderFromJSX(el);
 
     const spreadsheet = runtime.getRootWidget();
@@ -134,7 +135,9 @@ describe('Spreadsheet Component', () => {
 
   it('处理选择交互', async () => {
     const model = new SpreadsheetModel();
-    const el = <Spreadsheet key="spreadsheet" width={800} height={600} model={model} />;
+    const el = (
+      <Spreadsheet key="spreadsheet" width={800} height={600} model={model} theme={Themes.light} />
+    );
     await runtime.renderFromJSX(el);
 
     // Find the cell at 0:0

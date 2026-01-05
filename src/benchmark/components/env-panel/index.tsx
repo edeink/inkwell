@@ -1,5 +1,6 @@
 import {
   AppleOutlined,
+  BgColorsOutlined,
   ChromeOutlined,
   ClockCircleOutlined,
   CopyOutlined,
@@ -17,6 +18,11 @@ import { useEffect, useMemo, useState } from 'react';
 import styles from './index.module.less';
 
 export type EnvItem = { label: string; value: string; icon?: React.ReactNode };
+
+type Props = {
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
+};
 
 /**
  * 简单 UA 解析：识别常见浏览器名称与主版本号。

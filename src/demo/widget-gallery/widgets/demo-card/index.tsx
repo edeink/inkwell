@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { Colors } from '../../constants/colors';
+import type { ThemePalette } from '@/styles/theme';
 
 import { Center, Column, Container, MainAxisSize, Text, TextAlign } from '@/core';
 
@@ -7,12 +7,14 @@ import { Center, Column, Container, MainAxisSize, Text, TextAlign } from '@/core
 export const DemoCard = ({
   title,
   children,
+  theme,
   width = 300,
   autoWidth = false,
 }: {
   title: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children: any;
+  theme: ThemePalette;
   width?: number;
   /**
    * 是否自动计算宽度。
@@ -26,10 +28,10 @@ export const DemoCard = ({
       key={`card-bg-${title}`}
       width={autoWidth ? undefined : width}
       padding={16}
-      color={Colors.Background.Card}
+      color={theme.background.container}
       borderRadius={8}
       // shadow={{ color: 'rgba(0,0,0,0.1)', blur: 10, offset: { x: 0, y: 2 } }} // 假设支持阴影
-      border={{ width: 1, color: Colors.Border }}
+      border={{ width: 1, color: theme.border.base }}
     >
       <Center>{children}</Center>
     </Container>
@@ -37,7 +39,7 @@ export const DemoCard = ({
       key={`card-title-${title}`}
       text={title}
       fontSize={14}
-      color={Colors.Text.Body}
+      color={theme.text.primary}
       textAlign={TextAlign.Center}
     />
   </Column>

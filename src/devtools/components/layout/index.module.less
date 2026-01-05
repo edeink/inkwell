@@ -2,10 +2,10 @@
 
 .layoutPanel {
   position: fixed;
-  background: #fff;
-  border: 1px solid #d0d0d0;
+  background: var(--ink-demo-bg-base);
+  border: 1px solid var(--ink-demo-border);
   box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
-  z-index: 1000;
+  z-index: 2000;
   border-radius: 8px;
   transition:
     transform 0.15s ease,
@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--ink-demo-border-secondary);
   padding: 10px;
   font-size: 13px;
   line-height: 1.5;
@@ -55,6 +55,17 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  /* General style for buttons in header */
+  :global(.ant-btn-text) {
+    color: var(--ink-demo-text-secondary);
+
+    &:hover,
+    &:focus {
+      color: var(--ink-demo-text-primary);
+      background: var(--ink-demo-header-bg) !important;
+    }
   }
 }
 
@@ -73,10 +84,10 @@
 }
 
 .treePane {
-  border: 1px solid #ddd;
+  border: 1px solid var(--ink-demo-border);
   padding: 8px;
   overflow: auto;
-  background: #fff;
+  background: var(--ink-demo-bg-base);
   border-radius: 8px;
   grid-column: 1 / 2;
 }
@@ -87,9 +98,9 @@
 }
 
 .propsPane {
-  border: 1px solid #ddd;
+  border: 1px solid var(--ink-demo-border);
   padding: 16px;
-  background: #fff;
+  background: var(--ink-demo-bg-base);
   border-radius: 12px;
   position: relative;
   padding-bottom: 60px;
@@ -126,6 +137,14 @@
   grid-column: auto;
   grid-row: 2 / 3;
   cursor: row-resize;
+
+  &::before {
+    inset: 50% 0 auto;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-1px);
+    background: var(--ink-demo-border);
+  }
 }
 
 .layoutPanel:not(.isNarrow) .splitHandle {

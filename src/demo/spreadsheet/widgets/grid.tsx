@@ -3,6 +3,7 @@ import type { SpreadsheetModel } from '../spreadsheet-model';
 import type { CellPosition, SelectionRange } from '../types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
+import type { ThemePalette } from '@/styles/theme';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import { Container, Positioned, Stack, Text } from '@/core';
@@ -12,6 +13,7 @@ import { TextAlign, TextAlignVertical } from '@/core/text';
 
 export interface SpreadsheetGridProps extends WidgetProps {
   model: SpreadsheetModel;
+  theme: ThemePalette;
   scrollX: number;
   scrollY: number;
   viewportWidth: number;
@@ -29,6 +31,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
   render() {
     const {
       model,
+      theme,
       scrollX,
       scrollY,
       viewportWidth,
@@ -92,30 +95,31 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
         const isEditing = editingCell && editingCell.row === r && editingCell.col === c;
         const style = cellData?.style || {};
 
+        // 确保 style.color 有默认值
+        const textColor = style.color || theme.text.primary;
+
         if (isEditing) {
           cells.push(
             <Positioned
               key={`cell-edit-${r}-${c}`}
               left={colLeft}
               top={rowTop}
-              width={colWidth}
-              height={rowHeight}
+              width={displayWidth}
+              height={displayHeight}
             >
-              <Container color="white" border={{ width: 2, color: '#1a73e8' }}>
-                <EditableText
-                  value={cellData?.value || ''}
-                  fontSize={style.fontSize || 13}
-                  onFinish={onEditFinish}
-                  onCancel={onEditCancel}
-                />
-              </Container>
+              <EditableText
+                value={cellData?.value || ''}
+                width={displayWidth}
+                height={displayHeight}
+                fontSize={14}
+                color={textColor}
+                autoFocus={true}
+                onFinish={onEditFinish}
+                onCancel={onEditCancel}
+              />
             </Positioned>,
           );
         } else {
-          // 显示模式，使用间隙模拟网格线
-          const displayWidth = colWidth - 1;
-          const displayHeight = rowHeight - 1;
-
           cells.push(
             <Positioned
               key={`cell-${r}-${c}`}
@@ -125,9 +129,9 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
               height={displayHeight}
             >
               <Container
-                color={isSelected ? 'rgba(232, 240, 254, 1)' : style.backgroundColor || 'white'}
+                color={isSelected ? theme.primary + '1A' : theme.background.base}
                 onPointerDown={(e) => {
-                  console.log('[SpreadsheetGrid] Cell pointer down:', r, c);
+                  console.log(`[SpreadsheetGrid] Cell down: ${r}, ${c}`, e.target);
                   onCellDown(r, c, e);
                 }}
                 onDblClick={() => {
@@ -135,23 +139,13 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
                   onCellDoubleClick(r, c);
                 }}
               >
-                {cellData?.value ? (
-                  <Text
-                    text={cellData.value}
-                    fontSize={style.fontSize || 13}
-                    fontFamily={style.fontFamily}
-                    fontWeight={style.bold ? 'bold' : 'normal'}
-                    color={style.color || '#333'}
-                    textAlign={
-                      style.textAlign === 'center'
-                        ? TextAlign.Center
-                        : style.textAlign === 'right'
-                          ? TextAlign.Right
-                          : TextAlign.Left
-                    }
-                    textAlignVertical={TextAlignVertical.Center}
-                  />
-                ) : null}
+                <Text
+                  text={cellData?.value || ''}
+                  fontSize={14}
+                  color={textColor}
+                  textAlign={(style.textAlign as TextAlign) || TextAlign.Left}
+                  textAlignVertical={TextAlignVertical.Center}
+                />
               </Container>
             </Positioned>,
           );
@@ -176,7 +170,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
         <Positioned key="selection-border" left={x} top={y} width={w} height={h}>
           <Container
             color="transparent"
-            border={{ width: 2, color: '#1a73e8' }}
+            border={{ width: 2, color: theme.primary }}
             pointerEvent="none"
           />
         </Positioned>,

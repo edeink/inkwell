@@ -21,7 +21,8 @@ export function createAbsoluteDomNodes(stage: HTMLElement, count: number): Promi
     const y = Math.floor(Math.random() * Math.max(1, stageH - 4));
     const d = document.createElement('div');
     d.style.cssText =
-      `position:absolute;left:${x}px;top:${y}px;` + `width:4px;height:4px;background:#888`;
+      `position:absolute;left:${x}px;top:${y}px;` +
+      `width:4px;height:4px;background:var(--ink-demo-primary)`;
     frag.appendChild(d);
   }
   const tBuild1 = performance.now();

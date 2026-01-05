@@ -2,8 +2,8 @@
   position: absolute;
   pointer-events: none;
   z-index: 999;
-  background: rgb(78 163 255 / 20%);
-  border: 1px solid #4ea3ff;
+  background: color-mix(in srgb, var(--ink-demo-primary), transparent 80%);
+  border: 1px solid var(--ink-demo-primary);
   box-sizing: border-box;
 
   .overlayInfo {
@@ -11,21 +11,23 @@
     left: 0;
     top: 0;
     transform: translateY(-100%);
-    background: rgb(30 30 30 / 60%);
-    color: #fff;
+    background: color-mix(in srgb, var(--ink-demo-text-primary), transparent 40%);
+    color: var(--ink-demo-bg-base);
     font-size: 12px;
     padding: 4px 8px;
     border-radius: 6px;
     pointer-events: none;
     white-space: nowrap;
   }
+}
 
+@keyframes pulse {
   50% {
-    box-shadow: 0 0 0 6px rgb(78 163 255 / 30%);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink-demo-primary), transparent 70%);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgb(78 163 255 / 0%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink-demo-primary), transparent 100%);
   }
 }
 
@@ -45,7 +47,7 @@
     top: 50%;
     width: 100%;
     height: 0;
-    border-top: 1px dashed rgb(30 144 255 / 60%);
+    border-top: 1px dashed color-mix(in srgb, var(--ink-demo-primary), transparent 40%);
   }
 
   .guideV {
@@ -55,6 +57,6 @@
     left: 50%;
     width: 0;
     height: 100%;
-    border-left: 1px dashed rgb(30 144 255 / 60%);
+    border-left: 1px dashed color-mix(in srgb, var(--ink-demo-primary), transparent 40%);
   }
 }

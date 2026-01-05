@@ -1,11 +1,13 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { InkwellCanvas } from '../common/inkwell-canvas';
 
 import { runApp } from './app';
+import ErrorBoundary from './components/error-boundary';
 import Minimap from './components/minimap';
 import Toolbar from './components/toolbar';
 import ZoomBar from './components/zoom-bar';
+import { Themes } from './constants/theme';
 import { MindmapController } from './controller/index';
 import { MindmapContext } from './hooks/context';
 import { CustomComponentType } from './type';
@@ -13,6 +15,7 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
+import { getCurrentThemeMode, subscribeToThemeChange, type ThemeMode } from '@/styles/theme';
 
 export const meta = {
   key: 'mindmap',
@@ -25,6 +28,20 @@ export default function MindmapDemo() {
   const [context, setContext] = useState<MindmapController | null>(null);
   // 使用 ref 存储尺寸，避免闭包问题
   const sizeRef = useRef({ width: 0, height: 0 });
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getCurrentThemeMode());
+
+  // 监听主题变化并重新渲染
+  useEffect(() => {
+    return subscribeToThemeChange((mode) => {
+      setThemeMode(mode);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (runtime && sizeRef.current.width > 0 && sizeRef.current.height > 0) {
+      runApp(runtime, sizeRef.current.width, sizeRef.current.height, Themes[themeMode]);
+    }
+  }, [themeMode, runtime]);
 
   const initController = useCallback(
     (rt: Runtime) => {
@@ -56,17 +73,17 @@ export default function MindmapDemo() {
       if (rt.container) {
         const { width, height } = rt.container.getBoundingClientRect();
         sizeRef.current = { width, height };
-        runApp(rt, width, height);
+        runApp(rt, width, height, Themes[themeMode]);
         initController(rt);
       }
     },
-    [initController],
+    [initController, themeMode],
   );
 
   const handleResize = useCallback(
     (width: number, height: number, rt: Runtime) => {
       sizeRef.current = { width, height };
-      runApp(rt, width, height);
+      runApp(rt, width, height, Themes[themeMode]);
 
       // 重新渲染后 Viewport 组件可能已更新，需要同步到控制器
       const ctrl = MindmapController.byRuntime.get(rt);
@@ -83,23 +100,25 @@ export default function MindmapDemo() {
         initController(rt);
       }
     },
-    [initController],
+    [initController, themeMode],
   );
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <InkwellCanvas
-        style={{ width: '100%', height: '100%' }}
-        onRuntimeReady={handleRuntimeReady}
-        onResize={handleResize}
-      />
-      {runtime && context && (
-        <MindmapContext.Provider value={context}>
-          <Minimap />
-          <ZoomBar />
-          <Toolbar runtime={runtime} />
-        </MindmapContext.Provider>
-      )}
-    </div>
+    <ErrorBoundary>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <InkwellCanvas
+          style={{ width: '100%', height: '100%' }}
+          onRuntimeReady={handleRuntimeReady}
+          onResize={handleResize}
+        />
+        {runtime && context && (
+          <MindmapContext.Provider value={context}>
+            <Toolbar runtime={runtime} />
+            <ZoomBar />
+            <Minimap width={200} height={150} />
+          </MindmapContext.Provider>
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }

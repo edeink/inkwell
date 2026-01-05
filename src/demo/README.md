@@ -81,6 +81,61 @@ export function runApp(runtime: Runtime) {
 }
 ```
 
+## 颜色与主题规范
+
+为确保一致的视觉体验和对暗色模式的支持，所有 Demo 必须遵循以下颜色规范。
+
+### 1. 语义化颜色系统
+
+不要使用硬编码的 Hex 颜色值（如 `#1677ff`），应使用 `src/demo/styles/theme.ts` 中定义的语义化颜色。
+
+| 语义名称 | 说明 | 对应 Docusaurus 变量 |
+| --- | --- | --- |
+| `primary` | 主色 | `--ifm-color-primary` |
+| `background.base` | 基础背景 | `--ifm-background-color` |
+| `text.primary` | 主要文本 | `--ifm-font-color-base` |
+| `border.base` | 边框 | `--ifm-color-emphasis-200` |
+
+### 2. Canvas 组件主题集成
+
+对于 InkWell Canvas 组件，通过 `Themes` 对象获取当前主题色板，并通过 `theme` 属性传递给子组件。
+
+```typescript
+import { Themes } from '@/demo/styles/theme';
+
+// 在 Widget 中
+const isDarkMode = ...; // 获取当前模式
+const theme = Themes[isDarkMode ? 'dark' : 'light'];
+
+return (
+  <Container color={theme.background.base}>
+    <Text color={theme.text.primary} text="Hello" />
+  </Container>
+);
+```
+
+### 3. React 组件主题集成
+
+对于 React 组件（如 Toolbar），使用 `useTheme` Hook 或 CSS 变量。
+
+```typescript
+import { useTheme } from '@/demo/styles/theme';
+
+export function Toolbar() {
+  const { colors } = useTheme();
+  return <div style={{ color: colors.text.primary }}>...</div>;
+}
+```
+
+或者直接使用 `src/demo/styles/colors.css` 中定义的 CSS 变量：
+
+```css
+.toolbar {
+  color: var(--ink-demo-text-primary);
+  background: var(--ink-demo-bg-surface);
+}
+```
+
 ## 开发准则
 
 - **默认导出**: `index.tsx` 必须使用 `export default` 导出 React 组件，以便 `src/demo/index.tsx` 统一加载。
@@ -97,13 +152,3 @@ export function runApp(runtime: Runtime) {
 1.  **文档更新**: 检查并更新 `docs/demo` 目录下的相关文档，确保内容准确反映代码变更。
 2.  **导航配置**: 所有在 `docs/demo` 中添加或修改的内容，必须在 `sidebars.ts` 文件中同步更新导航配置，确保新文档在侧边栏中可见。
 3.  **引用路径**: 确保文档中的代码引用路径正确指向 `app.tsx` 或 `index.tsx`。
-
-### 测试导入规范
-
-在编写或维护测试用例（如 `__tests__` 目录下的文件）时，请遵循以下模块导入规范：
-
-1.  **主 Widget 导入**: 演示的主 Widget 类（通常定义在 `app.tsx` 中）应直接从 `../app` 导入，而不是从可能已废弃的 `widgets/` 目录导入。
-    - ✅ 正确: `import { MyDemoApp } from '../app';`
-    - ❌ 错误: `import { MyDemoApp } from '../widgets/my-demo';`
-
-2.  **路径一致性**: 确保测试文件中的相对路径引用与当前的重构目录结构保持一致。

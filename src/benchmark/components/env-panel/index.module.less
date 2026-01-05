@@ -1,8 +1,8 @@
 .panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--ink-demo-border, #e5e7eb);
   border-radius: 10px;
   padding: 12px;
-  background: #fff;
+  background: var(--ink-demo-bg-base, #fff);
 }
 
 .header {
@@ -17,6 +17,7 @@
   font-weight: 700;
   margin-bottom: 0;
   font-size: 15px;
+  color: var(--ink-demo-text-primary, #111827);
 }
 
 .actions {
@@ -40,25 +41,25 @@
 }
 
 .label {
-  color: #6b7280;
+  color: var(--ink-demo-text-secondary, #6b7280);
   font-size: 13px;
 }
 
 .value {
   font-weight: 600;
-  color: #111827;
+  color: var(--ink-demo-text-primary, #111827);
 }
 
 .itemIcon {
-  color: #6b7280;
+  color: var(--ink-demo-text-secondary, #6b7280);
 }
 
 .copyBtn {
-  color: #6b7280;
+  color: var(--ink-demo-text-secondary, #6b7280);
 }
 
 .copyBtn:hover {
-  color: #4b5563;
+  color: var(--ink-demo-text-primary, #4b5563);
 }
 
 @media (width <= 640px) {

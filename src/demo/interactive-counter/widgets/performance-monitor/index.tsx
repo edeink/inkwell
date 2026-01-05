@@ -1,9 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
+import type { ThemePalette } from '@/styles/theme';
+
 import { Column, Container, StatefulWidget, Text, type WidgetProps } from '@/core';
 
 export interface PerformanceMonitorProps extends WidgetProps {
   /** 外部传入的业务计数 */
   externalCount: number;
+  theme: ThemePalette;
 }
 
 export interface PerformanceMonitorState {
@@ -24,17 +27,21 @@ export class PerformanceMonitor extends StatefulWidget<
 > {
   private renderCount: number = 0;
 
-  state: PerformanceMonitorState = {
-    innerCount: 0,
-    indicatorColor: '#52c41a', // 初始绿色
-  };
+  constructor(props: PerformanceMonitorProps) {
+    super(props);
+    this.state = {
+      innerCount: 0,
+      indicatorColor: props.theme.success,
+    };
+  }
 
   /**
    * 供外部调用的 Ref 方法
    * 触发一次"闪烁"并增加渲染计数
    */
   public flash() {
-    const colors = ['#ff4d4f', '#faad14', '#52c41a', '#1677ff'];
+    const { theme } = this.props;
+    const colors = [theme.danger, theme.warning, theme.success, theme.primary];
     const randomColor = colors[this.state.innerCount % colors.length];
 
     this.setState({
@@ -50,15 +57,16 @@ export class PerformanceMonitor extends StatefulWidget<
     // 增加渲染计数 (注意：直接修改 state 而不调用 setState 在 render 中是危险的，
     // 但这里我们只是为了统计 render 次数，为了避免死循环，我们不在这里调用 setState
     this.renderCount++;
+    const { theme } = this.props;
 
     return (
       <Container
         key="perf-monitor-container"
         width={240}
         padding={{ top: 12, bottom: 12, left: 16, right: 16 }}
-        color="#f5f5f5"
+        color={theme.background.surface}
         borderRadius={8}
-        border={{ width: 1, color: '#d9d9d9' }}
+        border={{ width: 1, color: theme.border.base }}
       >
         <Column spacing={20}>
           {/* 业务计数显示 */}
@@ -66,14 +74,14 @@ export class PerformanceMonitor extends StatefulWidget<
             key={`ext-${this.props.externalCount}`}
             text={`外部计数: ${this.props.externalCount}`}
             fontSize={14}
-            color="#333"
+            color={theme.text.primary}
           />
 
           <Text
             key={`inner-${this.state.innerCount}`}
             text={`内部计数: ${this.state.innerCount}`}
             fontSize={14}
-            color="#333"
+            color={theme.text.primary}
           />
 
           {/* 渲染性能指示器 */}
@@ -83,7 +91,7 @@ export class PerformanceMonitor extends StatefulWidget<
             key={`render-${this.renderCount}`}
             text={`render 调用次数: ${this.renderCount}`}
             fontSize={12}
-            color="#666"
+            color={theme.text.secondary}
           />
         </Column>
       </Container>

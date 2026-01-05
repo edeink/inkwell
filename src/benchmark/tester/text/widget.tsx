@@ -6,6 +6,7 @@ import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer'
 import Runtime from '../../../runtime';
 import { compileElement } from '../../../utils/compiler/jsx-compiler';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { getThemeColor } from '../../utils/theme';
 
 import { detPos } from './helper';
 
@@ -13,6 +14,7 @@ import type { BoxConstraints, BuildContext } from '../../../core/base';
 import type { RendererOptions } from '../../../renderer/IRenderer';
 
 function buildTextJSX(count: number, W: number, H: number) {
+  const textColor = getThemeColor('--ink-demo-text-primary');
   return (
     <Stack key="perf-text">
       {Array.from({ length: count }).map((_, i) => {
@@ -25,7 +27,7 @@ function buildTextJSX(count: number, W: number, H: number) {
               fontSize={12}
               lineHeight={12}
               fontWeight={'normal'}
-              color={'#111827'}
+              color={textColor}
               fontFamily={'Arial, sans-serif'}
             />
           </Positioned>

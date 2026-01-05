@@ -8,6 +8,7 @@ import { SpreadsheetGrid } from './grid';
 import { RowHeaders } from './row-header';
 
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 
 // 全局模拟 Canvas API
 if (typeof HTMLCanvasElement !== 'undefined') {
@@ -69,6 +70,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
 
       const el = (
         <SpreadsheetGrid
+          theme={Themes.light}
           showGridLines={true}
           gridLineColor="#E5E5E5"
           model={model}
@@ -96,8 +98,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <ColumnHeaders
-          showGridLines={true}
-          gridLineColor="#E5E5E5"
+          theme={Themes.light}
           model={model}
           scrollX={0}
           viewportWidth={500}
@@ -125,6 +126,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <RowHeaders
+          theme={Themes.light}
           showGridLines={true}
           gridLineColor="#E5E5E5"
           model={model}

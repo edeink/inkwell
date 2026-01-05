@@ -8,8 +8,8 @@
   --breakpoint: 600px;
 
   position: fixed;
-  background: #fff;
-  border: 1px solid #d0d0d0;
+  background: var(--ink-demo-bg-base, #fff);
+  border: 1px solid var(--ink-demo-border, #d0d0d0);
   box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
   z-index: 1000;
   border-radius: 8px;
@@ -45,7 +45,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--ink-demo-border-secondary, #e0e0e0);
     padding: var(--spacing-md);
     font-size: var(--font-size);
     line-height: var(--line-height);
@@ -65,11 +65,101 @@
     .btnText {
       border: none !important;
       box-shadow: none !important;
+      color: var(--ink-demo-text-primary);
     }
 
     .btnTextPrimary {
-      color: #1677ff;
+      color: var(--ink-demo-primary, #1677ff);
     }
+  }
+
+  /* Global Ant Design Component Overrides */
+  :global(.ant-input),
+  :global(.ant-input-number),
+  :global(.ant-input-number-input),
+  :global(.ant-select-selector),
+  :global(.ant-input-affix-wrapper) {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background-color: var(--ink-demo-bg-container);
+    color: var(--ink-demo-text-primary);
+    border-color: var(--ink-demo-border);
+
+    &::placeholder {
+      color: var(--ink-demo-text-placeholder);
+    }
+
+    &:hover,
+    &:focus,
+    &-focused {
+      border-color: var(--ink-demo-primary);
+    }
+
+    :global(.ant-input-prefix),
+    :global(.ant-input-suffix) {
+      color: var(--ink-demo-text-secondary);
+    }
+  }
+
+  /* Input.Search specific */
+  :global(.ant-input-search) {
+    :global(.ant-input-group-addon) {
+      background-color: transparent;
+
+      :global(.ant-btn) {
+        background-color: var(--ink-demo-bg-surface);
+        border-color: var(--ink-demo-border);
+        color: var(--ink-demo-text-secondary);
+
+        &:hover {
+          color: var(--ink-demo-primary);
+          border-color: var(--ink-demo-primary);
+        }
+      }
+    }
+  }
+
+  /* ColorPicker specific */
+  :global(.ant-color-picker-trigger) {
+    border-color: var(--ink-demo-border);
+    background-color: var(--ink-demo-bg-surface);
+
+    &:hover {
+      border-color: var(--ink-demo-primary);
+    }
+  }
+
+  :global(.ant-color-picker-panel) {
+    background-color: var(--ink-demo-bg-base);
+    border: 1px solid var(--ink-demo-border);
+
+    :global(.ant-color-picker-palette) {
+      border: 1px solid var(--ink-demo-border-secondary);
+    }
+  }
+
+  :global(.ant-input-number-handler-wrap) {
+    background-color: var(--ink-demo-bg-surface);
+    border-left-color: var(--ink-demo-border);
+  }
+
+  :global(.ant-input-number-handler) {
+    border-bottom-color: var(--ink-demo-border);
+
+    &:active {
+      background-color: var(--ink-demo-header-bg-active);
+    }
+
+    :global(.anticon) {
+      color: var(--ink-demo-text-secondary);
+    }
+  }
+
+  :global(.ant-color-picker-trigger) {
+    border-color: var(--ink-demo-border);
   }
 
   .contentGrid {
@@ -79,17 +169,42 @@
     overflow: auto;
 
     .treePane {
-      border: 1px solid #ddd;
+      border: 1px solid var(--ink-demo-border, #ddd);
       padding: 8px;
       overflow: auto;
-      background: #fff;
+      background: var(--ink-demo-bg-base, #fff);
       border-radius: 8px;
       font-size: var(--font-size);
       line-height: var(--line-height);
 
       :global(.ant-tree-node-selected) {
-        background: #e6f4ff !important;
+        background: var(--ink-demo-bg-surface, #e6f4ff) !important;
         border-radius: 6px;
+      }
+
+      /* Ensure text color is correct in dark mode */
+      :global(.ant-tree) {
+        background: transparent;
+        color: var(--ink-demo-text-primary);
+
+        :global(.ant-tree-switcher) {
+          background: transparent;
+          color: var(--ink-demo-text-secondary);
+        }
+
+        :global(.ant-tree-node-content-wrapper) {
+          color: var(--ink-demo-text-primary);
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: var(--ink-demo-header-bg);
+          }
+        }
+
+        :global(.ant-tree-node-selected) {
+          background-color: var(--ink-demo-bg-surface) !important;
+          color: var(--ink-demo-primary);
+        }
       }
     }
 

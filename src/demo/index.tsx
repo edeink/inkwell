@@ -1,7 +1,6 @@
-import { BulbFilled, BulbOutlined } from '@ant-design/icons';
-import { theme as antTheme, Button, ConfigProvider, Tabs } from 'antd';
+import { theme as antTheme, ConfigProvider, Tabs } from 'antd';
 import cn from 'classnames';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
@@ -12,14 +11,21 @@ import { DemoKey, ThemeType } from './type';
 import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 
 import { DevTools } from '@/devtools';
+import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
 
 export default function UnifiedDemo() {
   const [activeKey, setActiveKey] = useState<string>(DemoKey.Spreadsheet);
-  const [theme, setTheme] = useState<ThemeType>(ThemeType.Light);
+  const [theme, setTheme] = useState<ThemeType>(() => {
+    return getCurrentThemeMode() === 'dark' ? ThemeType.Dark : ThemeType.Light;
+  });
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === ThemeType.Light ? ThemeType.Dark : ThemeType.Light));
-  };
+  useEffect(() => {
+    // 监听主题变化
+    const unsubscribe = subscribeToThemeChange((mode) => {
+      setTheme(mode === 'dark' ? ThemeType.Dark : ThemeType.Light);
+    });
+    return unsubscribe;
+  }, []);
 
   const demos = useMemo(
     () => [
@@ -30,16 +36,6 @@ export default function UnifiedDemo() {
       { Component: Spreadsheet, ...SpreadsheetMeta },
     ],
     [],
-  );
-
-  const tabBarExtraContent = (
-    <div style={{ display: 'flex', alignItems: 'center', paddingRight: 16 }}>
-      <Button
-        type="text"
-        icon={theme === ThemeType.Light ? <BulbOutlined /> : <BulbFilled />}
-        onClick={toggleTheme}
-      />
-    </div>
   );
 
   return (
@@ -53,7 +49,6 @@ export default function UnifiedDemo() {
           className={styles.tabs}
           activeKey={activeKey}
           onChange={setActiveKey}
-          tabBarExtraContent={tabBarExtraContent}
           destroyInactiveTabPane
           items={demos.map((demo) => ({
             key: demo.key,

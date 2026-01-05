@@ -1,6 +1,7 @@
 import { throttle } from 'lodash-es';
 
 import { SCALE_CONFIG } from '../../constants';
+import { getTheme, type ThemePalette } from '../../constants/theme';
 import { DeleteCommand, RedoCommand, UndoCommand } from '../../helpers/shortcut/commands/history';
 import {
   MoveDownCommand,
@@ -39,6 +40,7 @@ export interface MindMapViewportProps extends ViewportProps {
   onEditingKeyChange?: (key: string | null) => void;
   onAddSiblingNode?: (refKey: string, dir: -1 | 1, side?: Side) => string | void;
   onAddChildNode?: (refKey: string, side: Side) => string | void;
+  theme?: ThemePalette;
 }
 
 /**
@@ -410,14 +412,15 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       const y = (r.y - this._scrollY) * this._scale + this._ty;
       const width = r.width * this._scale;
       const height = r.height * this._scale;
+      const theme = this.data.theme || getTheme();
 
       renderer.drawRect({
         x,
         y,
         width,
         height,
-        fill: 'rgba(0,150,255,0.2)',
-        stroke: '#0096ff',
+        fill: theme.highlightFillColor,
+        stroke: theme.highlightColor,
         strokeWidth: 1,
       });
     }

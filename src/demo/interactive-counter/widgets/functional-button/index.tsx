@@ -1,4 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
+import type { ThemePalette } from '@/styles/theme';
+
 import { Center, Container, Text, TextAlign, TextAlignVertical, type InkwellEvent } from '@/core';
 
 /**
@@ -11,13 +13,16 @@ import { Center, Container, Text, TextAlign, TextAlignVertical, type InkwellEven
  *
  * @param props 组件属性
  */
-export function FunctionalButton(props: { onClick: (e: InkwellEvent) => void }) {
+export function FunctionalButton(props: {
+  onClick: (e: InkwellEvent) => void;
+  theme: ThemePalette;
+}) {
   return (
     <Container
       key="functional-btn"
       width={180}
       height={48}
-      color="#1677ff"
+      color={props.theme.primary}
       borderRadius={8}
       onClick={props.onClick}
     >
@@ -26,7 +31,7 @@ export function FunctionalButton(props: { onClick: (e: InkwellEvent) => void }) 
           key="functional-btn-text"
           text="Functional Btn"
           fontSize={16}
-          color="#ffffff"
+          color="#ffffff" // Always white on primary button
           textAlign={TextAlign.Center}
           textAlignVertical={TextAlignVertical.Center}
         />

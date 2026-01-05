@@ -3,6 +3,7 @@ import type { SpreadsheetModel } from '../spreadsheet-model';
 import type { SelectionRange } from '../types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
+import type { ThemePalette } from '@/styles/theme';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import { Center, Container, Positioned, Stack, Text } from '@/core';
@@ -11,6 +12,7 @@ import { TextAlign, TextAlignVertical } from '@/core/text';
 
 export interface RowHeadersProps extends WidgetProps {
   model: SpreadsheetModel;
+  theme: ThemePalette;
   scrollY: number;
   viewportHeight: number;
   selection: SelectionRange | null;
@@ -20,7 +22,8 @@ export interface RowHeadersProps extends WidgetProps {
 
 export class RowHeaders extends StatefulWidget<RowHeadersProps> {
   render() {
-    const { model, scrollY, viewportHeight, selection, onResizeStart, onHeaderClick } = this.props;
+    const { model, theme, scrollY, viewportHeight, selection, onResizeStart, onHeaderClick } =
+      this.props;
     const { config } = model;
 
     const startRow = model.getRowIndexAt(scrollY);
@@ -53,14 +56,14 @@ export class RowHeaders extends StatefulWidget<RowHeadersProps> {
           height={rowHeight - 1}
         >
           <Container
-            color={isSelected ? '#e8eaed' : '#f8f9fa'}
+            color={isSelected ? theme.component.headerBgActive : theme.component.headerBg}
             onPointerDown={(e) => onHeaderClick(r, e)}
           >
             <Center>
               <Text
                 text={`${r + 1}`}
                 fontSize={12}
-                color="#666"
+                color={theme.text.secondary}
                 textAlign={TextAlign.Center}
                 textAlignVertical={TextAlignVertical.Center}
               />
@@ -89,7 +92,11 @@ export class RowHeaders extends StatefulWidget<RowHeadersProps> {
     }
 
     return (
-      <Container width={config.headerWidth} height={viewportHeight} color="#f8f9fa">
+      <Container
+        width={config.headerWidth}
+        height={viewportHeight}
+        color={theme.component.headerBg}
+      >
         <Stack>{headers as unknown as WidgetProps[]}</Stack>
       </Container>
     );
