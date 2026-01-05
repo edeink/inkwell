@@ -133,17 +133,21 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
               height={displayHeight}
             >
               <Container
+                key={`cell-${r}-${c}-container`}
                 color={isSelected ? theme.primary + '1A' : theme.background.base}
+                // 显式设置 pointerEvent="auto" 以确保能接收事件
+                pointerEvent="auto"
                 onPointerDown={(e) => {
-                  console.log(`[SpreadsheetGrid] Cell down: ${r}, ${c}`, e.target);
                   onCellDown(r, c, e);
                 }}
-                onDblClick={() => {
-                  console.log('[SpreadsheetGrid] Cell double click:', r, c);
+                // 使用 onDoubleClick 符合 React 规范，且确保 EventDispatcher 能正确解析
+                onDoubleClick={() => {
                   onCellDoubleClick(r, c);
                 }}
               >
                 <Text
+                  // 文本不响应事件，让事件冒泡到 Container
+                  pointerEvent="none"
                   text={model.getDisplayValue(r, c)}
                   fontSize={14}
                   color={textColor}
@@ -171,12 +175,15 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       const h = model.getRowOffset(maxR) + model.getRowHeight(maxR) - y;
 
       cells.push(
-        <Positioned key="selection-border" left={x} top={y} width={w} height={h}>
-          <Container
-            color="transparent"
-            border={{ width: 2, color: theme.primary }}
-            pointerEvent="none"
-          />
+        <Positioned
+          key="selection-border"
+          pointerEvent="none"
+          left={x}
+          top={y}
+          width={w}
+          height={h}
+        >
+          <Container color="transparent" border={{ width: 2, color: theme.primary }} />
         </Positioned>,
       );
     }

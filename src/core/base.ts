@@ -1,5 +1,4 @@
-import { toEventType } from './events/helper';
-import { EventRegistry } from './events/registry';
+import { DOMEventManager } from './events/dom-event-manager';
 import {
   applySteps,
   composeSteps,
@@ -14,7 +13,6 @@ import {
   type BoxConstraints,
   type BuildContext,
   type CursorType,
-  type EventHandler,
   type FlexProperties,
   type Offset,
   type PointerEvents,
@@ -529,7 +527,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         reuse.parent = this;
         reuse.depth = this.depth + 1;
         nextChildren.push(reuse);
-        this.bindEventsIfNeeded(reuse, childData);
+        DOMEventManager.bindEvents(reuse, childData);
       } else {
         const childWidget = this.createChildWidget(childData);
         if (childWidget) {
@@ -537,7 +535,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
           childWidget.depth = this.depth + 1;
           childWidget.createElement(childData);
           nextChildren.push(childWidget);
-          this.bindEventsIfNeeded(childWidget, childData);
+          DOMEventManager.bindEvents(childWidget, childData);
         } else {
           console.warn(
             `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
@@ -649,7 +647,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
 
     if (!this.parent) {
-      this.bindEventsIfNeeded(this, nextData);
+      DOMEventManager.bindEvents(this, nextData);
     }
 
     const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
@@ -704,37 +702,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected didUpdateWidget(_oldProps: TData): void {
     this.markNeedsLayout();
   }
-
-  private bindEventsIfNeeded = (widget: Widget, data: WidgetProps): void => {
-    const rt = this.runtime;
-    const skipSelfBind = WidgetRegistry.isCompositeType(widget.type);
-    const hasEventFns = Object.entries(data).some(
-      ([k, v]) => typeof v === 'function' && /^on[A-Z]/.test(k),
-    );
-    if (!hasEventFns) {
-      return;
-    }
-    if (skipSelfBind) {
-      return;
-    }
-    EventRegistry.clearKey(String(widget.key), rt);
-    for (const [k, v] of Object.entries(data)) {
-      if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
-        const base = k.replace(/^on/, '').replace(/Capture$/, '');
-        const type = toEventType(base);
-        if (type) {
-          const capture = /Capture$/.test(k);
-          EventRegistry.register(
-            String(widget.key),
-            type,
-            v as EventHandler,
-            { capture },
-            rt ?? undefined,
-          );
-        }
-      }
-    }
-  };
 
   /**
    * 布局组件及其子组件
@@ -1126,7 +1093,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       return this.hitTestChildren(x, y);
     }
     if (this.pointerEvent === 'none') {
-      return this.hitTestChildren(x, y);
+      return null;
     }
 
     if (!this.hitTest(x, y)) {

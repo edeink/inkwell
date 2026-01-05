@@ -70,6 +70,14 @@ function resolveMethodNames(type: EventType, phase: 'capture' | 'bubble'): strin
       return [`onPointerEnter${capSuffix}`];
     case 'pointerleave':
       return [`onPointerLeave${capSuffix}`];
+    case 'mouseenter':
+      return [`onMouseEnter${capSuffix}`];
+    case 'mouseleave':
+      return [`onMouseLeave${capSuffix}`];
+    case 'focus':
+      return [`onFocus${capSuffix}`];
+    case 'blur':
+      return [`onBlur${capSuffix}`];
     case 'touchstart':
       return [`onTouchStart${capSuffix}`, `onPointerDown${capSuffix}`, `onMouseDown${capSuffix}`];
     case 'touchmove':

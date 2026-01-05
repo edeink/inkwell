@@ -6,89 +6,63 @@ import { DEFAULT_CONFIG } from './types';
 import type { WidgetProps } from '@/core/base';
 import type Runtime from '@/runtime';
 
-import { Container, StatelessWidget } from '@/core';
+import { Container } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
 import { Themes, type ThemePalette } from '@/styles/theme';
 
-// 用于 React 宿主环境 (index.tsx)，状态由 React 管理
-export function runApp(
-  runtime: Runtime,
-  width: number,
-  height: number,
-  theme: ThemePalette,
-  model: SpreadsheetModel,
-  dataVersion: number,
-) {
-  runtime.render(
-    <SpreadsheetViewer
-      width={width}
-      height={height}
-      theme={theme}
-      model={model}
-      dataVersion={dataVersion}
-    />,
-  );
-}
-
-interface SpreadsheetViewerProps extends WidgetProps {
-  width: number;
-  height: number;
-  theme: ThemePalette;
-  model: SpreadsheetModel;
-  dataVersion: number;
-}
-
-class SpreadsheetViewer extends StatelessWidget<SpreadsheetViewerProps> {
-  render() {
-    const { width, height, theme, model, dataVersion } = this.props;
-
-    return (
-      <Container width={width} height={height} color={theme.background.base}>
-        <Spreadsheet
-          width={width}
-          height={height}
-          model={model}
-          theme={theme}
-          dataVersion={dataVersion}
-        />
-      </Container>
-    );
-  }
-}
-
-// 用于 MDX 文档演示，状态自管理
-interface SpreadsheetDemoAppProps extends WidgetProps {
+export interface SpreadsheetDemoAppProps extends WidgetProps {
   width?: number;
   height?: number;
   theme?: ThemePalette;
+  /**
+   * 外部传入的数据模型。如果不传，组件将自行创建并初始化演示数据。
+   */
+  model?: SpreadsheetModel;
+  /**
+   * 外部数据版本号。如果不传，组件将使用内部状态管理版本。
+   */
+  dataVersion?: number;
 }
 
+// 用于 React 宿主环境 (index.tsx) 和 MDX 文档演示
 export class SpreadsheetDemoApp extends StatefulWidget<SpreadsheetDemoAppProps> {
-  model: SpreadsheetModel;
+  private _internalModel?: SpreadsheetModel;
+
   state = {
     dataVersion: 0,
   };
 
   constructor(props: SpreadsheetDemoAppProps) {
     super(props);
-    this.model = new SpreadsheetModel({
-      ...DEFAULT_CONFIG,
-      rowCount: 100,
-      colCount: 26,
-    });
-    this.initData();
+    // 如果没有传入 model，则初始化内部 model (用于 MDX 演示)
+    if (!props.model) {
+      this._internalModel = new SpreadsheetModel({
+        ...DEFAULT_CONFIG,
+        rowCount: 100,
+        colCount: 26,
+      });
+      this.initData(this._internalModel);
+    }
   }
 
-  initData() {
-    this.model.setCell(0, 0, { value: 'Item' });
-    this.model.setCell(0, 1, { value: 'Cost' });
-    this.model.setCell(0, 2, { value: 'Price' });
-    this.model.setCell(1, 0, { value: 'Apple' });
-    this.model.setCell(1, 1, { value: '1.50' });
-    this.model.setCell(1, 2, { value: '3.00' });
-    this.model.setCell(2, 0, { value: 'Banana' });
-    this.model.setCell(2, 1, { value: '0.50' });
-    this.model.setCell(2, 2, { value: '1.00' });
+  get model(): SpreadsheetModel {
+    return this.props.model || this._internalModel!;
+  }
+
+  get currentDataVersion(): number {
+    return this.props.dataVersion !== undefined ? this.props.dataVersion : this.state.dataVersion;
+  }
+
+  initData(model: SpreadsheetModel) {
+    model.setCell(0, 0, { value: 'Item' });
+    model.setCell(0, 1, { value: 'Cost' });
+    model.setCell(0, 2, { value: 'Price' });
+    model.setCell(1, 0, { value: 'Apple' });
+    model.setCell(1, 1, { value: '1.50' });
+    model.setCell(1, 2, { value: '3.00' });
+    model.setCell(2, 0, { value: 'Banana' });
+    model.setCell(2, 1, { value: '0.50' });
+    model.setCell(2, 2, { value: '1.00' });
   }
 
   render() {
@@ -101,9 +75,29 @@ export class SpreadsheetDemoApp extends StatefulWidget<SpreadsheetDemoAppProps> 
           height={height}
           model={this.model}
           theme={theme}
-          dataVersion={this.state.dataVersion}
+          dataVersion={this.currentDataVersion}
         />
       </Container>
     );
   }
+}
+
+// 辅助函数：用于 React 宿主环境 (index.tsx)
+export function runApp(
+  runtime: Runtime,
+  width: number,
+  height: number,
+  theme: ThemePalette,
+  model: SpreadsheetModel,
+  dataVersion: number,
+) {
+  runtime.render(
+    <SpreadsheetDemoApp
+      width={width}
+      height={height}
+      theme={theme}
+      model={model}
+      dataVersion={dataVersion}
+    />,
+  );
 }
