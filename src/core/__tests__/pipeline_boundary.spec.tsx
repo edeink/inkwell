@@ -150,6 +150,9 @@ describe('PipelineOwner 与 Relayout Boundary', () => {
     expect(child['_relayoutBoundary']).toBe(child);
     expect(root['_relayoutBoundary']).toBe(root); // Root 是边界
 
+    // 确保 PipelineOwner 是干净的，移除初始化可能残留的 dirty 节点
+    runtime.pipelineOwner['_nodesNeedingLayout'].clear();
+
     // 2. 标记子级为脏
     child.markNeedsLayout();
 

@@ -8,6 +8,7 @@ import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import { CustomComponentType } from '@/demo/mindmap/type';
 import Runtime from '@/runtime';
+import { testLogger } from '@/utils/test-logger';
 
 class MockWidget extends Widget {
   constructor(data: any = {}) {
@@ -68,7 +69,7 @@ class TestViewport extends StatelessWidget {
   }
 
   onKeyDown = vi.fn((e) => {
-    console.log('TestViewport received keydown');
+    testLogger.log('TestViewport received keydown');
     return true;
   });
 
@@ -159,7 +160,7 @@ describe('Keyboard Event Dispatch Integration', () => {
     // Let's assume user focuses canvas (click) then types.
     // Event bubbles: Canvas -> Container.
 
-    console.log('Dispatching event on canvas...');
+    testLogger.log('Dispatching event on canvas...');
     canvas.dispatchEvent(event);
 
     // 4. Check results

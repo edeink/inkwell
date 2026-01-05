@@ -70,6 +70,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
 
       const el = (
         <SpreadsheetGrid
+          key="grid-1"
           theme={Themes.light}
           showGridLines={true}
           gridLineColor="#E5E5E5"
@@ -98,6 +99,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <ColumnHeaders
+          key="col-headers-1"
           theme={Themes.light}
           model={model}
           scrollX={0}
@@ -126,6 +128,7 @@ describe('Spreadsheet Widgets (拆分组件测试)', () => {
       const model = new SpreadsheetModel();
       const el = (
         <RowHeaders
+          key="row-headers-1"
           theme={Themes.light}
           showGridLines={true}
           gridLineColor="#E5E5E5"

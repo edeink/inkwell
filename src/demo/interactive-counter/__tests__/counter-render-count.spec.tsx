@@ -141,13 +141,16 @@ describe('计数器渲染计数', () => {
 
     // Mock requestAnimationFrame
     let rafCount = 0;
-    let pendingUpdate: Promise<any> | null = null;
+    let lastTickPromise: Promise<any> | null = null;
     vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
       rafCount++;
-      const result = fn(0) as any;
-      if (result instanceof Promise) {
-        pendingUpdate = result;
-      }
+      // Use setTimeout to avoid synchronous recursion stack overflow
+      setTimeout(() => {
+        const result = fn(performance.now()) as any;
+        if (result instanceof Promise) {
+          lastTickPromise = result;
+        }
+      }, 0);
       return 0;
     });
 
@@ -160,9 +163,14 @@ describe('计数器渲染计数', () => {
 
     // 调度根节点更新以模拟挂载
     runtime.scheduleUpdate(root);
-    if (pendingUpdate) {
-      await pendingUpdate;
+
+    // Wait for rAF to fire
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Wait for tick to complete
+    if (lastTickPromise) {
+      await lastTickPromise;
     }
+
     // 额外等待微任务
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -197,8 +205,9 @@ describe('计数器渲染计数', () => {
     onClick?.(mockEvent);
 
     // 等待异步更新完成
-    if (pendingUpdate) {
-      await pendingUpdate;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (lastTickPromise) {
+      await lastTickPromise;
     }
     // 额外等待微任务
     await new Promise((resolve) => setTimeout(resolve, 0));

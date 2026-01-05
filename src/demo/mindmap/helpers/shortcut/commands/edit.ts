@@ -27,10 +27,6 @@ export class DeleteNodeCommand implements Command {
   undo(): void {
     if (this.deletedData && this.deletedData.payload) {
       this.viewport.restoreSelection(this.deletedData.payload);
-    } else {
-      console.warn('DeleteNodeCommand: 无可还原的数据');
-      // 可以根据需求抛出异常，但通常 undo 不应中断
-      // throw new Error('无法还原数据：数据丢失');
     }
   }
 }
@@ -60,10 +56,6 @@ export class AddSiblingNodeCommand implements Command {
         if (typeof res === 'string') {
           this.addedKey = res;
         }
-      } else {
-        console.warn(
-          'AddSiblingNodeCommand: Viewport 未提供 onAddSiblingNode 回调，无法执行添加操作',
-        );
       }
     }
   }
@@ -103,8 +95,6 @@ export class AddChildNodeCommand implements Command {
         if (typeof res === 'string') {
           this.addedKey = res;
         }
-      } else {
-        console.warn('AddChildNodeCommand: Viewport 未提供 onAddChildNode 回调，无法执行添加操作');
       }
     }
   }

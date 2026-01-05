@@ -4,6 +4,7 @@ import { CustomComponentType } from '../type';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { Widget } from '@/core/base';
+import { testLogger } from '@/utils/test-logger';
 
 class MockNode extends Widget {
   constructor(key: string, x: number, y: number, w: number, h: number) {
@@ -46,7 +47,7 @@ describe('MindMapViewport 选区性能测试', () => {
     const t1 = performance.now();
     const buildTime = t1 - t0;
 
-    console.log(`[Perf] 构建空间索引 (10k 节点): ${buildTime.toFixed(2)}ms`);
+    testLogger.log(`[Perf] 构建空间索引 (10k 节点): ${buildTime.toFixed(2)}ms`);
 
     // 测量选区更新时间 (Selection Update Time)
     // 模拟覆盖约 25% 节点的选区
@@ -62,7 +63,7 @@ describe('MindMapViewport 选区性能测试', () => {
     const t3 = performance.now();
     const queryTime = t3 - t2;
 
-    console.log(`[Perf] 查询选区 (10k 节点, ~2500 命中): ${queryTime.toFixed(2)}ms`);
+    testLogger.log(`[Perf] 查询选区 (10k 节点, ~2500 命中): ${queryTime.toFixed(2)}ms`);
 
     // 断言 (根据环境调整阈值，但目标是构建 < 100ms，查询 < 50ms)
     // 在首次运行/模拟环境中构建可能会稍慢，所以放宽限制

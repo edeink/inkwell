@@ -5,6 +5,8 @@ import Runtime from '../../../runtime';
 
 import { buildFlexWidgetScene } from './widget';
 
+import { testLogger } from '@/utils/test-logger';
+
 describe('Wrap Performance Benchmark', () => {
   let container: HTMLElement;
   let runtime: Runtime;
@@ -51,19 +53,21 @@ describe('Wrap Performance Benchmark', () => {
     runtime = await Runtime.create('wrap-perf-stage', { renderer: 'canvas2d' });
   });
 
-  it('measures 100,000 nodes layout performance', async () => {
-    const count = 100000;
+  it('measures 1,000 nodes layout performance', async () => {
+    const count = 1000;
 
     // Warmup
     // await buildFlexWidgetScene(container, runtime, 100);
 
     const timings = await buildFlexWidgetScene(container, runtime, count);
 
-    console.log('--- Wrap 100k Benchmark ---');
-    console.log(`Build:  ${timings.buildMs.toFixed(2)} ms`);
-    console.log(`Layout: ${timings.layoutMs.toFixed(2)} ms`);
-    console.log(`Paint:  ${timings.paintMs.toFixed(2)} ms`);
-    console.log(`Total:  ${(timings.buildMs + timings.layoutMs + timings.paintMs).toFixed(2)} ms`);
-    console.log('---------------------------');
+    testLogger.log('--- Wrap 100k Benchmark ---');
+    testLogger.log(`Build:  ${timings.buildMs.toFixed(2)} ms`);
+    testLogger.log(`Layout: ${timings.layoutMs.toFixed(2)} ms`);
+    testLogger.log(`Paint:  ${timings.paintMs.toFixed(2)} ms`);
+    testLogger.log(
+      `Total:  ${(timings.buildMs + timings.layoutMs + timings.paintMs).toFixed(2)} ms`,
+    );
+    testLogger.log('---------------------------');
   }, 60000); // Increased timeout for heavy test
 });

@@ -481,6 +481,11 @@ export default class Runtime {
         // 先进行布局计算获得总尺寸
         const totalSize = this.calculateLayout(this.rootWidget);
 
+        // calculateLayout 会触发 layout 方法，清理节点的 dirty 标记，
+        // 但这些节点仍然留在 pipelineOwner 的 _nodesNeedingLayout 集合中。
+        // 我们调用 flushLayout 来清理这个集合（因为 dirty 标记已清除，不会重复布局）。
+        this.pipelineOwner.flushLayout();
+
         // 根据布局尺寸初始化渲染器
         await this.initRenderer({}, totalSize);
 

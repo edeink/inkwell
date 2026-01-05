@@ -6,6 +6,8 @@ import Runtime from '../../../runtime';
 import { createFlexDomNodes } from './dom';
 import { buildFlexWidgetScene, updateFlexWidgetScene } from './widget';
 
+import { testLogger } from '@/utils/test-logger';
+
 describe('Flex 性能基准测试运行器', () => {
   let container: HTMLElement;
   let runtime: Runtime;
@@ -60,15 +62,15 @@ describe('Flex 性能基准测试运行器', () => {
   it('运行性能基准测试', async () => {
     const counts = [100, 1000, 5000];
 
-    console.log('--- Flex 基准测试结果 ---');
-    console.log('数量  | 类型   | 构建 (ms)  | 布局 (ms)   | 绘制 (ms)  | 总计 (ms)');
-    console.log('------|--------|------------|-------------|------------|-----------');
+    testLogger.log('--- Flex 基准测试结果 ---');
+    testLogger.log('数量  | 类型   | 构建 (ms)  | 布局 (ms)   | 绘制 (ms)  | 总计 (ms)');
+    testLogger.log('------|--------|------------|-------------|------------|-----------');
 
     for (const count of counts) {
       // DOM 基准测试
       const domTimings = await createFlexDomNodes(container, count);
       const domTotal = domTimings.buildMs + domTimings.layoutMs + domTimings.paintMs;
-      console.log(
+      testLogger.log(
         `${count.toString().padEnd(5)} | DOM    | ${domTimings.buildMs.toFixed(2).padEnd(10)} | ${domTimings.layoutMs.toFixed(2).padEnd(11)} | ${domTimings.paintMs.toFixed(2).padEnd(10)} | ${domTotal.toFixed(2)}`,
       );
 
@@ -84,17 +86,17 @@ describe('Flex 性能基准测试运行器', () => {
 
       const widgetTimings = await buildFlexWidgetScene(container, runtime, count);
       const widgetTotal = widgetTimings.buildMs + widgetTimings.layoutMs + widgetTimings.paintMs;
-      console.log(
+      testLogger.log(
         `${count.toString().padEnd(5)} | Widget | ${widgetTimings.buildMs.toFixed(2).padEnd(10)} | ${widgetTimings.layoutMs.toFixed(2).padEnd(11)} | ${widgetTimings.paintMs.toFixed(2).padEnd(10)} | ${widgetTotal.toFixed(2)}`,
       );
 
       // Widget 更新基准测试
       const updateTimings = await updateFlexWidgetScene(container, runtime, count);
       const updateTotal = updateTimings.buildMs + updateTimings.layoutMs + updateTimings.paintMs;
-      console.log(
+      testLogger.log(
         `${count.toString().padEnd(5)} | Update | ${updateTimings.buildMs.toFixed(2).padEnd(10)} | ${updateTimings.layoutMs.toFixed(2).padEnd(11)} | ${updateTimings.paintMs.toFixed(2).padEnd(10)} | ${updateTotal.toFixed(2)}`,
       );
     }
-    console.log('------------------------------');
+    testLogger.log('------------------------------');
   }, 30000);
 });

@@ -6,18 +6,19 @@ import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
+import { testLogger } from '@/utils/test-logger';
 
 // 递归创建 widget 树的辅助函数
 function createWidgetTree(data: any): Widget {
   const widget = WidgetRegistry.createWidget(data)!;
   if (data.children && Array.isArray(data.children)) {
-    console.log(`处理 ${data.key} 的子节点:`, data.children.length);
+    testLogger.log(`处理 ${data.key} 的子节点:`, data.children.length);
     widget.children = data.children.map((childData: any) => {
       const child = createWidgetTree(childData);
       child.parent = widget;
       return child;
     });
-    console.log(`已分配子节点给 ${data.key}:`, widget.children.length);
+    testLogger.log(`已分配子节点给 ${data.key}:`, widget.children.length);
   }
   return widget;
 }

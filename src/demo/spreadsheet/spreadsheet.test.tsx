@@ -113,7 +113,9 @@ describe('Spreadsheet Component', () => {
     model.setCell(10, 0, { value: 'A11' }); // Should be visible
     model.setCell(1000, 0, { value: 'Hidden' }); // Should be hidden
 
-    const el = <Spreadsheet width={800} height={600} model={model} theme={Themes.light} />;
+    const el = (
+      <Spreadsheet key="ss-1" width={800} height={600} model={model} theme={Themes.light} />
+    );
     await runtime.renderFromJSX(el);
 
     const spreadsheet = runtime.getRootWidget();

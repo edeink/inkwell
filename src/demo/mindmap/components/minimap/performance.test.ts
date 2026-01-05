@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   connectorPathFromRects,
   ConnectorStyle,
   DEFAULT_CONNECTOR_OPTIONS,
 } from '@/demo/mindmap/helpers/connection-drawer';
+import { testLogger } from '@/utils/test-logger';
 
 describe('小地图性能', () => {
   it('高效计算大型图表的连接线路径', () => {
@@ -42,7 +43,7 @@ describe('小地图性能', () => {
     const duration = endTime - startTime;
 
     // 期望处理 1000 个连接的时间在 50ms 以内（任意预算，通常快得多）
-    console.log(`Calculated ${nodeCount} connector paths in ${duration.toFixed(2)}ms`);
+    testLogger.log(`Calculated ${nodeCount} connector paths in ${duration.toFixed(2)}ms`);
     expect(duration).toBeLessThan(100);
   });
 });

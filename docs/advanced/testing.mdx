@@ -32,3 +32,25 @@ describe('Container', () => {
   });
 });
 ```
+
+## 日志输出规范
+
+为了保持测试输出的整洁，我们制定了严格的日志输出规范：
+
+1.  **禁止直接使用 console**：在测试文件中，禁止直接调用 `console.log`、`console.warn` 或 `console.error`。
+2.  **使用 testLogger**：如果需要打印调试信息，请使用 `@/utils/test-logger` 提供的 `testLogger` 工具。
+3.  **调试模式**：默认情况下 `testLogger` 不会输出任何内容。如需查看调试信息，请在运行测试时设置环境变量 `TEST_DEBUG=1`。
+
+    ```bash
+    TEST_DEBUG=1 pnpm test
+    ```
+
+    示例：
+
+    ```typescript
+    import { testLogger } from '@/utils/test-logger';
+
+    it('should log debug info', () => {
+      testLogger.log('This will only show when TEST_DEBUG=1');
+    });
+    ```

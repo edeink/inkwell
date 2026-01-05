@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Column, Container, Row, Stack } from '@/core';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
+import { testLogger } from '@/utils/test-logger';
 
 describe('事件控制属性测试', () => {
   // 辅助函数：更新变换矩阵
@@ -47,7 +48,7 @@ describe('事件控制属性测试', () => {
     updateMatrices(root);
 
     const child = root.children[0];
-    console.log('Child info:', {
+    testLogger.log('Child info:', {
       offset: child.renderObject.offset,
       size: child.renderObject.size,
       skipEvent: (child as any).skipEvent,

@@ -7,6 +7,7 @@ import { WidgetRegistry } from '@/core/registry';
 import { ScrollView } from '@/core/viewport/scroll-view';
 import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
+import { testLogger } from '@/utils/test-logger';
 
 // 按 key 查找 Widget 的辅助函数
 function findWidgetByKey(root: Widget, key: string): Widget | null {
@@ -143,7 +144,7 @@ describe('完整 Demo 标签页布局分析', () => {
     // 内容应该比 600 高
     // 验证 Container 高度扩展到子元素高度
 
-    console.log(`[移动端] 视口: ${viewportWidth}, 内容: ${columnWidth}, 偏移: ${x}`);
+    testLogger.log(`[移动端] 视口: ${viewportWidth}, 内容: ${columnWidth}, 偏移: ${x}`);
 
     expect(columnWidth).toBeGreaterThan(viewportWidth);
     expect(x).toBe(0); // ScrollView 内容通常从 0 开始
@@ -172,10 +173,10 @@ describe('完整 Demo 标签页布局分析', () => {
     // Content should be taller than 600
     expect(columnHeight).toBeGreaterThan(viewportHeight);
 
-    // Verify Container height expands to child height
+    // 验证 Container 高度扩展到子元素高度
     const container = root.children[0];
     expect(container.renderObject.size.height).toBe(columnHeight);
 
-    console.log(`[Scroll] Viewport Height: ${viewportHeight}, Content Height: ${columnHeight}`);
+    testLogger.log(`[Scroll] Viewport Height: ${viewportHeight}, Content Height: ${columnHeight}`);
   });
 });

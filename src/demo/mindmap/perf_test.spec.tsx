@@ -8,6 +8,7 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 import { Container } from '@/core/container'; // Assuming this is correct path based on previous search
 import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
+import { testLogger } from '@/utils/test-logger';
 
 // Global Mock Setup
 const mockCtx = {
@@ -158,7 +159,7 @@ describe('增量渲染性能测试', () => {
     // If not found, maybe Container implementation differs.
     // But usually children are in children array.
     if (!node2) {
-      console.warn('Node2 not found in group1 children', group1);
+      testLogger.warn('Node2 not found in group1 children', group1);
     }
 
     expect(node2).toBeDefined();

@@ -13,6 +13,7 @@ import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events'
 import '@/core/registry';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
+import { testLogger } from '@/utils/test-logger';
 
 class CustomWidget extends Widget<{ key?: string; type: string; width?: number; height?: number }> {
   width = 40;
@@ -66,10 +67,10 @@ function buildTree(
     </Container>
   );
   const data = compileElement(el);
-  const root = WidgetRegistry.createWidget(data) as CustomWidget;
+  const root = WidgetRegistry.createWidget(data) as Widget;
   root.createElement(data);
   root.layout(createBoxConstraints());
-  const inner = root.children[0] as CustomWidget;
+  const inner = root.children[0] as Widget;
   const leaf = inner.children[0] as CustomWidget;
   return { root, inner, leaf };
 }
@@ -87,7 +88,7 @@ describe('事件系统（类方法）', () => {
       calls.push('method:leaf');
     };
     const handlers = EventRegistry.getHandlers(leaf.key!, 'click');
-    console.log('DEBUG: Handlers for leaf/click:', handlers.length, handlers);
+    testLogger.log('DEBUG: Handlers for leaf/click:', handlers.length, handlers);
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
     expect(calls).toEqual(['method:leaf']);

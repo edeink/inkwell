@@ -11,6 +11,7 @@ import {
 import { Column } from '@/core/flex/column';
 import { Row } from '@/core/flex/row';
 import { CrossAxisAlignment, FlexFit, MainAxisSize } from '@/core/type';
+import { testLogger } from '@/utils/test-logger';
 
 // Mock Container to allow manual property updates for testing
 class TestContainer extends Widget {
@@ -175,7 +176,7 @@ describe('Flex Layout Unit Tests', () => {
     const end = performance.now();
     const duration = end - start;
 
-    console.log(`[Perf] 100 children resize & layout: ${duration.toFixed(3)}ms`);
+    testLogger.log(`[Perf] 100 children resize & layout: ${duration.toFixed(3)}ms`);
     // Relaxed expectation for CI environments
     expect(duration).toBeLessThan(100);
     expect(row.renderObject.size.width).toBe(11 * count);

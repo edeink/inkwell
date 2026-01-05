@@ -46,25 +46,10 @@ export const DeleteCommand: ShortcutCommand = {
   cooldownMs: 150,
   execute: ({ viewport }: ShortcutContext) => {
     if (viewport.editingKey) {
-      try {
-        console.log('【排查步骤3】删除命令被阻止：当前处于编辑态', {
-          编辑节点: viewport.editingKey,
-        });
-      } catch {}
       return false;
     }
-    try {
-      console.log('【排查步骤3】删除命令执行：准备删除选区', {
-        选中数量: (viewport.selectedKeys || []).length,
-      });
-    } catch {}
     const cmd = new DeleteNodeCommand(viewport);
     viewport.historyManager.execute(cmd);
-    try {
-      console.log('【排查步骤3】删除命令已提交到历史', {
-        可撤销: viewport.historyManager.getState().canUndo,
-      });
-    } catch {}
     return true;
   },
 };

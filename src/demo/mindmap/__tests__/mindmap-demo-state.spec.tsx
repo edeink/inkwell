@@ -8,6 +8,7 @@ import { MindMapViewport } from '../widgets/mindmap-viewport';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
+import { testLogger } from '@/utils/test-logger';
 
 describe('MindmapDemo State Management', async () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe('MindmapDemo State Management', async () => {
     document.body.appendChild(container);
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
-    const demo = <MindmapDemo width={800} height={600} />;
+    const demo = <MindmapDemo key="demo-init" width={800} height={600} />;
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
@@ -77,7 +78,7 @@ describe('MindmapDemo State Management', async () => {
     document.body.appendChild(container);
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
-    const demo = <MindmapDemo width={800} height={600} />;
+    const demo = <MindmapDemo key="demo-active" width={800} height={600} />;
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
@@ -108,14 +109,14 @@ describe('MindmapDemo State Management', async () => {
     document.body.appendChild(container);
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
-    const demo = <MindmapDemo width={800} height={600} />;
+    const demo = <MindmapDemo key="demo-add" width={800} height={600} />;
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
       throw new Error('Root widget not found');
     }
-    console.log('onActive keys:', Object.keys(demoInstance));
+    testLogger.log('onActive keys:', Object.keys(demoInstance));
 
     // Simulate onActive callbackadding sibling
     (demoInstance as any).onAddSibling('n1', 1);
@@ -135,7 +136,7 @@ describe('MindmapDemo State Management', async () => {
     document.body.appendChild(container);
     const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
 
-    const demo = <MindmapDemo width={800} height={600} />;
+    const demo = <MindmapDemo key="demo-del" width={800} height={600} />;
     await runtime.renderFromJSX(demo as any);
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
