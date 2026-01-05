@@ -1,13 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
 import type { SpreadsheetModel } from '../spreadsheet-model';
-import type { CellPosition, SelectionRange } from '../types';
+import type { SelectionRange } from '../types';
 import type { WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
 import type { ThemePalette } from '@/styles/theme';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import { Container, Positioned, Stack, Text } from '@/core';
-import { EditableText } from '@/core/editable-text';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
 
@@ -19,16 +18,18 @@ export interface SpreadsheetGridProps extends WidgetProps {
   viewportWidth: number;
   viewportHeight: number;
   selection: SelectionRange | null;
-  editingCell: CellPosition | null;
   showGridLines: boolean;
+  gridLineColor?: string;
   /**
    * 外部数据版本号
    */
   dataVersion?: number;
+  /**
+   * 模型哈希值，用于强制更新
+   */
+  modelHash?: string;
   onCellDown: (row: number, col: number, e: InkwellEvent) => void;
   onCellDoubleClick: (row: number, col: number) => void;
-  onEditFinish: (value: string) => void;
-  onEditCancel: () => void;
 }
 
 export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
@@ -41,16 +42,10 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       viewportWidth,
       viewportHeight,
       selection,
-      editingCell,
       showGridLines,
-      gridLineColor,
       onCellDown,
       onCellDoubleClick,
-      onEditFinish,
-      onEditCancel,
     } = this.props;
-
-    const { config } = model;
 
     // 计算可见区域
     // 增加 1 行/列的缓冲区以防止闪烁
@@ -96,68 +91,43 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
           c >= Math.min(selection.startCol, selection.endCol) &&
           c <= Math.max(selection.startCol, selection.endCol);
 
-        const isEditing = editingCell && editingCell.row === r && editingCell.col === c;
         const style = cellData?.style || {};
 
         // 确保 style.color 有默认值
         const textColor = style.color || theme.text.primary;
 
-        if (isEditing) {
-          cells.push(
-            <Positioned
-              key={`cell-edit-${r}-${c}`}
-              left={colLeft}
-              top={rowTop}
-              width={displayWidth}
-              height={displayHeight}
+        cells.push(
+          <Positioned
+            key={`cell-${r}-${c}`}
+            left={colLeft}
+            top={rowTop}
+            width={displayWidth}
+            height={displayHeight}
+          >
+            <Container
+              color={isSelected ? theme.primary + '1A' : theme.background.base}
+              // 显式设置 pointerEvent="auto" 以确保能接收事件
+              pointerEvent="auto"
+              onPointerDown={(e) => {
+                onCellDown(r, c, e);
+              }}
+              // 使用 onDoubleClick 符合 React 规范，且确保 EventDispatcher 能正确解析
+              onDoubleClick={() => {
+                onCellDoubleClick(r, c);
+              }}
             >
-              <EditableText
-                value={cellData?.value || ''}
-                width={displayWidth}
-                height={displayHeight}
+              <Text
+                // 文本不响应事件，让事件冒泡到 Container
+                pointerEvent="none"
+                text={model.getDisplayValue(r, c)}
                 fontSize={14}
                 color={textColor}
-                autoFocus={true}
-                onFinish={onEditFinish}
-                onCancel={onEditCancel}
+                textAlign={(style.textAlign as TextAlign) || TextAlign.Left}
+                textAlignVertical={TextAlignVertical.Center}
               />
-            </Positioned>,
-          );
-        } else {
-          cells.push(
-            <Positioned
-              key={`cell-${r}-${c}`}
-              left={colLeft}
-              top={rowTop}
-              width={displayWidth}
-              height={displayHeight}
-            >
-              <Container
-                key={`cell-${r}-${c}-container`}
-                color={isSelected ? theme.primary + '1A' : theme.background.base}
-                // 显式设置 pointerEvent="auto" 以确保能接收事件
-                pointerEvent="auto"
-                onPointerDown={(e) => {
-                  onCellDown(r, c, e);
-                }}
-                // 使用 onDoubleClick 符合 React 规范，且确保 EventDispatcher 能正确解析
-                onDoubleClick={() => {
-                  onCellDoubleClick(r, c);
-                }}
-              >
-                <Text
-                  // 文本不响应事件，让事件冒泡到 Container
-                  pointerEvent="none"
-                  text={model.getDisplayValue(r, c)}
-                  fontSize={14}
-                  color={textColor}
-                  textAlign={(style.textAlign as TextAlign) || TextAlign.Left}
-                  textAlignVertical={TextAlignVertical.Center}
-                />
-              </Container>
-            </Positioned>,
-          );
-        }
+            </Container>
+          </Positioned>,
+        );
       }
     }
 

@@ -4,7 +4,7 @@ import { Container, Stack, Text } from '@/core';
 import { Widget, type WidgetProps } from '@/core/base';
 import { Positioned } from '@/core/positioned';
 import { StatefulWidget } from '@/core/state/stateful';
-import { TextAlign, TextAlignVertical } from '@/core/text';
+import { TextAlign } from '@/core/text';
 import { type InkwellEvent } from '@/core/type';
 
 /**
@@ -528,9 +528,10 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       return;
     }
 
+    // 延迟 16ms 触发 blur，确保点击在组件内时不触发 blur
     this.blurTimer = window.setTimeout(() => {
       this.endEditing(true);
-    }, 100);
+    }, 16);
   };
 
   /**

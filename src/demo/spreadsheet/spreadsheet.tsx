@@ -3,6 +3,7 @@
 import { SpreadsheetModel } from './spreadsheet-model';
 import { ColumnHeaders } from './widgets/col-header';
 import { CornerHeader } from './widgets/corner';
+import { SpreadsheetEditableText } from './widgets/editable-text';
 import { SpreadsheetGrid } from './widgets/grid';
 import { RowHeaders } from './widgets/row-header';
 
@@ -84,28 +85,39 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     this.setState({ isDarkMode: e.matches });
   };
 
+  private dispatchSelectionChange(newSelection: SelectionRange) {
+    const event = new CustomEvent('spreadsheet-selection-change', {
+      detail: newSelection,
+    });
+    window.dispatchEvent(event);
+  }
+
   private handleRowHeaderClick = (rowIndex: number, e: InkwellEvent) => {
+    const selection = {
+      startRow: rowIndex,
+      endRow: rowIndex,
+      startCol: 0,
+      endCol: this.model.getColCount() - 1,
+    };
+    this.dispatchSelectionChange(selection);
     // 选中整行
     this.setState({
-      selection: {
-        startRow: rowIndex,
-        endRow: rowIndex,
-        startCol: 0,
-        endCol: this.model.getColCount() - 1,
-      },
+      selection,
       editingCell: null,
     });
   };
 
   private handleColHeaderClick = (colIndex: number, e: InkwellEvent) => {
+    const selection = {
+      startRow: 0,
+      endRow: this.model.getRowCount() - 1,
+      startCol: colIndex,
+      endCol: colIndex,
+    };
+    this.dispatchSelectionChange(selection);
     // 选中整列
     this.setState({
-      selection: {
-        startRow: 0,
-        endRow: this.model.getRowCount() - 1,
-        startCol: colIndex,
-        endCol: colIndex,
-      },
+      selection,
       editingCell: null,
     });
   };
@@ -160,13 +172,15 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
 
       if (newRow !== startRow || newCol !== startCol) {
         e.preventDefault();
+        const selection = {
+          startRow: newRow,
+          startCol: newCol,
+          endRow: newRow,
+          endCol: newCol,
+        };
+        this.dispatchSelectionChange(selection);
         this.setState({
-          selection: {
-            startRow: newRow,
-            startCol: newCol,
-            endRow: newRow,
-            endCol: newCol,
-          },
+          selection,
         });
         this.scrollToCell(newRow, newCol);
       }
@@ -312,34 +326,49 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   };
 
   private handleCellDown = (row: number, col: number, e: InkwellEvent) => {
+    const selection = {
+      startRow: row,
+      startCol: col,
+      endRow: row,
+      endCol: col,
+    };
+    this.dispatchSelectionChange(selection);
     this.setState({
-      selection: {
-        startRow: row,
-        startCol: col,
-        endRow: row,
-        endCol: col,
-      },
+      selection,
       editingCell: null,
     });
   };
 
   private handleCellDoubleClick = (row: number, col: number) => {
+    const selection = {
+      startRow: row,
+      startCol: col,
+      endRow: row,
+      endCol: col,
+    };
+    this.dispatchSelectionChange(selection);
     this.setState({
       editingCell: { row, col },
-      selection: {
-        startRow: row,
-        startCol: col,
-        endRow: row,
-        endCol: col,
-      },
+      selection,
     });
   };
 
-  private handleEditFinish = (value: string) => {
-    if (this.state.editingCell) {
-      const { row, col } = this.state.editingCell;
-      this.model.setCell(row, col, { ...this.model.getCell(row, col), value });
+  private handleEditFinish = (row: number, col: number, value: string) => {
+    // 始终保存数据到对应的单元格 (使用闭包捕获的正确位置，避免竞态问题)
+    const cell = this.model.getCell(row, col) || { value: '' };
+    this.model.setCell(row, col, { ...cell, value });
+
+    // 只有当当前编辑状态仍指向该单元格时，才清除编辑状态
+    // 如果用户已经双击了其他单元格（导致 editingCell 改变），则不应清除新单元格的编辑状态
+    if (
+      this.state.editingCell &&
+      this.state.editingCell.row === row &&
+      this.state.editingCell.col === col
+    ) {
       this.setState({ editingCell: null, version: this.state.version + 1 });
+    } else {
+      // 即使不清除编辑状态，也需要刷新视图以显示刚更新的数据
+      this.setState({ version: this.state.version + 1 });
     }
   };
 
@@ -402,6 +431,39 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     const viewportWidth = width - config.headerWidth;
     const viewportHeight = height - config.headerHeight;
 
+    let editor = null;
+    if (editingCell) {
+      const { row, col } = editingCell;
+      const cell = this.model.getCell(row, col);
+      const cellLeft = this.model.getColOffset(col);
+      const cellTop = this.model.getRowOffset(row);
+      const cellWidth = this.model.getColWidth(col);
+      const cellHeight = this.model.getRowHeight(row);
+      const style = cell?.style || {};
+
+      // Calculate absolute position
+      const x = config.headerWidth + cellLeft - scrollX;
+      const y = config.headerHeight + cellTop - scrollY;
+
+      editor = (
+        <SpreadsheetEditableText
+          key={`editor-${row}-${col}`}
+          x={x}
+          y={y}
+          minWidth={cellWidth}
+          minHeight={cellHeight}
+          maxWidth={Math.max(cellWidth, width - x)} // Ensure at least cell width, but constraint to viewport
+          maxHeight={Math.max(cellHeight, height - y)}
+          value={cell?.value || ''}
+          theme={theme}
+          fontSize={14}
+          color={style.color || theme.text.primary}
+          onFinish={(value) => this.handleEditFinish(row, col, value)}
+          onCancel={() => this.setState({ editingCell: null })}
+        />
+      );
+    }
+
     return (
       <Container
         width={width}
@@ -431,17 +493,15 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
                 gridLineColor={this.props.gridLineColor ?? theme.border.base}
                 model={this.model}
                 dataVersion={this.props.dataVersion}
+                modelHash={this.model.hash}
                 theme={theme}
                 scrollX={scrollX}
                 scrollY={scrollY}
                 viewportWidth={viewportWidth}
                 viewportHeight={viewportHeight}
                 selection={selection}
-                editingCell={editingCell}
                 onCellDown={this.handleCellDown}
                 onCellDoubleClick={this.handleCellDoubleClick}
-                onEditFinish={this.handleEditFinish}
-                onEditCancel={() => this.setState({ editingCell: null })}
               />
             </ScrollView>
           </Positioned>
@@ -486,6 +546,9 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
           <Positioned left={0} top={0} width={config.headerWidth} height={config.headerHeight}>
             <CornerHeader width={config.headerWidth} height={config.headerHeight} theme={theme} />
           </Positioned>
+
+          {/* 5. 编辑器覆盖层 */}
+          {editor}
         </Stack>
       </Container>
     );

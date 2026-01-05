@@ -29,6 +29,11 @@ class SizeManager {
     return this.customSizes.get(index) ?? this.defaultSize;
   }
 
+  getHash(): string {
+    const entries = Array.from(this.customSizes.entries()).sort((a, b) => a[0] - b[0]);
+    return JSON.stringify(entries) + `:${this.defaultSize}`;
+  }
+
   setSize(index: number, size: number) {
     this.customSizes.set(index, size);
   }
@@ -109,11 +114,47 @@ export class SpreadsheetModel {
   // 追踪数据边界
   private maxRow: number = 0;
   private maxCol: number = 0;
+  private _hash: string = '';
 
   constructor(config: SheetConfig = DEFAULT_CONFIG) {
     this.config = config;
     this.rowManager = new SizeManager(config.defaultRowHeight);
     this.colManager = new SizeManager(config.defaultColWidth);
+    this.updateHash();
+  }
+
+  get hash(): string {
+    return this._hash;
+  }
+
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(16);
+  }
+
+  private updateHash() {
+    const cellEntries = Array.from(this.cells.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    // 为了性能，我们不需要对值进行完整 stringify，只需要 key 和 value 的简单组合
+    // 假设 CellData 的 value 是决定性的
+    const cellsStr = JSON.stringify(cellEntries);
+
+    const content =
+      cellsStr +
+      '|' +
+      this.rowManager.getHash() +
+      '|' +
+      this.colManager.getHash() +
+      '|' +
+      this.maxRow +
+      ':' +
+      this.maxCol;
+
+    this._hash = this.simpleHash(content);
   }
 
   private getKey(row: number, col: number): string {
@@ -186,11 +227,13 @@ export class SpreadsheetModel {
     const key = this.getKey(row, col);
     if (!data || (!data.value && !data.style)) {
       this.cells.delete(key);
+      this.updateHash();
       return;
     }
     this.cells.set(key, data);
     this.maxRow = Math.max(this.maxRow, row);
     this.maxCol = Math.max(this.maxCol, col);
+    this.updateHash();
   }
 
   getRowCount(): number {
@@ -207,6 +250,7 @@ export class SpreadsheetModel {
 
   setRowHeight(row: number, height: number) {
     this.rowManager.setSize(row, height);
+    this.updateHash();
   }
 
   getColWidth(col: number): number {
@@ -215,6 +259,7 @@ export class SpreadsheetModel {
 
   setColWidth(col: number, width: number) {
     this.colManager.setSize(col, width);
+    this.updateHash();
   }
 
   resizeRow(row: number, delta: number) {
@@ -263,6 +308,9 @@ export class SpreadsheetModel {
     if (this.config.colCount === undefined && col > this.maxCol) {
       this.maxCol = col;
       changed = true;
+    }
+    if (changed) {
+      this.updateHash();
     }
     return changed;
   }

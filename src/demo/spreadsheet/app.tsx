@@ -93,6 +93,7 @@ export function runApp(
 ) {
   runtime.render(
     <SpreadsheetDemoApp
+      key="spreadsheet-demo-app"
       width={width}
       height={height}
       theme={theme}

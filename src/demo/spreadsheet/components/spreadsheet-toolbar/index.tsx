@@ -31,7 +31,6 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
         } as React.CSSProperties
       }
     >
-      <span className={styles.title}>Spreadsheet Demo</span>
       <ToolbarButton icon={<ReloadOutlined />} tooltip="更新数据" onClick={onUpdateData} />
       <ToolbarButton icon={<TableOutlined />} tooltip="生成大数据 (10k Rows)" onClick={onAddRow} />
     </div>
