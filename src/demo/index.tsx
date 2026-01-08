@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
+import MarkdownPreview, { meta as MarkdownPreviewMeta } from './markdown-preview';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
 import Spreadsheet, { meta as SpreadsheetMeta } from './spreadsheet';
 import Swiper, { meta as SwiperMeta } from './swiper';
@@ -14,7 +15,7 @@ import { DevTools } from '@/devtools';
 import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
 
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState<string>(DemoKey.Spreadsheet);
+  const [activeKey, setActiveKey] = useState<string>(DemoKey.MarkdownPreview);
   const [theme, setTheme] = useState<ThemeType>(() => {
     return getCurrentThemeMode() === 'dark' ? ThemeType.Dark : ThemeType.Light;
   });
@@ -34,6 +35,7 @@ export default function UnifiedDemo() {
       { Component: Swiper, ...SwiperMeta },
       { Component: Mindmap, ...MindmapMeta },
       { Component: Spreadsheet, ...SpreadsheetMeta },
+      { Component: MarkdownPreview, ...MarkdownPreviewMeta },
     ],
     [],
   );

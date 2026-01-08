@@ -9,4 +9,5 @@ export enum DemoKey {
   Swiper = 'swiper',
   Mindmap = 'mindmap',
   Spreadsheet = 'spreadsheet',
+  MarkdownPreview = 'markdown-preview',
 }
