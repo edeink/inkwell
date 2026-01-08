@@ -54,8 +54,8 @@ export class Stack extends Widget<StackProps> {
 
   private initStackProperties(data: StackProps): void {
     // 默认开启点击穿透
-    if (data.skipEvent === undefined) {
-      this.skipEvent = true;
+    if (data.pointerEvent === undefined) {
+      this.pointerEvent = 'none';
     }
     this.alignment = data.alignment || 'topLeft';
     this.fit = data.fit || 'loose';

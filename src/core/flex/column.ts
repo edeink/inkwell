@@ -36,8 +36,8 @@ export class Column extends Widget<ColumnProps> {
    */
   private initColumnProperties(data: ColumnProps): void {
     // 默认开启点击穿透
-    if (data.skipEvent === undefined) {
-      this.skipEvent = true;
+    if (data.pointerEvent === undefined) {
+      this.pointerEvent = 'none';
     }
     this.mainAxisAlignment = data.mainAxisAlignment || MainAxisAlignment.Start;
     this.crossAxisAlignment = data.crossAxisAlignment || CrossAxisAlignment.Center;

@@ -113,15 +113,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     size: { width: 0, height: 0 },
   };
   zIndex: number = 0;
-  /**
-   * 是否跳过事件检测 (点击穿透)
-   * 如果为 true，则该组件不响应点击，但事件会传递给子组件
-   */
-  skipEvent: boolean = false;
-  /**
-   * 指针事件控制
-   * 类似于 CSS pointer-events
-   */
   pointerEvent: PointerEvents = 'auto';
   cursor?: CursorType;
   ref?: Ref<unknown> | ((instance: unknown) => void);
@@ -212,7 +203,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.flex = (data.flex || Widget.EMPTY_FLEX) as FlexProperties; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
-    this.skipEvent = !!data.skipEvent;
     // 优先使用 pointerEvent，其次 pointerEvents，默认为 auto
     const pe = data.pointerEvent ?? 'auto';
     this.pointerEvent = pe;
@@ -762,7 +752,6 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.data = nextData;
     this.zIndex = typeof nextData.zIndex === 'number' ? (nextData.zIndex as number) : this.zIndex;
 
-    this.skipEvent = !!nextData.skipEvent;
     const pe = nextData.pointerEvent ?? 'auto';
     this.pointerEvent = pe;
 
@@ -1216,11 +1205,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 递归命中测试
    */
   public visitHitTest(x: number, y: number): Widget | null {
-    if (this.skipEvent) {
-      return this.hitTestChildren(x, y);
-    }
     if (this.pointerEvent === 'none') {
-      return null;
+      return this.hitTestChildren(x, y);
     }
 
     if (!this.hitTest(x, y)) {

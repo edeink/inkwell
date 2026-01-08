@@ -1,6 +1,13 @@
 import { Widget } from './base';
 
-import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from './base';
+import type {
+  BoxConstraints,
+  BuildContext,
+  Offset,
+  PointerEvents,
+  Size,
+  WidgetProps,
+} from './base';
 
 export interface ClipRectProps extends WidgetProps {
   // No extra props needed for basic clipping
@@ -11,7 +18,7 @@ export interface ClipRectProps extends WidgetProps {
  * 将子组件裁剪为矩形区域
  */
 export class ClipRect extends Widget<ClipRectProps> {
-  skipEvent: boolean = true;
+  pointerEvent: PointerEvents = 'none';
 
   constructor(data: ClipRectProps) {
     super(data);

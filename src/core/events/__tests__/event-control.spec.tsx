@@ -35,23 +35,23 @@ describe('事件控制属性测试', () => {
     root.paint({ renderer } as any);
   };
 
-  it('skipEvent: true 应跳过自身命中测试但允许命中子元素', () => {
+  it('pointerEvent: "none" 应跳过自身命中测试但允许命中子元素', () => {
     const el = (
-      <Container key="parent" width={200} height={200} skipEvent={true} alignment="center">
-        <Container key="child" width={100} height={100} skipEvent={false} />
+      <Container key="parent" width={200} height={200} pointerEvent="none" alignment="center">
+        <Container key="child" width={100} height={100} pointerEvent="auto" />
       </Container>
     );
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);
-    root.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
+    root.layout({ minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200 });
     updateMatrices(root);
 
     const child = root.children[0];
     testLogger.log('Child info:', {
       offset: child.renderObject.offset,
       size: child.renderObject.size,
-      skipEvent: (child as any).skipEvent,
+      pointerEvent: child.pointerEvent,
       worldMatrix: (child as any)._worldMatrix,
     });
 
@@ -65,38 +65,8 @@ describe('事件控制属性测试', () => {
     expect(hitParent).toBeNull();
   });
 
-  it('pointerEvent: "none" 应具有与 skipEvent: true 相同的行为', () => {
-    const el = (
-      <Container
-        key="parent"
-        width={200}
-        height={200}
-        pointerEvent="none"
-        skipEvent={false}
-        alignment="center"
-      >
-        <Container key="child" width={100} height={100} pointerEvent="auto" skipEvent={false} />
-      </Container>
-    );
-    const data = compileElement(el);
-    const root = WidgetRegistry.createWidget(data)!;
-    root.createElement(data);
-    root.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
-    updateMatrices(root);
-
-    // 点击子元素 (100, 100) -> 命中 child
-    const hitChild = root.visitHitTest(100, 100);
-    expect(hitChild?.key).toBe('child');
-
-    // 点击父元素 (10, 10) -> 不命中
-    const hitParent = root.visitHitTest(10, 10);
-    expect(hitParent).toBeNull();
-  });
-
   it('pointerEvent: "auto" 应允许命中自身', () => {
-    const el = (
-      <Container key="parent" width={200} height={200} pointerEvent="auto" skipEvent={false} />
-    );
+    const el = <Container key="parent" width={200} height={200} pointerEvent="auto" />;
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);
@@ -108,12 +78,12 @@ describe('事件控制属性测试', () => {
     expect(hit?.key).toBe('parent');
   });
 
-  it('布局组件默认开启 skipEvent (点击穿透)', () => {
+  it('布局组件默认开启 pointerEvent="none" (点击穿透)', () => {
     const el = (
       <Stack key="stack" width={200} height={200}>
         <Column key="column" width={200} height={200}>
           <Row key="row" width={200} height={200}>
-            <Container key="child" width={50} height={50} pointerEvent="auto" skipEvent={false} />
+            <Container key="child" width={50} height={50} pointerEvent="auto" />
           </Row>
         </Column>
       </Stack>
@@ -125,11 +95,11 @@ describe('事件控制属性测试', () => {
     updateMatrices(root);
 
     // 验证默认属性
-    expect((root as any).skipEvent).toBe(true);
+    expect(root.pointerEvent).toBe('none');
     const column = root.children[0];
-    expect((column as any).skipEvent).toBe(true);
+    expect(column.pointerEvent).toBe('none');
     const row = column.children[0];
-    expect((row as any).skipEvent).toBe(true);
+    expect(row.pointerEvent).toBe('none');
 
     // 点击空白区域 (150, 150) -> 所有容器都穿透，返回 null
     const hitEmpty = root.visitHitTest(150, 150);
@@ -140,18 +110,16 @@ describe('事件控制属性测试', () => {
     expect(hitChild?.key).toBe('child');
   });
 
-  it('显式设置 skipEvent={false} 应覆盖默认行为', () => {
-    const el = (
-      <Container key="parent" width={200} height={200} skipEvent={false} pointerEvent="auto" />
-    );
+  it('显式设置 pointerEvent="auto" 应覆盖默认行为', () => {
+    const el = <Stack key="stack" width={200} height={200} pointerEvent="auto" />;
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);
-    root.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
+    root.layout({ minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200 });
     updateMatrices(root);
 
-    expect((root as any).skipEvent).toBe(false);
+    expect(root.pointerEvent).toBe('auto');
     const hit = root.visitHitTest(100, 100);
-    expect(hit?.key).toBe('parent');
+    expect(hit?.key).toBe('stack');
   });
 });

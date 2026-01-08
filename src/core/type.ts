@@ -231,11 +231,6 @@ export interface WidgetProps extends WidgetEventHandler {
   flex?: FlexProperties;
   zIndex?: number;
   /**
-   * 是否跳过事件检测 (点击穿透)
-   * 如果为 true，则该组件不响应点击，但事件会传递给子组件
-   */
-  skipEvent?: boolean;
-  /**
    * 指针事件控制
    * 类似于 CSS pointer-events
    */

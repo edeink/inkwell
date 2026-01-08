@@ -93,7 +93,6 @@ describe('ScrollView Coordinate & HitTest', () => {
       // Add a known property or key to verify hit
       key: 'target-child',
       pointerEvent: 'auto', // Important: Container defaults to 'none'
-      skipEvent: false, // Ensure container itself can be hit
     });
 
     const scrollView = new ScrollView({
