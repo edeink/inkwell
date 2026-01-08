@@ -25,6 +25,9 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.28.0",
+    "@babel/plugin-transform-typescript": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@babel/standalone": "^7.26.3",
     "@docusaurus/core": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",

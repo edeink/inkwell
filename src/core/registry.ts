@@ -82,9 +82,9 @@ export const widgetRegistry = new WidgetRegistry();
 
 // 便捷函数
 export function registerWidget(type: string, widgetClass: new (data: WidgetProps) => Widget): void {
-  widgetRegistry.register(type, widgetClass);
+  WidgetRegistry.registerType(type, widgetClass);
 }
 
 export function createWidget(type: string, data: WidgetProps): Widget | null {
-  return widgetRegistry.create(type, data);
+  return WidgetRegistry.createWidget(data);
 }

@@ -97,16 +97,16 @@ export function isTight(c: BoxConstraints): boolean {
  * 基础组件类
  */
 export abstract class Widget<TData extends WidgetProps = WidgetProps> {
-  key: string;
-  type: string;
+  key!: string;
+  type!: string;
   children: Widget[] = [];
   parent: Widget | null = null;
   // 编译 JSX 得到的数据
-  data: TData;
+  data!: TData;
   // 为了兼容 React 用法，构造的属性
-  props: WidgetCompactProps<TData>;
+  props!: WidgetCompactProps<TData>;
   // base 不维护状态
-  flex: FlexProperties; // 添加flex属性
+  flex!: FlexProperties; // 添加flex属性
   depth: number = 0;
   renderObject: RenderObject = {
     offset: { dx: 0, dy: 0 },
@@ -136,7 +136,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected _isBuilt: boolean = false;
   protected _dirty: boolean = false;
   protected _disposed: boolean = false;
+  public _isReused: boolean = false;
+  private _cachedBoundingBox: { x: number; y: number; width: number; height: number } | null = null;
   protected _worldMatrix?: [number, number, number, number, number, number];
+  private _inverseWorldMatrix: [number, number, number, number, number, number] | null = null;
 
   // RepaintBoundary 相关
   public isRepaintBoundary: boolean = false;
@@ -165,7 +168,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   // 自动 Key 生成计数器
-  private static _keyCounters: Map<string, number> = new Map();
+  private static _idCounter = 0;
+  // 对象池
+  public static _pool = new Map<string, Widget[]>();
+  // 共享空对象，减少 flex 属性初始化时的内存分配
+  private static EMPTY_FLEX = Object.freeze({});
+
+  // 构建缓存：复用 Map 以避免高频创建
+  private static _buildCache = {
+    byKey: new Map<string, Widget>(),
+    prevNoKey: new Map<string, Widget[]>(),
+    locked: false,
+  };
 
   /**
    * 生成唯一 Key
@@ -173,12 +187,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * @returns 唯一的 Key 字符串
    */
   private static _generateKey(type: string): string {
-    const count = (Widget._keyCounters.get(type) || 0) + 1;
-    Widget._keyCounters.set(type, count);
-    return `${type}-${count}`;
+    return (Widget._idCounter++).toString();
   }
 
   constructor(data: TData) {
+    this.init(data);
+  }
+
+  protected init(data: TData) {
     if (!data) {
       throw new Error('组件数据不能为空');
     }
@@ -193,7 +209,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.data = data;
     // 实际运行的 props
     this.props = { ...data, children: [] /** 未初始化 */ } as unknown as WidgetCompactProps<TData>;
-    this.flex = data.flex || {}; // 初始化flex属性
+    this.flex = (data.flex || Widget.EMPTY_FLEX) as FlexProperties; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
     this.skipEvent = !!data.skipEvent;
@@ -205,6 +221,19 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // RepaintBoundary 相关
     this.isRepaintBoundary = !!data.isRepaintBoundary;
     this.ref = data.ref;
+
+    // 重置状态
+    if (this.children.length > 0) {
+      this.children.length = 0;
+    }
+    this.parent = null;
+    this._disposed = false;
+    this._isReused = false;
+    this._dirty = false;
+    this._needsLayout = true;
+    this._needsPaint = true;
+    this._isBuilt = false;
+    this._cachedBoundingBox = null;
   }
 
   public exposeMethods(methods: Record<string, unknown>) {
@@ -219,13 +248,23 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   public shallowDiff(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-    const ka = Object.keys(a).filter((k) => k !== 'children');
-    const kb = Object.keys(b).filter((k) => k !== 'children');
-    if (ka.length !== kb.length) {
-      return true;
+    if (a === b) {
+      return false;
     }
-    for (const k of ka) {
+    // 优化：使用 for...in 避免 Object.keys 和 filter 产生的临时数组
+    for (const k in a) {
+      if (k === 'children') {
+        continue;
+      }
       if (a[k] !== b[k]) {
+        return true;
+      }
+    }
+    for (const k in b) {
+      if (k === 'children') {
+        continue;
+      }
+      if (!(k in a)) {
         return true;
       }
     }
@@ -236,28 +275,24 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     prevArray: Record<string, unknown>[],
     nextArray: Record<string, unknown>[],
   ): boolean {
-    const prevKeys = prevArray.map((c) => String(c.key ?? ''));
-    const nextKeys = nextArray.map((c) => String(c.key ?? ''));
-    if (prevKeys.length !== nextKeys.length) {
-      return true;
-    }
-    for (let i = 0; i < prevKeys.length; i++) {
-      if (prevKeys[i] !== nextKeys[i]) {
-        return true;
-      }
-    }
     if (prevArray.length !== nextArray.length) {
       return true;
     }
-    for (let i = 0; i < nextArray.length; i++) {
+
+    // 优化：合并循环，同时使用严格相等比较 key，避免 String() 转换和多次遍历
+    for (let i = 0; i < prevArray.length; i++) {
       const a = prevArray[i];
       const b = nextArray[i];
+
       if (!a || !b) {
         return true;
       }
+
+      // Content mismatch (shallowDiff checks all props including key)
       if (this.shallowDiff(a, b)) {
         return true;
       }
+
       if (a['children'] !== b['children']) {
         return true;
       }
@@ -285,6 +320,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 修复：不要因为 _needsLayout 为 true 就提前返回
     // 必须确保脏状态能够正确传播到 Relayout Boundary 或 PipelineOwner
     this._needsLayout = true;
+    this._cachedBoundingBox = null; // Invalidate layout cache
     this.markNeedsPaint();
 
     if (this._relayoutBoundary !== this) {
@@ -465,6 +501,26 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   dispose(): void {
     this._disposed = true;
+
+    // 清理引用，防止内存泄漏
+    this.children = [];
+    this.parent = null;
+    this._layer = null;
+    this._runtime = undefined;
+    this._owner = undefined;
+    this.ref = undefined;
+    this._cachedBoundingBox = null;
+    this._inverseWorldMatrix = null;
+
+    // 对象池回收
+    let pool = Widget._pool.get(this.type);
+    if (!pool) {
+      pool = [];
+      Widget._pool.set(this.type, pool);
+    }
+    if (pool.length < 200) {
+      pool.push(this);
+    }
   }
 
   public isDisposed(): boolean {
@@ -476,98 +532,130 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
-    const byKey = new Map<string, Widget>();
-    // 优化：按类型分组存储无 key 节点，实现 O(1) 查找
-    const prevNoKey = new Map<string, Widget[]>();
+    let byKey: Map<string, Widget>;
+    let prevNoKey: Map<string, Widget[]>;
+    let useCache = false;
 
-    for (const c of prev) {
-      if (c.data.key) {
-        byKey.set(c.key, c);
-      } else {
-        const type = c.type;
-        let list = prevNoKey.get(type);
-        if (!list) {
-          list = [];
-          prevNoKey.set(type, list);
+    // 尝试获取静态缓存（加锁防止递归冲突）
+    if (!Widget._buildCache.locked) {
+      Widget._buildCache.locked = true;
+      byKey = Widget._buildCache.byKey;
+      prevNoKey = Widget._buildCache.prevNoKey;
+      byKey.clear();
+      prevNoKey.clear();
+      useCache = true;
+    } else {
+      // 降级策略：如果缓存被占用（递归调用中），则创建新 Map
+      byKey = new Map();
+      prevNoKey = new Map();
+    }
+
+    try {
+      for (const c of prev) {
+        if (c.data.key) {
+          byKey.set(c.key, c);
+        } else {
+          const type = c.type;
+          let list = prevNoKey.get(type);
+          if (!list) {
+            list = [];
+            prevNoKey.set(type, list);
+          }
+          list.push(c);
         }
-        list.push(c);
       }
-    }
 
-    // 为了保持顺序复用（FIFO），我们将数组反转，这样 pop() 就能拿到最早的节点
-    for (const list of prevNoKey.values()) {
-      list.reverse();
-    }
+      // 为了保持顺序复用（FIFO），我们将数组反转，这样 pop() 就能拿到最早的节点
+      // 优化：直接迭代 values 避免 Array.from 产生的临时数组
+      for (const list of prevNoKey.values()) {
+        list.reverse();
+      }
 
-    const nextChildren: Widget[] = [];
-    const reused = new Set<Widget>();
+      const nextChildren: Widget[] = [];
+      // 移除 Set，使用标志位优化
 
-    for (const childData of childrenData) {
-      const k = childData.key ? String(childData.key) : null;
-      let reuse: Widget | null = null;
+      for (const childData of childrenData) {
+        // 优化：移除 String() 转换，直接使用原始 Key
+        // 1. 避免字符串转换开销
+        // 2. 支持数字类型的 Key 复用
+        const k = childData.key;
+        let reuse: Widget | null = null;
 
-      if (k) {
-        reuse = byKey.get(k) ?? null;
-      } else {
-        // 尝试复用同类型的无 key 节点
-        const type = childData.type;
-        if (type) {
-          const list = prevNoKey.get(type);
-          if (list && list.length > 0) {
-            reuse = list.pop()!;
+        if (k != null) {
+          // @ts-ignore - Map supports any key type
+          reuse = byKey.get(k) ?? null;
+        } else {
+          // 尝试复用同类型的无 key 节点
+          const type = childData.type;
+          if (type) {
+            const list = prevNoKey.get(type);
+            if (list && list.length > 0) {
+              reuse = list.pop()!;
+            }
+          }
+        }
+
+        if (reuse && reuse.type === childData.type) {
+          // 复用已有节点：合并已有动态数据以保留增量更新结果
+          if (!reuse._isReused) {
+            reuse._isReused = true;
+          }
+          const merged = { ...reuse.data, ...childData };
+          reuse.createElement(merged as TData);
+          reuse.parent = this;
+          reuse.depth = this.depth + 1;
+          nextChildren.push(reuse);
+          DOMEventManager.bindEvents(reuse, childData);
+        } else {
+          const childWidget = this.createChildWidget(childData);
+          if (childWidget) {
+            childWidget.parent = this;
+            childWidget.depth = this.depth + 1;
+            childWidget.createElement(childData);
+            nextChildren.push(childWidget);
+            DOMEventManager.bindEvents(childWidget, childData);
+          } else {
+            console.warn(
+              `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
+            );
           }
         }
       }
 
-      if (reuse && reuse.type === childData.type) {
-        // 复用已有节点：合并已有动态数据以保留增量更新结果
-        reused.add(reuse);
-        const merged = { ...reuse.data, ...childData };
-        reuse.createElement(merged as TData);
-        reuse.parent = this;
-        reuse.depth = this.depth + 1;
-        nextChildren.push(reuse);
-        DOMEventManager.bindEvents(reuse, childData);
-      } else {
-        const childWidget = this.createChildWidget(childData);
-        if (childWidget) {
-          childWidget.parent = this;
-          childWidget.depth = this.depth + 1;
-          childWidget.createElement(childData);
-          nextChildren.push(childWidget);
-          DOMEventManager.bindEvents(childWidget, childData);
+      // 销毁未复用的旧节点
+      for (const c of prev) {
+        if (!c._isReused) {
+          c.dispose();
         } else {
-          console.warn(
-            `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
-          );
+          c._isReused = false; // 重置标志位
         }
       }
-    }
 
-    // 销毁未复用的旧节点
-    for (const c of prev) {
-      if (!reused.has(c)) {
-        c.dispose();
+      // 检测子组件结构是否发生变化
+      const childrenStructureChanged =
+        prev.length !== nextChildren.length || prev.some((c, i) => c !== nextChildren[i]);
+
+      // 替换 children 引用（删除未复用的旧节点）
+      this.children = nextChildren;
+
+      if (childrenStructureChanged) {
+        this.markNeedsLayout();
       }
-    }
 
-    // 检测子组件结构是否发生变化
-    const childrenStructureChanged =
-      prev.length !== nextChildren.length || prev.some((c, i) => c !== nextChildren[i]);
-
-    // 替换 children 引用（删除未复用的旧节点）
-    this.children = nextChildren;
-
-    if (childrenStructureChanged) {
-      this.markNeedsLayout();
-    }
-
-    // 构建后验证
-    if (this.children.length !== childrenData.length) {
-      console.warn(
-        `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个` +
-          `子节点，但实际得到 ${this.children.length} 个。`,
-      );
+      // 构建后验证
+      if (this.children.length !== childrenData.length) {
+        console.warn(
+          `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个` +
+            `子节点，但实际得到 ${this.children.length} 个。`,
+        );
+      }
+    } finally {
+      if (useCache) {
+        // 释放缓存锁并清理引用，防止内存泄漏
+        byKey.clear();
+        prevNoKey.clear();
+        Widget._buildCache.locked = false;
+      }
     }
   }
 
@@ -575,6 +663,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 创建子组件的抽象方法，由子类实现
    */
   protected createChildWidget(childData: WidgetProps): Widget | null {
+    if (!childData.type) {
+      console.warn(`[构建警告] 创建子组件失败。` + `子组件类型未定义。`);
+      return null;
+    }
+    // 尝试从对象池获取
+    const pool = Widget._pool.get(childData.type);
+    if (pool && pool.length > 0) {
+      const w = pool.pop()!;
+      w.init(childData);
+      return w;
+    }
     return WidgetRegistry.createWidget(childData);
   }
 
@@ -639,10 +738,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const prevChildrenData = Array.isArray(prevData.children)
       ? (prevData.children as WidgetProps[])
       : [];
+
+    // 优化：缓存长度
+    const nextChildrenLength = Array.isArray(nextData.children)
+      ? (nextData.children as unknown[]).length
+      : 0;
+
     const nextChildrenData =
-      Array.isArray(nextData.children) && (nextData.children as unknown[]).length > 0
-        ? (nextData.children as WidgetProps[])
-        : prevChildrenData || [];
+      nextChildrenLength > 0 ? (nextData.children as WidgetProps[]) : prevChildrenData || [];
 
     const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
 
@@ -650,7 +753,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       DOMEventManager.bindEvents(this, nextData);
     }
 
-    const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
+    const needInitialBuild = this.children.length === 0 && nextChildrenLength > 0;
     if (!propsChanged && !childrenChanged && !needInitialBuild) {
       // props 不变且 children 结构不变，且无需初始构建：直接返回
       return this;
@@ -669,7 +772,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.isRepaintBoundary = !!nextData.isRepaintBoundary;
 
     // 初始构建或 children 差异/需要更新时执行子树增量重建
-    if (nextChildrenData.length > 0) {
+    if (nextChildrenLength > 0) {
       this.buildChildren(nextChildrenData);
     } else if (this.children.length > 0) {
       this.children = [];
@@ -685,7 +788,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     // 更新自身 props 引用
-    this.props = { ...nextData, children: this.children } as unknown as WidgetCompactProps<TData>;
+    // 优化：使用 Object.assign
+    this.props = Object.assign({}, nextData) as unknown as WidgetCompactProps<TData>;
+    this.props.children = this.children;
 
     if (propsChanged) {
       this.didUpdateWidget(prevData);
@@ -738,6 +843,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 根据子组件布局结果计算自身布局
     const size = this.performLayout(constraints, childrenSizes);
     this.renderObject.size = size;
+    // 缓存失效
+    this._cachedBoundingBox = null;
 
     this._needsLayout = false;
 
@@ -848,7 +955,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     width: number;
     height: number;
   } {
-    const m = matrix || this._worldMatrix || IDENTITY_MATRIX;
+    if (matrix) {
+      return this._computeBoundingBox(matrix);
+    }
+    if (this._cachedBoundingBox) {
+      return this._cachedBoundingBox;
+    }
+    this._cachedBoundingBox = this._computeBoundingBox(this._worldMatrix || IDENTITY_MATRIX);
+    return this._cachedBoundingBox;
+  }
+
+  private _computeBoundingBox(m: [number, number, number, number, number, number]) {
     const w = this.renderObject.size.width;
     const h = this.renderObject.size.height;
 
@@ -877,6 +994,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const prev = context.worldMatrix ?? IDENTITY_MATRIX;
     const next = multiply(prev, local);
     this._worldMatrix = next;
+    this._cachedBoundingBox = null;
+    this._inverseWorldMatrix = null;
 
     context.renderer?.save?.();
     applySteps(context.renderer, steps);
@@ -898,6 +1017,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const prev = context.worldMatrix ?? IDENTITY_MATRIX;
     const next = multiply(prev, local);
     this._worldMatrix = next;
+    this._cachedBoundingBox = null;
+    this._inverseWorldMatrix = null;
 
     // 2. 按需更新图层
     if (this._needsPaint || !this._layer) {
@@ -985,6 +1106,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       const local = composeSteps(steps);
       const next = multiply(parentMatrix, local);
       child._worldMatrix = next;
+      // @ts-ignore
+      child._cachedBoundingBox = null;
+      // @ts-ignore
+      child._inverseWorldMatrix = null;
       // 递归更新
       child._updateChildrenMatrices(next);
     }
@@ -1072,8 +1197,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   public hitTest(x: number, y: number): boolean {
     if (this._worldMatrix) {
-      const inv = invert(this._worldMatrix);
-      const local = transformPoint(inv, { x, y });
+      if (!this._inverseWorldMatrix) {
+        this._inverseWorldMatrix = invert(this._worldMatrix);
+      }
+      const local = transformPoint(this._inverseWorldMatrix, { x, y });
       const w = this.renderObject.size.width;
       const h = this.renderObject.size.height;
       return local.x >= 0 && local.y >= 0 && local.x <= w && local.y <= h;

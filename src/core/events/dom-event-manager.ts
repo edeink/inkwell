@@ -27,15 +27,25 @@ export class DOMEventManager {
     EventRegistry.clearKey(String(widget.key), rt);
 
     // 遍历属性以查找事件处理程序
-    for (const [k, v] of Object.entries(data)) {
-      // 检查 on[Event] 模式
-      if (typeof v === 'function' && /^on[A-Z]/.test(k)) {
-        const base = k.replace(/^on/, '').replace(/Capture$/, '');
-        const type = toEventType(base);
+    for (const k in data) {
+      const v = data[k];
+      // 检查 on[Event] 模式: k.startsWith('on') 且第三个字符是大写字母
+      if (
+        typeof v === 'function' &&
+        k.length > 2 &&
+        k.charCodeAt(0) === 111 &&
+        k.charCodeAt(1) === 110
+      ) {
+        const charCode = k.charCodeAt(2);
+        if (charCode >= 65 && charCode <= 90) {
+          // A-Z
+          const base = k.slice(2).replace(/Capture$/, '');
+          const type = toEventType(base);
 
-        if (type) {
-          const capture = /Capture$/.test(k);
-          EventRegistry.register(String(widget.key), type, v as EventHandler, { capture }, rt);
+          if (type) {
+            const capture = k.endsWith('Capture');
+            EventRegistry.register(String(widget.key), type, v as EventHandler, { capture }, rt);
+          }
         }
       }
     }

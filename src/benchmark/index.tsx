@@ -165,6 +165,8 @@ async function runSingleWithProgress(
   return { name: label, mode: TestMode.Baseline, samples, average: avg };
 }
 
+const DELAY_TIME = 300;
+
 /**
  * useRunAll
  * 管理整套基准测试的状态、生命周期与进度，同步外部面板与模态框的进度展示。
@@ -220,7 +222,16 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       setLoading(false);
       throw new Error('stage ref not ready');
     }
+
+    // 延迟启动，确保 DOM 完全就绪
+    await new Promise((resolve) => setTimeout(resolve, DELAY_TIME));
+
     const tests = listTests(caseType, testMode);
+    // 随机化测试顺序，避免固定顺序带来的潜在偏差
+    if (Math.random() > 0.5) {
+      tests.reverse();
+    }
+
     // 初始化外部与模态框的进度列表
     setProgressItems(
       tests.map((t) => ({
@@ -243,11 +254,19 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     const list: TestResult[] = [];
     {
       const warm = tests[0];
+      // 确保环境隔离：清理舞台
+      if (stage) {
+        stage.innerHTML = '';
+      }
       const inst = warm.create(stage);
       // 预热一轮以降低冷启动对后续统计的干扰
       await runSingleWithProgress(inst, warm.name, 50, 1, () => {});
     }
     for (const t of tests) {
+      // 确保环境隔离：清理舞台
+      if (stage) {
+        stage.innerHTML = '';
+      }
       const inst = t.create(stage);
       let done = 0;
       for (const n of nodeCounts) {
