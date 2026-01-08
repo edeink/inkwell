@@ -61,17 +61,17 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
 
   constructor(data: MindMapNodeToolbarProps) {
     super({ ...data, zIndex: typeof data.zIndex === 'number' ? data.zIndex : 1 });
-    this.init(data);
+    this.initToolbar(data);
   }
 
-  private init(data: MindMapNodeToolbarProps): void {
+  private initToolbar(data: MindMapNodeToolbarProps): void {
     this._onAddSibling = data.onAddSibling;
     this._onAddChildSide = data.onAddChildSide;
   }
 
   createElement(data: MindMapNodeToolbarProps): Widget<MindMapNodeToolbarProps> {
     super.createElement({ ...data, zIndex: typeof data.zIndex === 'number' ? data.zIndex : 1 });
-    this.init(data);
+    this.initToolbar(data);
     return this;
   }
 

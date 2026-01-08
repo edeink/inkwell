@@ -72,7 +72,7 @@ export class InteractiveCounterDemo extends StatefulWidget<
             mainAxisAlignment={MainAxisAlignment.Center}
           >
             {/* 方案 A: Class Component */}
-            <ClassButton onClick={this.onInc} theme={theme}>
+            <ClassButton key="class-btn" onClick={this.onInc} theme={theme}>
               <Text key="btn-text-class" text=" Btn" fontSize={16} color="#ffffff" />
             </ClassButton>
 
@@ -94,7 +94,7 @@ export class InteractiveCounterDemo extends StatefulWidget<
 
             {/* 3. 状态展示区 */}
             <Text
-              key={`counter-display-${this.state.count}`}
+              key="counter-display"
               text={`Total Clicks: ${this.state.count}`}
               fontSize={20}
               color={theme.text.primary}

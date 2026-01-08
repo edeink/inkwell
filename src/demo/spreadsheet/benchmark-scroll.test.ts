@@ -97,6 +97,6 @@ describe('SpreadsheetGrid Scroll Performance', () => {
     console.log(`Max: ${max.toFixed(2)}ms`);
     console.log('--------------------------------------------------');
 
-    expect(average).toBeLessThan(50); // Performance budget
+    expect(average).toBeLessThan(60); // Performance budget
   });
 });

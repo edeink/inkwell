@@ -75,10 +75,10 @@ export class Connector extends Widget<ConnectorProps> {
 
   constructor(data: ConnectorProps) {
     super(data);
-    this.init(data);
+    this.initConnector(data);
   }
 
-  private init(data: ConnectorProps): void {
+  private initConnector(data: ConnectorProps): void {
     this.fromKey = data.fromKey;
     this.toKey = data.toKey;
     this.color = data.color;
@@ -89,7 +89,7 @@ export class Connector extends Widget<ConnectorProps> {
 
   createElement(data: ConnectorProps): Widget<ConnectorProps> {
     super.createElement(data);
-    this.init(data);
+    this.initConnector(data);
     return this;
   }
 

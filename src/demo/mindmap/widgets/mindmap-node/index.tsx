@@ -60,7 +60,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   constructor(data: MindMapNodeProps) {
     super(data);
     this.state = this.initialState(data);
-    this.init(data);
+    this.initNode(data);
   }
 
   /**
@@ -71,7 +71,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     return { title: data.title || '', dragging: false, hovering: false };
   }
 
-  private init(data: MindMapNodeProps): void {
+  private initNode(data: MindMapNodeProps): void {
     this.title = data.title || '';
     this.prefSide = data.prefSide;
     const akFromProps = (data.activeKey ?? null) as string | null;
@@ -94,7 +94,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       onPointerLeave: () => this.setState({ hovering: false } as Partial<MindMapNodeProps>),
     } as MindMapNodeProps;
     super.createElement(withEvents);
-    this.init(withEvents);
+    this.initNode(withEvents);
     return this;
   }
 

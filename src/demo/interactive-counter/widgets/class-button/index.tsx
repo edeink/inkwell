@@ -39,7 +39,8 @@ export class ClassButton extends StatefulWidget<ButtonProps, ButtonState> {
         height={48}
         color={this.props.theme.primary}
         borderRadius={8}
-        onClick={this.props.onClick}
+        // Fix: 不要将 onClick 传递给 Container，否则会导致事件冒泡时被重复触发
+        // ClassButton 自身作为 StatefulWidget 已经绑定了 onClick
       >
         <Row mainAxisAlignment={MainAxisAlignment.Center}>
           <Text

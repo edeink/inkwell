@@ -39,10 +39,17 @@ describe('Demo Verification', () => {
   });
 
   it('SpreadsheetDemoApp should render without crashing', () => {
-    // SpreadsheetDemoApp is a functional component
-    const result = SpreadsheetDemoApp({ width: 800, height: 600, theme: Themes.light });
+    // SpreadsheetDemoApp is a class component
+    const widget = new SpreadsheetDemoApp({
+      width: 800,
+      height: 600,
+      theme: Themes.light,
+      type: 'SpreadsheetDemoApp',
+    } as any);
+    expect(widget).toBeDefined();
+    expect(widget).toBeInstanceOf(Widget);
+    const result = widget.render();
     expect(result).toBeDefined();
-    expect(result).toHaveProperty('type');
   });
 
   it('MindmapDemo should render without crashing', () => {

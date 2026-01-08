@@ -13,6 +13,11 @@ describe('Container onClick 可多次触发（计数累加）', () => {
   it('连续两次点击均触发 onClick，状态累计为 2', () => {
     const json = compileElement(<InteractiveCounterDemo theme={Themes.light} />);
     const root = WidgetRegistry.createWidget(json)!;
+    // Fix: 绑定 runtime 以启用事件注册
+    (root as any)._runtime = {
+      id: 'test-runtime',
+      scheduleUpdate: () => {},
+    };
     root.createElement(root.data);
     const btn = findWidget(root as any, '#counter-btn') as any;
     const pos = btn.getAbsolutePosition();

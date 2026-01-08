@@ -178,7 +178,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * @returns 唯一的 Key 字符串
    */
   private static _generateKey(type: string): string {
-    return (Widget._idCounter++).toString();
+    return `${type}-${Widget._idCounter++}`;
   }
 
   constructor(data: TData) {

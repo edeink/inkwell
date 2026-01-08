@@ -5,6 +5,7 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
  * 批量动画更新：每帧更新所有节点的位置 (Transform)
  */
 export async function createPipelineDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
+  stage.innerHTML = '';
   const tBuild0 = performance.now();
 
   const root = document.createElement('div');

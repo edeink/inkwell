@@ -43,10 +43,10 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
 
   constructor(data: MindMapLayoutProps) {
     super(data);
-    this.init(data);
+    this.initLayout(data);
   }
 
-  private init(data: MindMapLayoutProps): void {
+  private initLayout(data: MindMapLayoutProps): void {
     this.mode = (data.layout ?? this.mode) as LayoutMode;
     this.spacingX = (data.spacingX ?? this.spacingX) as number;
     this.spacingY = (data.spacingY ?? this.spacingY) as number;
@@ -57,7 +57,7 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
 
   createElement(data: MindMapLayoutProps): Widget<MindMapLayoutProps> {
     super.createElement(data);
-    this.init(data);
+    this.initLayout(data);
     return this;
   }
   protected paintSelf(_context: BuildContext): void {

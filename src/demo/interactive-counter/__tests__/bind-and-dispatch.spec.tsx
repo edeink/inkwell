@@ -37,9 +37,14 @@ describe('Stateful Template 事件绑定', () => {
       type: 'InteractiveCounterDemo',
       theme: Themes.light,
     });
+    // Fix: 必须绑定 runtime，否则 bindEvents 会因为没有 runtime 而跳过注册
+    (root as any)._runtime = runtime;
+
     root.createElement(root.data);
-    const btn = findWidget(root as any, '#counter-btn') as any;
-    const handlers = EventRegistry.getHandlers(String(btn.key), 'click');
+    // Fix: 由于 ClassButton 修复了双重触发问题，Container 不再绑定 onClick
+    // 应该检查 ClassButton (key="class-btn") 是否绑定了事件
+    const btn = findWidget(root as any, '#class-btn') as any;
+    const handlers = EventRegistry.getHandlers(String(btn.key), 'click', runtime);
     expect(handlers.length).toBeGreaterThan(0);
   });
 });
