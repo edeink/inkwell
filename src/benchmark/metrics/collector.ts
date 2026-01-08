@@ -4,6 +4,7 @@
  * 输出用于后续统计与展示，不包含任何副作用。
  */
 export type Timings = {
+  createTimeMs?: number;
   buildMs: number;
   layoutMs: number;
   paintMs: number;

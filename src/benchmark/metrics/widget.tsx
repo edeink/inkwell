@@ -1,7 +1,16 @@
 import Runtime from '../../runtime';
-import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
+import {
+  type PerformanceMetrics,
+  PerformanceTestInterface,
+  type ScrollMetrics,
+  TestCaseType,
+} from '../index.types';
 import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
 import { buildFlexRowColWidgetScene, buildFlexWidgetScene } from '../tester/flex/widget';
+import { buildLayoutWidgetScene } from '../tester/layout/widget';
+import { buildPipelineWidgetScene } from '../tester/pipeline/widget';
+import { buildScrollWidgetScene } from '../tester/scroll/widget';
+import { buildStateWidgetScene } from '../tester/state/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
 import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
 
@@ -24,10 +33,15 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
   private startMark = 0;
   private caseType: TestCaseType;
   private lastTimings: Timings | null = null;
+  private lastScrollMetrics: ScrollMetrics | undefined;
   private collecting = false;
   private memoryDebug: { t: number; used: number }[] = [];
   private beforeMem: { heapUsed: number } | null = null;
   private variant: 'v1' | 'v2' = 'v2';
+
+  getScrollMetrics(): ScrollMetrics | undefined {
+    return this.lastScrollMetrics;
+  }
 
   /**
    * 清空画布容器，释放上一次绘制的内容与编辑器引用。
@@ -63,6 +77,7 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
    */
   async createNodes(targetCount: number): Promise<void> {
     this.clearCanvas();
+    this.lastScrollMetrics = undefined;
     const runtime = await this.createRuntimeForStage(this.ctx.stageEl);
     switch (this.caseType) {
       case TestCaseType.Flex:
@@ -70,6 +85,21 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
         break;
       case TestCaseType.FlexRowCol:
         this.lastTimings = await buildFlexRowColWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        break;
+      case TestCaseType.Scroll: {
+        const res = await buildScrollWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        this.lastTimings = res.timings;
+        this.lastScrollMetrics = res.scrollMetrics;
+        break;
+      }
+      case TestCaseType.Layout:
+        this.lastTimings = await buildLayoutWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        break;
+      case TestCaseType.Pipeline:
+        this.lastTimings = await buildPipelineWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        break;
+      case TestCaseType.State:
+        this.lastTimings = await buildStateWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;
       case TestCaseType.Text:
         if (this.variant === 'v1') {

@@ -18,10 +18,30 @@ export interface StackProps extends WidgetProps {
   alignment?: AlignmentGeometry;
   fit?: StackFit;
   allowOverflowPositioned?: boolean;
+  /**
+   * 禁止在 Stack 上直接设置宽高。
+   * 如需指定尺寸，请在外层包裹 SizedBox。
+   */
+  width?: never;
+  height?: never;
 }
 
 /**
- * Stack 组件 - 将子组件堆叠在一起
+ * Stack 组件 - 将子组件堆叠在一起。
+ *
+ * 注意：Stack 本身不接受 width/height 属性。
+ * 如果需要固定 Stack 的大小，请将其包裹在 SizedBox 中。
+ *
+ * @example
+ * ```tsx
+ * <SizedBox width={300} height={300}>
+ *   <Stack>
+ *     <Positioned left={10} top={10}>
+ *       <Container width={50} height={50} color="red" />
+ *     </Positioned>
+ *   </Stack>
+ * </SizedBox>
+ * ```
  */
 export class Stack extends Widget<StackProps> {
   alignment: AlignmentGeometry = 'center';

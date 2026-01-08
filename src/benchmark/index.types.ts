@@ -30,6 +30,19 @@ export type PerformanceMetrics = {
   cpuBusyPercent?: number;
 };
 
+/** 滚动测试特有指标 */
+export type ScrollMetrics = {
+  direction: 'vertical' | 'horizontal';
+  mode: 'one-way' | 'alternating';
+  durationMs: number;
+  avgFps: number;
+  minFps: number;
+  maxFps: number;
+  jankCount: number;
+  totalFrames: number;
+  terminationReason?: 'completed' | 'stuck' | 'timeout';
+};
+
 /** 帧率采样项：相对时间 t 与对应 FPS */
 export type FrameRateSample = {
   t: number;
@@ -41,12 +54,19 @@ export type TestSample = {
   memory: MemoryUsage;
   metrics: PerformanceMetrics;
   frames: FrameRateSample[];
+  scrollMetrics?: ScrollMetrics; // 仅滚动测试有
+};
+
+/** 测试配置 */
+export type BenchmarkConfig = {
+  iterationCount: number; // 重复次数
 };
 
 /** 测试结果：名称、模式、样本集合与平均值 */
 export type TestResult = {
   name: string;
   mode: TestMode;
+  config: BenchmarkConfig;
   samples: TestSample[];
   average: TestSample;
 };
@@ -77,6 +97,10 @@ export enum TestCaseType {
   FlexRowCol = 'flex_row_col',
   Text = 'text',
   CanvasBenchmark = 'canvas_benchmark',
+  Scroll = 'scroll',
+  Layout = 'layout',
+  Pipeline = 'pipeline',
+  State = 'state',
 }
 
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
@@ -84,6 +108,10 @@ export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
   { label: '文字渲染测试', value: TestCaseType.Text },
   { label: 'Wrap 布局测试', value: TestCaseType.Flex },
   { label: 'Flex 布局测试', value: TestCaseType.FlexRowCol },
+  { label: '滚动列表测试', value: TestCaseType.Scroll },
+  { label: 'Stack/Flex 布局测试 ', value: TestCaseType.Layout },
+  { label: '渲染管线测试', value: TestCaseType.Pipeline },
+  { label: '状态更新测试', value: TestCaseType.State },
 ];
 
 export enum TestStatus {
@@ -104,6 +132,8 @@ export abstract class PerformanceTestInterface {
   abstract getPerformanceMetrics(): PerformanceMetrics;
   // 获取当前帧速率样本
   abstract getFrameRate(): FrameRateSample[];
+  // 获取滚动指标（可选）
+  getScrollMetrics?(): ScrollMetrics | undefined;
 
   // 获取当前内存使用情况
   getMemoryUsage(): MemoryUsage {
@@ -175,6 +205,25 @@ export function averageSamples(samples: TestSample[]): TestSample {
     avgMetrics.paintMs = round1(samples.reduce((a, b) => a + (b.metrics.paintMs as number), 0) / n);
   }
 
+  let avgScrollMetrics: ScrollMetrics | undefined;
+  const hasScroll = samples.every((s) => !!s.scrollMetrics);
+  if (hasScroll && samples.length > 0) {
+    avgScrollMetrics = {
+      direction: samples[0].scrollMetrics!.direction,
+      mode: samples[0].scrollMetrics!.mode,
+      durationMs: round1(samples.reduce((a, b) => a + b.scrollMetrics!.durationMs, 0) / n),
+      avgFps: round1(samples.reduce((a, b) => a + b.scrollMetrics!.avgFps, 0) / n),
+      minFps: round1(samples.reduce((a, b) => a + b.scrollMetrics!.minFps, 0) / n),
+      maxFps: round1(samples.reduce((a, b) => a + b.scrollMetrics!.maxFps, 0) / n),
+      jankCount: round1(samples.reduce((a, b) => a + b.scrollMetrics!.jankCount, 0) / n),
+      totalFrames: round1(samples.reduce((a, b) => a + b.scrollMetrics!.totalFrames, 0) / n),
+      terminationReason: samples.some((s) => s.scrollMetrics!.terminationReason !== 'completed')
+        ? samples.find((s) => s.scrollMetrics!.terminationReason !== 'completed')!.scrollMetrics!
+            .terminationReason
+        : 'completed',
+    };
+  }
+
   const frames: FrameRateSample[] = [];
   const maxLen = Math.max(...samples.map((s) => s.frames.length));
   for (let i = 0; i < maxLen; i++) {
@@ -194,5 +243,6 @@ export function averageSamples(samples: TestSample[]): TestSample {
     memory: avgMemory,
     metrics: avgMetrics,
     frames,
+    scrollMetrics: avgScrollMetrics,
   } as TestSample;
 }

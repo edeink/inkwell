@@ -3,10 +3,6 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
 import { detPos } from './helper';
 
 export function createTextDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
-  const el = stage;
-  while (el.firstChild) {
-    el.removeChild(el.firstChild);
-  }
   const tBuild0 = performance.now();
   const frag = document.createDocumentFragment();
   const stageW = stage.clientWidth || 800;

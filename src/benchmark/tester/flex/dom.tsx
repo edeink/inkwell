@@ -7,10 +7,6 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
  * 依次测量构建、强制布局与下一次绘制的耗时，返回 Timings。
  */
 export function createFlexDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
-  const el = stage;
-  while (el.firstChild) {
-    el.removeChild(el.firstChild);
-  }
   const tBuild0 = performance.now();
   const container = document.createElement('div');
   // 对应 Wrap widget 的 spacing=4, runSpacing=4

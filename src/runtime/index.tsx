@@ -550,9 +550,9 @@ export default class Runtime {
     }
 
     // 确保数据完整性
-    if (!data.key) {
-      console.warn('Missing key for component:', data.type);
-    }
+    // if (!data.key) {
+    //   console.warn('Missing key for component:', data.type);
+    // }
 
     // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
     try {

@@ -7,9 +7,6 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
  */
 export function createAbsoluteDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
   const el = stage;
-  while (el.firstChild) {
-    el.removeChild(el.firstChild);
-  }
   const stageW = el.clientWidth || 800;
   const stageH = el.clientHeight || 600;
 

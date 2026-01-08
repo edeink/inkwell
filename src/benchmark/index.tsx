@@ -16,6 +16,7 @@ import {
   TestCaseType,
   TestMode,
   TestStatus,
+  type BenchmarkConfig,
   type ExperimentType,
   type PerformanceTestInterface,
   type TestResult,
@@ -113,6 +114,7 @@ async function runSingleWithProgress(
   label: string,
   nodes: number,
   repeat: number,
+  config: BenchmarkConfig,
   onProgress: (i: number, total: number) => void,
   waitIfPaused?: () => Promise<void>,
 ): Promise<TestResult> {
@@ -149,7 +151,9 @@ async function runSingleWithProgress(
     const memory = test.getMemoryUsage();
     const metrics = test.getPerformanceMetrics();
     const frames = test.getFrameRate();
-    samples.push({ memory, metrics, frames });
+    // 获取滚动指标（如果有）
+    const scrollMetrics = test.getScrollMetrics ? test.getScrollMetrics() : undefined;
+    samples.push({ memory, metrics, frames, scrollMetrics });
     onProgress(i, total);
   }
   const avg = averageSamples(samples);
@@ -162,7 +166,7 @@ async function runSingleWithProgress(
   const windowMs = Math.max(1, winEnd - winStart); // 观测窗口时长
   const cpuBusyPercent = Math.min(100, (longTaskDuration / windowMs) * 100); // 估算 CPU 忙碌比例
   avg.metrics.cpuBusyPercent = cpuBusyPercent;
-  return { name: label, mode: TestMode.Baseline, samples, average: avg };
+  return { name: label, mode: TestMode.Baseline, config, samples, average: avg };
 }
 
 const DELAY_TIME = 300;
@@ -196,6 +200,8 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
   const [modalProgressItems, setModalProgressItems] = useState<ProgressItem[]>([]);
   const cancelled = useRef(false);
   const [testMode, setTestMode] = useState<'benchmark' | 'canvas'>('benchmark');
+  const [testStep, setTestStep] = useState<number>(10);
+  const [scale, setScale] = useState<number>(1.0);
 
   const waitIfPaused = async () => {
     // 简单等待机制：暂停时阻塞流程直到恢复
@@ -228,9 +234,9 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
 
     const tests = listTests(caseType, testMode);
     // 随机化测试顺序，避免固定顺序带来的潜在偏差
-    if (Math.random() > 0.5) {
-      tests.reverse();
-    }
+    // if (Math.random() > 0.5) {
+    //   tests.reverse();
+    // }
 
     // 初始化外部与模态框的进度列表
     setProgressItems(
@@ -260,7 +266,9 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
       }
       const inst = warm.create(stage);
       // 预热一轮以降低冷启动对后续统计的干扰
-      await runSingleWithProgress(inst, warm.name, 50, 1, () => {});
+      const warmConfig: BenchmarkConfig = { iterationCount: 1 };
+      const warmCount = nodeCounts.length > 0 ? nodeCounts[0] : 50;
+      await runSingleWithProgress(inst, warm.name, warmCount, 1, warmConfig, () => {});
     }
     for (const t of tests) {
       // 确保环境隔离：清理舞台
@@ -280,12 +288,16 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
         setModalProgressItems((prev) =>
           prev.map((it) => (it.key === t.name ? { ...it, status: TestStatus.Running } : it)),
         );
+        const config: BenchmarkConfig = {
+          iterationCount: repeat,
+        };
         const res = await runSingleWithProgress(
           inst,
           t.name,
           n,
           repeat,
-          (i, total) => {
+          config,
+          (i: number, total: number) => {
             setCurrentTask({
               name: t.name,
               round: i,
@@ -410,6 +422,10 @@ function useRunAll(stageRef: RefObject<HTMLDivElement>) {
     modalProgressItems,
     testMode,
     setTestMode,
+    testStep,
+    setTestStep,
+    scale,
+    setScale,
   };
 }
 
@@ -443,6 +459,10 @@ function App() {
     setTestMode,
     repeat,
     setRepeat,
+    // testStep,
+    // setTestStep,
+    // scale,
+    // setScale,
   } = useRunAll(stageRef as React.RefObject<HTMLDivElement>);
 
   return (

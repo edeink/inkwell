@@ -2,11 +2,9 @@ import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-desi
 import { Button, InputNumber, Select, Space, Tabs } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { TestCaseOptions } from '../../index.types';
+import { TestCaseOptions, TestCaseType } from '../../index.types';
 
 import styles from './index.module.less';
-
-import type { TestCaseType } from '../../index.types';
 
 /**
  * 控制面板参数
@@ -39,17 +37,79 @@ enum PresetType {
 type Preset = {
   key: PresetType;
   label: string;
-  start: number;
-  end: number;
-  step?: number;
 };
 
 // 预设集合：覆盖常用、小规模与大规模三档
 const PRESETS: Preset[] = [
-  { key: PresetType.Common, label: '常用', start: 100, end: 10000, step: 100 },
-  { key: PresetType.Small, label: '小规模', start: 50, end: 500, step: 50 },
-  { key: PresetType.Large, label: '大规模', start: 5000, end: 20000, step: 100 },
+  { key: PresetType.Common, label: '常用' },
+  { key: PresetType.Small, label: '小规模' },
+  { key: PresetType.Large, label: '大规模' },
 ];
+
+/**
+ * 不同测试用例类型的参数配置
+ * 目标：控制单次测试时间在 20-40s 范围内
+ */
+type CaseConfig = {
+  start: number;
+  end: number;
+  step: number;
+};
+
+const CASE_CONFIGS: Record<TestCaseType, Record<PresetType, CaseConfig>> = {
+  // 1. Layout 类 (Flex, Layout, Absolute, FlexRowCol) - 较快
+  [TestCaseType.Flex]: {
+    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
+    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
+    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
+  },
+  [TestCaseType.Layout]: {
+    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
+    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
+    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
+  },
+  [TestCaseType.Absolute]: {
+    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
+    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
+    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
+  },
+  [TestCaseType.FlexRowCol]: {
+    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
+    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
+    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
+  },
+
+  // 2. Text 类 - 中等
+  [TestCaseType.Text]: {
+    [PresetType.Small]: { start: 50, end: 500, step: 10 },
+    [PresetType.Common]: { start: 500, end: 5000, step: 100 },
+    [PresetType.Large]: { start: 5000, end: 20000, step: 400 },
+  },
+
+  // 3. Scroll 类 - 较慢 (包含动画过程)
+  [TestCaseType.Scroll]: {
+    [PresetType.Small]: { start: 20, end: 200, step: 20 },
+    [PresetType.Common]: { start: 200, end: 2000, step: 200 },
+    [PresetType.Large]: { start: 2000, end: 10000, step: 1000 },
+  },
+
+  // 4. Pipeline/State 类 - 取决于复杂度，暂按中等处理
+  [TestCaseType.Pipeline]: {
+    [PresetType.Small]: { start: 50, end: 500, step: 50 },
+    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
+    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
+  },
+  [TestCaseType.State]: {
+    [PresetType.Small]: { start: 50, end: 500, step: 50 },
+    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
+    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
+  },
+  [TestCaseType.CanvasBenchmark]: {
+    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
+    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
+    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
+  },
+};
 
 /**
  * ControlPanel
@@ -79,19 +139,30 @@ export default function ControlPanel({
   // Canvas 模式下的节点数
   const [canvasNodeCount, setCanvasNodeCount] = useState<number>(1000);
 
+  // 根据 caseType 和 preset 获取配置
+  const getConfig = useCallback((type: TestCaseType, pre: PresetType) => {
+    return CASE_CONFIGS[type]?.[pre] || CASE_CONFIGS[TestCaseType.Absolute][pre];
+  }, []);
+
   // 切换预设并同步区间与步长
-  const onPresetChange = useCallback((key: PresetType) => {
-    const cfg = PRESETS.find((p) => p.key === key);
-    if (!cfg) {
-      return;
-    }
-    setPreset(cfg.key);
+  const onPresetChange = useCallback(
+    (key: PresetType) => {
+      setPreset(key);
+      const cfg = getConfig(caseType, key);
+      setRangeStart(cfg.start);
+      setRangeEnd(cfg.end);
+      setRangeStep(cfg.step);
+    },
+    [caseType, getConfig],
+  );
+
+  // 当 caseType 变化时，自动应用当前预设的配置
+  useEffect(() => {
+    const cfg = getConfig(caseType, preset);
     setRangeStart(cfg.start);
     setRangeEnd(cfg.end);
-    if (cfg.step) {
-      setRangeStep(cfg.step);
-    }
-  }, []);
+    setRangeStep(cfg.step);
+  }, [caseType, preset, getConfig]);
 
   // 按区间与步长生成节点数列表，并写入上层状态
   const updateNodeCounts = useCallback(
@@ -153,7 +224,8 @@ export default function ControlPanel({
   // 步长上限
   const stepMax = useMemo(() => {
     const diff = Math.max(1, rangeEnd - rangeStart);
-    return Math.min(10000, Math.max(1, Math.floor(diff / 5)));
+    // 允许步长最大为整个范围（即只测首尾或者单点）
+    return Math.max(1, diff);
   }, [rangeStart, rangeEnd]);
 
   const items = [

@@ -1,6 +1,15 @@
-import { PerformanceTestInterface, TestCaseType, type PerformanceMetrics } from '../index.types';
+import {
+  PerformanceTestInterface,
+  TestCaseType,
+  type PerformanceMetrics,
+  type ScrollMetrics,
+} from '../index.types';
 import { createAbsoluteDomNodes } from '../tester/absolute/dom';
 import { createFlexDomNodes, createFlexRowColDomNodes } from '../tester/flex/dom';
+import { createLayoutDomNodes } from '../tester/layout/dom';
+import { createPipelineDomNodes } from '../tester/pipeline/dom';
+import { createScrollDomNodes } from '../tester/scroll/dom';
+import { createStateDomNodes } from '../tester/state/dom';
 import { createTextDomNodes } from '../tester/text/dom';
 
 import { FrameSampler, round1, type Timings } from './collector';
@@ -11,6 +20,26 @@ import { FrameSampler, round1, type Timings } from './collector';
 type Ctx = {
   stage: HTMLElement;
 };
+
+/**
+ * 清空舞台容器中的所有节点
+ * @param stage 舞台容器元素
+ * @throws Error 如果 stage 不是有效的 HTMLElement
+ */
+export function clearDomStage(stage: HTMLElement): void {
+  if (!stage || !(stage instanceof HTMLElement)) {
+    throw new Error('Invalid stage element provided for cleanup');
+  }
+
+  try {
+    while (stage.firstChild) {
+      stage.removeChild(stage.firstChild);
+    }
+  } catch (e) {
+    console.error('Failed to clear DOM stage:', e);
+    throw e;
+  }
+}
 
 /**
  * DomPerformanceTest
@@ -25,6 +54,7 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
   private startMark = 0;
   private caseType: TestCaseType;
   private lastTimings: Timings | null = null;
+  private lastScrollMetrics: ScrollMetrics | undefined;
   private collecting = false;
   private beforeMem: { heapUsed: number } | null = null;
 
@@ -34,11 +64,19 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
     this.caseType = layout;
   }
 
+  getScrollMetrics(): ScrollMetrics | undefined {
+    return this.lastScrollMetrics;
+  }
+
   /**
    * 按当前布局创建指定数量的节点并记录阶段耗时。
    * @param targetCount 目标节点数量
    */
   async createNodes(targetCount: number): Promise<void> {
+    // 统一执行清空操作
+    clearDomStage(this.ctx.stage);
+
+    this.lastScrollMetrics = undefined;
     switch (this.caseType) {
       case TestCaseType.Flex: {
         this.lastTimings = await createFlexDomNodes(this.ctx.stage, targetCount);
@@ -46,6 +84,24 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       }
       case TestCaseType.FlexRowCol: {
         this.lastTimings = await createFlexRowColDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.Scroll: {
+        const res = await createScrollDomNodes(this.ctx.stage, targetCount);
+        this.lastTimings = res.timings;
+        this.lastScrollMetrics = res.scrollMetrics;
+        break;
+      }
+      case TestCaseType.Layout: {
+        this.lastTimings = await createLayoutDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.Pipeline: {
+        this.lastTimings = await createPipelineDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.State: {
+        this.lastTimings = await createStateDomNodes(this.ctx.stage, targetCount);
         break;
       }
       case TestCaseType.Text: {
