@@ -7,6 +7,7 @@ hide_table_of_contents: true
 import { AppstoreOutlined, BookOutlined, CodeOutlined, GlobalOutlined, RocketOutlined, ToolOutlined } from '@ant-design/icons';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import InkPlayground from '@site/src/docusaurus/components/ink-playground';
+import { industryBenchmarks, performanceDisclaimer } from '@site/src/docusaurus/data/benchmarks';
 import styles from './index.module.less';
 
 export const showcaseCode = `
@@ -121,33 +122,121 @@ export const showcaseCode = `
     </div>
   </section>
 
-  {/* Screen 6: DevTools */}
-  <section className={styles.devtoolsSection}>
-    <h2 className={styles.sectionTitle}>便于调试</h2>
-    <div className={styles.toolShowcase}>
-      <div className={styles.screenshot}>
-        <div className={styles.fakeToolbar}>
-          <div className={`${styles.dot} ${styles.r}`}></div>
-          <div className={`${styles.dot} ${styles.y}`}></div>
-          <div className={`${styles.dot} ${styles.g}`}></div>
+  {/* Screen 5: Industry Potential */}
+  <section className={styles.industrySection}>
+    <h2 className={styles.sectionTitle}>性能潜力</h2>
+    <div className={styles.statsGrid}>
+      <div className={styles.statCard}>
+        <div className={styles.statHeader}>
+          <span className={styles.statValue}>~60%</span>
+          <span className={styles.statTrend}>↓</span>
         </div>
-        <div className={styles.fakeContent}>
-          <div className={styles.sidebar}>
-            <div className={styles.fakeItem}></div>
-            <div className={styles.fakeItem}></div>
-            <div className={styles.fakeItem}></div>
-            <div className={styles.fakeItem} style={{ width: '70%', marginTop: '20px' }}></div>
-            <div className={styles.fakeItem} style={{ width: '50%' }}></div>
-          </div>
-          <div className={styles.main}>
-            &lt;Inspector Mode Active /&gt;
-          </div>
+        <span className={styles.statLabel}>包体积</span>
+        <p className={styles.statDesc}>
+          剥离 WebKit 冗余，<br/>实现轻量化部署
+        </p>
+        <div className={styles.statSource}>
+          <span className={styles.sourceLabel}>参考：</span>
+          <a href={industryBenchmarks.find(b => b.id === 'kuaishou-kwaijs')?.source.url} target="_blank" rel="noopener noreferrer">
+            快手 KwaiJS
+          </a>
         </div>
       </div>
-      <p className={styles.toolDesc}>完整的节点树视图和属性检查器，像 DOM 一样调试 Canvas</p>
-      <a className={styles.learnMoreBtn} href="/docs/advanced/devtools">
-        了解更多 →
-      </a>
+      
+      <div className={styles.statCard}>
+        <div className={styles.statHeader}>
+          <span className={styles.statValue}>~40%</span>
+          <span className={styles.statTrend}>↓</span>
+        </div>
+        <span className={styles.statLabel}>内存占用</span>
+        <p className={styles.statDesc}>
+          去 DOM 树化，<br/>降低复杂页面开销
+        </p>
+        <div className={styles.statSource}>
+          <span className={styles.sourceLabel}>参考：</span>
+          <a href={industryBenchmarks.find(b => b.id === 'alibaba-kraken')?.source.url} target="_blank" rel="noopener noreferrer">
+            阿里 Kraken
+          </a>
+        </div>
+      </div>
+
+      <div className={styles.statCard}>
+        <div className={styles.statHeader}>
+          <span className={styles.statValue}>30%+</span>
+          <span className={styles.statTrend}>↑</span>
+        </div>
+        <span className={styles.statLabel}>启动速度</span>
+        <p className={styles.statDesc}>
+          消除解析耗时，<br/>实现秒开体验
+        </p>
+        <div className={styles.statSource}>
+          <span className={styles.sourceLabel}>参考：</span>
+          <a href={industryBenchmarks.find(b => b.id === 'tencent-pag')?.source.url} target="_blank" rel="noopener noreferrer">
+            腾讯 PAG
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.disclaimerBox}>
+      <p className={styles.disclaimerIcon}>ℹ️</p>
+      <div className={styles.disclaimerText}>
+        {performanceDisclaimer.split('\n').filter(Boolean).map((line, i) => (
+          <p key={i}>{line}</p>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* Screen 6: Ecosystem */}
+  <section className={styles.ecosystemSection}>
+    <h2 className={styles.sectionTitle}>更多生态</h2>
+    <div className={styles.ecosystemGrid}>
+      {/* DevTools */}
+      <div className={styles.ecosystemCard}>
+        <div className={styles.screenshot}>
+          <div className={styles.fakeToolbar}>
+            <div className={`${styles.dot} ${styles.r}`}></div>
+            <div className={`${styles.dot} ${styles.y}`}></div>
+            <div className={`${styles.dot} ${styles.g}`}></div>
+          </div>
+          <div className={styles.fakeContent}>
+            <div className={styles.sidebar}>
+              <div className={styles.fakeItem}></div>
+              <div className={styles.fakeItem}></div>
+              <div className={styles.fakeItem}></div>
+            </div>
+            <div className={styles.main}>
+              &lt;Inspector /&gt;
+            </div>
+          </div>
+        </div>
+        <h3>可视化调试</h3>
+        <p>内置节点树检视器与属性编辑器，像调试 DOM 一样轻松。</p>
+        <a className={styles.learnMoreBtn} href="/docs/advanced/devtools">了解更多 →</a>
+      </div>
+
+      {/* Ink Design UI Library */}
+      <div className={styles.ecosystemCard}>
+        <div className={styles.screenshot}>
+           <div className={styles.fakeToolbar}>
+            <div className={`${styles.dot} ${styles.r}`}></div>
+            <div className={`${styles.dot} ${styles.y}`}></div>
+            <div className={`${styles.dot} ${styles.g}`}></div>
+          </div>
+          <div className={styles.fakeContent} style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+             <div className={styles.uiBtnPrimary}>Button</div>
+             <div className={styles.uiBtnGhost}>Ghost</div>
+             <div className={styles.uiToggle}>
+               <div className={styles.uiToggleThumb}></div>
+             </div>
+          </div>
+          <div className={styles.wipBadge}>构建中</div>
+        </div>
+        <h3>Ink Design</h3>
+        <p>专为 Canvas 打造的现代化组件库，提供开箱即用的精美 UI。</p>
+        <span className={styles.comingSoonText}>Coming Soon...</span>
+      </div>
     </div>
   </section>
 
