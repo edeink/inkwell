@@ -153,7 +153,11 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
           width={w}
           height={h}
         >
-          <Container color="transparent" border={{ width: 2, color: theme.primary }} />
+          <Container
+            pointerEvent="none"
+            color="transparent"
+            border={{ width: 2, color: theme.primary }}
+          />
         </Positioned>,
       );
     }
