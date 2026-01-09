@@ -57,6 +57,7 @@ export default class Runtime {
   private __layoutScheduled: boolean = false;
   private __layoutRaf: number | null = null;
   public enableOffscreenRendering: boolean = true;
+  private tickListeners: Set<() => void> = new Set();
   static canvasRegistry: Map<
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
@@ -222,6 +223,15 @@ export default class Runtime {
     return this.canvasId;
   }
 
+  addTickListener(listener: () => void): () => void {
+    this.tickListeners.add(listener);
+    return () => this.tickListeners.delete(listener);
+  }
+
+  removeTickListener(listener: () => void): void {
+    this.tickListeners.delete(listener);
+  }
+
   static getByCanvasId(id: string): Runtime | null {
     const rec = Runtime.canvasRegistry.get(id);
     return rec ? rec.runtime : null;
@@ -344,6 +354,15 @@ export default class Runtime {
       // 正常情况，tick 会消费所有的 dirtyWidget
       // 此处只是为了二次确保所有的内容都被更新
       await this.flushUpdates();
+
+      // 通知监听器
+      this.tickListeners.forEach((listener) => {
+        try {
+          listener();
+        } catch (e) {
+          console.error(e);
+        }
+      });
 
       // 定期扫描游离节点 (每 100 帧扫描一次)
       this.tickCount++;

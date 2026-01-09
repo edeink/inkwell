@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import Runtime from '../../runtime';
 import Overlay, { hitTest } from '../components/overlay';
+import { resolveHitWidget } from '../helper/resolve';
 
 import type { Widget } from '@/core/base';
 
@@ -134,9 +135,22 @@ export function useMouseInteraction({
         }
         const x = cx - rect.left;
         const y = cy - rect.top;
-        const target = hitTest(runtime!.getRootWidget?.(), x, y);
-        setHoverRef(target);
-        ov.highlight(target);
+
+        const root = runtime!.getRootWidget?.();
+        let finalTarget: Widget | null = null;
+
+        if (root) {
+          try {
+            const rawTarget = hitTest(root, x, y);
+            // 使用 resolveHitWidget 确保选中的节点在树中可达
+            finalTarget = resolveHitWidget(root, rawTarget);
+          } catch (err) {
+            console.error('[DevTools] HitTest error:', err);
+          }
+        }
+
+        setHoverRef(finalTarget);
+        ov.highlight(finalTarget);
       });
     }
 

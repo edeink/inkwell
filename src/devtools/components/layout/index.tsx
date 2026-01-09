@@ -309,7 +309,7 @@ export default LayoutPanel;
 function DockIcon({ side, active }: { side: Dock; active?: boolean }) {
   // Uses currentColor to inherit from parent button
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden style={{ display: 'block' }}>
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={styles.dockIconSvg}>
       <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="currentColor" />
       {side === 'left' && <rect x="2" y="2" width="4" height="12" rx="2" fill="currentColor" />}
       {side === 'right' && <rect x="10" y="2" width="4" height="12" rx="2" fill="currentColor" />}
