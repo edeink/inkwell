@@ -1,3 +1,4 @@
+import { ScrollBar, type ScrollBarProps } from './scroll-bar';
 import { Viewport } from './viewport';
 
 import type { Size } from '../base';
@@ -7,7 +8,6 @@ import type { InkwellEvent } from '@/core/events/types';
 const DEFAULT_BOUNCE_DAMPING = 0.2;
 const DEFAULT_RESISTANCE_FACTOR = 0.5;
 const MIN_BOUNCE_DIFF = 0.5;
-const DEFAULT_BOUNCE_SPEED_THRESHOLD = 1;
 const BOUNCE_DEBOUNCE_TIME = 50;
 
 export enum BounceState {
@@ -19,6 +19,33 @@ export enum BounceState {
 export interface ScrollViewProps extends ViewportProps {
   scrollBarColor?: string;
   scrollBarWidth?: number;
+
+  /**
+   * 是否始终显示垂直滚动条
+   * @default true
+   */
+  alwaysShowScrollbarY?: boolean;
+
+  /**
+   * 是否始终显示水平滚动条
+   * @default false
+   */
+  alwaysShowScrollbarX?: boolean;
+
+  /**
+   * 滚动条悬停颜色
+   */
+  scrollBarHoverColor?: string;
+
+  /**
+   * 滚动条激活(拖拽)颜色
+   */
+  scrollBarActiveColor?: string;
+
+  /**
+   * 滚动条轨道颜色
+   */
+  scrollBarTrackColor?: string;
 
   /**
    * 控制内容溢出显示行为
@@ -77,7 +104,9 @@ import {
   applySteps,
   composeSteps,
   IDENTITY_MATRIX,
+  invert,
   multiply,
+  transformPoint,
   type TransformStep,
 } from '@/core/helper/transform';
 
@@ -85,6 +114,9 @@ export class ScrollView extends Viewport {
   protected _contentSize: Size = { width: 0, height: 0 };
   protected _showScrollbarX = false;
   protected _showScrollbarY = false;
+
+  protected _scrollBarX: ScrollBar;
+  protected _scrollBarY: ScrollBar;
 
   protected _reboundTimer: ReturnType<typeof setTimeout> | null = null;
   protected _animationFrame: number | null = null;
@@ -94,8 +126,111 @@ export class ScrollView extends Viewport {
   protected _lastX = 0;
   protected _lastY = 0;
 
+  // Track currently hovered scrollbar to handle enter/leave
+  protected _hoveredScrollBar: ScrollBar | null = null;
+
   constructor(public data: ScrollViewProps) {
     super(data);
+
+    this._scrollBarX = new ScrollBar({
+      ...this.getScrollBarProps('horizontal'),
+      viewportSize: 0,
+      contentSize: 0,
+      scrollPosition: 0,
+    });
+    this._scrollBarX.parent = this;
+
+    this._scrollBarY = new ScrollBar({
+      ...this.getScrollBarProps('vertical'),
+      viewportSize: 0,
+      contentSize: 0,
+      scrollPosition: 0,
+    });
+    this._scrollBarY.parent = this;
+  }
+
+  private getScrollBarProps(orientation: 'vertical' | 'horizontal'): ScrollBarProps {
+    return {
+      type: 'ScrollBar',
+      orientation,
+      viewportSize: 0,
+      contentSize: 0,
+      scrollPosition: 0,
+      thickness: this.data.scrollBarWidth,
+      trackColor: this.data.scrollBarTrackColor,
+      thumbColor: this.data.scrollBarColor,
+      hoverColor: this.data.scrollBarHoverColor,
+      activeColor: this.data.scrollBarActiveColor,
+      onScroll: (pos) => {
+        if (orientation === 'vertical') {
+          this.scrollTo(this._scrollX, pos);
+        } else {
+          this.scrollTo(pos, this._scrollY);
+        }
+      },
+      onDragStart: () => {
+        this._isInteracting = true;
+      },
+      onDragEnd: () => {
+        this._isInteracting = false;
+        // Check rebound on drag end
+        this.checkRebound();
+      },
+    };
+  }
+
+  private updateScrollBars() {
+    // Update X
+    const propsX: Partial<ScrollBarProps> = {
+      viewportSize: this._width || 0,
+      contentSize: this._contentSize.width,
+      scrollPosition: this._scrollX,
+      thickness: this.data.scrollBarWidth,
+      trackColor: this.data.scrollBarTrackColor,
+      thumbColor: this.data.scrollBarColor,
+      hoverColor: this.data.scrollBarHoverColor,
+      activeColor: this.data.scrollBarActiveColor,
+    };
+    this._scrollBarX.data = { ...this._scrollBarX.data, ...propsX };
+
+    if (this._showScrollbarX) {
+      const height = this.data.scrollBarWidth || 6;
+      this._scrollBarX.renderObject.size = { width: this._width || 0, height };
+      this._scrollBarX.renderObject.offset = { dx: 0, dy: (this._height || 0) - height - 2 };
+    } else {
+      this._scrollBarX.renderObject.size = { width: 0, height: 0 };
+    }
+
+    // Update Y
+    const propsY: Partial<ScrollBarProps> = {
+      viewportSize: this._height || 0,
+      contentSize: this._contentSize.height,
+      scrollPosition: this._scrollY,
+      thickness: this.data.scrollBarWidth,
+      trackColor: this.data.scrollBarTrackColor,
+      thumbColor: this.data.scrollBarColor,
+      hoverColor: this.data.scrollBarHoverColor,
+      activeColor: this.data.scrollBarActiveColor,
+    };
+    this._scrollBarY.data = { ...this._scrollBarY.data, ...propsY };
+
+    if (this._showScrollbarY) {
+      const width = this.data.scrollBarWidth || 6;
+      this._scrollBarY.renderObject.size = { width, height: this._height || 0 };
+      this._scrollBarY.renderObject.offset = { dx: (this._width || 0) - width - 2, dy: 0 };
+    } else {
+      this._scrollBarY.renderObject.size = { width: 0, height: 0 };
+    }
+  }
+
+  public override scrollTo(x: number, y: number) {
+    super.scrollTo(x, y);
+    // Update scrollbar positions immediately
+    this._scrollBarX.data.scrollPosition = this._scrollX;
+    this._scrollBarY.data.scrollPosition = this._scrollY;
+    this._scrollBarX.markNeedsPaint();
+    this._scrollBarY.markNeedsPaint();
+    this.markNeedsPaint();
   }
 
   /**
@@ -112,10 +247,7 @@ export class ScrollView extends Viewport {
     context.renderer?.save?.();
     applySteps(context.renderer, steps);
 
-    // 2. Paint Self (Background, Scrollbars, etc.)
-    this.paintSelf({ ...context, worldMatrix: next });
-
-    // 3. Clipping logic (Added for ScrollView)
+    // 2. Clipping logic (Added for ScrollView)
     // 默认为 hidden，除非显式设置为 visible
     if (this.data.overflow !== 'visible') {
       const { width, height } = this.renderObject.size;
@@ -125,8 +257,9 @@ export class ScrollView extends Viewport {
       }
     }
 
-    // 4. Apply View Transform (Scale, Tx, Ty) for Children
+    // 3. Apply View Transform (Scale, Tx, Ty) for Children
     // Matrix Order: T * S * p (Scale first, then Translate)
+    context.renderer?.save?.();
     const viewSteps: TransformStep[] = [
       { t: 'translate', x: this._tx, y: this._ty },
       { t: 'scale', sx: this._scale, sy: this._scale },
@@ -136,13 +269,37 @@ export class ScrollView extends Viewport {
     const viewLocal = composeSteps(viewSteps);
     const childMatrix = multiply(next, viewLocal);
 
-    // 5. Paint Children
+    // 4. Paint Children
     const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
     for (const child of children) {
       child.paint({ ...context, worldMatrix: childMatrix });
     }
+    context.renderer?.restore?.();
+
+    // 5. Paint Scrollbars (Overlay)
+    // Use 'next' matrix (local coordinate system of ScrollView, not scrolled)
+    if (this._showScrollbarX && this._scrollBarX.renderObject.size.width > 0) {
+      this._scrollBarX.paint({ ...context, worldMatrix: next });
+    }
+    if (this._showScrollbarY && this._scrollBarY.renderObject.size.width > 0) {
+      this._scrollBarY.paint({ ...context, worldMatrix: next });
+    }
 
     context.renderer?.restore?.();
+  }
+
+  dispose() {
+    if (this._reboundTimer) {
+      clearTimeout(this._reboundTimer);
+      this._reboundTimer = null;
+    }
+    if (this._animationFrame) {
+      cancelAnimationFrame(this._animationFrame);
+      this._animationFrame = null;
+    }
+    this._scrollBarX.dispose();
+    this._scrollBarY.dispose();
+    super.dispose();
   }
 
   // 判断是否应触发回弹
@@ -231,57 +388,6 @@ export class ScrollView extends Viewport {
     this.performBounceBack();
   }
 
-  // 重写 paintSelf 绘制滚动条
-  protected paintSelf(context: import('../base').BuildContext): void {
-    const renderer = context.renderer;
-    // 绘制背景等（如果有）
-    // Viewport 不绘制背景，由 Container 等处理，或者 Viewport 本身没有 paintSelf 逻辑
-    // 但我们需要绘制滚动条
-
-    if (this._showScrollbarY) {
-      const viewportH = this._height || 0;
-      const contentH = this._contentSize.height;
-      if (contentH > viewportH && contentH > 0) {
-        const ratio = viewportH / contentH;
-        const thumbH = Math.max(20, viewportH * ratio);
-        const maxScroll = contentH - viewportH;
-        const scrollRatio = this._scrollY / maxScroll;
-        // 滚动条位置：从 0 到 viewportH - thumbH
-        const thumbY = scrollRatio * (viewportH - thumbH);
-
-        renderer.drawRect({
-          x: (this._width || 0) - (this.data.scrollBarWidth || 6) - 2,
-          y: thumbY,
-          width: this.data.scrollBarWidth || 6,
-          height: thumbH,
-          fill: this.data.scrollBarColor || 'rgba(0,0,0,0.3)',
-          borderRadius: 3,
-        });
-      }
-    }
-
-    if (this._showScrollbarX) {
-      const viewportW = this._width || 0;
-      const contentW = this._contentSize.width;
-      if (contentW > viewportW && contentW > 0) {
-        const ratio = viewportW / contentW;
-        const thumbW = Math.max(20, viewportW * ratio);
-        const maxScroll = contentW - viewportW;
-        const scrollRatio = this._scrollX / maxScroll;
-        const thumbX = scrollRatio * (viewportW - thumbW);
-
-        renderer.drawRect({
-          x: thumbX,
-          y: (this._height || 0) - (this.data.scrollBarWidth || 6) - 2,
-          width: thumbW,
-          height: this.data.scrollBarWidth || 6,
-          fill: this.data.scrollBarColor || 'rgba(0,0,0,0.3)',
-          borderRadius: 3,
-        });
-      }
-    }
-  }
-
   // 必须重写此方法以允许子节点超出视口
   protected getConstraintsForChild(
     constraints: import('../base').BoxConstraints,
@@ -315,8 +421,11 @@ export class ScrollView extends Viewport {
     }
 
     // 检查是否需要滚动条
-    this._showScrollbarX = this._contentSize.width > width;
-    this._showScrollbarY = this._contentSize.height > height;
+    this._showScrollbarX =
+      this._contentSize.width > width || (this.data.alwaysShowScrollbarX ?? false);
+    // 默认开启垂直滚动条始终显示
+    this._showScrollbarY =
+      this._contentSize.height > height || (this.data.alwaysShowScrollbarY ?? true);
 
     // 修正滚动位置（防止内容缩小后滚动位置越界）
     const maxScrollX = Math.max(0, this._contentSize.width - width);
@@ -325,7 +434,6 @@ export class ScrollView extends Viewport {
     const enableBounce = this.data.enableBounce ?? false;
 
     // 如果未开启弹性，则严格限制边界
-    // 如果开启弹性，允许暂时越界（由回弹逻辑处理恢复）
     if (!enableBounce) {
       if (this._scrollX > maxScrollX) {
         this._scrollX = maxScrollX;
@@ -339,21 +447,47 @@ export class ScrollView extends Viewport {
       if (this._scrollY < 0) {
         this._scrollY = 0;
       }
-    } else {
-      // 即使开启弹性，如果在非交互状态下且严重越界（如内容大幅缩小），也建议触发回弹检查
-      // 这里不直接修改 scrollX/Y，而是依靠后续的 update/tick 机制或 checkRebound
-      // 但 performLayout 本身不触发副作用。
     }
 
     // Viewport 的 performLayout 还需要设置 this.width/height 属性
     this._width = width;
     this._height = height;
 
+    // Update ScrollBars props and layout
+    this.updateScrollBars();
+
     return { width, height };
+  }
+
+  protected getLocalPoint(e: InkwellEvent): { x: number; y: number } {
+    const ne = e.nativeEvent as PointerEvent;
+    if (this._worldMatrix) {
+      try {
+        const inv = invert(this._worldMatrix);
+        return transformPoint(inv, { x: ne.clientX, y: ne.clientY });
+      } catch (err) {
+        // Fallback
+      }
+    }
+    return { x: e.x, y: e.y };
   }
 
   onPointerDown(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
+
+    // Check Scrollbars (using global coordinates)
+    if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
+      this._scrollBarY.onPointerDown(e);
+      this.markNeedsPaint();
+      return;
+    }
+
+    if (this._showScrollbarX && this._scrollBarX.hitTest(ne.clientX, ne.clientY)) {
+      this._scrollBarX.onPointerDown(e);
+      this.markNeedsPaint();
+      return;
+    }
+
     // PC端使用滚轮滚动，禁用鼠标拖拽
     if (ne.pointerType === 'mouse') {
       return;
@@ -376,12 +510,46 @@ export class ScrollView extends Viewport {
   }
 
   onPointerMove(e: InkwellEvent) {
+    const ne = e.nativeEvent as PointerEvent;
+
+    // Always check for hover state on scrollbars
+    // Use global coordinates for hitTest
+    let hitAny = false;
+
+    if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
+      hitAny = true;
+      if (this._hoveredScrollBar !== this._scrollBarY) {
+        this._hoveredScrollBar?.onPointerLeave(e);
+        this._hoveredScrollBar = this._scrollBarY;
+      }
+      this._scrollBarY.onPointerMove(e);
+    } else if (this._showScrollbarX && this._scrollBarX.hitTest(ne.clientX, ne.clientY)) {
+      hitAny = true;
+      if (this._hoveredScrollBar !== this._scrollBarX) {
+        this._hoveredScrollBar?.onPointerLeave(e);
+        this._hoveredScrollBar = this._scrollBarX;
+      }
+      this._scrollBarX.onPointerMove(e);
+    } else {
+      if (this._hoveredScrollBar) {
+        this._hoveredScrollBar.onPointerLeave(e);
+        this._hoveredScrollBar = null;
+      }
+    }
+
+    if (hitAny) {
+      this.markNeedsPaint();
+    }
+
     if (!this._pointerDown) {
+      e.stopPropagation();
       return;
     }
+
+    // Dragging Content
     e.stopPropagation();
 
-    const ne = e.nativeEvent as PointerEvent;
+    // Existing touch drag logic
     const dx = this._lastX - ne.clientX; // 拖动方向与滚动方向相反
     const dy = this._lastY - ne.clientY;
 
@@ -396,9 +564,19 @@ export class ScrollView extends Viewport {
   onPointerUp(e: InkwellEvent) {
     e.stopPropagation();
     this._pointerDown = false;
+
+    // ScrollBar handles its own drag end via window listener.
+    // We just reset our interaction state.
     this._isInteracting = false;
     // 交互结束，检查是否需要回弹
     this.checkRebound();
+  }
+
+  onPointerLeave(e: InkwellEvent) {
+    if (this._hoveredScrollBar) {
+      this._hoveredScrollBar.onPointerLeave(e);
+      this._hoveredScrollBar = null;
+    }
   }
 
   onWheel(e: InkwellEvent): boolean | void {
@@ -522,7 +700,6 @@ export class ScrollView extends Viewport {
 
         nextY = this._scrollY + dy * (DEFAULT_RESISTANCE_FACTOR * resistanceFactor);
 
-        // 硬限制最大回弹距离
         if (nextY < -maxBounceY) {
           nextY = -maxBounceY;
         } else if (nextY > maxScrollY + maxBounceY) {
@@ -531,23 +708,20 @@ export class ScrollView extends Viewport {
       }
     }
 
-    if (nextX !== this._scrollX || nextY !== this._scrollY) {
+    // 检查是否发生了有效滚动
+    const scrolledX = Math.abs(nextX - this._scrollX) > 0.1;
+    const scrolledY = Math.abs(nextY - this._scrollY) > 0.1;
+
+    if (scrolledX || scrolledY) {
       this.scrollTo(nextX, nextY);
-
-      // Start rebound check after debounce
-      // 如果处于弹性状态，松手后需要回弹。
-      // 这里实现速度阈值检测：如果 delta 很小（慢速滑动结束），立即触发回弹
-      const speedThreshold = this.data.bounceSpeedThreshold || DEFAULT_BOUNCE_SPEED_THRESHOLD;
-      const currentSpeed = Math.sqrt(dx * dx + dy * dy); // 简单估算每帧速度
-
-      const debounceTime = currentSpeed < speedThreshold ? 0 : BOUNCE_DEBOUNCE_TIME;
 
       this._reboundTimer = setTimeout(() => {
         this.checkRebound();
-      }, debounceTime);
+      }, BOUNCE_DEBOUNCE_TIME);
 
       return true;
     }
+
     return false;
   }
 }

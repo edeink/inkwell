@@ -45,6 +45,14 @@ describe('ScrollView', () => {
       return this._contentSize;
     }
 
+    public get isShowScrollbarY() {
+      return this._showScrollbarY;
+    }
+
+    public get isShowScrollbarX() {
+      return this._showScrollbarX;
+    }
+
     // Override layoutChildren to spy on it
     protected layoutChildren(constraints: import('@/core/base').BoxConstraints): Size[] {
       this.layoutChildrenCallCount++;
@@ -434,5 +442,33 @@ describe('ScrollView', () => {
     // Verify event propagation stopped (inner consumes event)
     expect(event.stopPropagation).toHaveBeenCalled();
     expect(sv.scrollX).toBeLessThan(0);
+  });
+
+  it('alwaysShowScrollbarY 应当强制显示纵向滚动条', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 300,
+      height: 400,
+      alwaysShowScrollbarY: true,
+    });
+
+    // 内容高度小于视口高度
+    scrollView.simulateLayout(300, 400, 300, 200);
+
+    expect(scrollView.isShowScrollbarY).toBe(true);
+  });
+
+  it('默认情况下内容不足时不显示滚动条', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 300,
+      height: 400,
+      alwaysShowScrollbarY: false,
+    });
+
+    // 内容高度小于视口高度
+    scrollView.simulateLayout(300, 400, 300, 200);
+
+    expect(scrollView.isShowScrollbarY).toBe(false);
   });
 });
