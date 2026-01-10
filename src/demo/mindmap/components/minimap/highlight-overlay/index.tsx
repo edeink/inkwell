@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { computeViewportRect, type Fit } from '../utils';
 
@@ -31,7 +31,7 @@ export default function HighlightOverlay({
   borderWidth = 2,
 }: HighlightOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const lastRectKeyRef = useRef<string>('');
   const dragModeRef = useRef<'none' | 'rect' | 'jump'>('none');
@@ -154,7 +154,20 @@ export default function HighlightOverlay({
       };
       scheduleDraw();
     });
-    return unsub;
+
+    const unsubScroll = controller.viewport.addScrollListener((scrollX, scrollY) => {
+      viewStateRef.current = {
+        ...viewStateRef.current,
+        scrollX,
+        scrollY,
+      };
+      scheduleDraw();
+    });
+
+    return () => {
+      unsub();
+      unsubScroll();
+    };
   }, [controller, scheduleDraw]);
 
   const jumpToPoint = useCallback(
@@ -258,18 +271,50 @@ export default function HighlightOverlay({
         // 如果点击在高亮区域内，进入拖拽模式
         dragModeRef.current = 'rect';
         dragOffsetRef.current = { x: localX - vpRect.x, y: localY - vpRect.y };
+        canvas.style.cursor = 'grabbing';
       } else {
         // 否则，跳转到点击位置
         dragModeRef.current = 'jump';
         scheduleJump(e.clientX, e.clientY);
       }
 
-      setDragging(true);
+      isDraggingRef.current = true;
       canvas.setPointerCapture?.(e.pointerId);
     };
 
     const onMove = (e: PointerEvent) => {
-      if (!dragging) {
+      if (!isDraggingRef.current) {
+        // 鼠标悬停时的光标样式处理
+        const rect = canvas.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const localY = e.clientY - rect.top;
+
+        const vs = viewStateRef.current;
+        const container = runtime.container;
+        const cW = container?.clientWidth || 1;
+        const cH = container?.clientHeight || 1;
+
+        const vpRect = computeViewportRect(
+          cW,
+          cH,
+          vs.scale,
+          vs.tx,
+          vs.ty,
+          vs.scrollX,
+          vs.scrollY,
+          fit,
+        );
+
+        if (
+          localX >= vpRect.x &&
+          localX <= vpRect.x + vpRect.width &&
+          localY >= vpRect.y &&
+          localY <= vpRect.y + vpRect.height
+        ) {
+          canvas.style.cursor = 'grab';
+        } else {
+          canvas.style.cursor = 'default';
+        }
         return;
       }
 
@@ -301,8 +346,9 @@ export default function HighlightOverlay({
     };
 
     const onUp = (e: PointerEvent) => {
-      setDragging(false);
+      isDraggingRef.current = false;
       dragModeRef.current = 'none';
+      canvas.style.cursor = 'default';
       try {
         canvas.releasePointerCapture?.(e.pointerId);
       } catch {
@@ -319,7 +365,7 @@ export default function HighlightOverlay({
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onUp);
     };
-  }, [dragging, fit, scheduleJump, controller, runtime, scheduleDraw]);
+  }, [fit, scheduleJump, controller, runtime, scheduleDraw]);
 
   const styleMemo = useMemo(
     () => ({ width: `${width}px`, height: `${height}px` }),
