@@ -15,10 +15,37 @@ import { DevTools } from '@/devtools';
 import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
 
 export default function UnifiedDemo() {
-  const [activeKey, setActiveKey] = useState<string>(DemoKey.MarkdownPreview);
+  const [activeKey, setActiveKey] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && Object.values(DemoKey).includes(tab as DemoKey)) {
+      return tab;
+    }
+    return DemoKey.MarkdownPreview;
+  });
+
   const [theme, setTheme] = useState<ThemeType>(() => {
     return getCurrentThemeMode() === 'dark' ? ThemeType.Dark : ThemeType.Light;
   });
+
+  const handleTabChange = (key: string) => {
+    setActiveKey(key);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', key);
+    window.history.pushState({}, '', url.toString());
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab && Object.values(DemoKey).includes(tab as DemoKey)) {
+        setActiveKey(tab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     // 监听主题变化
@@ -50,7 +77,7 @@ export default function UnifiedDemo() {
         <Tabs
           className={styles.tabs}
           activeKey={activeKey}
-          onChange={setActiveKey}
+          onChange={handleTabChange}
           destroyInactiveTabPane
           items={demos.map((demo) => ({
             key: demo.key,
