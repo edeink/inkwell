@@ -19,6 +19,7 @@ export interface ThemePalette {
     primary: string;
     secondary: string;
     placeholder: string;
+    inverse: string;
   };
 
   border: {
@@ -30,6 +31,14 @@ export interface ThemePalette {
     gridLine: string;
     headerBg: string;
     headerBgActive: string;
+  };
+
+  state: {
+    hover: string;
+    active: string;
+    selected: string;
+    focus: string;
+    disabled: string;
   };
 }
 
@@ -51,6 +60,7 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       primary: '#1f1f1f',
       secondary: '#8c8c8c',
       placeholder: '#bfbfbf',
+      inverse: '#ffffff',
     },
     border: {
       base: '#d9d9d9',
@@ -60,6 +70,13 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       gridLine: '#e0e0e0',
       headerBg: '#f8f9fa',
       headerBgActive: '#e8eaed',
+    },
+    state: {
+      hover: 'rgba(0, 0, 0, 0.04)',
+      active: 'rgba(0, 0, 0, 0.08)',
+      selected: 'rgba(22, 119, 255, 0.1)', // Primary with opacity
+      focus: 'rgba(22, 119, 255, 0.2)',
+      disabled: 'rgba(0, 0, 0, 0.04)',
     },
   },
   dark: {
@@ -77,6 +94,7 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       primary: '#e6f4ff',
       secondary: '#bfbfbf',
       placeholder: '#5c5c5c',
+      inverse: '#ffffff',
     },
     border: {
       base: '#434343',
@@ -86,6 +104,13 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       gridLine: '#424242',
       headerBg: '#2c2c2e',
       headerBgActive: '#3a3a3c',
+    },
+    state: {
+      hover: 'rgba(255, 255, 255, 0.04)',
+      active: 'rgba(255, 255, 255, 0.08)',
+      selected: 'rgba(22, 119, 255, 0.15)',
+      focus: 'rgba(22, 119, 255, 0.25)',
+      disabled: 'rgba(255, 255, 255, 0.04)',
     },
   },
 };
@@ -115,7 +140,7 @@ export function subscribeTheme(listener: ThemeChangeListener): () => void {
 
 // 兼容旧 API 名称，但推荐使用 subscribeTheme
 export const subscribeToThemeChange = (listener: (mode: ThemeMode) => void) => {
-  return subscribeTheme((theme, mode) => listener(mode));
+  return subscribeTheme((_theme, mode) => listener(mode));
 };
 
 function notifyThemeChange() {

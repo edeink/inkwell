@@ -7,7 +7,6 @@ import ErrorBoundary from './components/error-boundary';
 import Minimap from './components/minimap';
 import Toolbar from './components/toolbar';
 import ZoomBar from './components/zoom-bar';
-import { Themes } from './constants/theme';
 import { MindmapController } from './controller/index';
 import { MindmapContext } from './hooks/context';
 import { CustomComponentType } from './type';
@@ -15,6 +14,7 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 import { getCurrentThemeMode, subscribeToThemeChange, type ThemeMode } from '@/styles/theme';
 
 export const meta = {

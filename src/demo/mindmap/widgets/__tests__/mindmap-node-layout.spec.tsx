@@ -10,27 +10,30 @@ import { Container } from '@/core/container';
 import { WidgetRegistry } from '@/core/registry';
 import { Text } from '@/core/text';
 
-// Mock getTheme
-vi.mock('../../constants/theme', () => ({
-  getTheme: () => ({
-    backgroundColor: '#fff',
-    nodeEditFillColor: '#eee',
-    nodeActiveFillColor: '#ddd',
-    nodeSelectedFillColor: '#ccc',
-    nodeFillColor: '#bbb',
-    textColor: '#000',
-    placeholder: {
-      fontSize: 12,
-      textColor: '#999',
-      textAlign: 'left',
-      lineHeight: 1.5,
+// Mock Themes
+vi.mock('@/styles/theme', () => ({
+  getCurrentThemeMode: () => 'light',
+  Themes: {
+    light: {
+      primary: '#1677ff',
+      background: {
+        container: '#fff',
+      },
+      state: {
+        focus: '#eee',
+        active: '#ddd',
+        selected: '#ccc',
+      },
+      text: {
+        primary: '#000',
+        placeholder: '#999',
+      },
+      border: {
+        base: '#ccc',
+        secondary: '#eee',
+      },
     },
-    nodeEditBorderColor: '#000',
-    nodeActiveBorderColor: '#111',
-    nodeHoverBorderColor: '#222',
-    nodeSelectedBorderColor: '#333',
-    nodeDefaultBorderColor: '#444',
-  }),
+  },
 }));
 
 describe('MindMapNode Layout Update', () => {

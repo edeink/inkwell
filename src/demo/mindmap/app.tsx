@@ -9,11 +9,11 @@ import { MindMapNode } from './widgets/mindmap-node';
 import { MindMapNodeToolbar } from './widgets/mindmap-node-toolbar';
 import { MindMapViewport } from './widgets/mindmap-viewport';
 
-import type { ThemePalette } from './constants/theme';
 import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from './type';
 import type { MindMapViewport as MindMapViewportCls } from './widgets/mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
+import type { ThemePalette } from '@/styles/theme';
 
 import { StatefulWidget } from '@/core';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -444,7 +444,8 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     for (const e of state.edges) {
       const k = `e-${e.from}-${e.to}`;
       let el = this.edgeElementCache.get(k) as unknown as Connector | null;
-      if (!el || (theme && theme.connectorColor && el.props.color !== theme.connectorColor)) {
+      const connectorColor = theme ? theme.text.secondary : '#4a90e2';
+      if (!el || el.props.color !== connectorColor) {
         el = (
           <Connector
             key={k}
@@ -452,7 +453,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
             toKey={e.to}
             style={ConnectorStyle.Elbow}
             strokeWidth={2}
-            color={theme ? theme.connectorColor : '#4a90e2'}
+            color={connectorColor}
             dashArray="5,3"
           />
         );

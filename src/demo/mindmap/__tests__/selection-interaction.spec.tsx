@@ -186,10 +186,10 @@ describe('MindMap 选择与交互', async () => {
     // Check render output for active node
     const rendered1 = node1.render();
     const container1 = rendered1 as any;
-    // Active style: border width 2, color #69b1ff, bg rgba(22, 119, 255, 0.10)
+    // Active style: border width 2, color #1677ff, bg rgba(22, 119, 255, 0.1)
     expect(container1.props.border.width).toBe(2);
-    expect(container1.props.border.color).toBe('#69b1ff');
-    expect(container1.props.color).toBe('rgba(22, 119, 255, 0.10)');
+    expect(container1.props.border.color).toBe('#1677ff');
+    expect(container1.props.color).toBe('rgba(22, 119, 255, 0.1)');
 
     // Make n2 selected via Viewport
     const vp = findWidget(root, '#v') as MindMapViewport;
@@ -201,9 +201,9 @@ describe('MindMap 选择与交互', async () => {
     const rendered2 = node2.render();
     const container2 = rendered2 as any;
 
-    // Selected style: dashed border #c9c9c9, bg rgba(22, 119, 255, 0.05)
+    // Selected style: dashed border #d9d9d9, bg rgba(22, 119, 255, 0.1)
     expect(container2.props.border.style).toBe('dashed');
-    expect(container2.props.border.color).toBe('#c9c9c9');
-    expect(container2.props.color).toBe('rgba(22, 119, 255, 0.05)');
+    expect(container2.props.border.color).toBe('#d9d9d9');
+    expect(container2.props.color).toBe('rgba(22, 119, 255, 0.1)');
   });
 });

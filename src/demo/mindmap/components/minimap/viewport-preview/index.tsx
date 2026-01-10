@@ -13,8 +13,8 @@ import styles from './index.module.less';
 
 import type { Widget } from '@/core/base';
 
-import { useThemePalette } from '@/demo/mindmap/constants/theme';
 import { MindmapController } from '@/demo/mindmap/controller/index';
+import { useTheme } from '@/styles/theme';
 
 const MINIMAP_PADDING = 15;
 void MINIMAP_PADDING;
@@ -47,7 +47,7 @@ export default function ViewportPreview({
   const [, setFit] = useState<{ s: number; ox: number; oy: number }>({ s: 1, ox: 0, oy: 0 });
   const rafIdRef = useRef<number | null>(null);
   const lastDrawKeyRef = useRef<string>('');
-  const palette = useThemePalette();
+  const palette = useTheme();
   const runtime = controller.runtime;
   const viewport = controller.viewport;
 
@@ -182,11 +182,11 @@ export default function ViewportPreview({
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置变换以清除完整缓冲区
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = background ?? palette.minimapBackgroundColor;
+      ctx.fillStyle = background ?? palette.background.surface;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.restore();
     },
-    [background, palette.minimapBackgroundColor],
+    [background, palette.background.surface],
   );
 
   const draw = useCallback(() => {
@@ -235,8 +235,8 @@ export default function ViewportPreview({
     ctx.scale(nextFit.s, nextFit.s);
 
     for (const r of nodes) {
-      ctx.fillStyle = palette.nodeFillColor;
-      ctx.strokeStyle = palette.primaryColor;
+      ctx.fillStyle = palette.background.container;
+      ctx.strokeStyle = palette.primary;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.rect(r.x, r.y, r.width, r.height);
@@ -244,7 +244,7 @@ export default function ViewportPreview({
       ctx.stroke();
     }
     const paths = collectConnectorPaths(root);
-    ctx.strokeStyle = palette.connectorColor;
+    ctx.strokeStyle = palette.border.secondary;
     ctx.lineWidth = 1;
     for (const pts of paths) {
       ctx.beginPath();
@@ -266,9 +266,9 @@ export default function ViewportPreview({
     clear,
     computeContentBounds,
     getRoot,
-    palette.primaryColor,
-    palette.nodeFillColor,
-    palette.connectorColor,
+    palette.primary,
+    palette.background.container,
+    palette.text.secondary,
     collectNodeRects,
     collectConnectorPaths,
   ]);

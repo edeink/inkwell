@@ -135,8 +135,8 @@ describe('Viewport 选区矩形测试', () => {
         y: 100,
         width: 100,
         height: 100,
-        stroke: 'rgba(64,158,255,0.95)',
-        fill: 'rgba(64,158,255,0.18)',
+        fill: 'rgba(22, 119, 255, 0.2)',
+        stroke: '#1677ff',
         strokeWidth: 1,
       }),
     );

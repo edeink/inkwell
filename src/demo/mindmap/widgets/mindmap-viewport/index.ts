@@ -1,7 +1,6 @@
 import { throttle } from 'lodash-es';
 
 import { SCALE_CONFIG } from '../../constants';
-import { getTheme, type ThemePalette } from '../../constants/theme';
 import { DeleteCommand, RedoCommand, UndoCommand } from '../../helpers/shortcut/commands/history';
 import {
   MoveDownCommand,
@@ -23,6 +22,7 @@ import { RTree, type BBox } from '@/core/algorithm/r-tree';
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { Viewport, type ViewportProps } from '@/core/viewport/viewport';
+import { Themes, getCurrentThemeMode, type ThemePalette } from '@/styles/theme';
 
 export interface MindMapViewportProps extends ViewportProps {
   selectedKeys?: string[];
@@ -412,15 +412,15 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
       const y = (r.y - this._scrollY) * this._scale + this._ty;
       const width = r.width * this._scale;
       const height = r.height * this._scale;
-      const theme = this.data.theme || getTheme();
+      const theme = this.data.theme || Themes[getCurrentThemeMode()];
 
       renderer.drawRect({
         x,
         y,
         width,
         height,
-        fill: theme.highlightFillColor,
-        stroke: theme.highlightColor,
+        fill: theme.state.focus,
+        stroke: theme.primary,
         strokeWidth: 1,
       });
     }

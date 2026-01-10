@@ -7,7 +7,6 @@
  * - 保持与节点拖拽/点击的交互一致性
  */
 
-import { getTheme, type ThemePalette } from '../../constants/theme';
 import { CustomComponentType, Side } from '../../type';
 import { Connector } from '../connector';
 import { MindMapViewport } from '../mindmap-viewport';
@@ -18,6 +17,7 @@ import type { InkwellEvent } from '@/core/events';
 import { Widget } from '@/core/base';
 import { invert, transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
+import { Themes, getCurrentThemeMode, type ThemePalette } from '@/styles/theme';
 export interface MindMapNodeToolbarProps extends WidgetProps {
   onActive?: (key: string | null) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1, side?: Side) => void;
@@ -130,9 +130,9 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     const nodeRect = { x: nodeLocal.x, y: nodeLocal.y, width: size.width, height: size.height };
     const btnSize = 20;
     const half = btnSize / 2;
-    const theme = (this.data as MindMapNodeToolbarProps).theme || getTheme();
-    const btnBlue = theme.primaryColor;
-    const white = '#ffffff';
+    const theme = (this.data as MindMapNodeToolbarProps).theme || Themes[getCurrentThemeMode()];
+    const btnBlue = theme.primary;
+    const white = theme.text.inverse;
 
     const drawPlusLocal = (lx: number, ly: number) => {
       renderer.drawRect({

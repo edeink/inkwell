@@ -4,9 +4,8 @@ import { computeViewportRect, type Fit } from '../utils';
 
 import styles from './index.module.less';
 
-import { useThemePalette } from '@/demo/mindmap/constants/theme';
 import { MindmapController } from '@/demo/mindmap/controller/index';
-
+import { useTheme } from '@/styles/theme';
 export type HighlightOverlayProps = {
   controller: MindmapController;
   fit: Fit;
@@ -37,7 +36,7 @@ export default function HighlightOverlay({
   const lastRectKeyRef = useRef<string>('');
   const dragModeRef = useRef<'none' | 'rect' | 'jump'>('none');
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const palette = useThemePalette();
+  const palette = useTheme();
   const runtime = controller.runtime;
 
   // 使用 ref 存储当前视图状态以避免重渲染
@@ -93,12 +92,6 @@ export default function HighlightOverlay({
       pixelH,
     ].join(':');
 
-    // 如果正在调整大小或强制重绘，则始终绘制
-    // 但如果有匹配的 key，我们有跳过逻辑。
-    // 然而，如果 key 匹配，我们是否也需要清除？不，如果没有变化，画布是好的。
-    // 等等，如果我们在调用 draw 之前清除了... 不，draw() 通过 clear() 处理清除。
-    // 但是等等，原始代码在 draw() 内部调用了 clear()。
-
     if (lastRectKeyRef.current === key) {
       // 如果没有变化，则什么都不做。
       return;
@@ -107,8 +100,8 @@ export default function HighlightOverlay({
     clear(ctx);
     ctx.save();
     ctx.scale(dpr, dpr);
-    ctx.strokeStyle = stroke ?? palette.highlightColor;
-    ctx.fillStyle = fill ?? palette.highlightFillColor;
+    ctx.strokeStyle = stroke ?? palette.primary;
+    ctx.fillStyle = fill ?? palette.state.selected;
     ctx.lineWidth = borderWidth;
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.width, rect.height);
@@ -122,8 +115,8 @@ export default function HighlightOverlay({
     fill,
     borderWidth,
     fit,
-    palette.highlightColor,
-    palette.highlightFillColor,
+    palette.state.focus,
+    palette.state.selected,
     clear,
     width,
     height,

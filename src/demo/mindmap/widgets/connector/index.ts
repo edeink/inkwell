@@ -1,4 +1,3 @@
-import { getTheme } from '../../constants/theme';
 import { CustomComponentType } from '../../type';
 
 import type { BuildContext, WidgetProps } from '@/core/base';
@@ -11,6 +10,7 @@ import {
   ConnectorStyle,
   DEFAULT_CONNECTOR_OPTIONS,
 } from '@/demo/mindmap/helpers/connection-drawer';
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
 export interface ConnectorProps extends WidgetProps {
   fromKey: string;
@@ -143,8 +143,8 @@ export class Connector extends Widget<ConnectorProps> {
       .split(',')
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
-    const theme = getTheme();
-    const stroke = this.color ?? theme.connectorColor;
+    const theme = Themes[getCurrentThemeMode()];
+    const stroke = this.color ?? theme.text.secondary;
     const sw = this.strokeWidth;
 
     renderer.drawPath({ points: pts, stroke, strokeWidth: sw, dash });

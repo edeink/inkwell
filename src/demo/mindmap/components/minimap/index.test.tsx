@@ -30,12 +30,12 @@ vi.mock('../../context', () => ({
 }));
 
 // 模拟主题
-vi.mock('../../constants/theme', () => ({
-  useThemePalette: () => ({
-    minimapBackgroundColor: '#f0f0f0',
-    nodeFillColor: '#fff',
-    primaryColor: '#000',
-    connectorColor: '#ccc',
+vi.mock('@/styles/theme', () => ({
+  useTheme: () => ({
+    background: { surface: '#f0f0f0', container: '#fff' },
+    primary: '#000',
+    text: { secondary: '#ccc' },
+    state: { selected: '#ccc' },
   }),
 }));
 

@@ -1,6 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
 
-import { getTheme } from '../../constants/theme';
 import { CustomComponentType, Side } from '../../type';
 import { Connector } from '../connector';
 
@@ -13,6 +12,7 @@ import { findWidget } from '@/core/helper/widget-selector';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextAlign, TextAlignVertical } from '@/core/text';
 import Runtime from '@/runtime';
+import { Themes, getCurrentThemeMode, type ThemePalette } from '@/styles/theme';
 
 export interface MindMapNodeProps extends WidgetProps {
   title: string;
@@ -29,6 +29,7 @@ export interface MindMapNodeProps extends WidgetProps {
   getViewState?: () => { scale: number; tx: number; ty: number };
   isEditing?: boolean;
   isRoot?: boolean;
+  theme?: ThemePalette;
   cursorConfig?: {
     normal?: string;
     editing?: string;
@@ -105,6 +106,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   onPointerDown(e: InkwellEvent): boolean | void {
     const props = this.props as MindMapNodeProps;
     const vs = props.getViewState?.() || { scale: 1, tx: 0, ty: 0 };
+    e.stopPropagation();
     if (this.isRootNode()) {
       this.clickCandidate = { startX: e.x, startY: e.y };
       this.detachWindowPointerListeners();
@@ -119,7 +121,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     this.detachWindowPointerListeners();
     this.attachWindowPointerListeners(e.nativeEvent);
     this.setState({ dragging: true });
-    e.stopPropagation();
     return true;
   }
 
@@ -390,31 +391,31 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   render() {
     const st = this.state as MindMapNodeProps;
     const props = this.props as MindMapNodeProps;
-    const theme = props.theme || getTheme();
+    const theme = props.theme || Themes[getCurrentThemeMode()];
     const editing = props.isEditing;
     const selected = !!props.selected;
     const active = typeof props.active === 'boolean' ? props.active : props.activeKey === this.key;
     this.active = active;
     const isDragging = !!st.dragging;
     const baseFill = editing
-      ? theme.nodeEditFillColor
+      ? theme.state.focus
       : active
-        ? theme.nodeActiveFillColor
+        ? theme.state.selected
         : selected
-          ? theme.nodeSelectedFillColor
+          ? theme.state.selected
           : isDragging
-            ? theme.nodeFillColor
-            : theme.backgroundColor;
+            ? theme.background.container
+            : theme.background.container;
     const hover = !!st.hovering;
     const borderColor = editing
-      ? theme.nodeEditBorderColor
+      ? theme.primary
       : active
-        ? theme.nodeActiveBorderColor
+        ? theme.primary
         : hover
-          ? theme.nodeHoverBorderColor
+          ? theme.primary
           : selected
-            ? theme.nodeSelectedBorderColor
-            : theme.nodeDefaultBorderColor;
+            ? theme.border.base
+            : theme.border.base;
     const borderWidth = active || editing || selected || hover ? 2 : 1;
 
     // 计算光标样式
@@ -432,9 +433,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
         key="editor"
         value={st.title}
         fontSize={14}
-        color={theme.textColor}
-        selectionColor={theme.nodeTextSelectionFillColor}
-        cursorColor={theme.textColor}
+        color={theme.text.primary}
+        selectionColor={theme.state.focus}
+        cursorColor={theme.text.primary}
         stopTraversalAt={(node) => node.type === CustomComponentType.MindMapViewport}
         onFinish={(val: string) => {
           this.setState({ title: val });
@@ -453,13 +454,11 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       <Text
         key={`${String(this.key)}-text`}
         text={st.title || '输入文本'}
-        fontSize={st.title ? 14 : theme.placeholder.fontSize}
-        color={st.title ? theme.textColor : theme.placeholder.textColor}
-        textAlign={
-          st.title ? TextAlign.Left : (theme.placeholder.textAlign as TextAlign) || TextAlign.Left
-        }
+        fontSize={st.title ? 14 : 14}
+        color={st.title ? theme.text.primary : theme.text.placeholder}
+        textAlign={TextAlign.Left}
         textAlignVertical={TextAlignVertical.Top}
-        lineHeight={st.title ? undefined : theme.placeholder.lineHeight}
+        lineHeight={st.title ? undefined : 1.5}
         pointerEvent={'none'}
       />
     );

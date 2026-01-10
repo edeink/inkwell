@@ -37,6 +37,44 @@ describe('Minimap 集成测试', () => {
     document.body.appendChild(container);
     root = createRoot(container);
 
+    // Mock Canvas Context
+    if (!(HTMLCanvasElement.prototype as any)._minimapTestMocked) {
+      (HTMLCanvasElement.prototype as any)._minimapTestMocked = true;
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (
+        type: string,
+        options?: any,
+      ): RenderingContext | null {
+        if (type === '2d') {
+          const ctx: any = {
+            canvas: this as HTMLCanvasElement,
+            save: vi.fn(),
+            restore: vi.fn(),
+            scale: vi.fn(),
+            translate: vi.fn(),
+            beginPath: vi.fn(),
+            moveTo: vi.fn(),
+            lineTo: vi.fn(),
+            stroke: vi.fn(),
+            fill: vi.fn(),
+            rect: vi.fn(),
+            fillRect: vi.fn(),
+            clearRect: vi.fn(),
+            setTransform: vi.fn(),
+          };
+          // Allow setting properties
+          return new Proxy(ctx, {
+            get: (target, prop) => target[prop],
+            set: (target, prop, value) => {
+              target[prop] = value;
+              return true;
+            },
+          });
+        }
+        return originalGetContext.call(this, type, options);
+      };
+    }
+
     // 模拟设置
     // 通过转换为 any 或使用 Object.create 绕过私有构造函数
     runtime = Object.create(Runtime.prototype);

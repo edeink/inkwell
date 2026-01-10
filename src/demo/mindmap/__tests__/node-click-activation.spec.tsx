@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CustomComponentType } from '../type';
 import { MindMapLayout } from '../widgets/mindmap-layout';
@@ -102,6 +102,7 @@ describe('MindMapNode 无移动点击激活测试', async () => {
       x: 200,
       y: 150,
       nativeEvent: new MouseEvent('pointerdown', { clientX: 200, clientY: 150 }),
+      stopPropagation: vi.fn(),
     } as any;
     (node as any).onPointerDown(e);
     const eUp = {

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import { InteractiveCounterDemo } from './interactive-counter/app';
 import { MindmapDemo } from './mindmap/app';
-import { Themes as MindmapThemes } from './mindmap/constants/theme';
 import { SpreadsheetDemoApp } from './spreadsheet/app';
 import { SwiperDemoApp } from './swiper/app';
 import { WidgetGalleryDemo } from './widget-gallery/app';
@@ -56,7 +55,7 @@ describe('Demo Verification', () => {
     const widget = new MindmapDemo({
       width: 800,
       height: 600,
-      theme: MindmapThemes.light,
+      theme: Themes.light,
       type: 'MindmapDemo',
     } as any);
     expect(widget).toBeDefined();
