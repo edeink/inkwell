@@ -120,6 +120,10 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
                 e.stopPropagation();
                 onCellDown(r, c, e);
               }}
+              // 使用 onPointerEnter 替代 onPointerMove，配合 core/events/dispatcher.ts 中的
+              // handleHoverEvents 逻辑（自动合成 pointerenter/leave），确保在单元格之间快速移动时
+              // 能可靠地触发 enter 事件，而不会像原生 pointermove 那样频繁触发或漏掉边界。
+              // 这里的 pointerEvent="auto" 是必须的，确保 hitTest 能命中 Container。
               onPointerEnter={() => {
                 // console.log(`[SpreadsheetGrid] Cell enter: ${r}, ${c}`);
                 onCellHover?.(r, c);

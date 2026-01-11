@@ -65,6 +65,7 @@ describe('Spreadsheet Editing Cell Refactor', () => {
         background: { base: '#fff' },
         text: { primary: '#000' },
         border: { base: '#ccc' },
+        component: { gridLine: '#eee' },
       } as any,
       model,
       type: 'Spreadsheet',

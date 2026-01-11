@@ -57,12 +57,34 @@ class EventRegistryImpl {
   }
 
   getHandlers(key: string, type: EventType, rt?: Runtime | null): HandlerEntry[] {
-    const store = this.getStore(rt ?? this.currentRuntime);
+    const targetRuntime = rt ?? this.currentRuntime;
+    const store = this.getStore(targetRuntime);
     const byType = store.get(key);
-    if (!byType) {
-      return [];
+    const local = byType?.get(type) ?? [];
+
+    // 如果指定了运行时，还需要合并全局注册的处理器（如 JSX 编译产生的）
+    if (targetRuntime) {
+      const globalByType = this.global.get(key);
+      const globalHandlers = globalByType?.get(type) ?? [];
+      // 避免重复（虽然目前的设计 global 和 runtime store 是隔离的，但为了保险）
+      // 这里简单合并，优先执行 global (通常是 props)，然后是 runtime dynamic?
+      // 或者保持注册顺序？
+      // 目前实现：简单的数组合并，并去重
+      // console.log(`[EventRegistry] getHandlers key=${key} type=${type} global=${globalHandlers.length} local=${local.length}`);
+      const merged = [...globalHandlers, ...local];
+      const unique: HandlerEntry[] = [];
+      const seen = new Set<EventHandler>();
+
+      for (const entry of merged) {
+        if (!seen.has(entry.handler)) {
+          seen.add(entry.handler);
+          unique.push(entry);
+        }
+      }
+      return unique;
     }
-    return byType.get(type) ?? [];
+
+    return local;
   }
 
   clearKey(key: string, rt?: Runtime | null): void {

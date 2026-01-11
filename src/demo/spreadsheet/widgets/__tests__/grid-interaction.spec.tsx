@@ -20,7 +20,6 @@ describe('SpreadsheetGrid Interaction', () => {
       scrollY: 0,
       viewportWidth: 800,
       viewportHeight: 600,
-      selection: null,
       showGridLines: true,
       onCellDown,
       onCellDoubleClick: vi.fn(),

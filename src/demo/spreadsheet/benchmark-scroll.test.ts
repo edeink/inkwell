@@ -6,9 +6,10 @@ import { SpreadsheetGrid } from './widgets/grid';
 // Mock Theme if not easily importable
 const MockTheme = {
   text: { primary: '#000000' },
-  background: '#ffffff',
+  background: { base: '#ffffff' },
   line: '#e5e5e5',
   primary: '#1890ff',
+  component: { gridLine: '#e5e5e5' },
 } as any;
 
 describe('SpreadsheetGrid Scroll Performance', () => {
@@ -41,7 +42,6 @@ describe('SpreadsheetGrid Scroll Performance', () => {
       scrollY: 0,
       viewportWidth,
       viewportHeight,
-      selection: null,
       showGridLines: true,
       onCellDown: () => {},
       onCellDoubleClick: () => {},

@@ -238,12 +238,100 @@ export function dispatchAt(
     }
   }
 
+  // 合成 pointerenter / pointerleave 事件
+  // 仅在 pointermove / mousemove 时处理
+  // 注意：即使 target 为 null (移出有效区域)，我们也需要触发 leave 事件
+  if ((type === 'pointermove' || type === 'mousemove') && root) {
+    handleHoverEvents(runtime, root, target, x, y, native);
+  }
+
   if (!target || !root) {
     currentRuntime = null;
     return;
   }
+
   dispatchToTree(root, target, type, x, y, native);
   currentRuntime = null;
+}
+
+const runtimeHoverState = new WeakMap<Runtime, Widget | null>();
+
+function handleHoverEvents(
+  runtime: Runtime,
+  root: Widget,
+  target: Widget | null,
+  x: number,
+  y: number,
+  native: MouseEvent | WheelEvent | PointerEvent | TouchEvent | KeyboardEvent,
+): void {
+  const lastTarget = runtimeHoverState.get(runtime) || null;
+  if (target === lastTarget) {
+    return;
+  }
+  runtimeHoverState.set(runtime, target);
+
+  // 1. Find LCA
+  const lca = findLCA(lastTarget, target);
+
+  // 2. Handle Leave (pointerout bubbles, pointerleave does not)
+  if (lastTarget) {
+    // pointerout triggers on the last target and bubbles
+    dispatchToTree(root, lastTarget, 'pointerout', x, y, native);
+
+    // pointerleave triggers on the chain from lastTarget up to LCA (exclusive)
+    let curr: Widget | null = lastTarget;
+    while (curr && curr !== lca) {
+      dispatchDirect(curr, 'pointerleave', x, y, native);
+      curr = curr.parent;
+    }
+  }
+
+  // 3. Handle Enter (pointerover bubbles, pointerenter does not)
+  if (target) {
+    // pointerover triggers on the target and bubbles
+    dispatchToTree(root, target, 'pointerover', x, y, native);
+
+    // pointerenter triggers on the chain from LCA (exclusive) down to target
+    const path = buildPath(target); // [root, ..., target]
+    let startIndex = 0;
+    if (lca) {
+      startIndex = path.indexOf(lca) + 1;
+    }
+    for (let i = startIndex; i < path.length; i++) {
+      dispatchDirect(path[i], 'pointerenter', x, y, native);
+    }
+  }
+}
+
+function findLCA(a: Widget | null, b: Widget | null): Widget | null {
+  if (!a || !b) {
+    return null;
+  }
+  const pathA = buildPath(a);
+  const pathB = buildPath(b);
+  let lca: Widget | null = null;
+  for (let i = 0; i < Math.min(pathA.length, pathB.length); i++) {
+    if (pathA[i] === pathB[i]) {
+      lca = pathA[i];
+    } else {
+      break;
+    }
+  }
+  return lca;
+}
+
+function dispatchDirect(
+  node: Widget,
+  type: EventType,
+  x: number,
+  y: number,
+  native: MouseEvent | WheelEvent | PointerEvent | TouchEvent | KeyboardEvent,
+) {
+  // 直接分发不冒泡的事件 (enter/leave)
+  // 我们同时触发 capture 和 bubble 阶段的处理器，以支持 onPointerEnter 和 onPointerEnterCapture
+  const ev = createEvent(type, node, node, EventPhase.Target, x, y, native);
+  invokeHandlers(node, type, ev, 'capture');
+  invokeHandlers(node, type, ev, 'bubble');
 }
 
 export function dispatchToTree(
