@@ -74,7 +74,17 @@ Inline code: \`const a = 1;\`
 End of Demo
 `;
 
-export function MarkdownPreviewApp({ width, height }: { width?: number; height?: number }) {
+import { Themes, type ThemePalette } from '@/styles/theme';
+
+export function MarkdownPreviewApp({
+  width,
+  height,
+  theme = Themes.light,
+}: {
+  width?: number;
+  height?: number;
+  theme?: ThemePalette;
+}) {
   // Use a max width for the content to make it look like a blog
   const contentMaxWidth = 800;
   // If screen is smaller than max width, use screen width minus padding
@@ -82,23 +92,28 @@ export function MarkdownPreviewApp({ width, height }: { width?: number; height?:
 
   return (
     <ScrollView width={width} height={height}>
-      <Container minWidth={width} minHeight={height} alignment="center" color="#f0f2f5">
+      <Container
+        minWidth={width}
+        minHeight={height}
+        alignment="center"
+        color={theme.background.surface}
+      >
         <Container
           width={containerWidth}
-          color="#ffffff"
+          color={theme.background.container}
           decoration={{
-            boxShadow: { blur: 10, color: 'rgba(0,0,0,0.1)', offset: { x: 0, y: 2 } },
+            boxShadow: { blur: 10, color: theme.state.active, offset: { x: 0, y: 2 } },
             borderRadius: 8,
           }}
           margin={{ top: 20, bottom: 20 }}
         >
-          <MarkdownViewer content={SAMPLE_MARKDOWN} />
+          <MarkdownViewer content={SAMPLE_MARKDOWN} theme={theme} />
         </Container>
       </Container>
     </ScrollView>
   );
 }
 
-export function runApp(runtime: Runtime, width: number, height: number) {
-  runtime.render(<MarkdownPreviewApp width={width} height={height} />);
+export function runApp(runtime: Runtime, width: number, height: number, theme: ThemePalette) {
+  runtime.render(<MarkdownPreviewApp width={width} height={height} theme={theme} />);
 }
