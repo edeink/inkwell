@@ -120,6 +120,9 @@ function createEvent(
   native?: Event,
 ): InkwellEvent {
   let stopped = false;
+  // 提取修饰键
+  const ne = native as MouseEvent | KeyboardEvent | undefined;
+
   return {
     type,
     target,
@@ -130,6 +133,10 @@ function createEvent(
     x,
     y,
     nativeEvent: native,
+    altKey: ne?.altKey,
+    ctrlKey: ne?.ctrlKey,
+    metaKey: ne?.metaKey,
+    shiftKey: ne?.shiftKey,
     stopPropagation() {
       stopped = true;
       if (native && typeof native.preventDefault === 'function') {

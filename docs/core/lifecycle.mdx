@@ -64,8 +64,41 @@ graph TD
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
 | `build` / `render` | 构建 UI 结构 | 组合子组件，返回新的 Widget 树 |
+| `didUpdateWidget` | 响应属性变更 | **v0.9.0 新增**。当组件接收到新的 Props 时触发。用于比较新旧 Props，同步内部 State 或执行副作用。在 `render` 之前调用。 |
 | `rebuild` | 框架内部机制 | 对比新旧数据 (Diff)，决定是否需要更新子树 |
 | `markDirty` | 标记脏节点 | **核心方法**。手动触发更新流程。不仅标记脏状态，还会级联触发 `markNeedsLayout`，确保视图数据同步。 |
+
+#### API 详解: `didUpdateWidget`
+
+```typescript
+/**
+ * 当组件配置发生变化时调用
+ * @param oldProps 旧的组件属性
+ */
+protected didUpdateWidget(oldProps: TData): void
+```
+
+- **触发条件**: 父组件重建导致当前组件接收到新的 Props，且 Key 相同（或无 Key 且类型相同）被复用时。
+- **执行时机**: 在 `render` 之前调用。
+- **典型场景**:
+    - **State 同步**: 当外部 Props 变化时（如 `value`），更新内部 State。
+    - **副作用重置**: 比如重置动画控制器、定时器或滚动位置。
+    - **性能优化**: 比较 Props 决定是否需要发起昂贵的计算或网络请求。
+
+**示例**：
+```typescript
+class MyInput extends StatefulWidget<MyProps, MyState> {
+  protected didUpdateWidget(oldProps: MyProps) {
+    // 只有当 value 真正改变时才更新 state
+    if (this.props.value !== oldProps.value) {
+      this.setState({
+        value: this.props.value
+      });
+    }
+    super.didUpdateWidget(oldProps);
+  }
+}
+```
 
 #### API 详解: `markDirty`
 

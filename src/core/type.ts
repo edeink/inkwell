@@ -106,6 +106,11 @@ export interface InkwellEvent {
   x: number;
   y: number;
   nativeEvent?: Event;
+  // 键盘/鼠标修饰键
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
   stopPropagation(): void;
   propagationStopped: boolean;
 }

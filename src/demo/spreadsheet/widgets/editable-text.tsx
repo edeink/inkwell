@@ -32,19 +32,29 @@ export interface SpreadsheetEditableTextProps extends WidgetProps {
   onFinish: (value: string) => void;
   /** 取消回调 */
   onCancel: () => void;
+  /**
+   * 是否可见
+   * @default true
+   */
+  visible?: boolean;
 }
 
 interface State {
   value: string;
   width: number;
   height: number;
+  /** 是否已保存 */
+  isSaved: boolean;
   [key: string]: unknown;
 }
 
 export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableTextProps, State> {
   constructor(props: SpreadsheetEditableTextProps) {
     super(props);
-    this.state = this.calculateState(props.value);
+    this.state = {
+      ...this.calculateState(props.value),
+      isSaved: false,
+    };
     window.addEventListener('spreadsheet-selection-change', this.handleSelectionChange);
   }
 
@@ -54,18 +64,32 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
   }
 
   private handleSelectionChange = () => {
-    this.handleFinish(this.state.value);
+    // 选区变化时，如果未保存，则手动保存
+    // 注意：如果是因为点击了其他地方导致 blur，handleFinish 应该已经被 handleBlur 触发了
+    // 这里是为了防止 blur 未能触发的情况
+    if (!this.state.isSaved) {
+      this.handleFinish(this.state.value);
+    }
   };
 
-  createElement(props: SpreadsheetEditableTextProps) {
-    if (props.value !== this.props.value) {
-      this.state = this.calculateState(props.value);
+  protected didUpdateWidget(oldProps: SpreadsheetEditableTextProps) {
+    // 检查是否切换了单元格（根据坐标判断）
+    if (
+      this.props.x !== oldProps.x ||
+      this.props.y !== oldProps.y ||
+      this.props.value !== oldProps.value ||
+      this.props.visible !== oldProps.visible
+    ) {
+      // 重置状态
+      this.setState({
+        ...this.calculateState(this.props.value),
+        isSaved: false,
+      });
     }
-    super.createElement(props);
-    return this;
+    super.didUpdateWidget(oldProps);
   }
 
-  private calculateState(value: string): State {
+  private calculateState(value: string): { value: string; width: number; height: number } {
     const { minWidth, minHeight, maxWidth, fontSize = 14 } = this.props;
 
     // 测量文本尺寸
@@ -102,17 +126,41 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
   };
 
   private handleFinish = (val: string) => {
+    if (this.state.isSaved) {
+      return;
+    }
     this.props.onFinish(val);
-    // 清除编辑状态，防止残留
+
+    // 标记为已保存，并清空状态
+    // 为了满足类型检查，提供完整的 State 对象
+    const emptyState = this.calculateState('');
     this.setState({
       value: '',
-      width: this.props.minWidth,
-      height: this.props.minHeight,
+      width: emptyState.width,
+      height: emptyState.height,
+      isSaved: true,
     });
   };
 
+  private handleBlur = () => {
+    // 失去焦点时作为兜底保存
+    if (!this.state.isSaved) {
+      this.handleFinish(this.state.value);
+    }
+  };
+
   render() {
-    const { x, y, maxWidth, maxHeight, theme, fontSize = 14, color, onCancel } = this.props;
+    const {
+      x,
+      y,
+      maxWidth,
+      maxHeight,
+      theme,
+      fontSize = 14,
+      color,
+      onCancel,
+      visible = true,
+    } = this.props;
     const { value, width, height } = this.state;
 
     // 限制最终显示尺寸不超过 max
@@ -127,38 +175,41 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
       <Container
         width={needScroll ? Math.max(width, displayWidth) : displayWidth}
         height={needScroll ? Math.max(height, displayHeight) : displayHeight}
-        color={theme.background.base}
+        color={visible ? theme.background.base : 'transparent'}
       >
         <CoreEditableText
+          // 移除 key，允许复用实例。通过 visible 变化来控制焦点。
           value={value}
           width={needScroll ? Math.max(width, displayWidth) : displayWidth}
           height={needScroll ? Math.max(height, displayHeight) : displayHeight}
           fontSize={fontSize}
           color={color || theme.text.primary}
-          autoFocus={true}
+          autoFocus={true} // CoreEditableText 会结合 visible 属性来判断是否真正聚焦
+          visible={visible}
           onChange={this.handleChange}
           onFinish={this.handleFinish}
+          onBlur={this.handleBlur}
           onCancel={onCancel}
         />
       </Container>
     );
 
+    // 保持组件树结构一致，确保 CoreEditableText 不会被卸载
     return (
       <Stack>
-        <Positioned left={x} top={y} width={displayWidth} height={displayHeight}>
-          <Container
-            color={theme.background.base}
-            border={{ width: 2, color: theme.primary }}
-            shadow={{ color: 'rgba(0,0,0,0.2)', blur: 8, offsetX: 0, offsetY: 4 }}
-          >
-            {needScroll ? (
-              <ScrollView width={displayWidth} height={displayHeight} scrollX={0} scrollY={0}>
-                {editor}
-              </ScrollView>
-            ) : (
-              editor
-            )}
-          </Container>
+        <Positioned
+          left={x}
+          top={y}
+          width={visible ? displayWidth : 0}
+          height={visible ? displayHeight : 0}
+        >
+          {needScroll ? (
+            <ScrollView width={displayWidth} height={displayHeight} scrollX={0} scrollY={0}>
+              {editor}
+            </ScrollView>
+          ) : (
+            editor
+          )}
         </Positioned>
       </Stack>
     );

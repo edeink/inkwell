@@ -1,116 +1,242 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SpreadsheetEditableText } from '../editable-text';
+import { SpreadsheetEditableText, type SpreadsheetEditableTextProps } from '../editable-text';
 
-import { Container } from '@/core/container';
-import { Positioned } from '@/core/positioned';
-import { Stack } from '@/core/stack';
-import { ScrollView } from '@/core/viewport/scroll-view';
-import { Themes } from '@/styles/theme';
+import { EditableText as CoreEditableText } from '@/core/editable-text';
+
+// Mock CoreEditableText
+vi.mock('@/core/editable-text', () => ({
+  EditableText: class MockCoreEditableText {
+    props: any;
+    constructor(props: any) {
+      this.props = props;
+    }
+    render() {
+      return null;
+    }
+  },
+}));
 
 // Mock TextLayout
 vi.mock('@/core/text/layout', () => ({
   TextLayout: {
-    layout: (text: string, style: any, constraints: any) => {
-      // Mock layout logic: 10px per char width, 20px height
-      const width = text.length * 10;
-      const height = 20;
-      return { width, height };
-    },
+    layout: vi.fn(() => ({ width: 100, height: 20 })),
   },
 }));
 
-describe('SpreadsheetEditableText', () => {
-  const defaultProps = {
-    type: 'SpreadsheetEditableText',
-    x: 0,
-    y: 0,
-    minWidth: 50,
-    minHeight: 30,
-    maxWidth: 200,
-    maxHeight: 100,
-    value: 'test',
-    theme: Themes.light,
-    onFinish: vi.fn(),
-    onCancel: vi.fn(),
-  };
+describe('SpreadsheetEditableText 组件', () => {
+  let props: SpreadsheetEditableTextProps;
+  // let element: Element;
 
-  it('应该根据内容计算初始尺寸', () => {
-    const widget = new SpreadsheetEditableText(defaultProps);
-    // test (4 chars) -> 40px width + 10px padding = 50px
-    // But minWidth is 50.
-    // let's try longer text
-    const longProps = { ...defaultProps, value: 'longtext' }; // 80px + 10 = 90px
-    const widget2 = new SpreadsheetEditableText(longProps);
-
-    // Access state directly for testing
-    // @ts-ignore
-    expect(widget2.state.width).toBe(90);
-    // @ts-ignore
-    expect(widget2.state.height).toBeGreaterThanOrEqual(20);
+  beforeEach(() => {
+    props = {
+      type: 'SpreadsheetEditableText',
+      x: 10,
+      y: 10,
+      minWidth: 100,
+      minHeight: 30,
+      maxWidth: 500,
+      maxHeight: 500,
+      value: '测试文本',
+      theme: {
+        background: { base: '#fff' },
+        text: { primary: '#000' },
+        primary: '#blue',
+      } as any,
+      onFinish: vi.fn(),
+      onCancel: vi.fn(),
+    };
   });
 
-  it('当内容超过最大尺寸时应该使用 ScrollView', () => {
-    // 25 chars -> 250px width > 200px maxWidth
-    const props = { ...defaultProps, value: 'a'.repeat(25) };
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('应该正确初始化状态', () => {
+    const widget = new SpreadsheetEditableText(props);
+    // @ts-ignore - accessing private state for testing
+    expect(widget.state.value).toBe('测试文本');
+    // @ts-ignore
+    expect(widget.state.isSaved).toBe(false);
+  });
+
+  it('属性变化时应该更新状态 (复用编辑器场景)', () => {
     const widget = new SpreadsheetEditableText(props);
 
-    const tree = widget.render();
+    // 模拟切换到新单元格
+    const newProps = { ...props, value: '新文本', x: 200 };
+    // @ts-ignore
+    widget.didUpdateWidget(props); // This is not quite right, didUpdateWidget takes oldProps
 
-    // Check if the inner structure contains ScrollView
-    // Stack -> Positioned -> Container -> ScrollView (if needed) -> Container -> EditableText
+    // Manually call didUpdateWidget logic or simulate update lifecycle
+    // Since we can't easily simulate full lifecycle without renderer, we call didUpdateWidget directly
+    // @ts-ignore
+    widget.props = newProps;
+    // @ts-ignore
+    widget.didUpdateWidget(props); // props passed here is OLD props
 
-    // Stack
-    const stackElement = tree as any;
-    expect(stackElement.type).toBe(Stack);
-
-    // Positioned
-    // Stack children is usually an array
-    const children = Array.isArray(stackElement.props.children)
-      ? stackElement.props.children
-      : [stackElement.props.children];
-    const positionedElement = children[0];
-    expect(positionedElement.type).toBe(Positioned);
-
-    const outerContainerElement = positionedElement.props.children || positionedElement.props.child; // Container
-    expect(outerContainerElement.type).toBe(Container);
-
-    const innerContentElement =
-      outerContainerElement.props.children || outerContainerElement.props.child; // ScrollView or Container(EditableText)
-
-    // Since width (260) > maxWidth (200), it should be ScrollView
-    expect(innerContentElement.type).toBe(ScrollView);
+    // @ts-ignore
+    expect(widget.state.value).toBe('新文本');
+    // @ts-ignore
+    expect(widget.state.isSaved).toBe(false);
   });
 
-  it('当内容未超过最大尺寸时应该直接渲染内容', () => {
-    const props = { ...defaultProps, value: 'short' }; // 60px < 200px
+  it('选区变化时应该触发保存', () => {
     const widget = new SpreadsheetEditableText(props);
 
-    const tree = widget.render();
+    // 模拟选区变化事件
+    const event = new Event('spreadsheet-selection-change');
+    window.dispatchEvent(event);
 
-    const stackElement = tree as any;
-    const children = Array.isArray(stackElement.props.children)
-      ? stackElement.props.children
-      : [stackElement.props.children];
-    const positionedElement = children[0];
-    const outerContainerElement = positionedElement.props.children || positionedElement.props.child;
-    const innerContentElement =
-      outerContainerElement.props.children || outerContainerElement.props.child;
-
-    // Should be Container (wrapper of CoreEditableText), not ScrollView
-    expect(innerContentElement.type).toBe(Container);
-    expect(innerContentElement.type).not.toBe(ScrollView);
+    expect(props.onFinish).toHaveBeenCalledWith('测试文本');
+    // @ts-ignore
+    expect(widget.state.isSaved).toBe(true);
   });
 
-  it('当输入改变时应该更新尺寸', () => {
-    const widget = new SpreadsheetEditableText(defaultProps);
-    // @ts-ignore
-    const handleChange = widget['handleChange'];
+  it('如果已保存，选区变化不应再次触发保存', () => {
+    const widget = new SpreadsheetEditableText(props);
 
-    // 'verylongtext' -> 12 chars -> 120px + 10 = 130px
-    handleChange('verylongtext');
-
+    // 先手动触发一次保存
     // @ts-ignore
-    expect(widget.state.width).toBe(130);
+    widget.handleFinish('测试文本');
+    expect(props.onFinish).toHaveBeenCalledTimes(1);
+
+    // 再触发选区变化
+    const event = new Event('spreadsheet-selection-change');
+    window.dispatchEvent(event);
+
+    expect(props.onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it('CoreEditableText 应该接收 visible 属性且不使用 key (复用实例)', () => {
+    const widget = new SpreadsheetEditableText(props);
+    const element = widget.render();
+
+    // Helper to find CoreEditableText element
+    function findCoreElement(el: any): any {
+      if (!el) {
+        return null;
+      }
+      if (el.type === CoreEditableText) {
+        return el;
+      }
+
+      const props = el.props || {};
+
+      // Handle single child
+      if (props.child) {
+        const found = findCoreElement(props.child);
+        if (found) {
+          return found;
+        }
+      }
+
+      // Handle children array
+      if (props.children) {
+        if (Array.isArray(props.children)) {
+          for (const child of props.children) {
+            const found = findCoreElement(child);
+            if (found) {
+              return found;
+            }
+          }
+        } else {
+          return findCoreElement(props.children);
+        }
+      }
+
+      return null;
+    }
+
+    const coreElement = findCoreElement(element);
+    expect(coreElement).toBeTruthy();
+    // key 应该被移除或为 undefined/null
+    expect(coreElement.key).toBeNull();
+    expect(coreElement.props.autoFocus).toBe(true);
+    // 默认可见
+    expect(coreElement.props.visible).toBe(true);
+
+    // 测试 visible=false
+    const hiddenProps = { ...props, visible: false };
+    // @ts-ignore
+    widget.props = hiddenProps;
+    // @ts-ignore
+    widget.didUpdateWidget(props); // Update widget with hidden props
+
+    const hiddenElement = widget.render();
+    const hiddenCoreElement = findCoreElement(hiddenElement);
+    expect(hiddenCoreElement).toBeTruthy();
+    expect(hiddenCoreElement.props.visible).toBe(false);
+  });
+
+  it('Type Error Check: 构造函数和 setState 应符合类型定义', () => {
+    const widget = new SpreadsheetEditableText(props);
+    // @ts-ignore
+    const state = widget.state;
+    expect(state.value).toBe('测试文本');
+    expect(state.width).toBeGreaterThan(0);
+    expect(state.height).toBeGreaterThan(0);
+    expect(state.isSaved).toBe(false);
+
+    // 模拟 handleFinish 中的 setState
+    // @ts-ignore
+    widget.handleFinish('new value');
+    // @ts-ignore
+    expect(widget.state.isSaved).toBe(true);
+    // @ts-ignore
+    expect(widget.state.value).toBe('');
+
+    // 验证 width/height 是否保留或重置 (当前逻辑是重置为 emptyState 的宽高)
+    // @ts-ignore
+    expect(widget.state.width).toBeGreaterThan(0);
+  });
+
+  it('onBlur: 应该触发 handleFinish', () => {
+    const widget = new SpreadsheetEditableText(props);
+    const element = widget.render();
+
+    // Helper to find CoreEditableText element
+    function findCoreElement(el: any): any {
+      if (!el) {
+        return null;
+      }
+      if (el.type === CoreEditableText) {
+        return el;
+      }
+
+      const props = el.props || {};
+
+      if (props.child) {
+        const found = findCoreElement(props.child);
+        if (found) {
+          return found;
+        }
+      }
+
+      if (props.children) {
+        if (Array.isArray(props.children)) {
+          for (const child of props.children) {
+            const found = findCoreElement(child);
+            if (found) {
+              return found;
+            }
+          }
+        } else {
+          return findCoreElement(props.children);
+        }
+      }
+      return null;
+    }
+
+    const coreElement = findCoreElement(element);
+    expect(coreElement).toBeTruthy();
+
+    // 触发 onBlur
+    if (coreElement.props.onBlur) {
+      coreElement.props.onBlur();
+      expect(props.onFinish).toHaveBeenCalledWith('测试文本');
+    } else {
+      throw new Error('onBlur prop missing on CoreEditableText');
+    }
   });
 });

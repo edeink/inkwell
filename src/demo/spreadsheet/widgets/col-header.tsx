@@ -15,7 +15,7 @@ export interface ColumnHeadersProps extends WidgetProps {
   theme: ThemePalette;
   scrollX: number;
   viewportWidth: number;
-  selection: SelectionRange | null;
+  selections?: SelectionRange[];
   onResizeStart: (index: number, e: InkwellEvent) => void;
   onHeaderClick: (index: number, e: InkwellEvent) => void;
 }
@@ -32,12 +32,15 @@ export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
   }
 
   render() {
-    const { model, theme, scrollX, viewportWidth, selection, onResizeStart, onHeaderClick } =
+    const { model, theme, scrollX, viewportWidth, selections, onResizeStart, onHeaderClick } =
       this.props;
     const { config } = model;
 
     const startCol = model.getColIndexAt(scrollX);
     const endCol = model.getColIndexAt(scrollX + viewportWidth) + 1;
+
+    // 统一处理选区
+    const activeSelections = selections || [];
 
     const headers: JSXElement[] = [];
 
@@ -56,10 +59,9 @@ export class ColumnHeaders extends StatefulWidget<ColumnHeadersProps> {
       }
 
       const colName = this.getColumnName(c);
-      const isSelected =
-        selection &&
-        c >= Math.min(selection.startCol, selection.endCol) &&
-        c <= Math.max(selection.startCol, selection.endCol);
+      const isSelected = activeSelections.some(
+        (sel) => c >= Math.min(sel.startCol, sel.endCol) && c <= Math.max(sel.startCol, sel.endCol),
+      );
 
       headers.push(
         <Positioned

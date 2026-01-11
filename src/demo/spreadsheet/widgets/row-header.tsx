@@ -15,19 +15,22 @@ export interface RowHeadersProps extends WidgetProps {
   theme: ThemePalette;
   scrollY: number;
   viewportHeight: number;
-  selection: SelectionRange | null;
+  selections?: SelectionRange[];
   onResizeStart: (index: number, e: InkwellEvent) => void;
   onHeaderClick: (index: number, e: InkwellEvent) => void;
 }
 
 export class RowHeaders extends StatefulWidget<RowHeadersProps> {
   render() {
-    const { model, theme, scrollY, viewportHeight, selection, onResizeStart, onHeaderClick } =
+    const { model, theme, scrollY, viewportHeight, selections, onResizeStart, onHeaderClick } =
       this.props;
     const { config } = model;
 
     const startRow = model.getRowIndexAt(scrollY);
     const endRow = model.getRowIndexAt(scrollY + viewportHeight) + 1;
+
+    // 统一处理选区
+    const activeSelections = selections || [];
 
     const headers: JSXElement[] = [];
 
@@ -42,10 +45,9 @@ export class RowHeaders extends StatefulWidget<RowHeadersProps> {
         continue;
       }
 
-      const isSelected =
-        selection &&
-        r >= Math.min(selection.startRow, selection.endRow) &&
-        r <= Math.max(selection.startRow, selection.endRow);
+      const isSelected = activeSelections.some(
+        (sel) => r >= Math.min(sel.startRow, sel.endRow) && r <= Math.max(sel.startRow, sel.endRow),
+      );
 
       headers.push(
         <Positioned

@@ -17,7 +17,7 @@ export interface SpreadsheetGridProps extends WidgetProps {
   scrollY: number;
   viewportWidth: number;
   viewportHeight: number;
-  selection: SelectionRange | null;
+  selections?: SelectionRange[];
   showGridLines: boolean;
   gridLineColor?: string;
   /**
@@ -30,6 +30,7 @@ export interface SpreadsheetGridProps extends WidgetProps {
   modelHash?: string;
   onCellDown: (row: number, col: number, e: InkwellEvent) => void;
   onCellDoubleClick: (row: number, col: number) => void;
+  onCellHover?: (row: number, col: number) => void;
 }
 
 export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
@@ -41,11 +42,15 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       scrollY,
       viewportWidth,
       viewportHeight,
-      selection,
+      selections,
       showGridLines,
       onCellDown,
       onCellDoubleClick,
+      onCellHover,
     } = this.props;
+
+    // 统一处理选区列表
+    const activeSelections = selections || [];
 
     // 计算可见区域
     // 增加 1 行/列的缓冲区以防止闪烁
@@ -84,12 +89,13 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
         const displayHeight = showGridLines ? rowHeight - 1 : rowHeight;
 
         const cellData = model.getCell(r, c);
-        const isSelected =
-          selection &&
-          r >= Math.min(selection.startRow, selection.endRow) &&
-          r <= Math.max(selection.startRow, selection.endRow) &&
-          c >= Math.min(selection.startCol, selection.endCol) &&
-          c <= Math.max(selection.startCol, selection.endCol);
+        const isSelected = activeSelections.some(
+          (sel) =>
+            r >= Math.min(sel.startRow, sel.endRow) &&
+            r <= Math.max(sel.startRow, sel.endRow) &&
+            c >= Math.min(sel.startCol, sel.endCol) &&
+            c <= Math.max(sel.startCol, sel.endCol),
+        );
 
         const style = cellData?.style || {};
 
@@ -108,8 +114,15 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
               color={isSelected ? theme.primary + '1A' : theme.background.base}
               // 显式设置 pointerEvent="auto" 以确保能接收事件
               pointerEvent="auto"
+              cursor="cell"
               onPointerDown={(e) => {
+                // 阻止事件冒泡，优先处理选区操作，避免触发外层 ScrollView 的滚动
+                e.stopPropagation();
                 onCellDown(r, c, e);
+              }}
+              onPointerEnter={() => {
+                // console.log(`[SpreadsheetGrid] Cell enter: ${r}, ${c}`);
+                onCellHover?.(r, c);
               }}
               // 使用 onDoubleClick 符合 React 规范，且确保 EventDispatcher 能正确解析
               onDoubleClick={() => {
@@ -132,8 +145,8 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
     }
 
     // 渲染选中区域边框
-    if (selection) {
-      const { startRow, endRow, startCol, endCol } = selection;
+    activeSelections.forEach((sel, index) => {
+      const { startRow, endRow, startCol, endCol } = sel;
       const minR = Math.min(startRow, endRow);
       const maxR = Math.max(startRow, endRow);
       const minC = Math.min(startCol, endCol);
@@ -144,9 +157,11 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
       const w = model.getColOffset(maxC) + model.getColWidth(maxC) - x;
       const h = model.getRowOffset(maxR) + model.getRowHeight(maxR) - y;
 
+      const isPrimary = index === activeSelections.length - 1;
+
       cells.push(
         <Positioned
-          key="selection-border"
+          key={`selection-border-${index}`}
           pointerEvent="none"
           left={x}
           top={y}
@@ -160,10 +175,34 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
           />
         </Positioned>,
       );
-    }
+
+      // 仅为主选区添加填充手柄 (Fill Handle)
+      if (isPrimary) {
+        cells.push(
+          <Positioned
+            key={`selection-handle-${index}`}
+            left={x + w - 5}
+            top={y + h - 5}
+            width={10}
+            height={10}
+            zIndex={2} // 确保在边框之上
+          >
+            <Container
+              color={theme.primary}
+              border={{ width: 1, color: theme.background.base }}
+              cursor="crosshair"
+            />
+          </Positioned>,
+        );
+      }
+    });
 
     return (
-      <Container width={model.getTotalWidth()} height={model.getTotalHeight()}>
+      <Container
+        width={model.getTotalWidth()}
+        height={model.getTotalHeight()}
+        color={this.props.gridLineColor ?? theme.component.gridLine}
+      >
         <Stack>{cells as unknown as WidgetProps[]}</Stack>
       </Container>
     );

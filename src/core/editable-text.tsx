@@ -77,6 +77,17 @@ export interface EditableTextProps extends WidgetProps {
    * @default false
    */
   multiline?: boolean;
+  /**
+   * 是否自动获取焦点
+   * @default false
+   */
+  autoFocus?: boolean;
+  /**
+   * 是否可见
+   * 如果不可见，将禁用输入并隐藏内容
+   * @default true
+   */
+  visible?: boolean;
 }
 
 /**
@@ -159,6 +170,9 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
    */
   createElement(data: EditableTextProps): Widget<EditableTextProps> {
     const prevText = this.props.value;
+    const prevVisible = this.props.visible ?? true;
+    const nextVisible = data.visible ?? true;
+
     if (data.value !== prevText) {
       // 在 super.createElement 调用 render 之前更新状态
       this.state.text = data.value;
@@ -166,6 +180,34 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
         this.input.value = data.value;
       }
     }
+
+    // 处理可见性变化
+    if (prevVisible !== nextVisible) {
+      if (nextVisible) {
+        // 变为可见
+        if (this.input) {
+          this.input.disabled = false;
+          this.input.tabIndex = 0; // 恢复 tabindex
+          if (data.autoFocus) {
+            // 需要一点延迟以确保 DOM 状态更新
+            setTimeout(() => {
+              this.input?.focus();
+              try {
+                this.input?.setSelectionRange(0, this.input.value.length);
+              } catch {}
+            }, 0);
+          }
+        }
+      } else {
+        // 变为不可见
+        if (this.input) {
+          this.input.blur();
+          this.input.disabled = true; // 禁用输入
+          this.input.tabIndex = -1; // 移除焦点序列
+        }
+      }
+    }
+
     super.createElement(data);
     return this;
   }
@@ -238,6 +280,37 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     this.input.addEventListener('blur', this.handleBlur);
     this.input.addEventListener('focus', this.handleFocus);
     document.addEventListener('selectionchange', this.handleSelectionChange);
+
+    if (this.props.autoFocus && (this.props.visible ?? true)) {
+      // 使用 setTimeout 确保在 DOM 插入后执行
+      setTimeout(() => {
+        this.input?.focus();
+        // 自动全选
+        try {
+          this.input?.setSelectionRange(0, this.input.value.length);
+        } catch {}
+      }, 0);
+    }
+
+    // 初始化可见性状态
+    if (this.props.visible === false) {
+      this.input.disabled = true;
+      this.input.tabIndex = -1;
+    }
+  }
+
+  /**
+   * 手动获取焦点
+   */
+  public focus() {
+    this.input?.focus();
+  }
+
+  /**
+   * 手动失去焦点
+   */
+  public blur() {
+    this.input?.blur();
   }
 
   /**
@@ -926,6 +999,10 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
   }
 
   render() {
+    if (this.props.visible === false) {
+      return <Container width={0} height={0} />;
+    }
+
     const st = this.state;
     const { text, selectionStart, selectionEnd, focused } = st;
     const fontSize = this.props.fontSize || 14;

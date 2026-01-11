@@ -49,7 +49,7 @@ export interface SpreadsheetProps extends WidgetProps {
 interface SpreadsheetState {
   scrollX: number;
   scrollY: number;
-  selection: SelectionRange | null;
+  selections: SelectionRange[];
   editingCell: CellPosition | null;
   resizing: ResizingState | null;
   // 用于强制更新
@@ -61,6 +61,11 @@ interface SpreadsheetState {
 export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetState> {
   model: SpreadsheetModel;
   private darkModeQuery: MediaQueryList;
+  private _isSelecting: boolean = false;
+  // 当前正在操作的选区的锚点（开始选择的位置）
+  private _anchor: CellPosition | null = null;
+  // 当前活动单元格（光标位置）
+  private _cursor: CellPosition | null = null;
 
   constructor(props: SpreadsheetProps) {
     super(props);
@@ -71,7 +76,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     this.state = {
       scrollX: 0,
       scrollY: 0,
-      selection: null,
+      selections: [],
       editingCell: null,
       resizing: null,
       version: 0,
@@ -86,39 +91,45 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     this.setState({ isDarkMode: e.matches });
   };
 
-  private dispatchSelectionChange(newSelection: SelectionRange) {
+  private dispatchSelectionChange(selections: SelectionRange[]) {
     const event = new CustomEvent('spreadsheet-selection-change', {
-      detail: newSelection,
+      detail: {
+        selections,
+      },
     });
     window.dispatchEvent(event);
   }
 
   private handleRowHeaderClick = (rowIndex: number, e: InkwellEvent) => {
-    const selection = {
-      startRow: rowIndex,
-      endRow: rowIndex,
-      startCol: 0,
-      endCol: this.model.getColCount() - 1,
-    };
-    this.dispatchSelectionChange(selection);
+    const selections = [
+      {
+        startRow: rowIndex,
+        endRow: rowIndex,
+        startCol: 0,
+        endCol: this.model.getColCount() - 1,
+      },
+    ];
+    this.dispatchSelectionChange(selections);
     // 选中整行
     this.setState({
-      selection,
+      selections,
       editingCell: null,
     });
   };
 
   private handleColHeaderClick = (colIndex: number, e: InkwellEvent) => {
-    const selection = {
-      startRow: 0,
-      endRow: this.model.getRowCount() - 1,
-      startCol: colIndex,
-      endCol: colIndex,
-    };
-    this.dispatchSelectionChange(selection);
+    const selections = [
+      {
+        startRow: 0,
+        endRow: this.model.getRowCount() - 1,
+        startCol: colIndex,
+        endCol: colIndex,
+      },
+    ];
+    this.dispatchSelectionChange(selections);
     // 选中整列
     this.setState({
-      selection,
+      selections,
       editingCell: null,
     });
   };
@@ -158,10 +169,19 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     }
 
     // 导航
-    if (this.state.selection) {
-      const { startRow, startCol } = this.state.selection;
-      let newRow = startRow;
-      let newCol = startCol;
+    if (this.state.selections.length > 0) {
+      const activeSelection = this.state.selections[this.state.selections.length - 1];
+      // 优先使用 _cursor，如果为空则降级到 selection.start
+      const currentRow = this._cursor?.row ?? activeSelection.startRow;
+      const currentCol = this._cursor?.col ?? activeSelection.startCol;
+
+      // 如果 _anchor 为空，初始化为当前位置
+      if (!this._anchor) {
+        this._anchor = { row: currentRow, col: currentCol };
+      }
+
+      let newRow = currentRow;
+      let newCol = currentCol;
 
       switch (e.key) {
         case 'ArrowUp':
@@ -183,17 +203,47 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
       newRow = Math.max(0, Math.min(newRow, this.model.getRowCount() - 1));
       newCol = Math.max(0, Math.min(newCol, this.model.getColCount() - 1));
 
-      if (newRow !== startRow || newCol !== startCol) {
+      if (newRow !== currentRow || newCol !== currentCol) {
         e.preventDefault();
-        const selection = {
-          startRow: newRow,
-          startCol: newCol,
-          endRow: newRow,
-          endCol: newCol,
-        };
-        this.dispatchSelectionChange(selection);
+
+        // 更新光标位置
+        this._cursor = { row: newRow, col: newCol };
+
+        let newSelections = this.state.selections;
+
+        if (e.shiftKey) {
+          // Shift 扩展模式
+          // 保持锚点不变，更新当前选区（假设是最后一个）的范围
+          const newSelection = {
+            startRow: this._anchor.row,
+            startCol: this._anchor.col,
+            endRow: newRow,
+            endCol: newCol,
+          };
+
+          // 如果列表为空，就只放这一个；否则替换最后一个
+          if (newSelections.length === 0) {
+            newSelections = [newSelection];
+          } else {
+            newSelections = [...newSelections.slice(0, -1), newSelection];
+          }
+        } else {
+          // 普通移动模式
+          // 锚点跟随光标
+          this._anchor = { row: newRow, col: newCol };
+
+          const newSelection = {
+            startRow: newRow,
+            startCol: newCol,
+            endRow: newRow,
+            endCol: newCol,
+          };
+          newSelections = [newSelection];
+        }
+
+        this.dispatchSelectionChange(newSelections);
         this.setState({
-          selection,
+          selections: newSelections,
         });
         this.scrollToCell(newRow, newCol);
       }
@@ -201,11 +251,12 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   };
 
   private async handleCopy(e: KeyboardEvent) {
-    if (!this.state.selection) {
+    if (this.state.selections.length === 0) {
       return;
     }
     e.preventDefault();
-    const { startRow, startCol, endRow, endCol } = this.state.selection;
+    const activeSelection = this.state.selections[this.state.selections.length - 1];
+    const { startRow, startCol, endRow, endCol } = activeSelection;
     const minR = Math.min(startRow, endRow);
     const maxR = Math.max(startRow, endRow);
     const minC = Math.min(startCol, endCol);
@@ -229,7 +280,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   }
 
   private async handlePaste(e: KeyboardEvent) {
-    if (!this.state.selection) {
+    if (this.state.selections.length === 0) {
       return;
     }
     try {
@@ -239,7 +290,8 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
       }
 
       const rows = text.split(/\r\n|\n|\r/);
-      const { startRow, startCol } = this.state.selection;
+      const activeSelection = this.state.selections[this.state.selections.length - 1];
+      const { startRow, startCol } = activeSelection;
 
       let maxR = startRow;
       let maxC = startCol;
@@ -267,14 +319,16 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
         });
       });
 
+      const newSelection = {
+        startRow,
+        startCol,
+        endRow: maxR,
+        endCol: maxC,
+      };
+
       this.setState({
         version: this.state.version + 1,
-        selection: {
-          startRow,
-          startCol,
-          endRow: maxR,
-          endCol: maxC,
-        },
+        selections: [newSelection],
       });
     } catch (err) {
       console.error('粘贴失败', err);
@@ -338,31 +392,119 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     }
   };
 
+  private handleWindowPointerUp = () => {
+    if (this._isSelecting) {
+      this._isSelecting = false;
+      // 保持 _anchor 和 _cursor 状态以便键盘操作继续
+      window.removeEventListener('pointerup', this.handleWindowPointerUp);
+    }
+  };
+
   private handleCellDown = (row: number, col: number, e: InkwellEvent) => {
-    const selection = {
-      startRow: row,
-      startCol: col,
-      endRow: row,
-      endCol: col,
-    };
-    this.dispatchSelectionChange(selection);
+    this._isSelecting = true;
+    window.addEventListener('pointerup', this.handleWindowPointerUp);
+
+    let newSelections: SelectionRange[] = [];
+
+    // Ctrl/Meta key adds to selection
+    const isMultiSelect = e.metaKey || e.ctrlKey;
+    // Shift key extends last selection
+    const isExtendSelect = e.shiftKey;
+
+    if (isExtendSelect && this.state.selections.length > 0) {
+      // 扩展选择：保持锚点不变，更新光标
+      if (!this._anchor) {
+        // 如果没有锚点（比如初始状态），使用当前选区的起始点作为锚点
+        const last = this.state.selections[this.state.selections.length - 1];
+        this._anchor = { row: last.startRow, col: last.startCol };
+      }
+      this._cursor = { row, col };
+
+      const newSelection = {
+        startRow: this._anchor.row,
+        startCol: this._anchor.col,
+        endRow: row,
+        endCol: col,
+      };
+
+      newSelections = [...this.state.selections.slice(0, -1), newSelection];
+    } else if (isMultiSelect) {
+      // 添加新选区：锚点和光标都设为新位置
+      this._anchor = { row, col };
+      this._cursor = { row, col };
+
+      const newSelection = {
+        startRow: row,
+        startCol: col,
+        endRow: row,
+        endCol: col,
+      };
+      newSelections = [...this.state.selections, newSelection];
+    } else {
+      // 普通点击：重置为单一选区
+      this._anchor = { row, col };
+      this._cursor = { row, col };
+
+      const newSelection = {
+        startRow: row,
+        startCol: col,
+        endRow: row,
+        endCol: col,
+      };
+      newSelections = [newSelection];
+    }
+
+    this.dispatchSelectionChange(newSelections);
     this.setState({
-      selection,
+      selections: newSelections,
       editingCell: null,
     });
   };
 
+  private handleCellHover = (row: number, col: number) => {
+    // 避免重复更新：如果光标位置没有改变，则忽略
+    if (this._cursor && this._cursor.row === row && this._cursor.col === col) {
+      return;
+    }
+
+    if (this._isSelecting && this._anchor) {
+      // 拖拽选择：更新光标位置，扩展当前选区
+      this._cursor = { row, col };
+
+      const currentSelections = this.state.selections;
+      if (currentSelections.length === 0) {
+        return;
+      }
+
+      const newSelection = {
+        startRow: this._anchor.row,
+        startCol: this._anchor.col,
+        endRow: row,
+        endCol: col,
+      };
+
+      const newSelections = [...currentSelections.slice(0, -1), newSelection];
+
+      this.dispatchSelectionChange(newSelections);
+      this.setState({
+        selections: newSelections,
+      });
+    }
+  };
+
   private handleCellDoubleClick = (row: number, col: number) => {
-    const selection = {
-      startRow: row,
-      startCol: col,
-      endRow: row,
-      endCol: col,
-    };
-    this.dispatchSelectionChange(selection);
+    const selections = [
+      {
+        startRow: row,
+        startCol: col,
+        endRow: row,
+        endCol: col,
+      },
+    ];
+    this.dispatchSelectionChange(selections);
     this.setState({
       editingCell: { row, col },
-      selection,
+      selections,
     });
   };
 
@@ -439,43 +581,46 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
   render() {
     const { width, height, theme } = this.props;
     const { config } = this.model;
-    const { scrollX, scrollY, selection, editingCell, resizing } = this.state;
+    const { scrollX, scrollY, selections, editingCell, resizing } = this.state;
 
     const viewportWidth = width - config.headerWidth;
     const viewportHeight = height - config.headerHeight;
 
-    let editor = null;
-    if (editingCell) {
-      const { row, col } = editingCell;
-      const cell = this.model.getCell(row, col);
-      const cellLeft = this.model.getColOffset(col);
-      const cellTop = this.model.getRowOffset(row);
-      const cellWidth = this.model.getColWidth(col);
-      const cellHeight = this.model.getRowHeight(row);
-      const style = cell?.style || {};
+    // 始终渲染编辑器，通过 visible 控制可见性
+    const { row, col } = editingCell || { row: 0, col: 0 };
+    const cell = this.model.getCell(row, col);
+    const cellLeft = this.model.getColOffset(col);
+    const cellTop = this.model.getRowOffset(row);
+    const cellWidth = this.model.getColWidth(col);
+    const cellHeight = this.model.getRowHeight(row);
+    const style = cell?.style || {};
 
-      // Calculate absolute position
-      const x = config.headerWidth + cellLeft - scrollX;
-      const y = config.headerHeight + cellTop - scrollY;
+    // Calculate absolute position
+    const x = config.headerWidth + cellLeft - scrollX;
+    const y = config.headerHeight + cellTop - scrollY;
 
-      editor = (
-        <SpreadsheetEditableText
-          key={`editor-${row}-${col}`}
-          x={x}
-          y={y}
-          minWidth={cellWidth}
-          minHeight={cellHeight}
-          maxWidth={Math.max(cellWidth, width - x)} // Ensure at least cell width, but constraint to viewport
-          maxHeight={Math.max(cellHeight, height - y)}
-          value={cell?.value || ''}
-          theme={theme}
-          fontSize={14}
-          color={style.color || theme.text.primary}
-          onFinish={(value) => this.handleEditFinish(row, col, value)}
-          onCancel={() => this.setState({ editingCell: null })}
-        />
-      );
-    }
+    // 如果处于非编辑态，我们可以将位置设置为 0 或者保持上次的位置
+    // 但为了逻辑简单，我们始终计算位置。如果 editingCell 为空，row/col 为 0/0，计算出来的位置也是有效的（虽然不可见）
+    // 关键是传递 visible={!!editingCell}
+
+    const editor = (
+      <SpreadsheetEditableText
+        key="spreadsheet-editor"
+        x={x}
+        y={y}
+        minWidth={cellWidth}
+        minHeight={cellHeight}
+        maxWidth={Math.max(cellWidth, width - x)} // Ensure at least cell width, but constraint to viewport
+        maxHeight={Math.max(cellHeight, height - y)}
+        value={cell?.value || ''}
+        theme={theme}
+        fontSize={14}
+        color={style.color || theme.text.primary}
+        onFinish={(value) => this.handleEditFinish(row, col, value)}
+        onCancel={() => this.setState({ editingCell: null })}
+        visible={!!editingCell}
+      />
+    );
 
     return (
       <Container
@@ -503,7 +648,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
             >
               <SpreadsheetGrid
                 showGridLines={this.props.showGridLines ?? true}
-                gridLineColor={this.props.gridLineColor ?? theme.border.base}
+                gridLineColor={this.props.gridLineColor ?? theme.component.gridLine}
                 model={this.model}
                 dataVersion={this.props.dataVersion}
                 modelHash={this.model.hash}
@@ -512,55 +657,60 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
                 scrollY={scrollY}
                 viewportWidth={viewportWidth}
                 viewportHeight={viewportHeight}
-                selection={selection}
+                selections={selections}
                 onCellDown={this.handleCellDown}
                 onCellDoubleClick={this.handleCellDoubleClick}
+                onCellHover={this.handleCellHover}
               />
             </ScrollView>
           </Positioned>
 
-          {/* 2. 列头 (固定在顶部) */}
+          {/* 2. 列头 (Column Headers) */}
           <Positioned
             left={config.headerWidth}
             top={0}
             width={viewportWidth}
             height={config.headerHeight}
           >
-            <ColumnHeaders
-              model={this.model}
-              theme={theme}
-              scrollX={scrollX}
-              viewportWidth={viewportWidth}
-              selection={selection}
-              onResizeStart={(idx, e) => this.handleResizeStart('col', idx, e)}
-              onHeaderClick={(colIndex, e) => this.handleColHeaderClick(colIndex, e)}
-            />
+            <Container width={viewportWidth} height={config.headerHeight} overflow="hidden">
+              <ColumnHeaders
+                model={this.model}
+                theme={theme}
+                scrollX={scrollX}
+                viewportWidth={viewportWidth}
+                selections={selections}
+                onResizeStart={(index, e) => this.handleResizeStart('col', index, e)}
+                onHeaderClick={this.handleColHeaderClick}
+              />
+            </Container>
           </Positioned>
 
-          {/* 3. 行头 (固定在左侧) */}
+          {/* 3. 行头 (Row Headers) */}
           <Positioned
             left={0}
             top={config.headerHeight}
             width={config.headerWidth}
             height={viewportHeight}
           >
-            <RowHeaders
-              model={this.model}
-              theme={theme}
-              scrollY={scrollY}
-              viewportHeight={viewportHeight}
-              selection={selection}
-              onResizeStart={(idx, e) => this.handleResizeStart('row', idx, e)}
-              onHeaderClick={(rowIndex, e) => this.handleRowHeaderClick(rowIndex, e)}
-            />
+            <Container width={config.headerWidth} height={viewportHeight} overflow="hidden">
+              <RowHeaders
+                model={this.model}
+                theme={theme}
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                selections={selections}
+                onResizeStart={(index, e) => this.handleResizeStart('row', index, e)}
+                onHeaderClick={this.handleRowHeaderClick}
+              />
+            </Container>
           </Positioned>
 
-          {/* 4. 角落表头 */}
+          {/* 4. 左上角角落 */}
           <Positioned left={0} top={0} width={config.headerWidth} height={config.headerHeight}>
             <CornerHeader width={config.headerWidth} height={config.headerHeight} theme={theme} />
           </Positioned>
 
-          {/* 5. 编辑器覆盖层 */}
+          {/* 5. 编辑器 (绝对定位在最上层) */}
           {editor}
         </Stack>
       </Container>
