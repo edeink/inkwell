@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeViewportRect, fitBounds } from './utils';
+import { computeViewportRect, fitBounds } from '../utils';
 
 describe('小地图工具函数', () => {
   describe('fitBounds', () => {

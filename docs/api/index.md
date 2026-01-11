@@ -4,9 +4,9 @@ title: API 概览
 sidebar_position: 1
 ---
 
-# API 概览 (API Overview)
+# API 概览 
 
-## 核心类 (Core Classes)
+## 核心类
 
 ### Widget
 Inkwell 的核心构建单元。与 Flutter 不同，Inkwell 采用单树结构，Widget 同时承载配置、状态和渲染逻辑。
@@ -24,6 +24,7 @@ Inkwell 的核心构建单元。与 Flutter 不同，Inkwell 采用单树结构�
 
 - `setState(fn)`: 更新状态并触发重绘。
 - `initState()`: 初始化状态。
+- `didUpdateWidget(oldProps)`: 当组件配置更新时调用。
 - `dispose()`: 销毁时清理资源。
 
 ### BuildContext

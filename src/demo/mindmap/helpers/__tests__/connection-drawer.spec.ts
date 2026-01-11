@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { elbowRoute } from './connection-drawer';
+import { elbowRoute } from '../connection-drawer';
 
 describe('elbowRoute', () => {
   it('在矩形中心之间生成正交路径', () => {

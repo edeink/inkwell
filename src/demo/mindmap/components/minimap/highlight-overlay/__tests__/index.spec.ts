@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeViewportRect, fitBounds } from '../utils';
+import { computeViewportRect, fitBounds } from '../../utils';
 
 describe('小地图核心坐标转换', () => {
   it('fitBounds 应正确计算缩放比例和偏移量', () => {

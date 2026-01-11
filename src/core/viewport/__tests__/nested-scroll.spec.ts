@@ -4,7 +4,7 @@ import { ScrollView } from '../scroll-view';
 
 import type { InkwellEvent } from '@/core';
 
-// Mock InkwellEvent
+// 模拟 InkwellEvent
 function createMockEvent(type: string, props: any = {}): InkwellEvent {
   const e = {
     type,
@@ -25,9 +25,9 @@ function createMockEvent(type: string, props: any = {}): InkwellEvent {
   return e;
 }
 
-// Helper to create a test view hierarchy
-// Outer ScrollView -> Inner ScrollView -> Content
-describe('Nested ScrollView', () => {
+// 辅助函数：创建测试视图层级
+// 外部 ScrollView -> 内部 ScrollView -> 内容
+describe('嵌套 ScrollView', () => {
   it('当内部 ScrollView 未开启回弹且到达边界时，应允许事件冒泡触发外部滚动', () => {
     // 模拟场景：
     // Outer: height 100, content 200

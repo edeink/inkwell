@@ -1,8 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Spreadsheet } from './spreadsheet';
-import { SpreadsheetModel } from './spreadsheet-model';
+import { Spreadsheet } from '../spreadsheet';
+import { SpreadsheetModel } from '../spreadsheet-model';
 
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';

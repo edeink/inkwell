@@ -153,6 +153,7 @@ public markNeedsLayout(): void
 | `paintSelf` | 绘制自身内容 | **核心方法**。使用 `context.renderer` 绘制形状、文本、图片等 |
 | `paintChildren` | 绘制子节点 | 按 z-index 顺序递归绘制子组件 |
 | `isRepaintBoundary` | 重绘边界属性 | **核心属性**。设置为 `true` 时，该组件及其子树将形成独立的绘制层。子组件重绘不会污染父组件，父组件重绘也不必重绘子组件。 |
+| `updateLayer` | 更新渲染层 | 当 `isRepaintBoundary` 为 true 时，用于管理缓存的 Layer 对象。 |
 
 #### API 详解: `markNeedsPaint`
 

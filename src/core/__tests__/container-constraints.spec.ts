@@ -4,7 +4,7 @@ import { Container, Widget } from '../index';
 
 import type { BoxConstraints, Size } from '../base';
 
-// Mock Widget to capture constraints
+// 模拟 Widget 以捕获约束
 class ConstraintSpy extends Widget {
   public receivedConstraints: BoxConstraints | null = null;
 
@@ -18,20 +18,20 @@ class ConstraintSpy extends Widget {
   }
 }
 
-describe('Container Constraints Bug', () => {
-  it('should enforce width constraint on child when only width is specified', () => {
+describe('Container 约束 Bug', () => {
+  it('当仅指定宽度时，应强制子组件使用该宽度约束', () => {
     const spy = new ConstraintSpy({});
     const container = new Container({
       type: 'Container',
       width: 300,
     });
 
-    // Manually link children and set built flag to bypass build phase
+    // 手动链接子组件并设置 built 标志以绕过构建阶段
     (container as any).children = [spy];
     (container as any)._isBuilt = true;
     (spy as any).parent = container;
 
-    // Layout container with loose constraints
+    // 使用宽松约束布局容器
     container.layout({
       minWidth: 0,
       maxWidth: 800,
@@ -39,10 +39,10 @@ describe('Container Constraints Bug', () => {
       maxHeight: 600,
     });
 
-    // Container should be 300 wide
+    // 容器宽度应为 300
     expect(container.renderObject.size.width).toBe(300);
 
-    // Child should receive tight width constraint of 300
+    // 子组件应接收到严格的宽度约束 300
     expect(spy.receivedConstraints?.minWidth).toBe(300);
     expect(spy.receivedConstraints?.maxWidth).toBe(300);
   });

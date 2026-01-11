@@ -1,16 +1,15 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EditableText } from '../editable-text';
 
-import { Container, Stack } from '@/core';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-// Mock timer
+// 模拟定时器
 vi.useFakeTimers();
 
-describe('EditableText Interaction', () => {
+describe('EditableText 交互', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
@@ -42,7 +41,7 @@ describe('EditableText Interaction', () => {
     const widget = WidgetRegistry.createWidget(compileElement(el)) as EditableText;
 
     // 初始化
-    // @ts-ignore - access private
+    // @ts-ignore - 访问私有属性
     widget.createHiddenInput();
     const input = (widget as any).input as HTMLInputElement;
 
@@ -91,11 +90,11 @@ describe('EditableText Interaction', () => {
     const widget = WidgetRegistry.createWidget(compileElement(el)) as EditableText;
     (widget as any).createHiddenInput();
 
-    // Mock textWidgetRef for selection calculation
+    // 模拟 textWidgetRef 用于选区计算
     (widget as any).textWidgetRef = {
       lines: [{ startIndex: 0, endIndex: 5, x: 0, y: 0, width: 50, height: 14, text: 'Hello' }],
     };
-    // Mock measureTextWidth to return non-zero
+    // 模拟 measureTextWidth 返回非零值
     (widget as any).measureTextWidth = () => 10;
 
     // 默认未聚焦
@@ -161,6 +160,7 @@ describe('EditableText Interaction', () => {
         { startIndex: 7, endIndex: 13, x: 0, y: 14, width: 50, height: 14, text: 'Line 2' },
       ],
     };
+    // 模拟 measureTextWidth 返回非零值
     (widget as any).measureTextWidth = () => 10;
     (widget as any).getIndexAtPoint = () => 0; // 简化 mock
 
@@ -172,10 +172,10 @@ describe('EditableText Interaction', () => {
     const keyEvent = new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true });
     vi.spyOn(keyEvent, 'preventDefault');
 
-    // Mock getIndexAtPoint for specific logic in handleVerticalCursorMove
-    // ArrowUp logic: getIndexAtPoint(currInfo.x, prevLine.y + height/2)
-    // prevLine is line 0. y=0, height=14. targetY = 7.
-    // getIndexAtPoint will be called. Let's make it return 6 (end of line 1).
+    // 模拟 handleVerticalCursorMove 中的 getIndexAtPoint 逻辑
+    // ArrowUp 逻辑: getIndexAtPoint(currInfo.x, prevLine.y + height/2)
+    // prevLine 是第 0 行。y=0, height=14. targetY = 7。
+    // getIndexAtPoint 将被调用。让我们让它返回 6（第 1 行末尾）。
     (widget as any).getIndexAtPoint = vi.fn().mockReturnValue(6);
 
     (widget as any).handleInputKeyDown(keyEvent);

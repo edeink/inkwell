@@ -22,7 +22,7 @@ describe('光标配置', () => {
 
     const el2 = <Container cursor="move" />;
     const data2 = compileElement(el2);
-    // Simulate update
+    // 模拟更新
     widget.createElement(data2);
     expect(widget.cursor).toBe('move');
   });

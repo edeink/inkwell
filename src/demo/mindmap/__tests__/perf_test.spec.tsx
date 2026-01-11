@@ -1,9 +1,9 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { CustomComponentType } from './type';
-import { MindMapNode } from './widgets/mindmap-node';
-import { MindMapViewport } from './widgets/mindmap-viewport';
+import { CustomComponentType } from '../type';
+import { MindMapNode } from '../widgets/mindmap-node';
+import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { Container } from '@/core/container'; // Assuming this is correct path based on previous search
 import { WidgetRegistry } from '@/core/registry';

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Canvas2DRenderer } from '../../../renderer/canvas2d/canvas-2d-renderer';
-import { Container } from '../../container';
-import { Positioned } from '../../positioned';
+import { Canvas2DRenderer } from '../../renderer/canvas2d/canvas-2d-renderer';
+import { Container } from '../container';
+import { Positioned } from '../positioned';
 
-import type { BoxConstraints } from '../../base';
+import type { BoxConstraints } from '../base';
 
 describe('Container 在 Positioned 中的布局行为', () => {
   let renderer: Canvas2DRenderer;

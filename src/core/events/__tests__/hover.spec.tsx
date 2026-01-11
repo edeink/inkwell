@@ -8,7 +8,7 @@ import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-// Mock Runtime minimal interface
+// 模拟 Runtime 最小接口
 const createMockRuntime = (root: any) => {
   const canvas = document.createElement('canvas');
   return {
@@ -24,8 +24,8 @@ const createMockRuntime = (root: any) => {
   } as unknown as Runtime;
 };
 
-describe('Hover Events System', () => {
-  it('should dispatch pointerenter/leave when moving between siblings', () => {
+describe('悬停事件系统 (Hover Events System)', () => {
+  it('应当在兄弟节点间移动时正确分发 pointerenter/leave 事件', () => {
     const calls: string[] = [];
 
     const el = (
@@ -67,44 +67,37 @@ describe('Hover Events System', () => {
     root.createElement(data);
     root.layout(createBoxConstraints());
 
-    // Position children manually since we don't have a full layout engine with Positioned in this test
-    // But Container layoutChildren does layout children.
-    // We need to make sure hitTest works.
-    // Container.visitHitTest checks children.
-    // We used 'left' prop but Container doesn't handle 'left' for positioning unless inside Stack/Positioned?
-    // Actually Container just renders children.
-    // Let's use Positioned or just rely on the fact that we can mock hitTest or structure.
-    // Wait, Container doesn't support 'left' prop directly for layout unless parent is Stack?
-    // Let's wrap in a simple structure or just trust that `layout` sets sizes.
-    // And `visitHitTest` checks children.
-    // But without Positioned, children might be at (0,0)?
-    // Let's check Container implementation.
-    // Actually, let's use a simpler approach: Mock hitTest on root or children.
-
-    // However, to integration test `dispatchAt`, we need `hitTest` to work.
-    // Let's manually set offsets on children after layout.
+    // 手动定位子节点，因为本测试环境中没有完整的布局引擎（Stack/Positioned）
+    // 但 Container 的 layoutChildren 会触发布局。
+    // 我们需要确保 hitTest 能够工作。
+    // Container.visitHitTest 会检查子节点。
+    // 我们使用了 'left' 属性，但 Container 不会处理 'left' 进行定位，除非父级是 Stack。
+    // 实际上 Container 只是渲染子节点。
+    // 让我们使用 Positioned 或直接模拟 hitTest 或结构。
+    // 不过，为了集成测试 `dispatchAt`，我们需要 `hitTest` 正常工作。
+    // 让我们在布局后手动设置子节点的偏移量。
     const child1 = root.children[0];
     const child2 = root.children[1];
 
-    // Mock getAbsolutePosition or ensure RenderObject has offset.
-    // In Inkwell, hitTest uses renderObject.visitHitTest.
-    // renderObject.offset is set by parent.
-    // Let's manually set them for the test.
+    // 模拟 getAbsolutePosition 或确保 RenderObject 具有偏移量。
+    // 在 Inkwell 中，hitTest 使用 renderObject.visitHitTest。
+    // renderObject.offset 由父级设置。
+    // 我们在此处手动设置它们以进行测试。
     child1.renderObject.offset = { dx: 0, dy: 0 };
-    child2.renderObject.offset = { dx: 60, dy: 0 }; // Manually move child2
+    child2.renderObject.offset = { dx: 60, dy: 0 }; // 手动移动 child2
 
-    // 1. Enter child1
+    // 1. 进入 child1
     dispatchAt(runtime, 'pointermove', { clientX: 10, clientY: 10 } as any);
     expect(calls).toContain('enter:child1');
     calls.length = 0;
 
-    // 2. Move to child2
+    // 2. 移动到 child2
     dispatchAt(runtime, 'pointermove', { clientX: 70, clientY: 10 } as any);
     expect(calls).toEqual(['leave:child1', 'enter:child2']);
 
     calls.length = 0;
 
-    // 3. Move out of both (to root)
+    // 3. 移出两者（回到 root）
     dispatchAt(runtime, 'pointermove', { clientX: 150, clientY: 150 } as any);
     expect(calls).toEqual(['leave:child2']);
   });

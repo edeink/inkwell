@@ -5,11 +5,11 @@ import { describe, expect, it } from 'vitest';
 
 import { Themes } from '../theme';
 
-// Helper to extract CSS variables from css content
+// 提取 CSS 变量的辅助函数
 function parseCssVariables(css: string, selector: string) {
   const vars: Record<string, string> = {};
-  // Simple regex to find the block for the selector
-  // This is a naive parser but sufficient for this specific file structure
+  // 简单的正则表达式查找选择器的块
+  // 这是一个简单的解析器，但足以应对此特定文件结构
   const blockRegex = new RegExp(
     `${selector.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\s*\\{([^}]*)\\}`,
     's',
@@ -27,7 +27,7 @@ function parseCssVariables(css: string, selector: string) {
   return vars;
 }
 
-// Helper to normalize hex colors (e.g. #fff -> #ffffff)
+// 规范化 hex 颜色的辅助函数 (例如 #fff -> #ffffff)
 function normalizeHex(hex: string) {
   if (hex.startsWith('#') && hex.length === 4) {
     return `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
@@ -35,15 +35,15 @@ function normalizeHex(hex: string) {
   return hex.toLowerCase();
 }
 
-describe('Theme Color Synchronization', () => {
+describe('主题颜色同步测试', () => {
   const cssPath = path.resolve(__dirname, '../colors.css');
   const cssContent = fs.readFileSync(cssPath, 'utf-8');
 
-  it('should synchronize Light Theme colors', () => {
+  it('应当同步浅色主题 (Light Theme) 颜色', () => {
     const cssVars = parseCssVariables(cssContent, ':root');
     const theme = Themes.light;
 
-    // Check specific mappings
+    // 检查特定映射
     expect(normalizeHex(cssVars['ink-demo-bg-base'])).toBe(normalizeHex(theme.background.base));
     expect(normalizeHex(cssVars['ink-demo-bg-surface'])).toBe(
       normalizeHex(theme.background.surface),
@@ -76,11 +76,11 @@ describe('Theme Color Synchronization', () => {
     );
   });
 
-  it('should synchronize Dark Theme colors', () => {
+  it('应当同步深色主题 (Dark Theme) 颜色', () => {
     const cssVars = parseCssVariables(cssContent, "html[data-theme='dark']");
     const theme = Themes.dark;
 
-    // Check specific mappings
+    // 检查特定映射
     expect(normalizeHex(cssVars['ink-demo-bg-base'])).toBe(normalizeHex(theme.background.base));
     expect(normalizeHex(cssVars['ink-demo-bg-surface'])).toBe(
       normalizeHex(theme.background.surface),

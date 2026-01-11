@@ -158,9 +158,6 @@ describe('PipelineOwner 嵌套边界', () => {
     // 应标记 leafA1 -> childA 为脏。在 childA 处停止。
     leafA1.markNeedsLayout();
 
-    // 检查 Pipeline 中的脏列表
-    // 如果需要，通过 any 类型访问私有 _nodesNeedingLayout，或检查行为
-
     await runtime.rebuild();
 
     expect(leafA1.layoutCount).toBe(1);
@@ -179,13 +176,6 @@ describe('PipelineOwner 嵌套边界', () => {
     expect(childB.layoutCount).toBe(1);
     expect(root.layoutCount).toBe(1); // 应布局
 
-    // 如果 Root 对 Child A 调用 layoutChildren，Child A 可能会被布局？
-    // 在我们的实现中，layoutChildren 检查 !child.isRelayoutBoundary || child.isLayoutDirty。
-    // Child A 是边界且未被标记为脏。
-    // 然而，Root 的 performLayout 调用了 layoutChildren(constraints)。
-    // Widget.layout 实现:
-    // if (isRelayoutBoundary && !isLayoutDirty) return size;
-    // 所以 Child A 不应被重新布局。
     expect(childA.layoutCount).toBe(1); // 计数不应增加 (原为 1)
   });
 });

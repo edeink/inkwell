@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { resolveHitWidget } from './resolve';
+import { resolveHitWidget } from '../resolve';
 
 import type { Widget } from '@/core/base';
 

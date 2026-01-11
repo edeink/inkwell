@@ -5,7 +5,13 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
  * 模拟局部更新：在大量节点中只更新一个节点的状态
  * 基准：原生 DOM 直接操作 (O(1) 或 O(N) 取决于实现，这里使用直接操作模拟最佳性能)
  */
-export async function createStateDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
+export async function createStateDomNodes(
+  stage: HTMLElement,
+  count: number,
+  frames: number = 20,
+  minW: number = 300,
+  minH: number = 200,
+): Promise<Timings> {
   const tBuild0 = performance.now();
 
   // 1. Adaptive Layout Algorithm
@@ -14,8 +20,6 @@ export async function createStateDomNodes(stage: HTMLElement, count: number): Pr
   const h = stage.clientHeight || 600;
 
   // Set min constraints
-  const minW = 300;
-  const minH = 200;
   const effW = Math.max(w, minW);
   const effH = Math.max(h, minH);
 
@@ -66,7 +70,6 @@ export async function createStateDomNodes(stage: HTMLElement, count: number): Pr
   const paintMs = await measureNextPaint();
 
   // 模拟状态更新循环
-  const frames = 100;
   const BATCH_SIZE = 20; // 批量更新节点数量，与 Widget 版本一致
   let currentSelection = new Set<number>();
 

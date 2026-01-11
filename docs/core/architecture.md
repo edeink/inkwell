@@ -68,6 +68,7 @@ graph TD
 ### 2.3 Renderer (渲染器) - `src/renderer`
 - **IRenderer**: 定义绘制接口（如 `drawRect`, `drawText`）。
 - **Canvas2DRenderer**: 基于 HTML5 Canvas 2D Context 的具体实现。支持离屏渲染优化。
+- **Layer**: 渲染层对象，配合 `RepaintBoundary` 实现局部重绘缓存。
 
 ### 2.4 Compiler (编译器) - `src/utils/compiler`
 - **compileElement**: 在运行时将 React JSX 元素转换为轻量级的 JSON 数据 (`ComponentData`)，供 `Runtime` 消费。这使得我们可以使用 React 的语法，但不依赖 React 的 Reconciler。

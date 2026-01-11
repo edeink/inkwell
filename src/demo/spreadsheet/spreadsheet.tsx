@@ -406,9 +406,9 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
 
     let newSelections: SelectionRange[] = [];
 
-    // Ctrl/Meta key adds to selection
+    // Ctrl/Meta 键用于添加选区
     const isMultiSelect = e.metaKey || e.ctrlKey;
-    // Shift key extends last selection
+    // Shift 键用于扩展上一个选区
     const isExtendSelect = e.shiftKey;
 
     if (isExtendSelect && this.state.selections.length > 0) {
@@ -595,7 +595,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     const cellHeight = this.model.getRowHeight(row);
     const style = cell?.style || {};
 
-    // Calculate absolute position
+    // 计算绝对位置
     const x = config.headerWidth + cellLeft - scrollX;
     const y = config.headerHeight + cellTop - scrollY;
 
@@ -610,7 +610,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
         y={y}
         minWidth={cellWidth}
         minHeight={cellHeight}
-        maxWidth={Math.max(cellWidth, width - x)} // Ensure at least cell width, but constraint to viewport
+        maxWidth={Math.max(cellWidth, width - x)} // 确保至少有单元格宽度，但也限制在视口内
         maxHeight={Math.max(cellHeight, height - y)}
         value={cell?.value || ''}
         theme={theme}

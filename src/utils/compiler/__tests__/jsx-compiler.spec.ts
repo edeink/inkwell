@@ -6,7 +6,7 @@ import { jsx } from '../jsx-runtime';
 import { Column } from '@/core/flex/column';
 import { Text } from '@/core/text';
 
-// Mock WidgetRegistry
+// 模拟 WidgetRegistry
 vi.mock('@/core/registry', async () => {
   return {
     WidgetRegistry: {
@@ -20,7 +20,7 @@ vi.mock('@/core/registry', async () => {
   };
 });
 
-describe('JSX Compiler', () => {
+describe('JSX 编译器', () => {
   it('应该能够编译标准 Widget 组件', () => {
     const el = jsx(Text, { text: 'Hello' }) as AnyElement;
     const data = compileElement(el);

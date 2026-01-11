@@ -1,11 +1,11 @@
 /** @jsxImportSource @/utils/compiler */
 import { describe, expect, it } from 'vitest';
 
-import { InteractiveCounterDemo } from './interactive-counter/app';
-import { MindmapDemo } from './mindmap/app';
-import { SpreadsheetDemoApp } from './spreadsheet/app';
-import { SwiperDemoApp } from './swiper/app';
-import { WidgetGalleryDemo } from './widget-gallery/app';
+import { InteractiveCounterDemo } from '../interactive-counter/app';
+import { MindmapDemo } from '../mindmap/app';
+import { SpreadsheetDemoApp } from '../spreadsheet/app';
+import { SwiperDemoApp } from '../swiper/app';
+import { WidgetGalleryDemo } from '../widget-gallery/app';
 
 import { Widget } from '@/core/base';
 import { Themes } from '@/styles/theme';

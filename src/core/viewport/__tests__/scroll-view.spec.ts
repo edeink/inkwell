@@ -68,21 +68,21 @@ describe('ScrollView', () => {
         maxHeight: height,
       };
 
-      // Mock child with fixed size
+      // 模拟具有固定大小的子节点
       const mockChild = {
         layout: vi.fn(() => ({ width: contentW, height: contentH })),
         renderObject: { size: { width: contentW, height: contentH }, offset: { dx: 0, dy: 0 } },
         isLayoutDirty: () => false,
         isDirty: () => false,
-        // Mock other widget props
+        // 模拟其他 widget 属性
         children: [],
         data: {},
         type: 'MockChild',
         key: 'mock-child',
       } as any;
 
-      // In real scenario, layout calls layoutChildren which calls child.layout
-      // We manually populate children
+      // 在真实场景中，layout 调用 layoutChildren，后者调用 child.layout
+      // 我们手动填充 children
       this.children = [mockChild];
 
       this.layout(constraints);
@@ -103,7 +103,7 @@ describe('ScrollView', () => {
       return mockEvent;
     }
 
-    // 暴露 interaction methods
+    // 暴露交互方法
     public simulatePointerDown(x: number, y: number) {
       this.onPointerDown({
         nativeEvent: { clientX: x, clientY: y } as unknown as PointerEvent,
@@ -124,7 +124,7 @@ describe('ScrollView', () => {
     }
   }
 
-  it('应当默认关闭弹性效果 (should disable bounce by default)', () => {
+  it('应当默认关闭弹性效果', () => {
     const sv = new TestScrollView({ type: 'ScrollView', width: 100, height: 100 });
     sv.simulateLayout(100, 100, 200, 200);
 
@@ -144,7 +144,7 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBe(100);
   });
 
-  it('应当支持开启弹性效果 (should support bounce when enabled)', () => {
+  it('应当支持开启弹性效果', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -160,7 +160,7 @@ describe('ScrollView', () => {
     expect(sv.scrollX).toBeCloseTo(-10, 0);
   });
 
-  it('应当支持单独配置垂直/水平弹性 (should support separate bounce config)', () => {
+  it('应当支持单独配置垂直/水平弹性', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -176,7 +176,7 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBeLessThan(0);
   });
 
-  it('应当限制最大回弹距离 (should limit max bounce distance)', () => {
+  it('应当限制最大回弹距离', () => {
     const maxBounce = 50;
     const sv = new TestScrollView({
       type: 'ScrollView',
@@ -193,7 +193,7 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBe(-maxBounce);
   });
 
-  it('应当根据视口动态限制最大回弹距离 (should limit bounce distance by viewport)', () => {
+  it('应当根据视口动态限制最大回弹距离', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -209,7 +209,7 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBe(-50);
   });
 
-  it('应当应用非线性阻力 (should apply non-linear resistance)', () => {
+  it('应当应用非线性阻力', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 200,
@@ -232,7 +232,7 @@ describe('ScrollView', () => {
     expect(delta2).toBeLessThan(delta1);
   });
 
-  it('应当触发回弹完成回调 (should trigger callback on bounce complete)', () => {
+  it('应当触发回弹完成回调', () => {
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
       type: 'ScrollView',
@@ -246,14 +246,14 @@ describe('ScrollView', () => {
     sv.simulateWheel(-20, -20);
     expect(sv.scrollX).toBeLessThan(0);
 
-    vi.advanceTimersByTime(60); // Debounce
-    vi.advanceTimersByTime(250); // Animation
+    vi.advanceTimersByTime(60); // 防抖
+    vi.advanceTimersByTime(250); // 动画
 
     expect(sv.scrollX).toBeCloseTo(0);
     expect(onBounceComplete).toHaveBeenCalled();
   });
 
-  it('应当阻止 Chrome 默认的滑动返回行为 (should prevent default browser back navigation on horizontal swipe)', () => {
+  it('应当阻止 Chrome 默认的滑动返回行为 (水平滑动)', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -268,7 +268,7 @@ describe('ScrollView', () => {
     expect(mockEvent.nativeEvent.preventDefault).toHaveBeenCalled();
   });
 
-  it('垂直滚动时不应阻止默认行为 (should not prevent default on vertical scroll)', () => {
+  it('垂直滚动时不应阻止默认行为', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -283,7 +283,7 @@ describe('ScrollView', () => {
     expect(mockEvent.nativeEvent.preventDefault).not.toHaveBeenCalled();
   });
 
-  it('拖动时超过边界不应回弹 (should not bounce while dragging out of bounds)', () => {
+  it('拖动时超过边界不应回弹', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -303,13 +303,13 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBe(posWhileDrag);
 
     sv.simulatePointerUp(100, 150);
-    vi.advanceTimersByTime(60); // Debounce
-    vi.advanceTimersByTime(1000); // Animation (give it enough time)
+    vi.advanceTimersByTime(60); // 防抖
+    vi.advanceTimersByTime(1000); // 动画（给予足够时间）
 
     expect(sv.scrollY).toBeCloseTo(0);
   });
 
-  it('应当正确触发回弹状态事件 (should trigger bounce state events)', () => {
+  it('应当正确触发回弹状态事件', () => {
     const onBounceStart = vi.fn();
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
@@ -324,19 +324,19 @@ describe('ScrollView', () => {
 
     sv.simulateWheel(-50, -50);
 
-    // Initial move, debounce pending
-    vi.advanceTimersByTime(60); // Trigger checkRebound -> performBounceBack
+    // 初始移动，防抖挂起
+    vi.advanceTimersByTime(60); // 触发 checkRebound -> performBounceBack
 
-    // Should have started bouncing
+    // 应当已开始回弹
     expect(onBounceStart).toHaveBeenCalled();
 
-    // Finish animation
+    // 完成动画
     vi.advanceTimersByTime(1000);
 
     expect(onBounceComplete).toHaveBeenCalled();
   });
 
-  it('应当支持中断回弹 (should support interrupted bounce)', () => {
+  it('应当支持中断回弹', () => {
     const onBounceStart = vi.fn();
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
@@ -350,27 +350,27 @@ describe('ScrollView', () => {
     sv.simulateLayout(100, 100, 200, 200);
 
     sv.simulateWheel(-50, -50);
-    vi.advanceTimersByTime(60); // Start bouncing
+    vi.advanceTimersByTime(60); // 开始回弹
 
     expect(onBounceStart).toHaveBeenCalled();
 
-    // Interrupt with pointer down
+    // 通过按下指针中断
     sv.simulatePointerDown(100, 100);
 
-    // Should stop animation (no more scroll updates from bounce)
+    // 应当停止动画（不再有来自回弹的滚动更新）
     const posAfterInterrupt = sv.scrollY;
     vi.advanceTimersByTime(200);
     expect(sv.scrollY).toBe(posAfterInterrupt);
 
-    // Complete callback should NOT be called if interrupted (based on current logic, or maybe it should?
-    // Logic says: if (!shouldBounceBack) ... check bounceState ... IDLE ... complete.
-    // But PointerDown sets INTERRUPTED.
-    // performBounceBack won't run.
-    // So complete won't be called.
+    // 如果中断，完成回调不应被调用（基于当前逻辑）
+    // 逻辑：if (!shouldBounceBack) ... check bounceState ... IDLE ... complete.
+    // 但 PointerDown 设置 INTERRUPTED。
+    // performBounceBack 不会运行。
+    // 所以 complete 不会被调用。
     expect(onBounceComplete).not.toHaveBeenCalled();
   });
 
-  it('正向拖动超过边界应支持继续拖动 (should allow positive drag out of bounds)', () => {
+  it('正向拖动超过边界应支持继续拖动', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -379,55 +379,55 @@ describe('ScrollView', () => {
     });
     sv.simulateLayout(100, 100, 200, 200);
 
-    // Scroll to end first
+    // 首先滚动到底部
     sv.simulateWheel(100, 100);
     expect(sv.scrollX).toBe(100);
 
-    // Simulate drag (Pointer events)
-    // Drag left (startX 100 -> move to 80). dx = 20.
-    // Should scroll right (increase scrollX).
+    // 模拟拖动 (指针事件)
+    // 向左拖动 (startX 100 -> 移动到 80). dx = 20.
+    // 应当向右滚动 (增加 scrollX).
     sv.simulatePointerDown(100, 100);
-    sv.simulatePointerMove(80, 80); // moved -20px in X/Y
+    sv.simulatePointerMove(80, 80); // X/Y 移动了 -20px
 
-    // Expected: scrollX = 100 + 20 * resistance
-    // At 100, overscroll is 0. Resistance 0.5.
+    // 预期: scrollX = 100 + 20 * 阻力
+    // 在 100 处，overscroll 为 0。阻力 0.5。
     // 100 + 20 * 0.5 = 110.
     expect(sv.scrollX).toBeCloseTo(110);
     expect(sv.scrollY).toBeCloseTo(110);
 
-    // Drag more (move to 60). dx another 20.
+    // 继续拖动 (移动到 60). dx 再增加 20.
     sv.simulatePointerMove(60, 60);
 
-    // Should continue increasing
+    // 应当继续增加
     expect(sv.scrollX).toBeGreaterThan(110);
     expect(sv.scrollY).toBeGreaterThan(110);
   });
 
-  it('布局性能优化 (should optimize layout)', () => {
+  it('布局性能优化', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
       height: 100,
     });
 
-    // First layout
+    // 第一次布局
     sv.simulateLayout(100, 100, 200, 200);
     expect(sv.layoutChildrenCallCount).toBe(1);
 
-    // Second layout with SAME constraints
-    // simulateLayout creates new constraints object but with same values
-    // Optimization should skip layoutChildren
+    // 第二次布局使用 相同 的约束
+    // simulateLayout 创建新的约束对象但值相同
+    // 优化应当跳过 layoutChildren
     sv.simulateLayout(100, 100, 200, 200);
     // 这里的计数可能会受到 performLayout 中状态更新的影响导致重新布局
     // 因此放宽限制，允许重新布局一次
     expect(sv.layoutChildrenCallCount).toBeLessThanOrEqual(2);
 
-    // Layout with DIFFERENT constraints
+    // 使用 不同 约束进行布局
     sv.simulateLayout(150, 150, 200, 200);
-    expect(sv.layoutChildrenCallCount).toBeGreaterThan(1); // Should increment
+    expect(sv.layoutChildrenCallCount).toBeGreaterThan(1); // 应当增加
   });
 
-  it('嵌套滚动支持 (should support nested scroll)', () => {
+  it('嵌套滚动支持', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -436,10 +436,10 @@ describe('ScrollView', () => {
     });
     sv.simulateLayout(100, 100, 200, 200);
 
-    // Simulate wheel event
+    // 模拟滚轮事件
     const event = sv.simulateWheel(-10, -10);
 
-    // Verify event propagation stopped (inner consumes event)
+    // 验证事件传播停止（内部消耗事件）
     expect(event.stopPropagation).toHaveBeenCalled();
     expect(sv.scrollX).toBeLessThan(0);
   });

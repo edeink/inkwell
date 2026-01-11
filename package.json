@@ -9,6 +9,7 @@
     "format": "stylelint --fix \"src/**/*.{css,less}\" && eslint --ext .js,.jsx,.ts,.tsx src/ --fix && prettier --write \"src/**/*.{js,jsx,ts,tsx,css,less}\"",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:perf": "vitest run -c vitest.perf.config.ts",
     "doc": "docusaurus start -p 3001",
     "doc:build": "docusaurus build",
     "doc:serve": "docusaurus serve",

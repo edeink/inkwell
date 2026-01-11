@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { EditableText } from '../editable-text';
 
-describe('EditableText Events', () => {
-  it('should trigger onFinish when Enter is pressed in single line mode', () => {
+describe('EditableText 事件', () => {
+  it('单行模式下按 Enter 键应触发 onFinish', () => {
     const onFinish = vi.fn();
     const editable = new EditableText({
       type: 'EditableText',
@@ -11,22 +11,22 @@ describe('EditableText Events', () => {
       onFinish,
     });
 
-    // Simulate Enter key press
+    // 模拟 Enter 键按下
     const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
-    // @ts-ignore - accessing private method for testing
+    // @ts-ignore - 为了测试访问私有方法
     editable.handleInputKeyDown(enterEvent);
 
-    // Should trigger blur, which triggers onFinish
-    // But handleInputKeyDown calls blur() which is async/event-based in browser
-    // In this environment, we might need to manually trigger blur or check if blur was called
-    // Since we can't easily mock the DOM blur behavior on the input element created internally,
-    // we might need to check if the internal logic attempts to blur.
+    // 应该触发 blur，从而触发 onFinish
+    // 但是 handleInputKeyDown 调用 blur()，这是基于浏览器异步/事件的
+    // 在这个环境中，我们可能需要手动触发 blur 或检查 blur 是否被调用
+    // 因为我们无法轻易模拟内部创建的 input 元素的 DOM blur 行为，
+    // 我们可能需要检查内部逻辑是否尝试调用 blur。
 
-    // However, handleBlur is called by the 'blur' event listener.
-    // We can simulate the blur event handler directly.
+    // 然而，handleBlur 是由 'blur' 事件监听器调用的。
+    // 我们可以直接模拟 blur 事件处理程序。
 
-    // Let's verify that handleInputKeyDown calls input.blur()
-    // We need to mock the input element
+    // 让我们验证 handleInputKeyDown 是否调用 input.blur()
+    // 我们需要模拟 input 元素
     const inputMock = {
       blur: vi.fn(),
       addEventListener: vi.fn(),
@@ -42,14 +42,14 @@ describe('EditableText Events', () => {
 
     expect(inputMock.blur).toHaveBeenCalled();
 
-    // Now simulate the blur event which would be triggered by input.blur()
+    // 现在模拟由 input.blur() 触发的 blur 事件
     // @ts-ignore
     editable.handleBlur();
 
     expect(onFinish).toHaveBeenCalledWith('hello');
   });
 
-  it('should trigger onCancel when Escape is pressed', () => {
+  it('按 Escape 键应触发 onCancel', () => {
     const onCancel = vi.fn();
     const onFinish = vi.fn();
     const editable = new EditableText({
@@ -61,7 +61,7 @@ describe('EditableText Events', () => {
 
     const inputMock = {
       blur: vi.fn().mockImplementation(() => {
-        // Simulate synchronous blur event
+        // 模拟同步 blur 事件
         // @ts-ignore
         editable.handleBlur();
       }),
@@ -80,7 +80,7 @@ describe('EditableText Events', () => {
     expect(inputMock.blur).toHaveBeenCalled();
     expect(onCancel).toHaveBeenCalled();
 
-    // onFinish should NOT be called because we are cancelling
+    // onFinish 不应被调用，因为我们在取消
     expect(onFinish).not.toHaveBeenCalled();
   });
 });

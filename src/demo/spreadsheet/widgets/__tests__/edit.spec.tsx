@@ -5,8 +5,8 @@ import { SpreadsheetGrid } from '../grid';
 
 import { Themes } from '@/styles/theme';
 
-// Mock Inkwell core components if needed, or use real ones
-// Since we are testing logic, we can inspect the rendered tree or props
+// 如果需要，可以 Mock Inkwell 核心组件，或者使用真实的组件
+// 由于我们主要测试逻辑，可以检查渲染后的树或属性
 
 describe('SpreadsheetGrid 编辑交互', () => {
   const model = new SpreadsheetModel();

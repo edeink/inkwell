@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { Widget } from '../base';
 import { registerWidget } from '../registry';
@@ -10,7 +10,7 @@ class PerfItem extends Widget {
 }
 registerWidget('PerfItem', PerfItem);
 
-describe('Performance Optimization', () => {
+describe('性能优化', () => {
   it('性能测试：buildChildren 与 对象池复用', () => {
     resetMetrics();
 
@@ -44,11 +44,11 @@ describe('Performance Optimization', () => {
     console.log(`部分更新 (${count} items): ${partialTime.toFixed(2)}ms`);
 
     // 再次完全构建 (触发对象池回收后的复用?)
-    // buildChildren logic disposes unused nodes.
-    // In "partial update", we removed count/2 nodes. They should be in pool.
-    // Now if we add them back:
+    // buildChildren 逻辑会销毁未使用的节点。
+    // 在 "部分更新" 中，我们移除了 count/2 个节点。它们应该在对象池中。
+    // 现在如果我们把它们加回来：
     const fullStart = performance.now();
-    root.createElement({ type: 'PerfItem', key: 'root', children: childrenData }); // Re-add original keys
+    root.createElement({ type: 'PerfItem', key: 'root', children: childrenData }); // 重新添加原始 keys
     const fullTime = performance.now() - fullStart;
     console.log(`从对象池恢复 (${count} items): ${fullTime.toFixed(2)}ms`);
 

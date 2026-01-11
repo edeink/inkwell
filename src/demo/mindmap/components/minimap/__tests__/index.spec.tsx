@@ -1,7 +1,7 @@
 import { act } from 'react-dom/test-utils';
 import { afterEach, describe, it, vi } from 'vitest';
 
-import { CustomComponentType } from '../../type';
+import { CustomComponentType } from '../../../type';
 
 // 模拟上下文
 const mockController = {

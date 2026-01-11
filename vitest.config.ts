@@ -25,5 +25,6 @@ export default defineConfig({
     environment: 'jsdom',
     reporters: 'default',
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 1000,
   },
 });

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Viewport } from '../viewport';
 
 describe('Viewport', () => {
-  it('应使用默认值初始化 (should initialize with default values)', () => {
+  it('应使用默认值初始化', () => {
     const viewport = new Viewport({ type: 'Viewport' });
     expect(viewport.scale).toBe(1);
     expect(viewport.tx).toBe(0);
@@ -12,7 +12,7 @@ describe('Viewport', () => {
     expect(viewport.scrollY).toBe(0);
   });
 
-  it('应使用提供的值初始化 (should initialize with provided values)', () => {
+  it('应使用提供的值初始化', () => {
     const viewport = new Viewport({
       type: 'Viewport',
       scale: 2,
@@ -28,7 +28,7 @@ describe('Viewport', () => {
     expect(viewport.scrollY).toBe(200);
   });
 
-  it('scrollTo 应更新滚动位置并通知监听器 (scrollTo should update scroll position and notify listeners)', () => {
+  it('scrollTo 应更新滚动位置并通知监听器', () => {
     const onScroll = vi.fn();
     const viewport = new Viewport({ type: 'Viewport', onScroll });
 
@@ -39,7 +39,7 @@ describe('Viewport', () => {
     expect(onScroll).toHaveBeenCalledWith(50, 60);
   });
 
-  it('setTransform 应更新变换并通知监听器 (setTransform should update transform and notify listeners)', () => {
+  it('setTransform 应更新变换并通知监听器', () => {
     const onViewChange = vi.fn();
     const viewport = new Viewport({ type: 'Viewport', onViewChange });
 
@@ -57,7 +57,7 @@ describe('Viewport', () => {
     );
   });
 
-  it('zoomIn 应增加缩放比例 (zoomIn should increase scale)', () => {
+  it('zoomIn 应增加缩放比例', () => {
     const viewport = new Viewport({ type: 'Viewport', width: 800, height: 600 });
     const initialScale = viewport.scale;
 
@@ -66,7 +66,7 @@ describe('Viewport', () => {
     expect(viewport.scale).toBeGreaterThan(initialScale);
   });
 
-  it('zoomOut 应减小缩放比例 (zoomOut should decrease scale)', () => {
+  it('zoomOut 应减小缩放比例', () => {
     const viewport = new Viewport({ type: 'Viewport', width: 800, height: 600 });
     const initialScale = viewport.scale;
 
@@ -75,7 +75,7 @@ describe('Viewport', () => {
     expect(viewport.scale).toBeLessThan(initialScale);
   });
 
-  it('clampScale 应限制缩放范围 (clampScale should restrict scale range)', () => {
+  it('clampScale 应限制缩放范围', () => {
     const viewport = new Viewport({ type: 'Viewport', minScale: 0.5, maxScale: 2 });
 
     viewport.setTransform(0.1, 0, 0);

@@ -270,15 +270,16 @@ function handleHoverEvents(
   }
   runtimeHoverState.set(runtime, target);
 
-  // 1. Find LCA
+  // 1. 计算最近公共祖先 (LCA)
   const lca = findLCA(lastTarget, target);
 
-  // 2. Handle Leave (pointerout bubbles, pointerleave does not)
+  // 2. 处理离开 (Leave)
+  // pointerout 会冒泡，而 pointerleave 不冒泡
   if (lastTarget) {
-    // pointerout triggers on the last target and bubbles
+    // pointerout 在上一个目标触发并冒泡
     dispatchToTree(root, lastTarget, 'pointerout', x, y, native);
 
-    // pointerleave triggers on the chain from lastTarget up to LCA (exclusive)
+    // pointerleave 在从上一个目标到 LCA（不包含）的路径上触发
     let curr: Widget | null = lastTarget;
     while (curr && curr !== lca) {
       dispatchDirect(curr, 'pointerleave', x, y, native);
@@ -286,12 +287,13 @@ function handleHoverEvents(
     }
   }
 
-  // 3. Handle Enter (pointerover bubbles, pointerenter does not)
+  // 3. 处理进入 (Enter)
+  // pointerover 会冒泡，而 pointerenter 不冒泡
   if (target) {
-    // pointerover triggers on the target and bubbles
+    // pointerover 在目标触发并冒泡
     dispatchToTree(root, target, 'pointerover', x, y, native);
 
-    // pointerenter triggers on the chain from LCA (exclusive) down to target
+    // pointerenter 在从 LCA（不包含）到目标的路径上触发
     const path = buildPath(target); // [root, ..., target]
     let startIndex = 0;
     if (lca) {

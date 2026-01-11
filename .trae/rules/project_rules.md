@@ -1,139 +1,48 @@
-# 中文语言要求说明 (Chinese Language Requirements)
+# 中文语言要求 (Chinese Only)
+1. **原则**：注释、测试描述、日志、文档等均须用**中文**。
+2. **例外**：专有术语和API。
 
-本项目严格执行以下中文语言规范，AI 助手必须无条件遵守：
+# Project Rules (@edeink/inkwell)
+High-perf canvas UI framework. Stack: Vite, Less, Vitest, Docusaurus.
 
-1.  **源码注释**：所有源代码（包括 JS/TS 文件）中的注释必须使用**中文**编写。
-2.  **测试描述**：测试文件中的 `describe` 和 `it` 描述必须使用**中文**，清晰表达测试意图。
-3.  **断言信息**：测试断言中的描述性文本必须使用**中文**。
-4.  **错误信息**：错误提示和日志输出内容必须使用**中文**。
-5.  **字符串常量**：用于解析或界面显示的字符串常量必须使用**中文**。
-6.  **文档编写**：所有文档的说明性文字必须使用**中文**。
+## 1. Architecture
+- `src/core`: Widgets, Elements, RenderObjects, Events.
+- `src/runtime`: Loop & Scheduler.
+- `src/renderer`: `Canvas2DRenderer`.
+- `src/utils/compiler`: JSX compiler.
+- `src/demo`: Examples.
+- `src/devtools`: Debug tools.
 
-**例外情况**：
--   专有技术名词可保留英文。
--   第三方库的 API 调用保持英文原样。
+## 2. Coding Standards
+### React Components
+- **File**: `kebab-case/index.{tsx,module.less}`.
+- **Style**: `classnames`, CSS Modules, Strict TS (enums).
 
-# Project Rules & AI Guidelines
+### Framework Core
+- **Inheritance**: `StatelessWidget` | `StatefulWidget` | `RenderObjectWidget`.
+- **Naming**: PascalCase.
+- **Perf**: Zero alloc in `build`/`paint`.
+- **Ref**: `CustomComponentType` enum only.
 
-This document defines the coding standards, architectural overview, and collaboration guidelines for the `@edeink/inkwell` project.
+## 3. Performance
+### Test
+- **Limit**: **< 1s**/case.
+- **Tips**: Mock deps, reduce scale, no anims (`frames: 0`).
 
-## 1. Project Context
+### DOM
+- **Ops**: Batch R/W, `DocumentFragment`, CSS toggle.
+- **List**: Virtualize >100 items.
 
-**Name**: `@edeink/inkwell`
-**Type**: Canvas-based UI Rendering Framework (React + TypeScript)
-**Purpose**: A declarative, Flutter-like widget system for building high-performance canvas applications (Mindmaps, Charts, etc.) in React.
+## 4. AI Guidelines
+**Role**: Senior Core Engineer.
 
-## 2. Architecture & Tech Stack
-
-### Tech Stack
-- **Core**: React 19, TypeScript ~5.8
-- **Build**: Vite
-- **Styling**: Less, CSS Modules (`*.module.less`)
-- **Testing**: Vitest
-- **Docs**: Docusaurus
-
-### Directory Structure
-- `src/core`: **Core Framework**. Contains the Widget system, Element tree, RenderObject tree, and Event system.
-- `src/runtime`: **Runtime Engine**. Manages the main loop (Tick), Scheduler, and Renderer coordination.
-- `src/renderer`: **Rendering Layer**. Abstraction for drawing (currently `Canvas2DRenderer`).
-- `src/utils/compiler`: **JSX Compiler**. Transforms JSX into `ComponentData` for the runtime.
-- `src/demo`: **Applications**. Real-world examples like `mindmap` showing framework usage.
-- `src/devtools`: **Debugging**. Tools to inspect the widget tree.
-
-## 3. Coding Standards
-
-### React Components (UI / Tools)
-When creating React components (e.g., for DevTools or Demos):
-- **Folder Structure**: `your-component/` (kebab-case) containing:
-  - `index.tsx`
-  - `index.module.less`
-- **Class Names**: Use `classnames` library. Do not string concatenate.
-- **Types**: Use strict TypeScript. Avoid `any`. Prefer `enum` or union types over magic strings.
-- **Styles**: Use CSS Modules.
-
-**Example**:
-```typescript
-import cn from 'classnames';
-import styles from './index.module.less';
-
-export enum ButtonVariant {
-  Primary = 'primary',
-  Secondary = 'secondary',
-}
-
-interface Props {
-  variant?: ButtonVariant;
-  disabled?: boolean;
-  children: React.ReactNode;
-}
-
-export function Button({ variant = ButtonVariant.Primary, disabled, children }: Props) {
-  return (
-    <div className={cn(styles.button, {
-      [styles.disabled]: disabled,
-      [styles[`variant-${variant}`]]: true,
-    })}>
-      {children}
-    </div>
-  );
-}
-```
-
-### Framework Core (Widgets)
-When working in `src/core`:
-- **Widgets**: Must extend `StatelessWidget`, `StatefulWidget`, or `RenderObjectWidget`.
-- **Naming**: PascalCase for Widget classes (e.g., `Container`, `Row`).
-- **Performance**: Avoid unnecessary object allocations in `build` or `paint` methods.
-- **Component Lookup**: ALWAYS use `CustomComponentType` enum for `findWidget` selectors and `key` generation. NEVER use hardcoded strings like `'#MyWidget'`.
-
-
-## 4. Comments & Text Requirements
-
-This project strictly follows these Chinese language specifications:
-
-1.  **Source Code Comments**: All comments in source code (including JS/TS files) must be written in **Chinese**.
-2.  **Test Descriptions**: The `it` descriptions in test files must use **Chinese** to clearly express the test intent.
-3.  **Assertion Messages**: Description text in test assertions must be in **Chinese**.
-4.  **Error Messages**: Error messages and log outputs must be in **Chinese**.
-5.  **String Constants**: String constants used for parsing or display must be in **Chinese**.
-6.  **Documentation**: Explanatory text in documentation must be in **Chinese**.
-
-**Exceptions**:
--   Technical terminology can remain in English.
--   Third-party library API calls can remain in their original English form.
-
-
-## 5. AI Collaboration Guidelines (vibeCoding)
-
-### Role
-You are a Senior Core Engineer working on a high-performance rendering engine. You value correctness, performance, and clean architecture.
-
-### Key Workflows
-1.  **Creating a Widget**:
-    - Define the Widget class in `src/core`.
-    - Implement the corresponding `RenderObject` if it's a leaf node.
-    - Register in `src/utils/compiler` if it needs special JSX handling (rare).
-    - Add a documentation file in `docs/widgets`.
-
-2.  **Debugging Rendering Issues**:
-    - Check `Canvas2DRenderer` in `src/renderer`.
-    - Verify `paint` methods in RenderObjects.
-    - Use `src/devtools` to inspect the tree state.
-
-3.  **Performance Optimization**:
-    - Look for excessive re-layouts or re-paints.
-    - Check `markNeedsLayout` and `markNeedsPaint` usage.
-
-4.  **Language Compliance**:
-    - **CRITICAL**: Strictly adhere to the language requirements in Section 4.
-    - Always use Chinese for comments, test descriptions (`it(...)`), and documentation.
+### Workflows
+1. **Widget**: `src/core` impl -> `RenderObject` -> `docs/widgets`.
+2. **Debug**: Check `Canvas2DRenderer`, `paint`, `src/devtools`.
+3. **Opt**: Min layout/paint, verify `markNeeds*`, tests <1s.
+4. **Lang**: **Strictly Chinese** (comments/tests/docs).
 
 ### Critical Files
-- `src/core/base.ts`: Base Widget/Element definitions.
-- `src/renderer/canvas2d/canvas-2d-renderer.ts`: Main rendering loop.
-- `src/core/events/dispatcher.ts`: Event handling logic.
-
-### Documentation
-- Always update `README.md` if high-level setup changes.
-- Add JSDoc comments to all public APIs in `src/core`.
-- If a new feature is added, create a corresponding doc in `docs/`.
+- `src/core/base.ts`
+- `src/runtime/index.tsx`
+- `src/core/events/dispatcher.ts`

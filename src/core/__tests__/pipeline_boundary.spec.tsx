@@ -104,7 +104,7 @@ class TestChild extends Widget {
   }
 }
 
-describe('PipelineOwner 与 Relayout Boundary', () => {
+describe('PipelineOwner 与重排边界', () => {
   const containerId = 'app';
 
   beforeAll(() => {
@@ -123,7 +123,7 @@ describe('PipelineOwner 与 Relayout Boundary', () => {
     document.body.innerHTML = '';
   });
 
-  it('Relayout Boundary 应阻止布局向上传播', async () => {
+  it('重排边界应阻止布局向上传播', async () => {
     const runtime = await Runtime.create(containerId);
 
     // 1. 初始渲染
@@ -177,7 +177,7 @@ describe('PipelineOwner 与 Relayout Boundary', () => {
     runtime.destroy();
   });
 
-  it('非 Boundary 节点应向上传播布局脏标记', async () => {
+  it('非边界节点应向上传播布局脏标记', async () => {
     // 创建松约束场景 - 类已移动到顶层
 
     const runtime = await Runtime.create(containerId);

@@ -94,10 +94,9 @@ export async function createScrollDomNodes(
   const maxScroll = Math.max(0, contentSize - viewportSize);
 
   // 动态滚动速度调节算法
-  // 基础滚动时间控制在 1-2 秒（短内容）
-  // 对于长内容，自动计算并提高滚动速度，确保总时间不超过 5 秒
-  // 1ms/px 的速度意味着 1000px 需要 1s，2000px 需要 2s，5000px 需要 5s
-  const targetDurationMs = Math.max(1000, Math.min(5000, maxScroll * 1.0));
+  // 基础滚动时间控制在 200-1000 毫秒 (原 1000-5000)
+  // 提高滚动速度以优化测试时间 (5x speed)
+  const targetDurationMs = Math.max(200, Math.min(1000, maxScroll * 0.2));
 
   console.log(
     `[Scroll DOM] Count: ${count}, MaxScroll: ${maxScroll}, TargetDuration: ${targetDurationMs.toFixed(0)}ms`,

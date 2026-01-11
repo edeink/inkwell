@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SpreadsheetModel } from './spreadsheet-model';
-import { DEFAULT_CONFIG } from './types';
+import { SpreadsheetModel } from '../spreadsheet-model';
+import { DEFAULT_CONFIG } from '../types';
 
 describe('SpreadsheetModel', () => {
   it('应使用默认配置初始化', () => {

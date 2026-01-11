@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MarkdownParser, NodeType } from './parser';
+import { MarkdownParser, NodeType } from '../parser';
 
 describe('MarkdownParser', () => {
   const parser = new MarkdownParser();

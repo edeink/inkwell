@@ -6,8 +6,8 @@ import { WidgetRegistry } from '@/core/registry';
 import { StatefulWidget } from '@/core/state/stateful';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-describe('StatefulWidget Lifecycle', () => {
-  it('didUpdateWidget should be called when props change', () => {
+describe('StatefulWidget 生命周期', () => {
+  it('当属性变更时应当调用 didUpdateWidget', () => {
     const didUpdateSpy = vi.fn();
     const renderSpy = vi.fn();
 
@@ -35,31 +35,31 @@ describe('StatefulWidget Lifecycle', () => {
       }
     }
 
-    // 1. Initial mount
+    // 1. 初始挂载
     const el = <LifecycleTestWidget value={1} />;
     const widget = WidgetRegistry.createWidget(
       compileElement(el),
     ) as unknown as LifecycleTestWidget;
-    widget.createElement(widget.data); // mount
+    widget.createElement(widget.data); // 挂载
 
     expect(widget.state.value).toBe(1);
     expect(renderSpy).toHaveBeenLastCalledWith(1);
     expect(didUpdateSpy).not.toHaveBeenCalled();
 
-    // 2. Update props
-    // We manually simulate what BaseWidget.createElement logic does when reusing:
-    // It updates data, then calls createElement.
-    // In our case, we just call createElement with new data on the same instance.
+    // 2. 更新属性
+    // 我们手动模拟 BaseWidget.createElement 在重用时的逻辑：
+    // 它更新数据，然后调用 createElement。
+    // 在我们的例子中，我们只是用新数据在同一个实例上调用 createElement。
     const newData = { ...widget.data, value: 2 };
     widget.createElement(newData);
 
-    // Verify didUpdateWidget called with old props
+    // 验证 didUpdateWidget 是否用旧属性调用
     expect(didUpdateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ value: 1 }),
       expect.objectContaining({ value: 2 }),
     );
 
-    // Verify render called with NEW state
+    // 验证 render 是否用新状态调用
     expect(renderSpy).toHaveBeenLastCalledWith(2);
     expect(widget.state.value).toBe(2);
   });

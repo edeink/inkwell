@@ -6,7 +6,7 @@ import { ScrollView } from '../scroll-view';
 
 import type { BuildContext } from '../../type';
 
-// Register components
+// 注册组件
 WidgetRegistry.registerType('ScrollView', ScrollView);
 WidgetRegistry.registerType('Container', Container);
 
@@ -17,10 +17,10 @@ const mockContext: BuildContext = {
     transform: vi.fn(),
     translate: vi.fn(),
     scale: vi.fn(),
-    drawRect: vi.fn(), // Add drawRect
-    fillRect: vi.fn(), // Might be needed
-    strokeRect: vi.fn(), // Might be needed
-    clipRect: vi.fn(), // Add clipRect
+    drawRect: vi.fn(), // 添加 drawRect
+    fillRect: vi.fn(), // 可能需要
+    strokeRect: vi.fn(), // 可能需要
+    clipRect: vi.fn(), // 添加 clipRect
     getRawInstance: vi.fn(() => ({
       beginPath: vi.fn(),
       rect: vi.fn(),
@@ -30,13 +30,13 @@ const mockContext: BuildContext = {
   worldMatrix: [1, 0, 0, 1, 0, 0],
 };
 
-describe('ScrollView Coordinate & HitTest', () => {
-  it('ScrollView children should have correct absolute position when scrolled', () => {
+describe('ScrollView 坐标与命中测试', () => {
+  it('滚动时子组件应具有正确的绝对位置', () => {
     const child = new Container({
       type: 'Container',
       width: 100,
-      height: 300, // Increased height to allow scrolling
-      pointerEvent: 'auto', // Important: Container defaults to 'none'
+      height: 300, // 增加高度以允许滚动
+      pointerEvent: 'auto', // 重要：Container 默认为 'none'
     });
 
     const scrollView = new ScrollView({
@@ -45,8 +45,8 @@ describe('ScrollView Coordinate & HitTest', () => {
       height: 200,
     });
 
-    // Manually link parent-child for test environment
-    // Use any cast to bypass potential readonly/protected issues in test
+    // 为测试环境手动链接父子关系
+    // 使用 any 转换以绕过测试中潜在的 readonly/protected 问题
     (scrollView as any).children = [child];
     child.parent = scrollView;
     (scrollView as any).owner = {
@@ -54,45 +54,45 @@ describe('ScrollView Coordinate & HitTest', () => {
       requestVisualUpdate: vi.fn(),
     };
 
-    // Initial layout
+    // 初始布局
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
-    // Initial paint to update matrices
+    // 初始绘制以更新矩阵
     scrollView.paint(mockContext);
 
-    // Verify child layout happened
+    // 验证子组件布局已发生
     expect(child.renderObject.size).toEqual({ width: 100, height: 300 });
 
-    // Check initial position
-    // Viewport at (0,0) (relative to unknown parent, but offset defaults to 0,0)
+    // 检查初始位置
+    // Viewport 在 (0,0) (相对于未知的父级，但 offset 默认为 0,0)
     expect(scrollView.renderObject.offset).toEqual({ dx: 0, dy: 0 });
     expect(child.renderObject.offset).toEqual({ dx: -0, dy: -0 });
 
     const initialPos = child.getAbsolutePosition();
     expect(initialPos).toEqual({ dx: 0, dy: 0 });
 
-    // Scroll
-    scrollView.scrollBy(0, 50); // Scroll down 50px (content moves up)
+    // 滚动
+    scrollView.scrollBy(0, 50); // 向下滚动 50px (内容向上移动)
 
-    // Re-layout (usually triggered by framework, manual here)
+    // 重新布局 (通常由框架触发，此处手动触发)
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
-    // Re-paint to update matrices
+    // 重新绘制以更新矩阵
     scrollView.paint(mockContext);
 
     const scrolledPos = child.getAbsolutePosition();
-    // Child offset should be (0, -50)
+    // 子组件偏移应为 (0, -50)
     expect(child.renderObject.offset.dy).toBe(-50);
-    // Absolute position should be (0, -50) + (0, 0) = (0, -50)
+    // 绝对位置应为 (0, -50) + (0, 0) = (0, -50)
     expect(scrolledPos).toEqual({ dx: 0, dy: -50 });
   });
 
-  it('HitTest should work correctly when scrolled', () => {
+  it('滚动时命中测试应正确工作', () => {
     const child = new Container({
       type: 'Container',
       width: 100,
       height: 100,
-      // Add a known property or key to verify hit
+      // 添加已知属性或 key 以验证命中
       key: 'target-child',
-      pointerEvent: 'auto', // Important: Container defaults to 'none'
+      pointerEvent: 'auto', // 重要：Container 默认为 'none'
     });
 
     const scrollView = new ScrollView({
@@ -102,8 +102,8 @@ describe('ScrollView Coordinate & HitTest', () => {
       child,
     });
 
-    // Manually link parent-child for test environment
-    // Use any cast to bypass potential readonly/protected issues in test
+    // 为测试环境手动链接父子关系
+    // 使用 any 转换以绕过测试中潜在的 readonly/protected 问题
     (scrollView as any).children = [child];
     child.parent = scrollView;
     (scrollView as any).owner = {
@@ -114,24 +114,24 @@ describe('ScrollView Coordinate & HitTest', () => {
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
     scrollView.paint(mockContext);
 
-    // 1. Hit test at (10, 10) -> Should hit child
+    // 1. 在 (10, 10) 处进行命中测试 -> 应命中子组件
     let hit = scrollView.visitHitTest(10, 10);
     expect(hit).toBe(child);
 
-    // 2. Scroll
-    scrollView.scrollBy(0, 50); // Content moves up by 50. Child is at (0, -50).
+    // 2. 滚动
+    scrollView.scrollBy(0, 50); // 内容上移 50。子组件在 (0, -50)。
     scrollView.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
     scrollView.paint(mockContext);
 
-    // 3. Hit test at (10, 10) -> Should still hit child (10 >= -50 && 10 <= 50)
+    // 3. 在 (10, 10) 处进行命中测试 -> 应仍然命中子组件 (10 >= -50 && 10 <= 50)
     hit = scrollView.visitHitTest(10, 10);
     expect(hit).toBe(child);
 
-    // 4. Hit test at (150, 60) -> Should NOT hit child (child width 100)
-    // Child x range: [0, 100]. Point x=150 is outside child.
-    // Inside Viewport (200x200).
+    // 4. 在 (150, 60) 处进行命中测试 -> 不应命中子组件 (子组件宽 100)
+    // 子组件 x 范围: [0, 100]. 点 x=150 在子组件外。
+    // 在 Viewport (200x200) 内。
     hit = scrollView.visitHitTest(150, 60);
-    // Should hit ScrollView itself
+    // 应命中 ScrollView 本身
     expect(hit).toBe(scrollView);
   });
 });

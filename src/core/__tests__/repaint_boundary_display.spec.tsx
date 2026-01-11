@@ -79,13 +79,13 @@ describe('RepaintBoundary 显示与开关测试', () => {
     const runtime = await Runtime.create('test-container', { renderer: 'canvas2d' });
     // @ts-ignore
     runtime.renderer = mockRenderer;
-    // runtime.container is a getter, no need to set it, it's set by create/init
-    // But we need to make sure runtime.container returns something useful if it doesn't
-    // Actually Runtime.create calls init which sets _container.
-    // The getter returns _container. So it should be fine.
+    // runtime.container 是一个 getter，不需要设置，它由 create/init 设置
+    // 但我们需要确保 runtime.container 返回有用的东西
+    // 实际上 Runtime.create 调用 init 设置 _container。
+    // getter 返回 _container。所以应该没问题。
 
-    // However, the test failure says "Cannot set property container of #<Runtime> which has only a getter"
-    // So we should remove the line setting runtime.container
+    // 然而，测试失败提示 "Cannot set property container of #<Runtime> which has only a getter"
+    // 所以我们应该移除设置 runtime.container 的行
 
     // 3. 创建 Widget 树，包含 RepaintBoundary
     const root = (

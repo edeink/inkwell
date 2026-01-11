@@ -4,7 +4,11 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
  * 渲染管线压力测试 DOM 实现
  * 批量动画更新：每帧更新所有节点的位置 (Transform)
  */
-export async function createPipelineDomNodes(stage: HTMLElement, count: number): Promise<Timings> {
+export async function createPipelineDomNodes(
+  stage: HTMLElement,
+  count: number,
+  frames: number = 10,
+): Promise<Timings> {
   stage.innerHTML = '';
   const tBuild0 = performance.now();
 
@@ -57,8 +61,7 @@ export async function createPipelineDomNodes(stage: HTMLElement, count: number):
 
   const paintMs = await measureNextPaint();
 
-  // 动画循环 (60帧)
-  const frames = 60;
+  // 动画循环
   const w = stage.clientWidth || 800;
   const h = stage.clientHeight || 600;
 

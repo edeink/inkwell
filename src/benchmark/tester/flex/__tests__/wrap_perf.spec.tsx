@@ -1,9 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeAll, describe, it, vi } from 'vitest';
 
-import Runtime from '../../../runtime';
-
-import { buildFlexWidgetScene } from './widget';
+import Runtime from '../../../../runtime';
+import { buildFlexWidgetScene } from '../widget';
 
 import { testLogger } from '@/utils/test-logger';
 

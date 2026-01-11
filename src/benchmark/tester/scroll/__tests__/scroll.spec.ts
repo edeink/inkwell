@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createScrollDomNodes } from './dom';
+import { createScrollDomNodes } from '../dom';
 
 describe('滚动测试参数验证', () => {
   it('应正确处理默认参数', async () => {

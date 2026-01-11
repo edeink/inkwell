@@ -1,11 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SpreadsheetModel } from '../spreadsheet-model';
-
-import { ColumnHeaders } from './col-header';
-import { SpreadsheetGrid } from './grid';
-import { RowHeaders } from './row-header';
+import { SpreadsheetModel } from '../../spreadsheet-model';
+import { ColumnHeaders } from '../col-header';
+import { SpreadsheetGrid } from '../grid';
+import { RowHeaders } from '../row-header';
 
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';

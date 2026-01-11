@@ -77,7 +77,7 @@ describe('EditableText Core Component', () => {
     }
   });
 
-  it('应该在初始化时创建隐藏的 input 元素 (Should create hidden input on init)', () => {
+  it('应该在初始化时创建隐藏的 input 元素', () => {
     const input = document.querySelector('input');
     expect(input).not.toBeNull();
     expect(input?.value).toBe('Hello');
@@ -85,17 +85,17 @@ describe('EditableText Core Component', () => {
     expect(input?.style.position).toBe('fixed');
   });
 
-  it('当 props.value 改变时应该更新 input 值 (Should update input value when props.value changes)', () => {
+  it('当 props.value 改变时应该更新 input 值', () => {
     const newProps = { ...props, value: 'World' };
     editor.createElement(newProps);
     const input = document.querySelector('input');
     expect(input?.value).toBe('World');
   });
 
-  it('应该正确处理输入事件 (Should handle input events)', () => {
+  it('应该正确处理输入事件', () => {
     const input = document.querySelector('input');
     if (!input) {
-      throw new Error('Input not found');
+      throw new Error('找不到 input 元素');
     }
 
     input.value = 'Hello World';
@@ -104,22 +104,23 @@ describe('EditableText Core Component', () => {
     expect(props.onChange).toHaveBeenCalledWith('Hello World');
   });
 
-  it('应该在按下 Enter 键时调用 onFinish (Should call onFinish on Enter key)', () => {
+  it('应该在按下 Enter 键时调用 onFinish', () => {
     const input = document.querySelector('input');
     if (!input) {
-      throw new Error('Input not found');
+      throw new Error('找不到 input 元素');
     }
 
+    input.focus(); // 确保 input 获得焦点，否则 blur() 无效
     const event = new KeyboardEvent('keydown', { key: 'Enter' });
     input.dispatchEvent(event);
 
     expect(props.onFinish).toHaveBeenCalledWith('Hello');
   });
 
-  it('应该在按下 Escape 键时调用 onCancel (Should call onCancel on Escape key)', () => {
+  it('应该在按下 Escape 键时调用 onCancel', () => {
     const input = document.querySelector('input');
     if (!input) {
-      throw new Error('Input not found');
+      throw new Error('找不到 input 元素');
     }
 
     const event = new KeyboardEvent('keydown', { key: 'Escape' });
@@ -128,10 +129,10 @@ describe('EditableText Core Component', () => {
     expect(props.onCancel).toHaveBeenCalled();
   });
 
-  it('应该在 blur 时调用 onFinish (Should call onFinish on blur)', async () => {
+  it('应该在 blur 时调用 onFinish', async () => {
     const input = document.querySelector('input');
     if (!input) {
-      throw new Error('Input not found');
+      throw new Error('找不到 input 元素');
     }
 
     // 使用 fake timers

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScrollBar, type ScrollBarProps } from '../scroll-bar';
 
 describe('ScrollBar', () => {
-  // Helper class to expose protected methods and properties
+  // 辅助类，暴露受保护的方法和属性
   class TestScrollBar extends ScrollBar {
     public get currentThickness() {
       // @ts-ignore
@@ -45,14 +45,14 @@ describe('ScrollBar', () => {
       this._handleWindowUp(e);
     }
 
-    // Helper to simulate layout size since renderObject is public but usually set by parent
+    // 辅助方法，用于模拟布局尺寸，因为 renderObject 是公开的但通常由父级设置
     public setSize(width: number, height: number) {
       this.renderObject.size = { width, height };
     }
   }
 
   beforeEach(() => {
-    // Mock window methods
+    // 模拟 window 方法
     vi.spyOn(window, 'addEventListener');
     vi.spyOn(window, 'removeEventListener');
   });
@@ -61,7 +61,7 @@ describe('ScrollBar', () => {
     vi.restoreAllMocks();
   });
 
-  it('应当正确初始化 (should initialize correctly)', () => {
+  it('应当正确初始化', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
@@ -77,18 +77,18 @@ describe('ScrollBar', () => {
     expect(sb.isDragging).toBe(false);
   });
 
-  it('应当正确计算滑块位置和尺寸 (should calculate thumb rect correctly)', () => {
+  it('应当正确计算滑块位置和尺寸', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
-      contentSize: 400, // 4x content
+      contentSize: 400, // 4倍内容
       scrollPosition: 0,
     };
     const sb = new TestScrollBar(props);
-    sb.setSize(10, 100); // Track height 100
+    sb.setSize(10, 100); // 轨道高度 100
 
-    // Ratio = 100 / 400 = 0.25. Thumb length = 100 * 0.25 = 25.
+    // 比例 = 100 / 400 = 0.25. 滑块长度 = 100 * 0.25 = 25.
     let rect = sb.callGetThumbRect();
     expect(rect).toEqual({
       x: 0,
@@ -97,22 +97,22 @@ describe('ScrollBar', () => {
       height: 25,
     });
 
-    // Scroll to middle
-    // Max Scroll = 300.
-    // Scroll 150 (50%)
+    // 滚动到中间
+    // 最大滚动 = 300.
+    // 滚动 150 (50%)
     sb.data.scrollPosition = 150;
     rect = sb.callGetThumbRect();
-    // Track scrollable = 100 - 25 = 75.
-    // Pos = 0.5 * 75 = 37.5
+    // 轨道可滚动区域 = 100 - 25 = 75.
+    // 位置 = 0.5 * 75 = 37.5
     expect(rect?.y).toBeCloseTo(37.5);
 
-    // Scroll to end
+    // 滚动到底部
     sb.data.scrollPosition = 300;
     rect = sb.callGetThumbRect();
     expect(rect?.y).toBeCloseTo(75);
   });
 
-  it('内容不足时不应显示滑块 (should not return rect if content fits)', () => {
+  it('内容不足时不应显示滑块', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
@@ -127,7 +127,7 @@ describe('ScrollBar', () => {
     expect(rect).toBeNull();
   });
 
-  it('应当响应指针事件并更新状态 (should handle pointer events)', () => {
+  it('应当响应指针事件并更新状态', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
@@ -140,22 +140,22 @@ describe('ScrollBar', () => {
     const sb = new TestScrollBar(props);
     sb.setSize(10, 100);
 
-    // Mock event
+    // 模拟事件
     const mockEvent = {
       nativeEvent: { clientX: 0, clientY: 0 } as PointerEvent,
       stopPropagation: vi.fn(),
     } as any;
 
-    // Pointer Move (Hover)
+    // 指针移动 (悬停)
     sb.onPointerMove(mockEvent);
     expect(sb.isHovering).toBe(true);
     expect(mockEvent.stopPropagation).toHaveBeenCalled();
 
-    // Pointer Leave
+    // 指针离开
     sb.onPointerLeave(mockEvent);
     expect(sb.isHovering).toBe(false);
 
-    // Pointer Down (Drag Start)
+    // 指针按下 (开始拖拽)
     sb.onPointerDown(mockEvent);
     expect(sb.isDragging).toBe(true);
     expect(props.onDragStart).toHaveBeenCalled();
@@ -163,44 +163,44 @@ describe('ScrollBar', () => {
     expect(window.addEventListener).toHaveBeenCalledWith('pointerup', expect.any(Function));
   });
 
-  it('应当通过 window 事件处理拖拽滚动 (should handle drag scroll via window events)', () => {
+  it('应当通过 window 事件处理拖拽滚动', () => {
     const onScroll = vi.fn();
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
-      contentSize: 200, // Ratio 0.5
+      contentSize: 200, // 比例 0.5
       scrollPosition: 0,
       onScroll,
     };
     const sb = new TestScrollBar(props);
-    sb.setSize(10, 100); // Track 100. Thumb 50. Scrollable Track 50.
-    // Content Scrollable 100.
-    // Ratio: 1px track = 2px content.
+    sb.setSize(10, 100); // 轨道 100. 滑块 50. 可滚动轨道 50.
+    // 内容可滚动 100.
+    // 比例: 1px 轨道 = 2px 内容.
 
-    // Start Drag at Y=10
+    // 在 Y=10 处开始拖拽
     const downEvent = {
       nativeEvent: { clientX: 0, clientY: 10 } as PointerEvent,
       stopPropagation: vi.fn(),
     } as any;
     sb.onPointerDown(downEvent);
 
-    // Move Y to 20 (Delta +10)
-    // Should scroll +20
+    // 移动 Y 到 20 (增量 +10)
+    // 应当滚动 +20
     const moveEvent = { clientX: 0, clientY: 20 } as PointerEvent;
     sb.callHandleWindowMove(moveEvent);
 
     expect(onScroll).toHaveBeenCalledWith(20);
 
-    // Move Y to 0 (Delta -10 from start)
-    // Should scroll -20
+    // 移动 Y 到 0 (从开始处增量 -10)
+    // 应当滚动 -20
     const moveEvent2 = { clientX: 0, clientY: 0 } as PointerEvent;
     sb.callHandleWindowMove(moveEvent2);
 
     expect(onScroll).toHaveBeenCalledWith(-20);
   });
 
-  it('拖拽结束应当清理监听器 (should cleanup listeners on drag end)', () => {
+  it('拖拽结束应当清理监听器', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',
       orientation: 'vertical',
@@ -228,7 +228,7 @@ describe('ScrollBar', () => {
     expect(window.removeEventListener).toHaveBeenCalledWith('pointerup', expect.any(Function));
   });
 
-  it('dispose 应当清理监听器 (should cleanup listeners on dispose)', () => {
+  it('dispose 应当清理监听器', () => {
     const sb = new TestScrollBar({
       type: 'ScrollBar',
       orientation: 'vertical',
@@ -237,9 +237,9 @@ describe('ScrollBar', () => {
       scrollPosition: 0,
     });
 
-    // Attach listeners manually or via interaction
-    // Note: implementation removes specific bound functions.
-    // dispose calls removeEventListener with the bound functions created in constructor.
+    // 手动或通过交互附加监听器
+    // 注意：实现会移除特定的绑定函数。
+    // dispose 调用 removeEventListener 并传入构造函数中创建的绑定函数。
 
     sb.dispose();
     expect(window.removeEventListener).toHaveBeenCalled();

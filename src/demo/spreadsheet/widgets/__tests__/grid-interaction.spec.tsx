@@ -7,8 +7,8 @@ import { SpreadsheetGrid } from '../grid';
 import { Container } from '@/core/container';
 import { Themes } from '@/styles/theme';
 
-describe('SpreadsheetGrid Interaction', () => {
-  it('should prevent scroll propagation on cell pointer down', () => {
+describe('SpreadsheetGrid 交互测试', () => {
+  it('应当在单元格按下时阻止事件冒泡以防止滚动', () => {
     const model = new SpreadsheetModel();
     const onCellDown = vi.fn();
 
@@ -25,13 +25,13 @@ describe('SpreadsheetGrid Interaction', () => {
       onCellDoubleClick: vi.fn(),
     });
 
-    // Render the grid
+    // 渲染网格
     const rootElement = grid.render();
 
-    // Structure: Container -> Stack -> [Positioned -> Container(cell), ...]
-    // Helper to find the first cell container
+    // 结构: Container -> Stack -> [Positioned -> Container(cell), ...]
+    // 辅助函数：查找第一个单元格容器
     function findFirstCell(el: any): any {
-      // Check if type matches Container class
+      // 检查类型是否匹配 Container 类
       if (el.type === Container && el.props.onPointerDown) {
         return el;
       }
@@ -52,10 +52,10 @@ describe('SpreadsheetGrid Interaction', () => {
     const cell = findFirstCell(rootElement);
     expect(cell).toBeTruthy();
 
-    // Verify cursor style
+    // 验证光标样式
     expect(cell.props.cursor).toBe('cell');
 
-    // Verify stopPropagation
+    // 验证停止冒泡
     const stopPropagation = vi.fn();
     const event = { stopPropagation } as any;
 

@@ -183,25 +183,25 @@ describe('MindMap 选择与交互', async () => {
     const root = runtime.getRootWidget();
     const node1 = findWidget(root, '#n1') as MindMapNode;
 
-    // Check render output for active node
+    // 检查活动节点的渲染输出
     const rendered1 = node1.render();
     const container1 = rendered1 as any;
-    // Active style: border width 2, color #1677ff, bg rgba(22, 119, 255, 0.1)
+    // 激活样式：边框宽度 2，颜色 #1677ff，背景 rgba(22, 119, 255, 0.1)
     expect(container1.props.border.width).toBe(2);
     expect(container1.props.border.color).toBe('#1677ff');
     expect(container1.props.color).toBe('rgba(22, 119, 255, 0.1)');
 
-    // Make n2 selected via Viewport
+    // 通过 Viewport 将 n2 设置为选中
     const vp = findWidget(root, '#v') as MindMapViewport;
     vp.setSelectedKeys(['n2']);
-    // Viewport setSelectedKeys marks dirty, need to re-render to see effect in node's render()
-    // but here we can just call node.render() again to check logic since it reads vp properties directly.
+    // Viewport setSelectedKeys 会标记为 dirty，需要重新渲染才能在节点的 render() 中看到效果
+    // 但在这里我们可以直接再次调用 node.render() 来检查逻辑，因为它直接读取 vp 属性。
 
     const node2 = findWidget(root, '#n2') as MindMapNode;
     const rendered2 = node2.render();
     const container2 = rendered2 as any;
 
-    // Selected style: dashed border #d9d9d9, bg rgba(22, 119, 255, 0.1)
+    // 选中样式：虚线边框 #d9d9d9，背景 rgba(22, 119, 255, 0.1)
     expect(container2.props.border.style).toBe('dashed');
     expect(container2.props.border.color).toBe('#d9d9d9');
     expect(container2.props.color).toBe('rgba(22, 119, 255, 0.1)');

@@ -7,6 +7,7 @@ export async function buildPipelineWidgetScene(
   stageEl: HTMLElement,
   runtime: Runtime,
   count: number,
+  frames: number = 60,
 ): Promise<Timings> {
   const w = stageEl.clientWidth || 800;
   const h = stageEl.clientHeight || 600;
@@ -43,7 +44,6 @@ export async function buildPipelineWidgetScene(
   const paintMs = await measureNextPaint();
 
   // 执行动画循环以测试渲染管线吞吐量
-  const frames = 60;
   const startTime = performance.now();
 
   for (let f = 0; f < frames; f++) {

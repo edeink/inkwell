@@ -45,7 +45,7 @@ describe('Runtime Scheduler (调度器)', () => {
   let container: HTMLElement;
 
   beforeEach(async () => {
-    // Mock HTMLCanvasElement.getContext to suppress jsdom error
+    // 模拟 HTMLCanvasElement.getContext 以抑制 jsdom 错误
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
       () =>
         ({
@@ -81,13 +81,13 @@ describe('Runtime Scheduler (调度器)', () => {
     container.id = 'app-test-scheduler';
     document.body.appendChild(container);
 
-    // Mock canvas registry to avoid errors
+    // 模拟 canvas 注册表以避免错误
     const canvas = document.createElement('canvas');
     canvas.dataset.inkwellId = 'test-id';
 
     runtime = await Runtime.create('app-test-scheduler', { renderer: 'canvas2d' });
 
-    // Inject mock renderer
+    // 注入模拟渲染器
     (runtime as any).renderer = mockRenderer;
     const root = new TestWidget({ type: 'TestWidget' });
     root.createElement(root.data);
