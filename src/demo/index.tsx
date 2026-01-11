@@ -2,6 +2,7 @@ import { theme as antTheme, ConfigProvider, Tabs } from 'antd';
 import cn from 'classnames';
 import { useEffect, useMemo, useState } from 'react';
 
+import EditableText, { meta as EditableTextMeta } from './editable-text';
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
 import MarkdownPreview, { meta as MarkdownPreviewMeta } from './markdown-preview';
@@ -58,6 +59,7 @@ export default function UnifiedDemo() {
   const demos = useMemo(
     () => [
       { Component: InteractiveCounter, ...InteractiveCounterMeta },
+      { Component: EditableText, ...EditableTextMeta },
       { Component: WidgetGallery, ...WidgetGalleryMeta },
       { Component: Swiper, ...SwiperMeta },
       { Component: Mindmap, ...MindmapMeta },

@@ -37,11 +37,19 @@ export interface EditableTextProps extends WidgetProps {
    */
   onChange?: (value: string) => void;
   /**
-   * 编辑完成回调（Enter键或失去焦点）
+   * 获得焦点回调
+   */
+  onFocus?: () => void;
+  /**
+   * 失去焦点回调
+   */
+  onBlur?: () => void;
+  /**
+   * 编辑完成回调（Enter 键或失去焦点时触发）
    */
   onFinish?: (value: string) => void;
   /**
-   * 取消编辑回调（Escape键）
+   * 编辑取消回调（Escape 键触发）
    */
   onCancel?: () => void;
   /**
@@ -64,6 +72,11 @@ export interface EditableTextProps extends WidgetProps {
    * 用于计算相对坐标时确定参照系原点（例如 Viewport）
    */
   stopTraversalAt?: (node: Widget) => boolean;
+  /**
+   * 是否为多行编辑模式
+   * @default false
+   */
+  multiline?: boolean;
 }
 
 /**
@@ -72,12 +85,14 @@ export interface EditableTextProps extends WidgetProps {
 interface EditorState {
   /** 当前文本内容 */
   text: string;
-  /** 选区起始索引 */
+  /** 选区起始索引 (Anchor) */
   selectionStart: number;
-  /** 选区结束索引 */
+  /** 选区结束索引 (Focus) */
   selectionEnd: number;
   /** 光标是否可见（用于闪烁动画） */
   cursorVisible: boolean;
+  /** 是否处于焦点状态 */
+  focused: boolean;
   [key: string]: unknown;
 }
 
@@ -99,7 +114,7 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
   /** 实例 ID，用于调试追踪 */
   private _instanceId = Math.random().toString(36).slice(2);
   /** 隐藏的 input 元素，用于接收原生输入 */
-  private input: HTMLInputElement | null = null;
+  private input: HTMLInputElement | HTMLTextAreaElement | null = null;
   /** 用于测量文本宽度的离屏 Canvas */
   private measureCanvas: HTMLCanvasElement | null = null;
   /** 测量用的 Canvas 上下文 */
@@ -114,8 +129,8 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
   private blurTimer: number | null = null;
   /** 是否忽略下一次 blur 事件 */
   private ignoreNextBlur: boolean = false;
-  /** 是否正在退出编辑状态 */
-  private isExiting: boolean = false;
+  /** 是否正在取消编辑 */
+  private _isCancelling: boolean = false;
   /** input 位置同步的 RAF ID */
   private _rafId: number | null = null;
 
@@ -126,11 +141,11 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       selectionStart: 0,
       selectionEnd: props.value.length, // 默认全选
       cursorVisible: true,
+      focused: false,
     };
     this.initMeasureContext();
     this.createHiddenInput();
     this.updateInputState();
-    this.startCursorTimer();
     this.startInputPositionLoop();
 
     if (typeof window !== 'undefined') {
@@ -147,7 +162,7 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     if (data.value !== prevText) {
       // 在 super.createElement 调用 render 之前更新状态
       this.state.text = data.value;
-      if (this.input) {
+      if (this.input && this.input.value !== data.value) {
         this.input.value = data.value;
       }
     }
@@ -163,8 +178,9 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     this.stopInputPositionLoop();
     if (this.input) {
       this.input.removeEventListener('input', this.handleInput);
-      this.input.removeEventListener('keydown', this.handleInputKeyDown);
+      this.input.removeEventListener('keydown', this.handleInputKeyDown as EventListener);
       this.input.removeEventListener('blur', this.handleBlur);
+      this.input.removeEventListener('focus', this.handleFocus);
       this.input.remove();
       this.input = null;
     }
@@ -198,7 +214,12 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       return;
     }
 
-    this.input = document.createElement('input');
+    if (this.props.multiline) {
+      this.input = document.createElement('textarea');
+    } else {
+      this.input = document.createElement('input');
+    }
+
     this.input.style.position = 'fixed';
     this.input.style.opacity = '0';
     this.input.style.left = '-9999px';
@@ -206,14 +227,17 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     this.input.style.zIndex = '-1';
     this.input.style.fontSize = '16px'; // 防止移动端缩放
 
+    if (this.props.multiline) {
+      this.input.style.whiteSpace = 'pre';
+    }
+
     document.body.appendChild(this.input);
 
     this.input.addEventListener('input', this.handleInput);
-    this.input.addEventListener('keydown', this.handleInputKeyDown);
+    this.input.addEventListener('keydown', this.handleInputKeyDown as EventListener);
     this.input.addEventListener('blur', this.handleBlur);
+    this.input.addEventListener('focus', this.handleFocus);
     document.addEventListener('selectionchange', this.handleSelectionChange);
-
-    this.input.focus();
   }
 
   /**
@@ -245,15 +269,7 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       this.setState({ cursorVisible: true });
     }
     this.stopCursorTimer();
-    this.startCursorTimer();
-  }
-
-  /**
-   * 确保 input 元素处于聚焦状态
-   */
-  private makeSureInputIsFocused() {
-    if (this.input && document.activeElement !== this.input) {
-      this.input.focus();
+    if (this.state.focused) {
       this.startCursorTimer();
     }
   }
@@ -293,11 +309,8 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       return null;
     }
 
-    const viewState = this.props.getViewState?.();
-    if (!viewState) {
-      // 如果没有提供 viewState，无法正确计算屏幕坐标
-      return null;
-    }
+    // 默认视图变换（如果未提供 getViewState）
+    const viewState = this.props.getViewState?.() || { scale: 1, tx: 0, ty: 0 };
 
     // 获取 Runtime 容器位置
     const runtime = this.runtime;
@@ -381,32 +394,19 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     if (e.target === this.input) {
       return;
     }
-
-    const rect = this.getWidgetScreenRect();
-    if (!rect) {
-      return;
-    }
-
-    const x = e.clientX;
-    const y = e.clientY;
-
-    if (
-      x >= rect.left &&
-      x <= rect.left + rect.width &&
-      y >= rect.top &&
-      y <= rect.top + rect.height
-    ) {
-      this.ignoreNextBlur = true;
-    } else {
-      this.ignoreNextBlur = false;
-    }
+    // 注意：如果点击的是 Canvas 内的其他区域，Canvas 会获得焦点，
+    // input 会自动 blur，所以这里不需要手动 blur。
+    // 但我们需要防止点击组件内部时，input 失去焦点。
+    // 不过，onPointerDown 会在 window pointerdown 之前触发吗？
+    // Inkwell 事件是合成事件，通常在这里，我们只需确保不干扰原生行为。
+    // 如果点击了组件区域，onPointerDown 会负责 focus input。
   };
 
   /**
    * 处理 input 输入事件
    */
   private handleInput = (e: Event) => {
-    const target = e.target as HTMLInputElement;
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
     this.setState({
       text: target.value,
       selectionStart: target.selectionStart || 0,
@@ -431,14 +431,23 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     }
 
     if (e.key === 'Enter') {
-      this.endEditing(true);
+      if (!this.props.multiline) {
+        // 单行模式下 Enter 键失去焦点
+        // onFinish 会在 handleBlur 中触发
+        this.input?.blur();
+      }
+      // 多行模式下允许默认行为（插入换行符）
     } else if (e.key === 'Escape') {
-      this.endEditing(false);
+      // Escape 键失去焦点并触发取消
+      this._isCancelling = true;
+      this.input?.blur();
+      this.props.onCancel?.();
+      this._isCancelling = false;
     }
 
-    // 在下一帧获取最新的选区状态（因为 keydown 时 selection 可能还未更新）
+    // 在下一帧获取最新的选区状态
     setTimeout(() => {
-      if (this.input && !this.isExiting) {
+      if (this.input) {
         this.setState({
           selectionStart: this.input.selectionStart || 0,
           selectionEnd: this.input.selectionEnd || 0,
@@ -499,104 +508,80 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       }
     }
 
-    this.setState({
-      selectionStart: newIndex,
-      selectionEnd: newIndex,
-    });
+    if (e.shiftKey) {
+      this.setState({
+        selectionEnd: newIndex,
+      });
+      if (this.input) {
+        const start = Math.min(this.state.selectionStart, newIndex);
+        const end = Math.max(this.state.selectionStart, newIndex);
+        const dir = this.state.selectionStart > newIndex ? 'backward' : 'forward';
+        try {
+          this.input.setSelectionRange(start, end, dir);
+        } catch {}
+      }
+    } else {
+      this.setState({
+        selectionStart: newIndex,
+        selectionEnd: newIndex,
+      });
 
-    if (this.input) {
-      this.input.setSelectionRange(newIndex, newIndex);
+      if (this.input) {
+        this.input.setSelectionRange(newIndex, newIndex);
+      }
     }
     this.resetCursorBlink();
   }
 
   /**
+   * 处理 input 获得焦点事件
+   */
+  private handleFocus = () => {
+    this.setState({ focused: true, cursorVisible: true });
+    this.startCursorTimer();
+    this.props.onFocus?.();
+  };
+
+  /**
    * 处理 input 失去焦点事件
    */
   private handleBlur = () => {
-    if (this.isExiting) {
-      return;
+    // 如果正在取消编辑（Escape 键触发），则不触发 onFinish
+    if (!this._isCancelling) {
+      this.props.onFinish?.(this.state.text);
     }
 
-    if (this.ignoreNextBlur) {
-      this.ignoreNextBlur = false;
-      setTimeout(() => {
-        if (!this.isExiting) {
-          this.input?.focus();
-        }
-      }, 0);
-      return;
-    }
-
-    // 延迟 16ms 触发 blur，确保点击在组件内时不触发 blur
-    this.blurTimer = window.setTimeout(() => {
-      this.endEditing(true);
-    }, 16);
+    this.setState({ focused: false, cursorVisible: false });
+    this.stopCursorTimer();
+    this.props.onBlur?.();
   };
 
   /**
    * 处理文档选区变化事件
    */
   private handleSelectionChange = () => {
-    if (this.isExiting) {
-      return;
-    }
     if (this.input && document.activeElement === this.input) {
-      const newStart = this.input.selectionStart || 0;
-      const newEnd = this.input.selectionEnd || 0;
-      const st = this.state;
+      const start = this.input.selectionStart || 0;
+      const end = this.input.selectionEnd || 0;
+      const direction = this.input.selectionDirection || 'forward';
 
-      if (newStart !== st.selectionStart || newEnd !== st.selectionEnd) {
+      let newAnchor = start;
+      let newFocus = end;
+
+      if (direction === 'backward') {
+        newAnchor = end;
+        newFocus = start;
+      }
+
+      const st = this.state;
+      if (newAnchor !== st.selectionStart || newFocus !== st.selectionEnd) {
         this.setState({
-          selectionStart: newStart,
-          selectionEnd: newEnd,
+          selectionStart: newAnchor,
+          selectionEnd: newFocus,
         });
       }
     }
   };
-
-  /**
-   * 结束编辑
-   * @param isFinish true 表示完成编辑（Enter/Blur），false 表示取消编辑（Escape）
-   */
-  private endEditing(isFinish: boolean) {
-    if (this.isExiting) {
-      return;
-    }
-    this.isExiting = true;
-
-    if (this.blurTimer !== null) {
-      window.clearTimeout(this.blurTimer);
-      this.blurTimer = null;
-    }
-    this.stopCursorTimer();
-    this.stopInputPositionLoop();
-
-    let restoreFocus = false;
-    if (this.input) {
-      this.input.style.display = 'none';
-      if (typeof document !== 'undefined' && document.activeElement === this.input) {
-        this.input.blur();
-        restoreFocus = true;
-      }
-    }
-
-    if (typeof document !== 'undefined') {
-      if (restoreFocus || document.activeElement === document.body) {
-        // 尝试恢复焦点到画布
-        const canvas = document.querySelector('canvas[data-inkwell-id]');
-        if (canvas instanceof HTMLElement) {
-          canvas.focus({ preventScroll: true });
-        }
-      }
-    }
-
-    if (isFinish) {
-      this.props.onFinish?.(this.state.text);
-    } else {
-      this.props.onCancel?.();
-    }
-  }
 
   /**
    * 将内部状态同步到 input 元素
@@ -610,12 +595,18 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       this.input.value = st.text;
     }
     if (document.activeElement === this.input) {
+      // 计算 DOM selectionStart/End 和 direction
+      const start = Math.min(st.selectionStart, st.selectionEnd);
+      const end = Math.max(st.selectionStart, st.selectionEnd);
+      const direction = st.selectionStart > st.selectionEnd ? 'backward' : 'forward';
+
       if (
-        this.input.selectionStart !== st.selectionStart ||
-        this.input.selectionEnd !== st.selectionEnd
+        this.input.selectionStart !== start ||
+        this.input.selectionEnd !== end ||
+        this.input.selectionDirection !== direction
       ) {
         try {
-          this.input.setSelectionRange(st.selectionStart, st.selectionEnd);
+          this.input.setSelectionRange(start, end, direction);
         } catch {
           // ignore
         }
@@ -787,10 +778,8 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
    * 将全局事件坐标转换为本地相对坐标
    */
   private getLocalPoint(e: InkwellEvent): { x: number; y: number } | null {
-    const viewState = this.props.getViewState?.();
-    if (!viewState) {
-      return null;
-    }
+    // 默认视图变换（如果未提供 getViewState）
+    const viewState = this.props.getViewState?.() || { scale: 1, tx: 0, ty: 0 };
 
     const { scale, tx, ty } = viewState;
     const worldX = (e.x - tx) / scale;
@@ -873,8 +862,14 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
       const st = this.state;
       if (index !== st.selectionEnd) {
         this.setState({ selectionEnd: index });
+
         if (this.input) {
-          this.input.setSelectionRange(st.selectionStart, index);
+          const start = Math.min(st.selectionStart, index);
+          const end = Math.max(st.selectionStart, index);
+          const direction = st.selectionStart > index ? 'backward' : 'forward';
+          try {
+            this.input.setSelectionRange(start, end, direction);
+          } catch {}
         }
       }
     }
@@ -891,6 +886,10 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     }
     this.isDragging = false;
     this.resetCursorBlink();
+    // 确保 focus 状态
+    if (!this.state.focused && this.input) {
+      this.input.focus();
+    }
     return false;
   };
 
@@ -913,12 +912,29 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
     return false;
   };
 
-  render() {
-    this.makeSureInputIsFocused();
+  /**
+   * 辅助方法：调整颜色透明度
+   */
+  private adjustColorOpacity(color: string, opacityFactor: number): string {
+    if (color.startsWith('rgba')) {
+      return color.replace(/,\s*([\d.]+)\)$/, (_, alpha) => {
+        const newAlpha = parseFloat(alpha) * opacityFactor;
+        return `, ${newAlpha})`;
+      });
+    }
+    return color;
+  }
 
+  render() {
     const st = this.state;
-    const { text, selectionStart, selectionEnd } = st;
+    const { text, selectionStart, selectionEnd, focused } = st;
     const fontSize = this.props.fontSize || 14;
+
+    // 处理选区颜色：非聚焦状态下降低透明度
+    let selectionColor = this.props.selectionColor || 'rgba(0,150,255,0.3)';
+    if (!focused) {
+      selectionColor = this.adjustColorOpacity(selectionColor, 0.5);
+    }
 
     const selectionRects = this.getSelectionRects(selectionStart, selectionEnd);
     const selectionWidgets = selectionRects.map((rect, i) => (
@@ -929,11 +945,12 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
         width={rect.width}
         height={rect.height}
       >
-        <Container color={this.props.selectionColor || 'rgba(0,150,255,0.3)'} />
+        <Container color={selectionColor} />
       </Positioned>
     ));
 
-    const showCursor = st.cursorVisible && selectionStart === selectionEnd;
+    // 光标显示逻辑：必须聚焦且选区折叠且 cursorVisible 为真
+    const showCursor = focused && st.cursorVisible && selectionStart === selectionEnd;
     let cursor = null;
     if (showCursor) {
       const cursorInfo = this.getCursorInfoAtIndex(selectionStart);
@@ -952,6 +969,7 @@ export class EditableText extends StatefulWidget<EditableTextProps, EditorState>
 
     return (
       <Stack
+        cursor="text"
         onPointerDown={this.onPointerDown}
         onPointerMove={this.onPointerMove}
         onPointerUp={this.onPointerUp}
