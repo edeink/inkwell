@@ -10,9 +10,18 @@ export class Canvas2DRenderer implements IRenderer {
   private container: HTMLElement | null = null;
   private options: RendererOptions | null = null;
   private transformStack: Array<DOMMatrix> = [];
+  private _cachedFillStyle: string | CanvasGradient | CanvasPattern = '';
+  private _cachedStrokeStyle: string | CanvasGradient | CanvasPattern = '';
+  private _cachedLineWidth: number = 1;
+  private _cachedFont: string = '';
 
   /**
    * 初始化渲染器
+   *
+   * @description
+   * 创建 Canvas 元素，获取 2D 上下文，并配置初始状态。
+   * 支持高分辨率屏幕 (Retina)，自动缩放 Canvas 以保持清晰度。
+   *
    * @param container 容器元素
    * @param options 渲染选项
    */
@@ -41,6 +50,12 @@ export class Canvas2DRenderer implements IRenderer {
       throw new Error('Failed to get 2D rendering context');
     }
 
+    // 重置缓存状态
+    this._cachedFillStyle = '';
+    this._cachedStrokeStyle = '';
+    this._cachedLineWidth = 1;
+    this._cachedFont = '';
+
     // 设置高分辨率支持
     const devicePixelRatio = window.devicePixelRatio || 1;
     const resolution = options.resolution || devicePixelRatio;
@@ -64,6 +79,14 @@ export class Canvas2DRenderer implements IRenderer {
 
     // 将 Canvas 添加到容器
     this.container.appendChild(this.canvas);
+  }
+
+  getWidth(): number {
+    return this.options?.width ?? 0;
+  }
+
+  getHeight(): number {
+    return this.options?.height ?? 0;
   }
 
   update(options: Partial<RendererOptions>): void {
@@ -91,6 +114,10 @@ export class Canvas2DRenderer implements IRenderer {
 
   /**
    * 调整渲染器大小
+   *
+   * @description
+   * 更新 Canvas 尺寸，并重新应用缩放比例和抗锯齿设置。
+   *
    * @param width 宽度
    * @param height 高度
    */
@@ -189,8 +216,6 @@ export class Canvas2DRenderer implements IRenderer {
       return;
     }
     this.ctx.save();
-    // 保存当前变换矩阵
-    this.transformStack.push(this.ctx.getTransform());
   }
 
   /**
@@ -201,8 +226,11 @@ export class Canvas2DRenderer implements IRenderer {
       return;
     }
     this.ctx.restore();
-    // 恢复变换矩阵
-    this.transformStack.pop();
+    // Context 状态回滚后，缓存的状态已失效，必须重置
+    this._cachedFillStyle = '';
+    this._cachedStrokeStyle = '';
+    this._cachedLineWidth = -1; // 使用不可能的值以确保下次设置生效
+    this._cachedFont = '';
   }
 
   /**
@@ -318,6 +346,15 @@ export class Canvas2DRenderer implements IRenderer {
 
   /**
    * 绘制矩形
+   *
+   * @description
+   * 绘制填充或描边的矩形，支持圆角。
+   *
+   * 优化策略：
+   * 1. 状态缓存：检查 fillStyle/strokeStyle/lineWidth 是否变化，减少 Context 状态切换开销。
+   * 2. 原生 API：优先使用 `roundRect` API 绘制圆角矩形，比手动路径快得多。
+   * 3. 避免 save/restore：对于简单矩形，直接设置样式绘制，移除 save/restore 调用（显著提升性能）。
+   *
    * @param options 矩形绘制选项
    */
   drawRect(options: {
@@ -341,45 +378,117 @@ export class Canvas2DRenderer implements IRenderer {
       return;
     }
 
-    this.ctx.save();
+    // 优化：如果是数字类型的 borderRadius，且为 0，视为无圆角
+    // 如果是数字且不为 0，可以直接用于 roundRect (如果支持)
+    const isSimpleRadius = typeof options.borderRadius === 'number';
+    const radiusVal = isSimpleRadius ? (options.borderRadius as number) : 0;
 
-    const r = normalizeRadius(options.borderRadius);
-
-    if (r.total === 0) {
-      // 普通矩形
+    // 无圆角情况
+    if (!options.borderRadius || (isSimpleRadius && radiusVal === 0)) {
+      // 普通矩形 - 优化：移除 save/restore，直接设置样式
+      // 注意：这会改变 Context 状态，但由于所有绘制方法都会设置自己的状态或使用 save/restore，
+      // 所以这里不恢复状态是安全的，且能显著提升性能
       if (options.fill) {
-        this.ctx.fillStyle = options.fill;
+        if (this._cachedFillStyle !== options.fill) {
+          this.ctx.fillStyle = options.fill;
+          this._cachedFillStyle = options.fill;
+        }
         this.ctx.fillRect(options.x, options.y, options.width, options.height);
       }
       if (options.stroke) {
-        this.ctx.strokeStyle = options.stroke;
-        this.ctx.lineWidth = options.strokeWidth || 1;
+        if (this._cachedStrokeStyle !== options.stroke) {
+          this.ctx.strokeStyle = options.stroke;
+          this._cachedStrokeStyle = options.stroke;
+        }
+        const lw = options.strokeWidth || 1;
+        if (this._cachedLineWidth !== lw) {
+          this.ctx.lineWidth = lw;
+          this._cachedLineWidth = lw;
+        }
         this.ctx.strokeRect(options.x, options.y, options.width, options.height);
       }
-    } else {
-      // 圆角矩形
-      const { x, y, width, height } = options;
+      return;
+    }
+
+    // 圆角矩形处理
+    // 优先使用原生 roundRect API
+    if (typeof this.ctx.roundRect === 'function') {
       this.ctx.beginPath();
-      roundedRectPath(this.ctx, x, y, width, height, r);
-      this.ctx.closePath();
+
+      if (isSimpleRadius) {
+        // 直接传递数字，避免数组分配
+        // @ts-ignore - roundRect supports number in some implementations,
+        // but spec says DOMPointInit or number?
+        // MDN says: radii: A number or a sequence of numbers...
+        this.ctx.roundRect(options.x, options.y, options.width, options.height, radiusVal);
+      } else {
+        const r = normalizeRadius(options.borderRadius);
+        // roundRect 支持 [tl, tr, br, bl] 顺序
+        this.ctx.roundRect(options.x, options.y, options.width, options.height, [
+          r.topLeft,
+          r.topRight,
+          r.bottomRight,
+          r.bottomLeft,
+        ]);
+      }
+
       if (options.fill) {
-        this.ctx.fillStyle = options.fill;
+        if (this._cachedFillStyle !== options.fill) {
+          this.ctx.fillStyle = options.fill;
+          this._cachedFillStyle = options.fill;
+        }
         this.ctx.fill();
       }
       if (options.stroke) {
-        this.ctx.strokeStyle = options.stroke;
-        this.ctx.lineWidth = options.strokeWidth || 1;
+        if (this._cachedStrokeStyle !== options.stroke) {
+          this.ctx.strokeStyle = options.stroke;
+          this._cachedStrokeStyle = options.stroke;
+        }
+        const lw = options.strokeWidth || 1;
+        if (this._cachedLineWidth !== lw) {
+          this.ctx.lineWidth = lw;
+          this._cachedLineWidth = lw;
+        }
+        this.ctx.stroke();
+      }
+    } else {
+      // 降级到手动路径
+      const r = normalizeRadius(options.borderRadius);
+      this.ctx.beginPath();
+      roundedRectPath(this.ctx, options.x, options.y, options.width, options.height, r);
+      this.ctx.closePath();
+
+      if (options.fill) {
+        if (this._cachedFillStyle !== options.fill) {
+          this.ctx.fillStyle = options.fill;
+          this._cachedFillStyle = options.fill;
+        }
+        this.ctx.fill();
+      }
+      if (options.stroke) {
+        if (this._cachedStrokeStyle !== options.stroke) {
+          this.ctx.strokeStyle = options.stroke;
+          this._cachedStrokeStyle = options.stroke;
+        }
+        const lw = options.strokeWidth || 1;
+        if (this._cachedLineWidth !== lw) {
+          this.ctx.lineWidth = lw;
+          this._cachedLineWidth = lw;
+        }
         this.ctx.stroke();
       }
     }
-
-    this.ctx.restore();
   }
 
   // helper functions moved to file scope after class
 
   /**
    * 绘制图片
+   *
+   * @description
+   * 绘制图像、画布或离屏画布到当前上下文。
+   * 支持裁剪绘制 (sx, sy, sWidth, sHeight) 和 缩放绘制 (x, y, width, height)。
+   *
    * @param options 图片绘制选项
    */
   drawImage(options: {

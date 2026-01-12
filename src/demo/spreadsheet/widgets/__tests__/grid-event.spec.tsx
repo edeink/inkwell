@@ -36,8 +36,6 @@ describe('Grid 事件触发', () => {
     // Stack (堆叠布局)
     const stack = new Stack({
       type: 'Stack',
-      width: 800,
-      height: 600,
     });
     stack.createElement(stack.data);
     stack.children = [cell];

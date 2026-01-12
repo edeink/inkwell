@@ -93,6 +93,21 @@ export class PipelineOwner {
   }
 
   /**
+   * 清空待布局节点列表
+   * 当外部手动触发了全量布局时使用
+   */
+  public clearNodesNeedingLayout(): void {
+    this._nodesNeedingLayout.clear();
+  }
+
+  /**
+   * 清空待绘制节点列表
+   */
+  public clearNodesNeedingPaint(): void {
+    this._nodesNeedingPaint.clear();
+  }
+
+  /**
    * 执行布局更新
    * 按照深度优先的顺序处理脏节点
    */

@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { createBoxConstraints } from '../base';
+import { createBoxConstraints, type WidgetProps } from '../base';
+import { type PipelineOwner } from '../pipeline/owner';
 import { Positioned } from '../positioned';
 import { Stack } from '../stack';
 import { Text } from '../text';
+
+interface TestingWidget {
+  _needsLayout: boolean;
+  _needsPaint: boolean;
+  owner: PipelineOwner | null;
+}
 
 describe('Widget 属性更新机制', () => {
   it('Positioned 组件在属性更新时应自动触发重新布局', () => {
@@ -22,8 +29,7 @@ describe('Widget 属性更新机制', () => {
       type: 'Stack',
       width: 200,
       height: 200,
-      children: [positioned as any],
-    });
+    } as WidgetProps);
 
     // 手动建立父子关系和初始化
     positioned.parent = stack;
@@ -39,8 +45,7 @@ describe('Widget 属性更新机制', () => {
     // 验证初始位置
     expect(positioned.renderObject.offset).toEqual({ dx: 10, dy: 10 });
     // 布局完成后，needsLayout 应为 false
-    // @ts-ignore
-    expect(stack._needsLayout).toBe(false);
+    expect((stack as unknown as TestingWidget)._needsLayout).toBe(false);
 
     // 3. 更新 Positioned 属性 (模拟复用)
     const newPositionedProps = {
@@ -56,8 +61,7 @@ describe('Widget 属性更新机制', () => {
     expect(positioned.left).toBe(50);
 
     // 检查 Stack 是否被标记为需要布局
-    // @ts-ignore
-    expect(stack._needsLayout).toBe(true);
+    expect((stack as unknown as TestingWidget)._needsLayout).toBe(true);
 
     // 再次布局
     stack.layout(constraints);
@@ -81,8 +85,7 @@ describe('Widget 属性更新机制', () => {
     text.createElement(text.data);
 
     // 模拟 Layout 完成，重置状态
-    // @ts-ignore
-    text._needsLayout = false;
+    (text as unknown as TestingWidget)._needsLayout = false;
 
     // 更新属性：修改 fontSize (应触发 layout)
     const newProps = {
@@ -110,8 +113,10 @@ describe('Widget 属性更新机制', () => {
     });
 
     // 模拟挂载 (设置 mock owner)
-    // @ts-ignore
-    text.owner = { scheduleLayoutFor: () => {}, schedulePaintFor: () => {} } as any;
+    (text as unknown as TestingWidget).owner = {
+      scheduleLayoutFor: () => {},
+      schedulePaintFor: () => {},
+    } as unknown as PipelineOwner;
 
     text.createElement(text.data);
     // @ts-ignore

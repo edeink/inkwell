@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Padding, type PaddingArray } from '../padding';
+import { Padding } from '../padding';
 
 describe('Padding 组件', () => {
   it('应处理数字类型的输入', () => {
@@ -39,7 +39,8 @@ describe('Padding 组件', () => {
 
   it('应处理无效的数组长度（空数组）', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const padding = new Padding({ type: 'Padding', padding: [] as unknown as PaddingArray });
+    // @ts-expect-error Testing invalid input
+    const padding = new Padding({ type: 'Padding', padding: [] });
     expect(padding.padding).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
     expect(consoleSpy).toHaveBeenCalledWith('Padding 数组长度必须在 1 到 4 之间');
     consoleSpy.mockRestore();
@@ -49,7 +50,8 @@ describe('Padding 组件', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const padding = new Padding({
       type: 'Padding',
-      padding: [1, 2, 3, 4, 5] as unknown as PaddingArray,
+      // @ts-expect-error Testing invalid input
+      padding: [1, 2, 3, 4, 5],
     });
     expect(padding.padding).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
     expect(consoleSpy).toHaveBeenCalledWith('Padding 数组长度必须在 1 到 4 之间');
@@ -60,7 +62,8 @@ describe('Padding 组件', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const padding = new Padding({
       type: 'Padding',
-      padding: [10, '20'] as unknown as PaddingArray,
+      // @ts-expect-error Testing invalid input
+      padding: [10, '20'],
     });
     expect(padding.padding).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
     expect(consoleSpy).toHaveBeenCalledWith('Padding 数组必须仅包含数字');

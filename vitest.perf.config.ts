@@ -10,6 +10,7 @@ export default mergeConfig(
       include: [
         'src/benchmark/metrics/__tests__/dom.spec.ts',
         'src/benchmark/tester/pipeline/__tests__/pipeline.spec.ts',
+        'src/benchmark/perf.spec.tsx',
       ],
     },
   }),

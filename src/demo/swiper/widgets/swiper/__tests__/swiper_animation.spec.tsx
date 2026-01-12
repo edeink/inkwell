@@ -190,4 +190,74 @@ describe('Swiper 动画测试', () => {
 
     runtime.destroy();
   });
+
+  it('Autoplay should respect prop updates (enable/disable)', async () => {
+    const runtime = await Runtime.create(containerId);
+    const items = [<Container key="p1" color="red" />, <Container key="p2" color="blue" />];
+
+    // 1. Autoplay OFF
+    const swiperOff = (
+      <Swiper items={items} width={300} height={200} autoplay={false} interval={1000} />
+    );
+    runtime.render(swiperOff);
+    let root = runtime.getRootWidget() as any;
+    expect(root.state.currentIndex).toBe(0);
+
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(root.state.currentIndex).toBe(0);
+
+    // 2. Autoplay ON
+    const swiperOn = (
+      <Swiper items={items} width={300} height={200} autoplay={true} interval={1000} />
+    );
+    runtime.render(swiperOn);
+    root = runtime.getRootWidget() as any;
+
+    await vi.advanceTimersByTimeAsync(1100);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(root.state.currentIndex).toBe(1);
+
+    runtime.destroy();
+  });
+
+  it('Animation Duration should respect prop updates', async () => {
+    const runtime = await Runtime.create(containerId);
+    const items = [<Container key="p1" color="red" />, <Container key="p2" color="blue" />];
+
+    // 1. Long duration
+    const swiperSlow = <Swiper items={items} width={300} height={200} duration={1000} />;
+    runtime.render(swiperSlow);
+    let root = runtime.getRootWidget() as any;
+
+    // Trigger next() manually to start animation
+    root.next();
+
+    // Advance 500ms (halfway)
+    await vi.advanceTimersByTimeAsync(500);
+    // Offset should be around -150 (half of 300)
+    // easeSharp at 0.5 might not be exactly 0.5, but let's check it's not finished
+    expect(root.state.offset).not.toBe(0);
+    expect(root.state.offset).toBeLessThan(0);
+    expect(root.state.offset).toBeGreaterThan(-300);
+
+    // Advance remaining 500ms
+    await vi.advanceTimersByTimeAsync(600);
+    expect(root.state.offset).toBe(0);
+    expect(root.state.currentIndex).toBe(1);
+
+    // 2. Short duration
+    const swiperFast = <Swiper items={items} width={300} height={200} duration={100} />;
+    runtime.render(swiperFast);
+    root = runtime.getRootWidget() as any;
+
+    // Trigger next() manually
+    root.next();
+
+    // Advance 150ms (should be finished)
+    await vi.advanceTimersByTimeAsync(150);
+    expect(root.state.offset).toBe(0);
+    expect(root.state.currentIndex).toBe(0); // Index wraps around to 0 (1 -> 2(0))
+
+    runtime.destroy();
+  });
 });

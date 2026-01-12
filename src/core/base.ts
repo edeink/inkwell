@@ -128,6 +128,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected _dirty: boolean = false;
   protected _disposed: boolean = false;
   public _isReused: boolean = false;
+  protected _suppressDidUpdateWidget: boolean = false;
   private _cachedBoundingBox: { x: number; y: number; width: number; height: number } | null = null;
   protected _worldMatrix?: [number, number, number, number, number, number];
   private _inverseWorldMatrix: [number, number, number, number, number, number] | null = null;
@@ -144,6 +145,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   public get isRelayoutBoundary(): boolean {
     return this._relayoutBoundary === this;
+  }
+
+  /**
+   * 是否是 Positioned 组件
+   * 用于 Stack 布局优化，避免反射检查
+   */
+  public get isPositioned(): boolean {
+    return false;
   }
 
   public get owner(): PipelineOwner | undefined {
@@ -307,6 +316,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 类似于 Flutter 的 markNeedsLayout 方法
    */
   markNeedsLayout(): void {
+    // 优化：如果已经标记为需要布局，则无需重复处理
+    if (this._needsLayout) {
+      // 确保 _needsPaint 也被标记 (虽然通常 _needsLayout 隐含 _needsPaint，但为了安全起见)
+      if (!this._needsPaint) {
+        this.markNeedsPaint();
+      }
+      return;
+    }
+
     // 修复：不要因为 _needsLayout 为 true 就提前返回
     // 必须确保脏状态能够正确传播到 Relayout Boundary 或 PipelineOwner
     this._needsLayout = true;
@@ -482,7 +500,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   protected computeNextChildrenData(): WidgetProps[] {
     const d = this.data.children;
-    return Array.isArray(d) ? (d.filter((x) => x && typeof x === 'object') as WidgetProps[]) : [];
+    // 优化：不再默认过滤，假设编译器或输入数据已清洗。
+    // 如果存在 null/undefined，将在 buildChildren 中处理或由 compileElement 保证。
+    // 这样避免每次 rebuild 都分配新数组。
+    return Array.isArray(d) ? (d as WidgetProps[]) : [];
   }
 
   /**
@@ -522,6 +543,60 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   protected buildChildren(childrenData: WidgetProps[]): void {
     const prev = this.children;
+    let nextChildren: Widget[] | null = null;
+    let i = 0;
+
+    // 优化：快速路径，处理头部相同的节点
+    for (; i < prev.length && i < childrenData.length; i++) {
+      const prevChild = prev[i];
+      const childData = childrenData[i];
+
+      const prevKey = prevChild.data.key;
+      const nextKey = childData.key;
+
+      let match = false;
+      if (prevChild.type === childData.type) {
+        if (nextKey != null) {
+          match = prevKey === nextKey;
+        } else {
+          match = prevKey == null;
+        }
+      }
+
+      if (!match) {
+        break;
+      }
+
+      // 复用节点
+      if (!prevChild._isReused) {
+        prevChild._isReused = true;
+      }
+      // 优化：直接使用新数据，避免对象合并开销
+      // React 模型中新 Props 总是完全替换旧 Props
+      const nextData = childData as TData;
+      prevChild.createElement(nextData);
+      prevChild.parent = this;
+      prevChild.depth = this.depth + 1;
+      // nextChildren.push(prevChild); // 延迟推入
+      DOMEventManager.bindEvents(prevChild, childData);
+    }
+
+    // 如果完全匹配，直接返回（处理剩余的清理工作）
+    if (i === childrenData.length && i === prev.length) {
+      // 重置标志位
+      for (let j = 0; j < prev.length; j++) {
+        prev[j]._isReused = false;
+      }
+      // this.children 保持不变，无需重新赋值
+      return;
+    }
+
+    // 初始化 nextChildren 并填充已复用的节点
+    nextChildren = new Array(i);
+    for (let k = 0; k < i; k++) {
+      nextChildren[k] = prev[k];
+    }
+
     let byKey: Map<string, Widget>;
     let prevNoKey: Map<string, Widget[]>;
     let useCache = false;
@@ -541,7 +616,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     try {
-      for (const c of prev) {
+      // 仅处理剩余的旧节点
+      for (let j = i; j < prev.length; j++) {
+        const c = prev[j];
         if (c.data.key) {
           byKey.set(c.key, c);
         } else {
@@ -561,10 +638,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         list.reverse();
       }
 
-      const nextChildren: Widget[] = [];
-      // 移除 Set，使用标志位优化
-
-      for (const childData of childrenData) {
+      // 仅处理剩余的新节点
+      for (let j = i; j < childrenData.length; j++) {
+        const childData = childrenData[j];
         // 优化：移除 String() 转换，直接使用原始 Key
         // 1. 避免字符串转换开销
         // 2. 支持数字类型的 Key 复用
@@ -590,12 +666,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
           if (!reuse._isReused) {
             reuse._isReused = true;
           }
-          const merged = { ...reuse.data, ...childData };
-          reuse.createElement(merged as TData);
+          // 优化：直接使用新数据
+          const nextData = childData as TData;
+          reuse.createElement(nextData);
           reuse.parent = this;
           reuse.depth = this.depth + 1;
           nextChildren.push(reuse);
-          DOMEventManager.bindEvents(reuse, childData);
+          if (!childData['__noEvents']) {
+            DOMEventManager.bindEvents(reuse, childData);
+          }
         } else {
           const childWidget = this.createChildWidget(childData);
           if (childWidget) {
@@ -603,7 +682,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
             childWidget.depth = this.depth + 1;
             childWidget.createElement(childData);
             nextChildren.push(childWidget);
-            DOMEventManager.bindEvents(childWidget, childData);
+            if (!childData['__noEvents']) {
+              DOMEventManager.bindEvents(childWidget, childData);
+            }
           } else {
             console.warn(
               `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
@@ -651,6 +732,14 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
   /**
    * 创建子组件的抽象方法，由子类实现
+   *
+   * @description
+   * 根据 `childData` 创建对应的 Widget 实例。
+   * 优先尝试从对象池 (`Widget._pool`) 中获取已回收的实例，
+   * 如果池为空，则创建新实例。
+   *
+   * @param childData 子组件的属性数据
+   * @returns 创建的 Widget 实例，如果类型未定义则返回 null
    */
   protected createChildWidget(childData: WidgetProps): Widget | null {
     if (!childData.type) {
@@ -800,6 +889,16 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   /**
    * 布局组件及其子组件
    * 类似于 Flutter 的 layout 方法
+   *
+   * @description
+   * 此方法负责计算组件及其子组件的布局信息。它首先验证组件状态，
+   * 然后检查是否可以使用缓存的布局结果。如果需要重新布局，它会
+   * 确定重布局边界，调用 `layoutChildren` 和 `performLayout`，
+   * 最后调用 `positionChildren` 完成布局。
+   *
+   * @param constraints 父组件传递的布局约束
+   * @returns 组件的最终尺寸 (Size)
+   * @throws Error 如果在布局前子节点尚未构建
    */
   layout(constraints: BoxConstraints): Size {
     // 验证：确保在布局前子节点已构建（若存在子节点数据）
@@ -818,8 +917,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.renderObject.constraints = constraints;
 
-    // Determine Relayout Boundary
-    // If constraints are tight, we can be a relayout boundary
+    // 确定重布局边界 (Relayout Boundary)
+    // 如果约束是严格的 (tight)，我们可以作为一个重布局边界
+    // 这意味着我们的尺寸完全由父级决定，子级的变化不会影响父级
     if (!this.parent || (this.parent && isTight(constraints))) {
       this._relayoutBoundary = this;
     } else {
@@ -1220,6 +1320,27 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   protected hitTestChildren(x: number, y: number): Widget | null {
+    // 优化：如果没有使用 zIndex，直接反向遍历即可，避免 slice/reverse/sort 的开销
+    let useZIndex = false;
+    for (const child of this.children) {
+      if (child.zIndex !== 0) {
+        useZIndex = true;
+        break;
+      }
+    }
+
+    if (!useZIndex) {
+      // 倒序遍历（后添加的优先）
+      for (let i = this.children.length - 1; i >= 0; i--) {
+        const child = this.children[i];
+        const res = child.visitHitTest(x, y);
+        if (res) {
+          return res;
+        }
+      }
+      return null;
+    }
+
     // 倒序遍历（高 zIndex 优先，同 zIndex 后添加的优先）
     // 注意：需要先反转数组，利用 sort 的稳定性，使得同 zIndex 的元素保持反转后的顺序（即后添加的在前面）
     const children = this.children

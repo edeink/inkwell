@@ -7,6 +7,8 @@ export interface PaddingProps extends WidgetProps {
   padding: PaddingValue;
 }
 
+export const ZERO_EDGE_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 /**
  * 将 PaddingValue 标准化为 EdgeInsets 对象
  * @param value 输入的 padding 值
@@ -14,16 +16,33 @@ export interface PaddingProps extends WidgetProps {
  */
 export function resolveEdgeInsets(value: PaddingValue | undefined): EdgeInsets {
   if (value === undefined) {
-    return { top: 0, right: 0, bottom: 0, left: 0 };
+    return ZERO_EDGE_INSETS;
   }
   if (typeof value === 'number') {
+    if (value === 0) {
+      return ZERO_EDGE_INSETS;
+    }
     return { top: value, right: value, bottom: value, left: value };
   }
   if (Array.isArray(value)) {
     // 检查数组元素是否全部为 number
     if (!value.every((v) => typeof v === 'number')) {
       console.error('Padding 数组必须仅包含数字');
-      return { top: 0, right: 0, bottom: 0, left: 0 };
+      return ZERO_EDGE_INSETS;
+    }
+
+    // 优化：检查是否全 0
+    if (value.length > 0) {
+      let allZero = true;
+      for (const v of value) {
+        if (v !== 0) {
+          allZero = false;
+          break;
+        }
+      }
+      if (allZero) {
+        return ZERO_EDGE_INSETS;
+      }
     }
 
     switch (value.length) {

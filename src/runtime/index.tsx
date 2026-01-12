@@ -11,7 +11,7 @@ import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
 import { createWidget as createExternalWidget, WidgetRegistry } from '@/core/registry';
-import { compileElement, compileTemplate } from '@/utils/compiler/jsx-compiler';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 import '../core/registry';
 
@@ -58,6 +58,7 @@ export default class Runtime {
   private __layoutRaf: number | null = null;
   public enableOffscreenRendering: boolean = true;
   private tickListeners: Set<() => void> = new Set();
+  private _lastRendererOptionsKey: string = '';
   static canvasRegistry: Map<
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
@@ -176,7 +177,12 @@ export default class Runtime {
       height: size?.height ?? this._container.clientHeight,
     };
 
-    await this.renderer.initialize(this._container, rendererOptions);
+    if (this._canvas && this.renderer.getCanvas?.() === this._canvas) {
+      this.renderer.update(rendererOptions);
+    } else {
+      await this.renderer.initialize(this._container, rendererOptions);
+    }
+
     const raw = this.renderer.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? null;
     if (canvas && this._container) {
@@ -473,7 +479,8 @@ export default class Runtime {
    */
   async renderTemplate(template: () => AnyElement): Promise<void> {
     EventRegistry.setCurrentRuntime(this);
-    const json = compileTemplate(template);
+    const element = template();
+    const json = compileElement(element);
     EventRegistry.setCurrentRuntime(null);
     await this.renderFromJSON(json);
   }
@@ -490,10 +497,24 @@ export default class Runtime {
 
     try {
       EventRegistry.setCurrentRuntime(this);
-      this.rootWidget = this.parseComponentData(jsonData);
-      if (this.rootWidget) {
-        this.rootWidget.runtime = this;
-        this.rootWidget.createElement(this.rootWidget.data);
+
+      let reused = false;
+      // 尝试复用根节点
+      if (this.rootWidget && this.rootWidget.type === jsonData.type) {
+        // 如果提供了key，必须匹配才能复用
+        // 注意：jsonData.key 可能为 null 或 undefined
+        if (jsonData.key == null || jsonData.key === this.rootWidget.key) {
+          this.rootWidget.createElement(jsonData);
+          reused = true;
+        }
+      }
+
+      if (!reused) {
+        this.rootWidget = this.parseComponentData(jsonData);
+        if (this.rootWidget) {
+          this.rootWidget.runtime = this;
+          this.rootWidget.createElement(this.rootWidget.data);
+        }
       }
 
       if (this.rootWidget) {
@@ -502,17 +523,54 @@ export default class Runtime {
 
         // calculateLayout 会触发 layout 方法，清理节点的 dirty 标记，
         // 但这些节点仍然留在 pipelineOwner 的 _nodesNeedingLayout 集合中。
-        // 我们调用 flushLayout 来清理这个集合（因为 dirty 标记已清除，不会重复布局）。
+        // 我们调用 flushLayout 来处理所有剩余的脏节点（特别是 Relayout Boundary）
         this.pipelineOwner.flushLayout();
 
-        // 根据布局尺寸初始化渲染器
-        await this.initRenderer({}, totalSize);
+        // 检查尺寸是否变化，避免不必要的渲染器重置
+        const currentWidth = this.renderer.getWidth?.() ?? 0;
+        const currentHeight = this.renderer.getHeight?.() ?? 0;
+        const sizeChanged = totalSize.width !== currentWidth || totalSize.height !== currentHeight;
 
-        // 清除之前的渲染内容
-        this.clearCanvas();
+        if (sizeChanged) {
+          await this.initRenderer({}, totalSize);
+        }
 
-        // 执行渲染
-        this.performRender();
+        // 如果复用了根节点且尺寸未变，我们尝试只更新脏区域
+        // 注意：如果是首次渲染 (!reused) 或尺寸变化，仍需全量绘制
+        if (reused && !sizeChanged) {
+          // 使用 flushUpdates 逻辑处理局部更新
+          await this.flushUpdates();
+
+          // flushUpdates 会调用 rebuild，这可能产生 dirtyWidgets
+          // 这里的 flushUpdates 主要处理 layout 和 build
+          // 接下来需要处理 paint
+
+          // 如果有需要重绘的节点（通过 markNeedsPaint 标记），Runtime 会在 tick 中处理
+          // 但 renderFromJSON 期望立即呈现结果
+
+          // 检查是否有脏节点需要重绘
+          if (this.dirtyWidgets.size > 0 || this.pipelineOwner.hasScheduledPaint) {
+            // 这里我们手动触发一次 tick 的逻辑，但同步执行 paint
+            // 注意：flushUpdates 已经处理了 rebuild (layout)，现在处理 paint
+            this.pipelineOwner.flushPaint();
+            // 只有当没有脏矩形或需要全量重绘时才清空画布
+            // 目前 flushPaint 会调用 updateLayer，如果支持局部重绘
+            // 但 Canvas2DRenderer 主要是全量或基于 dirtyRect
+
+            // 为了简单起见，如果复用了，我们仍然调用 performRender，但带上 dirtyRect？
+            // 目前系统还未完全实现自动 dirtyRect 计算合并，所以 performRender 默认全量
+            // 但我们可以跳过 clearCanvas 如果我们确定只画了一部分？
+            // 不，Canvas 2D 需要清除旧像素。
+
+            // 临时策略：仍然全量绘制，但跳过 initRenderer
+            this.clearCanvas();
+            this.performRender();
+          }
+        } else {
+          // 全量初始化路径
+          this.clearCanvas();
+          this.performRender();
+        }
       }
     } catch (error) {
       // 捕获并显示Flutter风格的错误
@@ -746,61 +804,67 @@ export default class Runtime {
     let dirtyRect: { x: number; y: number; width: number; height: number } | undefined;
 
     if (!fullRepaint) {
-      // 根据 dirtyList 计算脏矩形
-      let minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity;
-      let count = 0;
-      for (const w of dirtyList) {
-        if (w.isDisposed()) {
-          continue;
-        }
-        // 确保组件仍在树中
-        if (w.root !== this.rootWidget) {
-          continue;
-        }
-
-        try {
-          const box = w.getBoundingBox();
-          if (box.width > 0 && box.height > 0) {
-            minX = Math.min(minX, box.x);
-            minY = Math.min(minY, box.y);
-            maxX = Math.max(maxX, box.x + box.width);
-            maxY = Math.max(maxY, box.y + box.height);
-            count++;
-          }
-        } catch (e) {
-          // 忽略
-        }
-      }
-
-      if (count > 0 && minX !== Infinity) {
-        // 增加一点 padding 防止边缘残留
-        const padding = 2;
-        dirtyRect = {
-          x: Math.floor(minX - padding),
-          y: Math.floor(minY - padding),
-          width: Math.ceil(maxX - minX + padding * 2),
-          height: Math.ceil(maxY - minY + padding * 2),
-        };
-
-        // 限制在画布尺寸范围内
-        if (this._canvas) {
-          dirtyRect.x = Math.max(0, dirtyRect.x);
-          dirtyRect.y = Math.max(0, dirtyRect.y);
-          dirtyRect.width = Math.min(this._canvas.width - dirtyRect.x, dirtyRect.width);
-          dirtyRect.height = Math.min(this._canvas.height - dirtyRect.y, dirtyRect.height);
-        }
+      // 优化：如果脏节点过多（例如超过 50 个），计算脏矩形的开销可能大于全量重绘的收益，
+      // 且通常意味着大面积更新。直接全量重绘。
+      if (dirtyList.length > 50) {
+        fullRepaint = true;
       } else {
-        // 未找到有效的脏矩形，回退到全量重绘还是跳过？
-        // 如果 dirtyList 不为空但未找到边界（例如尺寸为 0 的组件），也许跳过渲染？
-        // 但可能存在副作用。如果不确定，默认为全量重绘，或者如果计数为 0 则跳过。
-        if (dirtyList.length > 0 && count === 0) {
-          // 所有脏组件尺寸为 0 或已销毁。
-          // 我们可能可以跳过渲染？
-          // 但为了安全起见，如果无法确定边界，则进行全量重绘。
-          fullRepaint = true;
+        // 根据 dirtyList 计算脏矩形
+        let minX = Infinity,
+          minY = Infinity,
+          maxX = -Infinity,
+          maxY = -Infinity;
+        let count = 0;
+        for (const w of dirtyList) {
+          if (w.isDisposed()) {
+            continue;
+          }
+          // 确保组件仍在树中
+          if (w.root !== this.rootWidget) {
+            continue;
+          }
+
+          try {
+            const box = w.getBoundingBox();
+            if (box.width > 0 && box.height > 0) {
+              minX = Math.min(minX, box.x);
+              minY = Math.min(minY, box.y);
+              maxX = Math.max(maxX, box.x + box.width);
+              maxY = Math.max(maxY, box.y + box.height);
+              count++;
+            }
+          } catch (e) {
+            // 忽略
+          }
+        }
+
+        if (count > 0 && minX !== Infinity) {
+          // 增加一点 padding 防止边缘残留
+          const padding = 2;
+          dirtyRect = {
+            x: Math.floor(minX - padding),
+            y: Math.floor(minY - padding),
+            width: Math.ceil(maxX - minX + padding * 2),
+            height: Math.ceil(maxY - minY + padding * 2),
+          };
+
+          // 限制在画布尺寸范围内
+          if (this._canvas) {
+            dirtyRect.x = Math.max(0, dirtyRect.x);
+            dirtyRect.y = Math.max(0, dirtyRect.y);
+            dirtyRect.width = Math.min(this._canvas.width - dirtyRect.x, dirtyRect.width);
+            dirtyRect.height = Math.min(this._canvas.height - dirtyRect.y, dirtyRect.height);
+          }
+        } else {
+          // 未找到有效的脏矩形，回退到全量重绘还是跳过？
+          // 如果 dirtyList 不为空但未找到边界（例如尺寸为 0 的组件），也许跳过渲染？
+          // 但可能存在副作用。如果不确定，默认为全量重绘，或者如果计数为 0 则跳过。
+          if (dirtyList.length > 0 && count === 0) {
+            // 所有脏组件尺寸为 0 或已销毁。
+            // 我们可能可以跳过渲染？
+            // 但为了安全起见，如果无法确定边界，则进行全量重绘。
+            fullRepaint = true;
+          }
         }
       }
     }

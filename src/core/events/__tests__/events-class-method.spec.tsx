@@ -48,7 +48,7 @@ function CustomWidgetElement(props: {
     type: 'CustomWidget',
     props: rest,
     key,
-  } as any;
+  } as unknown as AnyElement;
 }
 
 function buildTree(

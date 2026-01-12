@@ -12,10 +12,30 @@ export abstract class StatefulWidget<
 
   public setState(partial: Partial<S>): void {
     const prev = this.state;
+
+    // 优化：如果 partial 为空或无变化，直接返回
+    if (!partial || Object.keys(partial).length === 0) {
+      return;
+    }
+
     const next = {
       ...(prev as Record<string, unknown>),
       ...(partial as Record<string, unknown>),
     } as S;
+
+    // 简单检查是否真的变化（浅比较）
+    let changed = false;
+    for (const key in partial) {
+      if (partial[key] !== prev[key]) {
+        changed = true;
+        break;
+      }
+    }
+
+    if (!changed) {
+      return;
+    }
+
     this._lastStateSnapshot = prev;
     this.state = next;
     this.markDirty();
@@ -37,6 +57,8 @@ export abstract class StatefulWidget<
       // 但我们需要在 render 之前调用它，所以这里会重复调用
       // 只要 didUpdateWidget 实现是幂等的（通常是比较 props），这就不是问题
       this.didUpdateWidget(oldProps);
+      // 优化：标记已处理 didUpdateWidget，防止 Widget.createElement 再次调用
+      this._suppressDidUpdateWidget = true;
     }
 
     return super.createElement(data);

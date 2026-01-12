@@ -35,10 +35,10 @@ function buildTree() {
   );
   WidgetRegistry.registerType('SynWidget', SynWidget);
   const data = compileElement(el);
-  const root = WidgetRegistry.createWidget(data) as SynWidget;
+  const root = WidgetRegistry.createWidget(data) as Widget;
   root.createElement(data);
   root.layout(createBoxConstraints());
-  const inner = root.children[0] as SynWidget;
+  const inner = root.children[0] as Widget;
   const leaf = inner?.children?.[0] as SynWidget;
   return { root, leaf };
 }

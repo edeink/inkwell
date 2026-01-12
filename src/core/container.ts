@@ -83,21 +83,49 @@ export class Container extends Widget<ContainerProps> {
     return value;
   }
 
-  createElement(data: ContainerProps): Widget {
-    super.createElement(data);
-    this.initContainerProperties(data);
-    return this;
-  }
+  // 移除 createElement 覆盖，让基类处理 shallowDiff 优化
+  // 如果 props 未变，基类将直接返回，避免了此处不必要的属性解析和对象分配
 
+  /**
+   * 处理组件属性更新
+   *
+   * @description
+   * 检查属性变更是否影响布局或绘制。
+   * 采用了多项优化策略：
+   * 1. 快速引用比较：如果 `oldProps === newProps` 直接返回。
+   * 2. 原始值比较：优先比较 `borderRadius` 的原始值，避免对象分配。
+   * 3. 复用解析值：如果 `padding`/`margin` 引用未变，复用已解析的 `EdgeInsets` 对象。
+   * 4. 区分布局变更和绘制变更：
+   *    - 布局变更 (width, height, padding, margin, alignment 等)：调用 `super.didUpdateWidget`（触发布局）。
+   *    - 绘制变更 (color, border, borderRadius 等)：仅调用 `markNeedsPaint`（触发重绘）。
+   *
+   * @param oldProps 旧的属性
+   */
   protected didUpdateWidget(oldProps: ContainerProps): void {
     const newProps = this.data;
 
-    // 检查布局相关属性是否发生变化
-    const oldPadding = resolveEdgeInsets(oldProps.padding);
-    const newPadding = resolveEdgeInsets(newProps.padding);
-    const oldMargin = resolveEdgeInsets(oldProps.margin);
-    const newMargin = resolveEdgeInsets(newProps.margin);
+    // 优化：快速比较，避免不必要的 resolve
+    if (oldProps === newProps) {
+      return;
+    }
 
+    // 优化：优先比较原始 borderRadius 值，避免 normalizeBorderRadius 的对象分配
+    const borderRadiusChanged = oldProps.borderRadius !== newProps.borderRadius;
+
+    // 优化：如果 padding/margin 属性引用未变，直接复用已解析的值
+    let newPadding = this.padding;
+    let newMargin = this.margin;
+
+    // 注意：这里需要处理 undefined 的情况，所以比较 newProps.padding !== oldProps.padding
+    if (newProps.padding !== oldProps.padding) {
+      newPadding = resolveEdgeInsets(newProps.padding);
+    }
+
+    if (newProps.margin !== oldProps.margin) {
+      newMargin = resolveEdgeInsets(newProps.margin);
+    }
+
+    // 比较逻辑：
     const layoutChanged =
       oldProps.width !== newProps.width ||
       oldProps.height !== newProps.height ||
@@ -106,53 +134,91 @@ export class Container extends Widget<ContainerProps> {
       oldProps.minHeight !== newProps.minHeight ||
       oldProps.maxHeight !== newProps.maxHeight ||
       oldProps.alignment !== newProps.alignment ||
-      !areEdgeInsetsEqual(oldPadding, newPadding) ||
-      !areEdgeInsetsEqual(oldMargin, newMargin);
+      // 优化 padding/margin 比较
+      (newPadding !== this.padding && !areEdgeInsetsEqual(this.padding!, newPadding!)) ||
+      (newMargin !== this.margin && !areEdgeInsetsEqual(this.margin!, newMargin!));
+
+    // 更新内部属性
+    this.width = newProps.width;
+    this.height = newProps.height;
+    this.minWidth = newProps.minWidth;
+    this.maxWidth = newProps.maxWidth;
+    this.minHeight = newProps.minHeight;
+    this.maxHeight = newProps.maxHeight;
+    this.padding = newPadding;
+    this.margin = newMargin;
+    this.color = newProps.color;
+    this.border = newProps.border;
+    this.borderRadius = this.normalizeBorderRadius(newProps.borderRadius);
+    this.alignment = newProps.alignment;
+    if (newProps.cursor !== undefined) {
+      this.cursor = newProps.cursor;
+    }
 
     if (layoutChanged) {
       super.didUpdateWidget(oldProps);
       return;
     }
 
-    // 如果布局属性未变，仅标记重绘
-    this.markNeedsPaint();
+    // 检查绘制属性是否变化
+    const paintChanged =
+      this.color !== newProps.color ||
+      this.border !== newProps.border ||
+      this.borderRadius !== this.normalizeBorderRadius(newProps.borderRadius) ||
+      this.cursor !== newProps.cursor;
+
+    if (paintChanged) {
+      this.markNeedsPaint();
+    }
   }
 
   /**
-   * Container 不需要绘制自己，只需要绘制背景和边框
+   * 绘制自身内容
+   *
+   * @description
+   * Container 负责绘制背景色 (`color`) 和边框 (`border`)。
+   *
+   * 优化：
+   * 1. 如果无背景色且无边框，直接返回。
+   * 2. 预先计算绘制区域（考虑 margin），避免重复计算。
+   * 3. 使用 `renderer.drawRect` 进行绘制，支持圆角。
+   *
+   * @param context 构建上下文，包含渲染器
    */
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const { size } = this.renderObject;
+
+    // 优化：如果无绘制内容，直接返回
+    if (!this.color && !this.border) {
+      return;
+    }
 
     // 计算实际绘制区域（考虑外边距）
     // 注意：这里使用相对坐标，因为base.ts的paint方法已经处理了translate
     const marginLeft = this.margin?.left ?? 0;
     const marginTop = this.margin?.top ?? 0;
 
-    const marginSize = this.margin
-      ? {
-          width: size.width - (this.margin.left ?? 0) - (this.margin.right ?? 0),
-          height: size.height - (this.margin.top ?? 0) - (this.margin.bottom ?? 0),
-        }
-      : size;
+    // 优化：避免对象分配
+    const drawX = marginLeft;
+    const drawY = marginTop;
+    let drawW = size.width;
+    let drawH = size.height;
 
-    const borderRadius = this.borderRadius
-      ? {
-          topLeft: this.borderRadius.topLeft,
-          topRight: this.borderRadius.topRight,
-          bottomLeft: this.borderRadius.bottomLeft,
-          bottomRight: this.borderRadius.bottomRight,
-        }
-      : undefined;
+    if (this.margin) {
+      drawW = size.width - (this.margin.left ?? 0) - (this.margin.right ?? 0);
+      drawH = size.height - (this.margin.top ?? 0) - (this.margin.bottom ?? 0);
+    }
+
+    const borderRadius = this.borderRadius; // 直接使用，不需要 clone
 
     // 绘制背景色（使用相对坐标）
     if (this.color) {
       renderer.drawRect({
-        x: marginLeft,
-        y: marginTop,
-        width: marginSize.width,
-        height: marginSize.height,
+        x: drawX,
+        y: drawY,
+        width: drawW,
+        height: drawH,
         fill: this.color,
         borderRadius,
       });
@@ -161,10 +227,10 @@ export class Container extends Widget<ContainerProps> {
     // 绘制边框（使用相对坐标）
     if (this.border) {
       renderer.drawRect({
-        x: marginLeft,
-        y: marginTop,
-        width: marginSize.width,
-        height: marginSize.height,
+        x: drawX,
+        y: drawY,
+        width: drawW,
+        height: drawH,
         stroke: this.border.color,
         strokeWidth: this.border.width,
         borderRadius,
@@ -172,6 +238,20 @@ export class Container extends Widget<ContainerProps> {
     }
   }
 
+  /**
+   * 执行 Container 的布局逻辑
+   *
+   * @description
+   * 计算 Container 的尺寸。
+   * 1. 优先使用显式指定的 `width` / `height`。
+   * 2. 如果未指定，尝试根据 `alignment` 撑满父约束。
+   * 3. 如果无 `alignment`，则包裹子组件（加上 padding 和 margin）。
+   * 4. 最后确保满足父约束和自身的 `minWidth`/`maxWidth` 等约束。
+   *
+   * @param constraints 父组件传递的布局约束
+   * @param childrenSizes 子组件的布局结果
+   * @returns Container 的最终尺寸
+   */
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     // 计算外边距占用的空间
     const marginHorizontal = this.margin ? (this.margin.left ?? 0) + (this.margin.right ?? 0) : 0;
@@ -226,6 +306,19 @@ export class Container extends Widget<ContainerProps> {
     return { width, height };
   }
 
+  /**
+   * 计算传递给子组件的约束
+   *
+   * @description
+   * 确定子组件可用的空间。
+   * 1. 从父约束中减去 margin 和 padding。
+   * 2. 应用 Container 自身的 min/max 约束（减去 padding）。
+   * 3. 如果 Container 指定了固定尺寸，则强制传递紧约束（Tight Constraints）。
+   * 4. 如果设置了 `alignment`，则传递松散约束（Loose Constraints，min=0）。
+   *
+   * @param constraints 父组件传递的布局约束
+   * @returns 传递给子组件的约束
+   */
   protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     // 计算可用于子组件的空间
     const marginHorizontal = this.margin ? (this.margin.left ?? 0) + (this.margin.right ?? 0) : 0;
@@ -317,6 +410,14 @@ export class Container extends Widget<ContainerProps> {
     };
   }
 
+  /**
+   * 计算子组件位置
+   *
+   * @description
+   * 根据 alignment、padding 和 margin 计算子组件的相对位置。
+   *
+   * @returns 子组件的偏移量 (Offset)
+   */
   protected positionChild(): Offset {
     // 计算子组件的位置（考虑外边距和内边距）
     const marginLeft = this.margin?.left || 0;

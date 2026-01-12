@@ -52,7 +52,7 @@ describe('事件控制属性测试', () => {
       offset: child.renderObject.offset,
       size: child.renderObject.size,
       pointerEvent: child.pointerEvent,
-      worldMatrix: (child as any)._worldMatrix,
+      worldMatrix: (child as unknown as { _worldMatrix: unknown })._worldMatrix,
     });
 
     // 点击子元素区域 (100, 100) -> 位于中心 (50-150, 50-150)
@@ -70,7 +70,7 @@ describe('事件控制属性测试', () => {
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);
-    root.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
+    root.layout({ minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200 });
     updateMatrices(root);
 
     const hit = root.visitHitTest(100, 100);
@@ -80,9 +80,9 @@ describe('事件控制属性测试', () => {
 
   it('布局组件默认开启 pointerEvent="none" (点击穿透)', () => {
     const el = (
-      <Stack key="stack" width={200} height={200}>
-        <Column key="column" width={200} height={200}>
-          <Row key="row" width={200} height={200}>
+      <Stack key="stack">
+        <Column key="column">
+          <Row key="row">
             <Container key="child" width={50} height={50} pointerEvent="auto" />
           </Row>
         </Column>
@@ -91,7 +91,7 @@ describe('事件控制属性测试', () => {
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);
-    root.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 200 });
+    root.layout({ minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200 });
     updateMatrices(root);
 
     // 验证默认属性
@@ -111,7 +111,7 @@ describe('事件控制属性测试', () => {
   });
 
   it('显式设置 pointerEvent="auto" 应覆盖默认行为', () => {
-    const el = <Stack key="stack" width={200} height={200} pointerEvent="auto" />;
+    const el = <Stack key="stack" pointerEvent="auto" />;
     const data = compileElement(el);
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);

@@ -43,6 +43,16 @@ export interface IRenderer {
   render(): void;
 
   /**
+   * 获取当前渲染器宽度
+   */
+  getWidth?(): number;
+
+  /**
+   * 获取当前渲染器高度
+   */
+  getHeight?(): number;
+
+  /**
    * 销毁渲染器，释放资源
    */
   destroy(): void;

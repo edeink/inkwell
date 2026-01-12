@@ -82,6 +82,13 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     if (data.enableLayer) {
       this.isRepaintBoundary = true;
     }
+
+    if (this.state && this.state.title !== this.title) {
+      this.state = {
+        ...this.state,
+        title: this.title,
+      };
+    }
   }
 
   createElement(data: MindMapNodeProps): Widget<MindMapNodeProps> {
