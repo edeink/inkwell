@@ -3,6 +3,7 @@ import { Column, Container, MainAxisSize, ScrollView, Text } from '../../../core
 import Runtime from '../../../runtime';
 import { type ScrollMetrics } from '../../index.types';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
 
 export async function buildScrollWidgetScene(
   stageEl: HTMLElement,
@@ -17,35 +18,40 @@ export async function buildScrollWidgetScene(
 
   const tBuild0 = performance.now();
 
-  // 构建树的函数
-  const createTree = (scrollPos: number) => (
+  let scrollView: ScrollView | null = null;
+
+  // 构建初始树
+  const initialTree = (
     <ScrollView
       key="sv"
+      ref={(r: unknown) => {
+        scrollView = r as ScrollView | null;
+      }}
       width={w}
       height={h}
-      scrollY={scrollPos}
+      scrollY={0}
       scrollX={0}
       scrollBarColor="#999"
       scrollBarWidth={6}
     >
       <Column mainAxisSize={MainAxisSize.Min}>
         {Array.from({ length: count }).map((_, i) => (
-          <Container
-            key={`item-${i}`}
-            width={w}
-            height={50}
-            color={i % 2 === 0 ? '#f0f0f0' : '#ffffff'}
-            padding={{ left: 16, top: 15 }} // Matches DOM paddingTop: 15px
-            border={{ width: 1, color: '#ddd' }} // Matches DOM border-bottom
-          >
-            <Text text={`List Item ${i}`} style={{ fontSize: 14, color: '#333' }} />
-          </Container>
+          <Column key={`item-${i}`} mainAxisSize={MainAxisSize.Min}>
+            <Container
+              width={w}
+              height={BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT - 1}
+              color={i % 2 === 0 ? '#f0f0f0' : '#ffffff'}
+              padding={{ left: 16, top: 15 }}
+            >
+              <Text text={`List Item ${i}`} style={{ fontSize: 14, color: '#333' }} />
+            </Container>
+            <Container width={w} height={1} color="#ddd" />
+          </Column>
         ))}
       </Column>
     </ScrollView>
   );
 
-  const initialTree = createTree(0);
   const tBuild1 = performance.now();
 
   runtime.render(initialTree);
@@ -54,18 +60,34 @@ export async function buildScrollWidgetScene(
   // 我们记录渲染提交后的第一帧时间
   const paintMs = await measureNextPaint();
 
+  if (!scrollView) {
+    console.error('ScrollView ref failed to resolve');
+    throw new Error('ScrollView ref failed to resolve');
+  }
+
+  const sv = scrollView as ScrollView;
+
   // 滚动测试参数
-  const contentSize = count * 50;
+  const contentSize = count * BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT;
   const viewportSize = h;
   const maxScroll = Math.max(0, contentSize - viewportSize);
 
   // 动态滚动速度调节算法
-  const targetDurationMs = Math.max(1000, Math.min(5000, maxScroll * 1.0));
+  const targetDurationMs = Math.max(
+    BENCHMARK_CONFIG.SCROLL.MIN_DURATION,
+    Math.min(
+      BENCHMARK_CONFIG.SCROLL.MAX_DURATION,
+      maxScroll * BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR,
+    ),
+  );
 
-  console.log(`[Scroll Widget] Count: ${count}, 
-    MaxScroll: ${maxScroll}, TargetDuration: ${targetDurationMs.toFixed(0)}ms`);
+  console.log(
+    `[Scroll Widget] Count: ${count}, MaxScroll: ${maxScroll}, ` +
+      `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
+  );
 
   const startTime = performance.now();
+
   let frameCount = 0;
   let jankCount = 0;
   let lastTime = startTime;
@@ -91,7 +113,7 @@ export async function buildScrollWidgetScene(
         currentScroll = (elapsed / targetDurationMs) * maxScroll;
       }
 
-      runtime.render(createTree(currentScroll));
+      sv.scrollTo(0, currentScroll);
 
       if (isFinished) {
         break;

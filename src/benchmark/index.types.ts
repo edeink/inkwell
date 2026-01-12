@@ -103,6 +103,24 @@ export enum TestCaseType {
   State = 'state',
 }
 
+/**
+ * 预设区间配置：用于快速选择测试规模。
+ */
+export enum PresetType {
+  Common = 'common',
+  Small = 'small',
+  Large = 'large',
+}
+
+/**
+ * 不同测试用例类型的参数配置
+ */
+export type CaseConfig = {
+  start: number;
+  end: number;
+  step: number;
+};
+
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
   { label: '盒子绝对布局测试', value: TestCaseType.Absolute },
   { label: '文字渲染测试', value: TestCaseType.Text },

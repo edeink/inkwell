@@ -2,7 +2,8 @@ import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-desi
 import { Button, InputNumber, Select, Space, Tabs } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { TestCaseOptions, TestCaseType } from '../../index.types';
+import { TestCaseOptions, TestCaseType, PresetType } from '../../index.types';
+import { CASE_CONFIGS } from '../../utils/config';
 
 import styles from './index.module.less';
 
@@ -25,15 +26,6 @@ type Props = {
   setTestMode: (v: 'benchmark' | 'canvas') => void;
 };
 
-/**
- * 预设区间配置：用于快速选择测试规模。
- */
-enum PresetType {
-  Common = 'common',
-  Small = 'small',
-  Large = 'large',
-}
-
 type Preset = {
   key: PresetType;
   label: string;
@@ -45,71 +37,6 @@ const PRESETS: Preset[] = [
   { key: PresetType.Small, label: '小规模' },
   { key: PresetType.Large, label: '大规模' },
 ];
-
-/**
- * 不同测试用例类型的参数配置
- * 目标：控制单次测试时间在 20-40s 范围内
- */
-type CaseConfig = {
-  start: number;
-  end: number;
-  step: number;
-};
-
-const CASE_CONFIGS: Record<TestCaseType, Record<PresetType, CaseConfig>> = {
-  // 1. Layout 类 (Flex, Layout, Absolute, FlexRowCol) - 较快
-  [TestCaseType.Flex]: {
-    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
-    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
-    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
-  },
-  [TestCaseType.Layout]: {
-    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
-    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
-    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
-  },
-  [TestCaseType.Absolute]: {
-    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
-    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
-    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
-  },
-  [TestCaseType.FlexRowCol]: {
-    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
-    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
-    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
-  },
-
-  // 2. Text 类 - 中等
-  [TestCaseType.Text]: {
-    [PresetType.Small]: { start: 50, end: 500, step: 10 },
-    [PresetType.Common]: { start: 500, end: 5000, step: 100 },
-    [PresetType.Large]: { start: 5000, end: 20000, step: 400 },
-  },
-
-  // 3. Scroll 类 - 较慢 (包含动画过程)
-  [TestCaseType.Scroll]: {
-    [PresetType.Small]: { start: 20, end: 200, step: 20 },
-    [PresetType.Common]: { start: 200, end: 2000, step: 200 },
-    [PresetType.Large]: { start: 2000, end: 10000, step: 1000 },
-  },
-
-  // 4. Pipeline/State 类 - 取决于复杂度，暂按中等处理
-  [TestCaseType.Pipeline]: {
-    [PresetType.Small]: { start: 50, end: 500, step: 50 },
-    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
-    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
-  },
-  [TestCaseType.State]: {
-    [PresetType.Small]: { start: 50, end: 500, step: 50 },
-    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
-    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
-  },
-  [TestCaseType.CanvasBenchmark]: {
-    [PresetType.Small]: { start: 100, end: 1000, step: 20 },
-    [PresetType.Common]: { start: 1000, end: 10000, step: 200 },
-    [PresetType.Large]: { start: 10000, end: 50000, step: 1000 },
-  },
-};
 
 /**
  * ControlPanel

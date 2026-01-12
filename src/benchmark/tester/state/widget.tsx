@@ -1,7 +1,55 @@
 /** @jsxImportSource @/utils/compiler */
-import { Container, Wrap } from '../../../core';
+import { Container, StatefulWidget, Wrap, type WidgetProps } from '../../../core';
 import Runtime from '../../../runtime';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
+
+interface StateBenchmarkProps extends WidgetProps {
+  count: number;
+  width: number;
+  height: number;
+  side: number;
+  gap: number;
+}
+
+interface StateBenchmarkState {
+  selectedIndices: Set<number>;
+  [key: string]: unknown;
+}
+
+class StateBenchmarkWidget extends StatefulWidget<StateBenchmarkProps, StateBenchmarkState> {
+  state: StateBenchmarkState = {
+    selectedIndices: new Set(),
+  };
+
+  updateSelection(indices: Set<number>) {
+    this.setState({ selectedIndices: indices });
+  }
+
+  render() {
+    const { count, width, height, side, gap } = this.props;
+    const { selectedIndices } = this.state;
+
+    return (
+      <Container width={width} height={height} color="#fff">
+        {/* 
+          Wrap 组件模拟 DOM 的 flex-wrap: wrap
+          spacing/runSpacing 设置为 2px 以匹配 DOM 的 margin: 1px 产生的间距
+        */}
+        <Wrap spacing={gap} runSpacing={gap}>
+          {Array.from({ length: count }).map((_, i) => (
+            <Container
+              key={String(i)}
+              width={side}
+              height={side}
+              color={selectedIndices.has(i) ? 'red' : '#ccc'}
+            />
+          ))}
+        </Wrap>
+      </Container>
+    );
+  }
+}
 
 export async function buildStateWidgetScene(
   stageEl: HTMLElement,
@@ -13,8 +61,8 @@ export async function buildStateWidgetScene(
 
   // 1. 自适应布局算法 (与 DOM 版本保持一致)
   // 确保在不同屏幕尺寸下表现一致
-  const minW = 300;
-  const minH = 200;
+  const minW = BENCHMARK_CONFIG.STATE.MIN_WIDTH;
+  const minH = BENCHMARK_CONFIG.STATE.MIN_HEIGHT;
   const effW = Math.max(w, minW);
   const effH = Math.max(h, minH);
 
@@ -36,65 +84,55 @@ export async function buildStateWidgetScene(
 
   const tBuild0 = performance.now();
 
-  // 渲染函数：接收选中索引集合，全量重新构建 Widget 树
-  // 框架需要 Diff 出只有部分节点发生了变化
-  const renderTree = (selectedIndices: Set<number>) => (
-    <Container width={w} height={h} color="#fff">
-      {/* 
-        Wrap 组件模拟 DOM 的 flex-wrap: wrap
-        spacing/runSpacing 设置为 2px 以匹配 DOM 的 margin: 1px 产生的间距
-      */}
-      <Wrap spacing={GAP} runSpacing={GAP}>
-        {Array.from({ length: count }).map((_, i) => (
-          <Container
-            key={String(i)}
-            width={side}
-            height={side}
-            color={selectedIndices.has(i) ? 'red' : '#ccc'}
-          />
-        ))}
-      </Wrap>
-    </Container>
+  const element = (
+    <StateBenchmarkWidget key="root" count={count} width={w} height={h} side={side} gap={GAP} />
   );
 
   const tBuild1 = performance.now();
   // 初始渲染：无选中
-  runtime.render(renderTree(new Set()));
+  runtime.render(element);
 
   const paintMs = await measureNextPaint();
 
+  const rootWidget = runtime.getRootWidget() as StateBenchmarkWidget;
+
   // 状态更新循环
-  const frames = 100;
-  const BATCH_SIZE = 20; // 批量更新节点数量
+  const frames = BENCHMARK_CONFIG.STATE.FRAMES;
+  const BATCH_SIZE = BENCHMARK_CONFIG.STATE.BATCH_SIZE; // 批量更新节点数量
 
   // 辅助函数：执行批量更新并监控性能
-  // 包含原子性保障（一次 render）和简单的回滚模拟
+  // 使用 setState 触发组件更新
   const performBatchUpdate = (indices: Set<number>) => {
-    const start = performance.now();
     try {
-      // 原子性：一次 render 调用更新整个树的状态
-      runtime.render(renderTree(indices));
-      const end = performance.now();
-      // 性能监控：记录更新耗时 (可选: 发送给分析服务)
-      // console.log(`Batch update of ${indices.size} nodes took ${end - start}ms`);
+      if (rootWidget) {
+        rootWidget.updateSelection(indices);
+      }
     } catch (e) {
-      console.error('Update failed, rolling back to empty state', e);
-      // 回滚机制：恢复到安全状态 (此处简化为清空选中)
-      runtime.render(renderTree(new Set()));
+      console.error('Update failed', e);
     }
   };
 
-  for (let f = 0; f < frames; f++) {
-    // 生成批量随机索引
-    const nextIndices = new Set<number>();
-    for (let k = 0; k < BATCH_SIZE; k++) {
-      nextIndices.add(Math.floor(Math.random() * count));
-    }
+  await new Promise<void>((resolve) => {
+    let f = 0;
+    const loop = () => {
+      if (f >= frames) {
+        resolve();
+        return;
+      }
 
-    performBatchUpdate(nextIndices);
+      // 生成批量随机索引
+      const nextIndices = new Set<number>();
+      for (let k = 0; k < BATCH_SIZE; k++) {
+        nextIndices.add(Math.floor(Math.random() * count));
+      }
 
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-  }
+      performBatchUpdate(nextIndices);
+
+      f++;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
 
   return {
     buildMs: tBuild1 - tBuild0,

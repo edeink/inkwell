@@ -54,6 +54,12 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
   }
 
   protected initViewport(props: T): void {
+    const oldScale = this._scale;
+    const oldTx = this._tx;
+    const oldTy = this._ty;
+    const oldScrollX = this._scrollX;
+    const oldScrollY = this._scrollY;
+
     this._scale = props.scale ?? this._scale;
     this._tx = props.tx ?? this._tx;
     this._ty = props.ty ?? this._ty;
@@ -69,6 +75,17 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     }
     if (props.onScroll) {
       this._onScrollListeners.add(props.onScroll);
+    }
+
+    // Check for changes and mark dirty if needed
+    if (
+      oldScale !== this._scale ||
+      oldTx !== this._tx ||
+      oldTy !== this._ty ||
+      oldScrollX !== this._scrollX ||
+      oldScrollY !== this._scrollY
+    ) {
+      this.markNeedsLayout();
     }
   }
 

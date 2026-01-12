@@ -1,13 +1,15 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
 
 /**
  * 渲染管线压力测试 DOM 实现
- * 批量动画更新：每帧更新所有节点的位置 (Transform)
+ * 批量动画更新：每帧更新所有节点的位置 (Layout/Paint)
+ * 统一使用 left/top 触发布局更新，与 Widget 的 Positioned 行为对齐
  */
 export async function createPipelineDomNodes(
   stage: HTMLElement,
   count: number,
-  frames: number = 10,
+  frames: number = BENCHMARK_CONFIG.PIPELINE.FRAMES,
 ): Promise<Timings> {
   stage.innerHTML = '';
   const tBuild0 = performance.now();
@@ -18,11 +20,6 @@ export async function createPipelineDomNodes(
 
   const items: HTMLDivElement[] = [];
   for (let i = 0; i < count; i++) {
-    // 创建占位节点
-    const placeholder = document.createElement('div');
-    root.appendChild(placeholder);
-
-    // 创建实际节点
     const div = document.createElement('div');
     div.style.cssText = `
       position: absolute;
@@ -32,24 +29,11 @@ export async function createPipelineDomNodes(
       border-radius: 50%;
       left: 0;
       top: 0;
-      will-change: transform; 
     `;
+    // Removed will-change: transform as we are testing layout
 
-    // 使用 replaceChild 替换节点
-    root.replaceChild(div, placeholder);
+    root.appendChild(div);
     items.push(div);
-  }
-
-  // 验证第二个 Div 是否正确显示
-  if (count > 1) {
-    const secondItem = items[1];
-    if (secondItem.parentNode !== root) {
-      console.error('Pipeline DOM Verification Failed: Second item is not attached to root');
-    }
-    // 简单的可见性检查 (display != none)
-    if (secondItem.style.display === 'none') {
-      console.error('Pipeline DOM Verification Failed: Second item is hidden');
-    }
   }
 
   const tBuild1 = performance.now();
@@ -69,7 +53,7 @@ export async function createPipelineDomNodes(
     let f = 0;
     const startTime = performance.now();
 
-    function loop() {
+    const loop = () => {
       if (f >= frames) {
         resolve();
         return;
@@ -83,12 +67,14 @@ export async function createPipelineDomNodes(
         // 简单的粒子运动算法
         const x = (Math.sin(time + i * 0.05) * 0.4 + 0.5) * w;
         const y = (Math.cos(time + i * 0.07) * 0.4 + 0.5) * h;
-        item.style.transform = `translate(${x}px, ${y}px)`;
+        // 使用 left/top 替代 transform，确保与 Widget 测试维度一致 (都触发 Layout)
+        item.style.left = `${x}px`;
+        item.style.top = `${y}px`;
       }
 
-      requestAnimationFrame(loop);
       f++;
-    }
+      requestAnimationFrame(loop);
+    };
     requestAnimationFrame(loop);
   });
 

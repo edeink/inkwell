@@ -2,12 +2,13 @@
 import { Container, Positioned, SizedBox, Stack } from '../../../core';
 import Runtime from '../../../runtime';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
 
 export async function buildPipelineWidgetScene(
   stageEl: HTMLElement,
   runtime: Runtime,
   count: number,
-  frames: number = 60,
+  frames: number = BENCHMARK_CONFIG.PIPELINE.FRAMES,
 ): Promise<Timings> {
   const w = stageEl.clientWidth || 800;
   const h = stageEl.clientHeight || 600;
@@ -46,12 +47,21 @@ export async function buildPipelineWidgetScene(
   // 执行动画循环以测试渲染管线吞吐量
   const startTime = performance.now();
 
-  for (let f = 0; f < frames; f++) {
-    const time = (performance.now() - startTime) / 1000;
-    runtime.render(renderFrame(time));
-    // 每次更新后等待一帧，确保渲染器有时间处理
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-  }
+  await new Promise<void>((resolve) => {
+    let f = 0;
+    const loop = () => {
+      if (f >= frames) {
+        resolve();
+        return;
+      }
+      const time = (performance.now() - startTime) / 1000;
+      runtime.render(renderFrame(time));
+
+      f++;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
 
   return {
     buildMs: tBuild1 - tBuild0,

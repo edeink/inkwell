@@ -23,7 +23,7 @@ function buildTextJSX(count: number, W: number, H: number) {
           <Positioned key={`p-${i}`} left={x} top={y}>
             <Text
               key={`t-${i}`}
-              text={`t-${i}`}
+              text={'Hello World'}
               fontSize={12}
               lineHeight={12}
               fontWeight={'normal'}

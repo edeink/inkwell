@@ -1,4 +1,5 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
 
 import type { ScrollMetrics } from '../../index.types';
 
@@ -40,7 +41,7 @@ export async function createScrollDomNodes(
     const item = document.createElement('div');
     // 样式对齐：确保与 Widget 完全一致
     // Widget Container: height 50, padding left 16, border bottom 1px solid #ddd
-    const sizeStyle = 'width: 100%; height: 50px;';
+    const sizeStyle = `width: 100%; height: ${BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT}px;`;
 
     item.style.cssText = `
       ${sizeStyle}
@@ -89,17 +90,23 @@ export async function createScrollDomNodes(
 
   // Scroll Test Logic
   // 滚动测试参数
-  const contentSize = count * 50;
+  const contentSize = count * BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT;
   const viewportSize = stage.clientHeight || 600;
   const maxScroll = Math.max(0, contentSize - viewportSize);
 
   // 动态滚动速度调节算法
-  // 基础滚动时间控制在 200-1000 毫秒 (原 1000-5000)
-  // 提高滚动速度以优化测试时间 (5x speed)
-  const targetDurationMs = Math.max(200, Math.min(1000, maxScroll * 0.2));
+  // 统一算法，确保 DOM 和 Widget 使用相同的滚动时长
+  const targetDurationMs = Math.max(
+    BENCHMARK_CONFIG.SCROLL.MIN_DURATION,
+    Math.min(
+      BENCHMARK_CONFIG.SCROLL.MAX_DURATION,
+      maxScroll * BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR,
+    ),
+  );
 
   console.log(
-    `[Scroll DOM] Count: ${count}, MaxScroll: ${maxScroll}, TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
+    `[Scroll DOM] Count: ${count}, MaxScroll: ${maxScroll}, ` +
+      `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
   );
 
   const startTime = performance.now();
@@ -161,7 +168,8 @@ export async function createScrollDomNodes(
   const avgFps = frameCount / (durationMs / 1000);
 
   console.log(
-    `[Scroll DOM] Finished. Duration: ${durationMs.toFixed(0)}ms, AvgFPS: ${avgFps.toFixed(1)}, Frames: ${frameCount}`,
+    `[Scroll DOM] Finished. Duration: ${durationMs.toFixed(0)}ms, ` +
+      `AvgFPS: ${avgFps.toFixed(1)}, Frames: ${frameCount}`,
   );
 
   return {

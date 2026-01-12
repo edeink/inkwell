@@ -1,4 +1,5 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
+import { BENCHMARK_CONFIG } from '../../utils/config';
 
 /**
  * 状态更新 DOM 测试
@@ -8,9 +9,9 @@ import { measureNextPaint, type Timings } from '../../metrics/collector';
 export async function createStateDomNodes(
   stage: HTMLElement,
   count: number,
-  frames: number = 20,
-  minW: number = 300,
-  minH: number = 200,
+  frames: number = BENCHMARK_CONFIG.STATE.FRAMES,
+  minW: number = BENCHMARK_CONFIG.STATE.MIN_WIDTH,
+  minH: number = BENCHMARK_CONFIG.STATE.MIN_HEIGHT,
 ): Promise<Timings> {
   const tBuild0 = performance.now();
 
@@ -55,7 +56,8 @@ export async function createStateDomNodes(
   const items: HTMLDivElement[] = [];
   for (let i = 0; i < count; i++) {
     const div = document.createElement('div');
-    div.style.cssText = `width: ${side}px; height: ${side}px; margin: ${MARGIN}px; background: #ccc;`;
+    div.style.cssText =
+      `width: ${side}px; height: ${side}px; ` + `margin: ${MARGIN}px; background: #ccc;`;
     root.appendChild(div);
     items.push(div);
   }
@@ -70,12 +72,12 @@ export async function createStateDomNodes(
   const paintMs = await measureNextPaint();
 
   // 模拟状态更新循环
-  const BATCH_SIZE = 20; // 批量更新节点数量，与 Widget 版本一致
+  const BATCH_SIZE = BENCHMARK_CONFIG.STATE.BATCH_SIZE; // 批量更新节点数量，与 Widget 版本一致
   let currentSelection = new Set<number>();
 
   await new Promise<void>((resolve) => {
     let f = 0;
-    function loop() {
+    const loop = () => {
       if (f >= frames) {
         resolve();
         return;
@@ -99,7 +101,7 @@ export async function createStateDomNodes(
         }
       }
 
-      // 2. 高亮新选中的节点 (Next - Previous)
+      // 2. 设置新选中的节点 (Next - Previous)
       for (const idx of nextSelection) {
         if (!currentSelection.has(idx)) {
           if (items[idx]) {
@@ -108,12 +110,10 @@ export async function createStateDomNodes(
         }
       }
 
-      // 更新状态引用
       currentSelection = nextSelection;
-
-      requestAnimationFrame(loop);
       f++;
-    }
+      requestAnimationFrame(loop);
+    };
     requestAnimationFrame(loop);
   });
 
