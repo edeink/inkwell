@@ -1,5 +1,13 @@
 /** @jsxImportSource @/utils/compiler */
-import { Column, Container, MainAxisSize, ScrollView, Text } from '../../../core';
+import {
+  Column,
+  Container,
+  MainAxisSize,
+  ScrollView,
+  Text,
+  createExposedHandle,
+  type ScrollViewHandle,
+} from '../../../core';
 import Runtime from '../../../runtime';
 import { type ScrollMetrics } from '../../index.types';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
@@ -18,14 +26,14 @@ export async function buildScrollWidgetScene(
 
   const tBuild0 = performance.now();
 
-  let scrollView: ScrollView | null = null;
+  let scrollView: ScrollViewHandle | null = null;
 
   // 构建初始树
   const initialTree = (
     <ScrollView
       key="sv"
       ref={(r: unknown) => {
-        scrollView = r as ScrollView | null;
+        scrollView = createExposedHandle<ScrollViewHandle>(r);
       }}
       width={w}
       height={h}
@@ -65,7 +73,7 @@ export async function buildScrollWidgetScene(
     throw new Error('ScrollView ref failed to resolve');
   }
 
-  const sv = scrollView as ScrollView;
+  const sv = scrollView as ScrollViewHandle;
 
   // 滚动测试参数
   const contentSize = count * BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT;
@@ -83,7 +91,7 @@ export async function buildScrollWidgetScene(
 
   console.log(
     `[Scroll Widget] Count: ${count}, MaxScroll: ${maxScroll}, ` +
-      `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
+    `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
   );
 
   const startTime = performance.now();

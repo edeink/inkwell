@@ -1,9 +1,10 @@
+import { expose } from '../decorators';
 import { ScrollBar, type ScrollBarProps } from './scroll-bar';
 import { Viewport } from './viewport';
 
+import type { InkwellEvent } from '@/core/events/types';
 import type { Size } from '../base';
 import type { ViewportProps } from './viewport';
-import type { InkwellEvent } from '@/core/events/types';
 
 const DEFAULT_BOUNCE_DAMPING = 0.2;
 const DEFAULT_RESISTANCE_FACTOR = 0.5;
@@ -14,6 +15,10 @@ export enum BounceState {
   IDLE = 'idle',
   BOUNCING = 'bouncing',
   INTERRUPTED = 'interrupted',
+}
+
+export interface ScrollViewHandle {
+  scrollTo(x: number, y: number): void;
 }
 
 export interface ScrollViewProps extends ViewportProps {
@@ -223,6 +228,7 @@ export class ScrollView extends Viewport {
     }
   }
 
+  @expose
   public override scrollTo(x: number, y: number) {
     super.scrollTo(x, y);
     // Update scrollbar positions immediately
