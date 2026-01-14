@@ -28,37 +28,47 @@ export async function buildScrollWidgetScene(
 
   let scrollView: ScrollViewHandle | null = null;
 
-  // 构建初始树
-  const initialTree = (
+  const content = (
+    <Column mainAxisSize={MainAxisSize.Min}>
+      {Array.from({ length: count }).map((_, i) => (
+        <Column key={`item-${i}`} mainAxisSize={MainAxisSize.Min}>
+          <Container
+            width={w}
+            height={BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT - 1}
+            color={i % 2 === 0 ? '#f0f0f0' : '#ffffff'}
+            padding={{ left: 16, top: 15 }}
+          >
+            <Text text={`List Item ${i}`} style={{ fontSize: 14, color: '#333' }} />
+          </Container>
+          <Container width={w} height={1} color="#ddd" />
+        </Column>
+      ))}
+    </Column>
+  );
+
+  const buildTree = (scrollY: number, withRef: boolean) => (
     <ScrollView
       key="sv"
-      ref={(r: unknown) => {
-        scrollView = createExposedHandle<ScrollViewHandle>(r);
-      }}
+      ref={
+        withRef
+          ? (r: unknown) => {
+              scrollView = createExposedHandle<ScrollViewHandle>(r);
+            }
+          : undefined
+      }
       width={w}
       height={h}
-      scrollY={0}
+      scrollY={scrollY}
       scrollX={0}
       scrollBarColor="#999"
       scrollBarWidth={6}
     >
-      <Column mainAxisSize={MainAxisSize.Min}>
-        {Array.from({ length: count }).map((_, i) => (
-          <Column key={`item-${i}`} mainAxisSize={MainAxisSize.Min}>
-            <Container
-              width={w}
-              height={BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT - 1}
-              color={i % 2 === 0 ? '#f0f0f0' : '#ffffff'}
-              padding={{ left: 16, top: 15 }}
-            >
-              <Text text={`List Item ${i}`} style={{ fontSize: 14, color: '#333' }} />
-            </Container>
-            <Container width={w} height={1} color="#ddd" />
-          </Column>
-        ))}
-      </Column>
+      {content}
     </ScrollView>
   );
+
+  // 构建初始树
+  const initialTree = buildTree(0, true);
 
   const tBuild1 = performance.now();
 
@@ -68,12 +78,8 @@ export async function buildScrollWidgetScene(
   // 我们记录渲染提交后的第一帧时间
   const paintMs = await measureNextPaint();
 
-  if (!scrollView) {
-    console.error('ScrollView ref failed to resolve');
-    throw new Error('ScrollView ref failed to resolve');
-  }
-
-  const sv = scrollView as ScrollViewHandle;
+  const sv = scrollView as ScrollViewHandle | null;
+  const isRealRuntime = runtime instanceof Runtime;
 
   // 滚动测试参数
   const contentSize = count * BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT;
@@ -121,7 +127,11 @@ export async function buildScrollWidgetScene(
         currentScroll = (elapsed / targetDurationMs) * maxScroll;
       }
 
-      sv.scrollTo(0, currentScroll);
+      if (isRealRuntime && sv) {
+        sv.scrollTo(0, currentScroll);
+      } else {
+        runtime.render(buildTree(currentScroll, false));
+      }
 
       if (isFinished) {
         break;

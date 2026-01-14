@@ -10,6 +10,7 @@ import {
 } from '@/core';
 import { invert, transformPoint } from '@/core/helper/transform';
 import { Positioned } from '@/core/positioned';
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
 export interface InputProps extends WidgetProps {
   value: string;
@@ -38,7 +39,15 @@ export class Input extends StatefulWidget<InputProps, InputState> {
   private measureCtx: CanvasRenderingContext2D | null = null;
   private cursorTimer: number | null = null;
   private _rafId: number | null = null;
+  private _ensureCursorRafId: number | null = null;
   private isDragging: boolean = false;
+  private scrollViewRef: ScrollView | null = null;
+  private _dragPointerTarget: {
+    _worldMatrix?: [number, number, number, number, number, number];
+  } | null = null;
+  private _hasGlobalDragListeners = false;
+  private _handleWindowMoveBound: (e: PointerEvent) => void;
+  private _handleWindowUpBound: (e: PointerEvent) => void;
 
   constructor(props: InputProps) {
     super(props);
@@ -50,6 +59,8 @@ export class Input extends StatefulWidget<InputProps, InputState> {
       cursorVisible: false,
     };
 
+    this._handleWindowMoveBound = this.handleWindowPointerMove.bind(this);
+    this._handleWindowUpBound = this.handleWindowPointerUp.bind(this);
     this.initMeasureContext();
     this.createHiddenInput();
   }
@@ -68,6 +79,8 @@ export class Input extends StatefulWidget<InputProps, InputState> {
   dispose() {
     this.stopCursorTimer();
     this.stopInputPositionLoop();
+    this.cancelEnsureCursorVisible();
+    this.detachGlobalDragListeners();
     if (this.input) {
       this.input.remove();
       this.input = null;
@@ -138,6 +151,7 @@ export class Input extends StatefulWidget<InputProps, InputState> {
     });
     this.props.onChange?.(target.value);
     this.resetCursorBlink();
+    this.scheduleEnsureCursorVisible();
   };
 
   private handleKeyDown = (_: KeyboardEvent) => {
@@ -148,6 +162,7 @@ export class Input extends StatefulWidget<InputProps, InputState> {
           selectionStart: this.input.selectionStart || 0,
           selectionEnd: this.input.selectionEnd || 0,
         });
+        this.scheduleEnsureCursorVisible();
       }
     }, 0);
     this.resetCursorBlink();
@@ -156,6 +171,7 @@ export class Input extends StatefulWidget<InputProps, InputState> {
   private handleFocus = () => {
     this.setState({ focused: true, cursorVisible: true });
     this.startCursorTimer();
+    this.scheduleEnsureCursorVisible();
   };
 
   private handleBlur = () => {
@@ -186,6 +202,76 @@ export class Input extends StatefulWidget<InputProps, InputState> {
     }
   }
 
+  private cancelEnsureCursorVisible() {
+    if (this._ensureCursorRafId !== null && typeof window !== 'undefined') {
+      try {
+        window.cancelAnimationFrame(this._ensureCursorRafId);
+      } catch {}
+    }
+    this._ensureCursorRafId = null;
+  }
+
+  private scheduleEnsureCursorVisible() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._ensureCursorRafId !== null) {
+      return;
+    }
+    const raf = window.requestAnimationFrame;
+    if (typeof raf !== 'function') {
+      setTimeout(() => this.ensureCursorVisible(), 0);
+      return;
+    }
+    this._ensureCursorRafId = raf(() => {
+      this._ensureCursorRafId = null;
+      this.ensureCursorVisible();
+    });
+  }
+
+  private ensureCursorVisible() {
+    const sv = this.scrollViewRef;
+    if (!sv || !this.measureCtx) {
+      return;
+    }
+
+    const viewportW = sv.width;
+    if (viewportW <= 0) {
+      return;
+    }
+
+    const fontSize = this.props.fontSize || 14;
+    const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+    this.measureCtx.font = `${fontSize}px ${fontFamily}`;
+
+    const text = this.state.text;
+    const cursorIndex = this.state.selectionEnd;
+    const cursorX = this.measureCtx.measureText(text.substring(0, cursorIndex)).width || 0;
+    const caretW = 2;
+    const padding = 8;
+
+    const contentW = Math.max((this.measureCtx.measureText(text).width || 0) + 20, 100);
+    const maxScrollX = Math.max(0, contentW - viewportW);
+
+    const curScrollX = sv.scrollX;
+    const visibleLeft = curScrollX + padding;
+    const visibleRight = curScrollX + viewportW - padding;
+    const caretLeft = cursorX;
+    const caretRight = cursorX + caretW;
+
+    let nextScrollX = curScrollX;
+    if (caretLeft < visibleLeft) {
+      nextScrollX = caretLeft - padding;
+    } else if (caretRight > visibleRight) {
+      nextScrollX = caretRight - (viewportW - padding);
+    } else {
+      return;
+    }
+
+    nextScrollX = Math.max(0, Math.min(maxScrollX, nextScrollX));
+    sv.scrollTo(nextScrollX, sv.scrollY);
+  }
+
   private getLocalPoint(e: InkwellEvent): { x: number; y: number } {
     const target = e.target as unknown as {
       _worldMatrix?: [number, number, number, number, number, number];
@@ -195,10 +281,85 @@ export class Input extends StatefulWidget<InputProps, InputState> {
         const inv = invert(target._worldMatrix);
         return transformPoint(inv, { x: e.x, y: e.y });
       } catch (err) {
-        // Fallback
+        // 降级处理
       }
     }
     return { x: e.x, y: e.y };
+  }
+
+  private getLocalPointFromClient(clientX: number, clientY: number): { x: number; y: number } {
+    const target = this._dragPointerTarget;
+    if (target?._worldMatrix) {
+      try {
+        const inv = invert(target._worldMatrix);
+        return transformPoint(inv, { x: clientX, y: clientY });
+      } catch (err) {
+        // 降级处理
+      }
+    }
+    return { x: clientX, y: clientY };
+  }
+
+  private attachGlobalDragListeners() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._hasGlobalDragListeners) {
+      return;
+    }
+    this._hasGlobalDragListeners = true;
+    window.addEventListener('pointermove', this._handleWindowMoveBound);
+    window.addEventListener('pointerup', this._handleWindowUpBound);
+  }
+
+  private detachGlobalDragListeners() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!this._hasGlobalDragListeners) {
+      return;
+    }
+    this._hasGlobalDragListeners = false;
+    window.removeEventListener('pointermove', this._handleWindowMoveBound);
+    window.removeEventListener('pointerup', this._handleWindowUpBound);
+  }
+
+  private updateSelectionByLocalX(localX: number) {
+    if (!this.isDragging) {
+      return;
+    }
+
+    const index = this.getIndexAtX(localX);
+    const st = this.state;
+
+    if (index !== st.selectionEnd) {
+      this.setState({ selectionEnd: index });
+      if (this.input) {
+        const start = Math.min(st.selectionStart, index);
+        const end = Math.max(st.selectionStart, index);
+        const dir = st.selectionStart > index ? 'backward' : 'forward';
+        this.input.setSelectionRange(start, end, dir);
+      }
+    }
+    this.scheduleEnsureCursorVisible();
+  }
+
+  private handleWindowPointerMove(e: PointerEvent) {
+    if (!this.isDragging) {
+      return;
+    }
+    const pt = this.getLocalPointFromClient(e.clientX, e.clientY);
+    this.updateSelectionByLocalX(pt.x);
+  }
+
+  private handleWindowPointerUp(_e: PointerEvent) {
+    if (!this.isDragging) {
+      return;
+    }
+    this.isDragging = false;
+    this.detachGlobalDragListeners();
+    this.input?.focus();
+    this.scheduleEnsureCursorVisible();
   }
 
   private getIndexAtX(x: number) {
@@ -228,6 +389,10 @@ export class Input extends StatefulWidget<InputProps, InputState> {
     e.stopPropagation?.();
     this.input?.focus();
     this.isDragging = true;
+    this._dragPointerTarget = e.target as unknown as {
+      _worldMatrix?: [number, number, number, number, number, number];
+    } | null;
+    this.attachGlobalDragListeners();
 
     const pt = this.getLocalPoint(e);
     const bestIndex = this.getIndexAtX(pt.x);
@@ -240,33 +405,33 @@ export class Input extends StatefulWidget<InputProps, InputState> {
     if (this.input) {
       this.input.setSelectionRange(bestIndex, bestIndex);
     }
+    this.scheduleEnsureCursorVisible();
   };
 
   private handlePointerMove = (e: InkwellEvent) => {
     e.stopPropagation?.();
+    const ne = (e as unknown as { nativeEvent?: PointerEvent } | null)?.nativeEvent;
+    if (this.isDragging && this._hasGlobalDragListeners && ne && typeof ne.clientX === 'number') {
+      return;
+    }
     if (!this.isDragging) {
       return;
     }
 
     const pt = this.getLocalPoint(e);
-    const index = this.getIndexAtX(pt.x);
-    const st = this.state;
-
-    if (index !== st.selectionEnd) {
-      this.setState({ selectionEnd: index });
-      if (this.input) {
-        const start = Math.min(st.selectionStart, index);
-        const end = Math.max(st.selectionStart, index);
-        const dir = st.selectionStart > index ? 'backward' : 'forward';
-        this.input.setSelectionRange(start, end, dir);
-      }
-    }
+    this.updateSelectionByLocalX(pt.x);
   };
 
   private handlePointerUp = (e: InkwellEvent) => {
     e.stopPropagation?.();
+    const ne = (e as unknown as { nativeEvent?: PointerEvent } | null)?.nativeEvent;
+    if (this.isDragging && this._hasGlobalDragListeners && ne && typeof ne.clientX === 'number') {
+      return;
+    }
     this.isDragging = false;
+    this.detachGlobalDragListeners();
     this.input?.focus();
+    this.scheduleEnsureCursorVisible();
   };
 
   render() {
@@ -274,11 +439,14 @@ export class Input extends StatefulWidget<InputProps, InputState> {
       fontSize = 14,
       fontFamily = 'Arial, sans-serif',
       color = '#000000',
-      selectionColor = 'rgba(0, 150, 255, 0.3)',
       cursorColor = '#000000',
     } = this.props;
 
     const { text, selectionStart, selectionEnd, focused, cursorVisible } = this.state;
+    const theme = Themes[getCurrentThemeMode()];
+    const resolvedSelectionColor = focused
+      ? (this.props.selectionColor ?? theme.state.focus)
+      : theme.state.selected;
 
     // Measurement
     if (this.measureCtx) {
@@ -314,10 +482,12 @@ export class Input extends StatefulWidget<InputProps, InputState> {
         cursor="text"
       >
         <ScrollView
+          ref={(r) => (this.scrollViewRef = r as ScrollView)}
           enableBounceHorizontal={true}
           enableBounceVertical={false}
           alwaysShowScrollbarX={false}
           alwaysShowScrollbarY={false}
+          scrollBarVisibilityMode="auto"
         >
           <Container width={Math.max(textWidth + 20, 100)} height={fontSize * 1.5}>
             <Stack>
@@ -327,7 +497,7 @@ export class Input extends StatefulWidget<InputProps, InputState> {
                   <Container
                     width={selectionRect.width}
                     height={fontSize * 1.2} // Approximate height
-                    color={selectionColor}
+                    color={resolvedSelectionColor}
                   />
                 </Positioned>
               )}

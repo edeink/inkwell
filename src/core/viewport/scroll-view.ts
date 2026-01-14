@@ -26,6 +26,8 @@ export interface ScrollViewProps extends ViewportProps {
   scrollBarColor?: string;
   scrollBarWidth?: number;
 
+  scrollBarVisibilityMode?: 'always' | 'hidden' | 'auto';
+
   /**
    * 是否始终显示垂直滚动条
    * @default true
@@ -126,13 +128,15 @@ export class ScrollView extends Viewport {
 
   protected _reboundTimer: ReturnType<typeof setTimeout> | null = null;
   protected _animationFrame: number | null = null;
+  protected _autoScrollbarTimer: ReturnType<typeof setTimeout> | null = null;
+  protected _autoScrollbarsVisible = false;
   protected _pointerDown = false;
   protected _isInteracting = false;
   protected _bounceState: BounceState = BounceState.IDLE;
   protected _lastX = 0;
   protected _lastY = 0;
 
-  // Track currently hovered scrollbar to handle enter/leave
+  // 记录当前 hover 的滚动条，用于处理 enter/leave
   protected _hoveredScrollBar: ScrollBar | null = null;
 
   constructor(public data: ScrollViewProps) {
@@ -176,17 +180,72 @@ export class ScrollView extends Viewport {
       },
       onDragStart: () => {
         this._isInteracting = true;
+        this.showAutoScrollbarsTemporarily();
       },
       onDragEnd: () => {
         this._isInteracting = false;
-        // Check rebound on drag end
+        this.showAutoScrollbarsTemporarily();
+        // 拖拽结束后检查是否需要回弹
         this.checkRebound();
       },
     };
   }
 
+  private showAutoScrollbarsTemporarily() {
+    if (this.data.scrollBarVisibilityMode !== 'auto') {
+      return;
+    }
+
+    this._autoScrollbarsVisible = true;
+    this.updateScrollbarVisibility();
+    this.updateScrollBars();
+    this.markNeedsPaint();
+
+    if (this._autoScrollbarTimer) {
+      clearTimeout(this._autoScrollbarTimer);
+    }
+
+    this._autoScrollbarTimer = setTimeout(() => {
+      this._autoScrollbarTimer = null;
+      if (this._isInteracting) {
+        return;
+      }
+      this._autoScrollbarsVisible = false;
+      this.updateScrollbarVisibility();
+      this.updateScrollBars();
+      this.markNeedsPaint();
+    }, 800);
+  }
+
+  private updateScrollbarVisibility() {
+    const width = this._width || 0;
+    const height = this._height || 0;
+    const overflowX = this._contentSize.width > width;
+    const overflowY = this._contentSize.height > height;
+
+    const baseShowX = overflowX || (this.data.alwaysShowScrollbarX ?? false);
+    const baseShowY = overflowY || (this.data.alwaysShowScrollbarY ?? true);
+
+    const mode = this.data.scrollBarVisibilityMode;
+    if (mode === 'hidden') {
+      this._showScrollbarX = false;
+      this._showScrollbarY = false;
+      return;
+    }
+
+    if (mode === 'auto') {
+      const visible = this._isInteracting || this._autoScrollbarsVisible;
+      this._showScrollbarX = baseShowX && visible;
+      this._showScrollbarY = baseShowY && visible;
+      return;
+    }
+
+    this._showScrollbarX = baseShowX;
+    this._showScrollbarY = baseShowY;
+  }
+
   private updateScrollBars() {
-    // Update X
+    // 更新 X
     const propsX: Partial<ScrollBarProps> = {
       viewportSize: this._width || 0,
       contentSize: this._contentSize.width,
@@ -207,7 +266,7 @@ export class ScrollView extends Viewport {
       this._scrollBarX.renderObject.size = { width: 0, height: 0 };
     }
 
-    // Update Y
+    // 更新 Y
     const propsY: Partial<ScrollBarProps> = {
       viewportSize: this._height || 0,
       contentSize: this._contentSize.height,
@@ -232,7 +291,7 @@ export class ScrollView extends Viewport {
   @expose
   public override scrollTo(x: number, y: number) {
     super.scrollTo(x, y);
-    // Update scrollbar positions immediately
+    // 立即同步滚动条位置
     this._scrollBarX.data.scrollPosition = this._scrollX;
     this._scrollBarY.data.scrollPosition = this._scrollY;
     this._scrollBarX.markNeedsPaint();
@@ -254,7 +313,7 @@ export class ScrollView extends Viewport {
     context.renderer?.save?.();
     applySteps(context.renderer, steps);
 
-    // 2. Clipping logic (Added for ScrollView)
+    // 2. 裁剪逻辑（ScrollView 支持）
     // 默认为 hidden，除非显式设置为 visible
     if (this.data.overflow !== 'visible') {
       const { width, height } = this.renderObject.size;
@@ -264,8 +323,8 @@ export class ScrollView extends Viewport {
       }
     }
 
-    // 3. Apply View Transform (Scale, Tx, Ty) for Children
-    // Matrix Order: T * S * p (Scale first, then Translate)
+    // 3. 对子节点应用视图变换（scale/tx/ty）
+    // 矩阵顺序：T * S * p（先缩放，再平移）
     context.renderer?.save?.();
     const viewSteps: TransformStep[] = [
       { t: 'translate', x: this._tx, y: this._ty },
@@ -276,15 +335,15 @@ export class ScrollView extends Viewport {
     const viewLocal = composeSteps(viewSteps);
     const childMatrix = multiply(next, viewLocal);
 
-    // 4. Paint Children
+    // 4. 绘制子节点
     const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
     for (const child of children) {
       child.paint({ ...context, worldMatrix: childMatrix });
     }
     context.renderer?.restore?.();
 
-    // 5. Paint Scrollbars (Overlay)
-    // Use 'next' matrix (local coordinate system of ScrollView, not scrolled)
+    // 5. 绘制滚动条（覆盖层）
+    // 使用 next 矩阵（ScrollView 的本地坐标系，不受滚动影响）
     if (this._showScrollbarX && this._scrollBarX.renderObject.size.width > 0) {
       this._scrollBarX.paint({ ...context, worldMatrix: next });
     }
@@ -303,6 +362,10 @@ export class ScrollView extends Viewport {
     if (this._animationFrame) {
       cancelAnimationFrame(this._animationFrame);
       this._animationFrame = null;
+    }
+    if (this._autoScrollbarTimer) {
+      clearTimeout(this._autoScrollbarTimer);
+      this._autoScrollbarTimer = null;
     }
     this._scrollBarX.dispose();
     this._scrollBarY.dispose();
@@ -390,7 +453,7 @@ export class ScrollView extends Viewport {
     this._animationFrame = requestAnimationFrame(() => this.performBounceBack());
   }
 
-  // Check if rebound is needed and animate
+  // 检查是否需要回弹并执行动画
   protected checkRebound() {
     this.performBounceBack();
   }
@@ -453,13 +516,6 @@ export class ScrollView extends Viewport {
       this._contentSize = { width: 0, height: 0 };
     }
 
-    // 检查是否需要滚动条
-    this._showScrollbarX =
-      this._contentSize.width > width || (this.data.alwaysShowScrollbarX ?? false);
-    // 默认开启垂直滚动条始终显示
-    this._showScrollbarY =
-      this._contentSize.height > height || (this.data.alwaysShowScrollbarY ?? true);
-
     // 修正滚动位置（防止内容缩小后滚动位置越界）
     const maxScrollX = Math.max(0, this._contentSize.width - width);
     const maxScrollY = Math.max(0, this._contentSize.height - height);
@@ -482,11 +538,13 @@ export class ScrollView extends Viewport {
       }
     }
 
-    // Viewport 的 performLayout 还需要设置 this.width/height 属性
+    // 视口的 performLayout 还需要设置 this.width/height 属性
     this._width = width;
     this._height = height;
 
-    // Update ScrollBars props and layout
+    this.updateScrollbarVisibility();
+
+    // 更新滚动条属性与布局
     this.updateScrollBars();
 
     return { width, height };
@@ -499,7 +557,7 @@ export class ScrollView extends Viewport {
         const inv = invert(this._worldMatrix);
         return transformPoint(inv, { x: ne.clientX, y: ne.clientY });
       } catch (err) {
-        // Fallback
+        // 降级处理
       }
     }
     return { x: e.x, y: e.y };
@@ -508,7 +566,7 @@ export class ScrollView extends Viewport {
   onPointerDown(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
 
-    // Check Scrollbars (using global coordinates)
+    // 检查滚动条（使用全局坐标）
     if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
       this._scrollBarY.onPointerDown(e);
       this.markNeedsPaint();
@@ -530,6 +588,7 @@ export class ScrollView extends Viewport {
     e.stopPropagation();
     this._pointerDown = true;
     this._isInteracting = true;
+    this.showAutoScrollbarsTemporarily();
 
     // 记录初始触摸位置
     this._lastX = ne.clientX;
@@ -546,8 +605,8 @@ export class ScrollView extends Viewport {
   onPointerMove(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
 
-    // Always check for hover state on scrollbars
-    // Use global coordinates for hitTest
+    // 始终检查滚动条 hover 状态
+    // 命中测试使用全局坐标
     let hitAny = false;
 
     if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
@@ -584,10 +643,10 @@ export class ScrollView extends Viewport {
       return;
     }
 
-    // Dragging Content
+    // 拖拽内容
     e.stopPropagation();
 
-    // Existing touch drag logic
+    // 触摸拖拽逻辑
     const dx = this._lastX - ne.clientX; // 拖动方向与滚动方向相反
     const dy = this._lastY - ne.clientY;
 
@@ -611,9 +670,10 @@ export class ScrollView extends Viewport {
     e.stopPropagation();
     this._pointerDown = false;
 
-    // ScrollBar handles its own drag end via window listener.
-    // We just reset our interaction state.
+    // 滚动条通过 window 监听自行处理拖拽结束
+    // 这里只需要重置交互状态
     this._isInteracting = false;
+    this.showAutoScrollbarsTemporarily();
     // 交互结束，检查是否需要回弹
     this.checkRebound();
   }
@@ -642,7 +702,9 @@ export class ScrollView extends Viewport {
 
     // 只有在发生实际滚动时才阻止冒泡
     // 如果已到达边界且未开启弹性（或弹性处理未消耗），则允许冒泡给父级
-    if (this.processScroll(dx, dy)) {
+    const didScroll = this.processScroll(dx, dy);
+    if (didScroll) {
+      this.showAutoScrollbarsTemporarily();
       e.stopPropagation();
     }
   }

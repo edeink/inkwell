@@ -9,7 +9,7 @@ describe('ScrollView', () => {
     vi.useFakeTimers();
 
     let currentTime = 0;
-    // Mock performance.now
+    // 模拟 performance.now
     vi.stubGlobal('performance', {
       now: () => currentTime,
     });
@@ -53,7 +53,7 @@ describe('ScrollView', () => {
       return this._showScrollbarX;
     }
 
-    // Override layoutChildren to spy on it
+    // 重写 layoutChildren 以统计调用次数
     protected layoutChildren(constraints: import('@/core/base').BoxConstraints): Size[] {
       this.layoutChildrenCallCount++;
       return super.layoutChildren(constraints);
@@ -377,7 +377,7 @@ describe('ScrollView', () => {
     // 如果中断，完成回调不应被调用（基于当前逻辑）
     // 逻辑：if (!shouldBounceBack) ... check bounceState ... IDLE ... complete.
     // 但 PointerDown 设置 INTERRUPTED。
-    // performBounceBack 不会运行。
+    // 回弹动画不会运行
     // 所以 complete 不会被调用。
     expect(onBounceComplete).not.toHaveBeenCalled();
   });
@@ -399,7 +399,7 @@ describe('ScrollView', () => {
     // 向左拖动 (startX 100 -> 移动到 80). dx = 20.
     // 应当向右滚动 (增加 scrollX).
     sv.simulatePointerDown(100, 100, 'touch');
-    sv.simulatePointerMove(80, 80, 'touch'); // X/Y 移动了 -20px
+    sv.simulatePointerMove(80, 80, 'touch'); // 坐标移动了 -20px
 
     // 预期: scrollX = 100 + 20 * 阻力
     // 在 100 处，overscroll 为 0。阻力 0.5。
@@ -442,7 +442,7 @@ describe('ScrollView', () => {
     expect(sv.layoutChildrenCallCount).toBe(1);
 
     // 第二次布局使用 相同 的约束
-    // simulateLayout 创建新的约束对象但值相同
+    // 这里创建了新的约束对象，但值相同
     // 优化应当跳过 layoutChildren
     sv.simulateLayout(100, 100, 200, 200);
     // 这里的计数可能会受到 performLayout 中状态更新的影响导致重新布局
@@ -496,6 +496,56 @@ describe('ScrollView', () => {
     // 内容高度小于视口高度
     scrollView.simulateLayout(300, 400, 300, 200);
 
+    expect(scrollView.isShowScrollbarY).toBe(false);
+  });
+
+  it('scrollBarVisibilityMode=hidden 应当强制隐藏滚动条', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      scrollBarVisibilityMode: 'hidden',
+      alwaysShowScrollbarX: true,
+      alwaysShowScrollbarY: true,
+    });
+
+    scrollView.simulateLayout(100, 100, 200, 200);
+
+    expect(scrollView.isShowScrollbarX).toBe(false);
+    expect(scrollView.isShowScrollbarY).toBe(false);
+  });
+
+  it('scrollBarVisibilityMode=always 不应改变默认的按轴显示逻辑', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 300,
+      height: 400,
+      scrollBarVisibilityMode: 'always',
+      alwaysShowScrollbarX: false,
+    });
+
+    scrollView.simulateLayout(300, 400, 200, 200);
+
+    expect(scrollView.isShowScrollbarX).toBe(false);
+    expect(scrollView.isShowScrollbarY).toBe(true);
+  });
+
+  it('scrollBarVisibilityMode=auto 应当在滚动时显示并在空闲时隐藏', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      scrollBarVisibilityMode: 'auto',
+      alwaysShowScrollbarY: false,
+    });
+
+    scrollView.simulateLayout(100, 100, 100, 300);
+    expect(scrollView.isShowScrollbarY).toBe(false);
+
+    scrollView.simulateWheel(0, 10);
+    expect(scrollView.isShowScrollbarY).toBe(true);
+
+    vi.advanceTimersByTime(801);
     expect(scrollView.isShowScrollbarY).toBe(false);
   });
 });

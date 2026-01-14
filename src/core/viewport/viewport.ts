@@ -77,7 +77,7 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
       this._onScrollListeners.add(props.onScroll);
     }
 
-    // Check for changes and mark dirty if needed
+    // 检查是否有变化，必要时标记为需要重新布局
     if (
       oldScale !== this._scale ||
       oldTx !== this._tx ||
@@ -123,7 +123,7 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
    * 获取视口在屏幕上的绝对位置
    * 用于将屏幕坐标转换为视口内坐标
    */
-  // getAbsolutePosition() moved to bottom to match Offset return type implementation
+  // 获取绝对位置的方法已移动到文件末尾，便于与偏移返回类型对齐
 
   // --- Listeners ---
 
@@ -227,7 +227,7 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     const s = targetScale;
 
     // 新的 tx 使得：cx = (contentX - scrollX) * s + newTx
-    // newTx = cx - (contentX - scrollX) * s
+    // 公式：newTx = cx - (contentX - scrollX) * s
 
     const tx = cx - (contentX - this._scrollX) * s;
     const ty = cy - (contentY - this._scrollY) * s;
@@ -284,8 +284,8 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     // 2. Paint Self (Background, Scrollbars, etc.)
     this.paintSelf({ ...context, worldMatrix: next });
 
-    // 3. Apply View Transform (Scale, Tx, Ty) for Children
-    // Matrix Order: T * S * p (Scale first, then Translate)
+    // 3. 对子节点应用视图变换（scale/tx/ty）
+    // 矩阵顺序：T * S * p（先缩放，再平移）
     const viewSteps: TransformStep[] = [
       { t: 'translate', x: this._tx, y: this._ty },
       { t: 'scale', sx: this._scale, sy: this._scale },
@@ -295,7 +295,7 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     const viewLocal = composeSteps(viewSteps);
     const childMatrix = multiply(next, viewLocal);
 
-    // 4. Paint Children
+    // 4. 绘制子节点
     const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
     for (const child of children) {
       child.paint({ ...context, worldMatrix: childMatrix });
@@ -316,8 +316,8 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     const w = Math.max(constraints.minWidth, Math.min(w0, constraints.maxWidth));
     const h = Math.max(constraints.minHeight, Math.min(h0, constraints.maxHeight));
 
-    this._width = isFinite(w) ? w : 800; // Default width
-    this._height = isFinite(h) ? h : 600; // Default height
+    this._width = isFinite(w) ? w : 800; // 默认宽度
+    this._height = isFinite(h) ? h : 600; // 默认高度
 
     return { width: this._width, height: this._height };
   }
@@ -359,15 +359,15 @@ export class Viewport<T extends ViewportProps = ViewportProps> extends Widget<T>
     // 让我们看看 MindMapViewport 怎么实现的...
     // 其实 MindMapViewport 源码里并没有定义 getAbsolutePosition，
     // 可能是通过 renderObject 获取，或者它其实是 RenderObjectWidget？
-    // MindMapViewport 继承 Widget。
+    // 思维导图视口继承 Widget
     // 实际上，RenderObject 有 globalToLocal 等方法。
 
     // 为了通用性，我们应该依赖 renderObject 的 globalToLocal 吗？
-    // Inkwell 的 RenderObject 体系可能支持这个。
+    // 渲染对象体系可能支持这个
 
     // 暂时我们简单模拟 MindMapViewport 的逻辑：
     // 我们需要在 Viewport 类中添加 getAbsolutePosition 逻辑，或者假设 e 已经包含了相对坐标？
-    // InkwellEvent 的 x, y 是相对于 Canvas 的。
+    // 事件的 x、y 是相对于画布的
 
     // 我们先实现一个简单的 getAbsolutePosition，向上遍历父级
     let dx = 0;

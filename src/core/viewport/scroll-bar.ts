@@ -37,7 +37,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
   private _currentColor: [number, number, number, number] | null = null;
   private _currentThickness: number = 0;
 
-  // Window event listeners for dragging
+  // 用于拖拽的 window 事件监听
   private _handleWindowMoveBound: (e: PointerEvent) => void;
   private _handleWindowUpBound: (e: PointerEvent) => void;
 
@@ -52,7 +52,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     const renderer = context.renderer;
     const { width, height } = this.renderObject.size;
 
-    // Draw Track
+    // 绘制轨道
     if (this.data.trackColor) {
       renderer.drawRect({
         x: 0,
@@ -68,15 +68,15 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       return;
     }
 
-    // Update Color Animation
+    // 更新颜色动画
     const targetColor = this.getTargetColor();
     if (!this._currentColor) {
       this._currentColor = targetColor;
     }
 
-    // Color interpolation
+    // 颜色插值
     const nextColor = lerpColor(this._currentColor, targetColor, 0.2);
-    // Check if color changed significantly
+    // 判断颜色是否仍在变化
     if (
       Math.abs(nextColor[0] - targetColor[0]) > 0.1 ||
       Math.abs(nextColor[1] - targetColor[1]) > 0.1 ||
@@ -89,14 +89,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       this._currentColor = targetColor;
     }
 
-    // Update Thickness Animation (for hover effect)
-    // Note: The Widget size itself doesn't change, we just draw the thumb wider or narrower within the bounds?
-    // Or we should expand the bounds?
-    // Usually scrollbars expand. If we expand bounds, it might affect layout.
-    // However, ScrollView positions us.
-    // Let's assume the ScrollView gives us enough space or we draw over the edge if allowed.
-    // But usually we just draw the thumb with varying thickness centered or aligned.
-
+    // 更新厚度动画（用于 hover/拖拽效果）
     const baseThickness = this.data.thickness || 6;
     const hoverThickness = this.data.hoverThickness || 10;
     const targetThickness = this._isHovering || this._isDragging ? hoverThickness : baseThickness;
@@ -108,8 +101,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       this._currentThickness = targetThickness;
     }
 
-    // Adjust thumb rect based on thickness
-    // Align to the right/bottom edge usually
+    // 根据厚度调整滑块
     let thumbX = rect.x;
     let thumbY = rect.y;
     let thumbW = rect.width;
@@ -117,11 +109,11 @@ export class ScrollBar extends Widget<ScrollBarProps> {
 
     if (this.data.orientation === 'vertical') {
       thumbW = this._currentThickness;
-      // Align right
+      // 贴右侧
       thumbX = width - thumbW;
     } else {
       thumbH = this._currentThickness;
-      // Align bottom
+      // 贴底部
       thumbY = height - thumbH;
     }
 
@@ -155,7 +147,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       return {
         x: 0,
         y: thumbPos,
-        width: width, // Full width of widget, adjusted in paint
+        width: width, // 绘制时会根据厚度调整
         height: thumbLength,
       };
     } else {
@@ -163,7 +155,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
         x: thumbPos,
         y: 0,
         width: thumbLength,
-        height: height, // Full height of widget, adjusted in paint
+        height: height, // 绘制时会根据厚度调整
       };
     }
   }
@@ -178,7 +170,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     return parseColor(colorStr);
   }
 
-  // --- Interaction ---
+  // --- 交互 ---
 
   onPointerDown(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
@@ -194,7 +186,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       this._dragStartPos = ne.clientX;
     }
 
-    // Attach window listeners
+    // 绑定 window 监听
     window.addEventListener('pointermove', this._handleWindowMoveBound);
     window.addEventListener('pointerup', this._handleWindowUpBound);
 
@@ -204,7 +196,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
   onPointerMove(e: InkwellEvent) {
     if (this._isDragging) {
       return;
-    } // Handled by window listener
+    } // 由 window 监听处理
 
     if (!this._isHovering) {
       this._isHovering = true;
@@ -234,8 +226,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
 
     const trackLength = orientation === 'vertical' ? height : width;
 
-    // Calculate scrollable track length (track - thumb)
-    // We need thumb length again
+    // 计算可拖拽轨道长度（轨道 - 滑块）
     const ratio = viewportSize / contentSize;
     const thumbLength = Math.max(20, trackLength * ratio);
     const scrollableTrackLen = trackLength - thumbLength;
@@ -255,27 +246,14 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     this.data.onScroll?.(newPos);
   }
 
-  private _handleWindowUp(e: PointerEvent) {
+  private _handleWindowUp(_e: PointerEvent) {
     if (!this._isDragging) {
       return;
     }
 
     this._isDragging = false;
+    this._isHovering = false;
     this.data.onDragEnd?.();
-
-    // Check if we are still hovering (e.g. mouse up happened inside)
-    // Since we can't easily check 'contains' against widget geometry from window event without hitTest,
-    // we might just reset hover if outside.
-    // Ideally we should check if e.clientX/Y is inside this widget.
-    // For simplicity, we can rely on onPointerEnter/Leave to correct it later,
-    // or just set hovering false and let user move mouse to trigger hover again.
-    // However, requirement says "ensure interaction state is correct".
-    // If mouse is still over the bar, it should be hovering.
-
-    // Simple approach: set hover false. If mouse is over, 'mousemove' on widget will trigger (if not captured?)
-    // Actually, since we were capturing (logically), we might need to re-check.
-    // But since we are not using setPointerCapture, the browser dispatch continues.
-    // Let's assume false, and if it's over, onPointerMove will fire.
 
     window.removeEventListener('pointermove', this._handleWindowMoveBound);
     window.removeEventListener('pointerup', this._handleWindowUpBound);
@@ -283,7 +261,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     this.markNeedsPaint();
   }
 
-  // Cleanup
+  // 清理
   dispose() {
     window.removeEventListener('pointermove', this._handleWindowMoveBound);
     window.removeEventListener('pointerup', this._handleWindowUpBound);

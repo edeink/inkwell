@@ -63,7 +63,7 @@ describe('ScrollView 坐标与命中测试', () => {
     expect(child.renderObject.size).toEqual({ width: 100, height: 300 });
 
     // 检查初始位置
-    // Viewport 在 (0,0) (相对于未知的父级，但 offset 默认为 0,0)
+    // 视口在 (0,0)（相对于未知父级，但偏移默认为 0,0）
     expect(scrollView.renderObject.offset).toEqual({ dx: 0, dy: 0 });
     expect(child.renderObject.offset).toEqual({ dx: -0, dy: -0 });
 

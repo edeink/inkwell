@@ -11,6 +11,7 @@ import {
 import { invert, transformPoint } from '@/core/helper/transform';
 import { Positioned } from '@/core/positioned';
 import { type TextLineMetrics } from '@/core/text';
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 import { type AnyElement } from '@/utils/compiler/jsx-compiler';
 
 export interface TextAreaProps extends WidgetProps {
@@ -40,8 +41,16 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
   private measureCtx: CanvasRenderingContext2D | null = null;
   private cursorTimer: number | null = null;
   private _rafId: number | null = null;
+  private _ensureCursorRafId: number | null = null;
   private textWidgetRef: Text | null = null;
   private isDragging: boolean = false;
+  private scrollViewRef: ScrollView | null = null;
+  private _dragPointerTarget: {
+    _worldMatrix?: [number, number, number, number, number, number];
+  } | null = null;
+  private _hasGlobalDragListeners = false;
+  private _handleWindowMoveBound: (e: PointerEvent) => void;
+  private _handleWindowUpBound: (e: PointerEvent) => void;
 
   constructor(props: TextAreaProps) {
     super(props);
@@ -53,6 +62,8 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
       cursorVisible: false,
     };
 
+    this._handleWindowMoveBound = this.handleWindowPointerMove.bind(this);
+    this._handleWindowUpBound = this.handleWindowPointerUp.bind(this);
     this.initMeasureContext();
     this.createHiddenInput();
   }
@@ -71,6 +82,8 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
   dispose() {
     this.stopCursorTimer();
     this.stopInputPositionLoop();
+    this.cancelEnsureCursorVisible();
+    this.detachGlobalDragListeners();
     if (this.input) {
       this.input.remove();
       this.input = null;
@@ -139,6 +152,7 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
     });
     this.props.onChange?.(target.value);
     this.resetCursorBlink();
+    this.scheduleEnsureCursorVisible();
   };
 
   private handleKeyDown = (e: KeyboardEvent) => {
@@ -158,6 +172,7 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
           selectionStart: this.input.selectionStart || 0,
           selectionEnd: this.input.selectionEnd || 0,
         });
+        this.scheduleEnsureCursorVisible();
       }
     }, 0);
   };
@@ -232,11 +247,13 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
         this.input.setSelectionRange(newIndex, newIndex);
       }
     }
+    this.scheduleEnsureCursorVisible();
   }
 
   private handleFocus = () => {
     this.setState({ focused: true, cursorVisible: true });
     this.startCursorTimer();
+    this.scheduleEnsureCursorVisible();
   };
 
   private handleBlur = () => {
@@ -267,11 +284,113 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
     }
   }
 
+  private cancelEnsureCursorVisible() {
+    if (this._ensureCursorRafId !== null && typeof window !== 'undefined') {
+      try {
+        window.cancelAnimationFrame(this._ensureCursorRafId);
+      } catch {}
+    }
+    this._ensureCursorRafId = null;
+  }
+
+  private scheduleEnsureCursorVisible() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._ensureCursorRafId !== null) {
+      return;
+    }
+    const raf = window.requestAnimationFrame;
+    if (typeof raf !== 'function') {
+      setTimeout(() => this.ensureCursorVisible(), 0);
+      return;
+    }
+    this._ensureCursorRafId = raf(() => {
+      this._ensureCursorRafId = null;
+      this.ensureCursorVisible();
+    });
+  }
+
+  private ensureCursorVisible() {
+    const sv = this.scrollViewRef;
+    if (!sv) {
+      return;
+    }
+
+    const viewportW = sv.width;
+    const viewportH = sv.height;
+    if (viewportW <= 0 || viewportH <= 0) {
+      return;
+    }
+
+    const cursor = this.getCursorInfoAtIndex(this.state.selectionEnd);
+    const caretW = 2;
+    const padding = 8;
+
+    const lines = this.textWidgetRef?.lines || [];
+    let contentW = 0;
+    let contentH = 0;
+    for (const line of lines) {
+      contentW = Math.max(contentW, (line.x || 0) + (line.width || 0));
+      contentH = Math.max(contentH, (line.y || 0) + (line.height || 0));
+    }
+    if (lines.length === 0) {
+      const fontSize = this.props.fontSize || 14;
+      const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+      if (this.measureCtx) {
+        this.measureCtx.font = `${fontSize}px ${fontFamily}`;
+        contentW = this.measureCtx.measureText(this.state.text).width || 0;
+      }
+      contentH = fontSize * 1.5;
+    }
+
+    const maxScrollX = Math.max(0, contentW - viewportW);
+    const maxScrollY = Math.max(0, contentH - viewportH);
+
+    const caretLeft = cursor.x;
+    const caretRight = cursor.x + caretW;
+    const caretTop = cursor.y;
+    const caretBottom = cursor.y + cursor.height;
+
+    const curScrollX = sv.scrollX;
+    const curScrollY = sv.scrollY;
+
+    const visibleLeft = curScrollX + padding;
+    const visibleRight = curScrollX + viewportW - padding;
+    const visibleTop = curScrollY + padding;
+    const visibleBottom = curScrollY + viewportH - padding;
+
+    let nextScrollX = curScrollX;
+    let nextScrollY = curScrollY;
+
+    if (caretLeft < visibleLeft) {
+      nextScrollX = caretLeft - padding;
+    } else if (caretRight > visibleRight) {
+      nextScrollX = caretRight - (viewportW - padding);
+    }
+
+    if (caretTop < visibleTop) {
+      nextScrollY = caretTop - padding;
+    } else if (caretBottom > visibleBottom) {
+      nextScrollY = caretBottom - (viewportH - padding);
+    }
+
+    nextScrollX = Math.max(0, Math.min(maxScrollX, nextScrollX));
+    nextScrollY = Math.max(0, Math.min(maxScrollY, nextScrollY));
+
+    if (nextScrollX === curScrollX && nextScrollY === curScrollY) {
+      return;
+    }
+    sv.scrollTo(nextScrollX, nextScrollY);
+  }
+
   private measureTextWidth(text: string): number {
     if (!this.measureCtx) {
       return 0;
     }
-    this.measureCtx.font = `${this.props.fontSize || 14}px ${this.props.fontFamily || 'Arial, sans-serif'}`;
+    const fontSize = this.props.fontSize || 14;
+    const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+    this.measureCtx.font = `${fontSize}px ${fontFamily}`;
     return this.measureCtx.measureText(text).width;
   }
 
@@ -376,10 +495,87 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
     return { x: e.x, y: e.y };
   }
 
+  private getLocalPointFromClient(clientX: number, clientY: number): { x: number; y: number } {
+    const target = this._dragPointerTarget;
+    if (target?._worldMatrix) {
+      try {
+        const inv = invert(target._worldMatrix);
+        return transformPoint(inv, { x: clientX, y: clientY });
+      } catch (err) {}
+    }
+    return { x: clientX, y: clientY };
+  }
+
+  private attachGlobalDragListeners() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._hasGlobalDragListeners) {
+      return;
+    }
+    this._hasGlobalDragListeners = true;
+    window.addEventListener('pointermove', this._handleWindowMoveBound);
+    window.addEventListener('pointerup', this._handleWindowUpBound);
+  }
+
+  private detachGlobalDragListeners() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!this._hasGlobalDragListeners) {
+      return;
+    }
+    this._hasGlobalDragListeners = false;
+    window.removeEventListener('pointermove', this._handleWindowMoveBound);
+    window.removeEventListener('pointerup', this._handleWindowUpBound);
+  }
+
+  private updateSelectionByLocalPoint(localX: number, localY: number) {
+    if (!this.isDragging) {
+      return;
+    }
+    const index = this.getIndexAtPoint(localX, localY);
+    const st = this.state;
+    if (index !== st.selectionEnd) {
+      this.setState({ selectionEnd: index });
+      if (this.input) {
+        const start = Math.min(st.selectionStart, index);
+        const end = Math.max(st.selectionStart, index);
+        const dir = st.selectionStart > index ? 'backward' : 'forward';
+        try {
+          this.input.setSelectionRange(start, end, dir);
+        } catch {}
+      }
+    }
+    this.scheduleEnsureCursorVisible();
+  }
+
+  private handleWindowPointerMove(e: PointerEvent) {
+    if (!this.isDragging) {
+      return;
+    }
+    const pt = this.getLocalPointFromClient(e.clientX, e.clientY);
+    this.updateSelectionByLocalPoint(pt.x, pt.y);
+  }
+
+  private handleWindowPointerUp(_e: PointerEvent) {
+    if (!this.isDragging) {
+      return;
+    }
+    this.isDragging = false;
+    this.detachGlobalDragListeners();
+    this.input?.focus();
+    this.scheduleEnsureCursorVisible();
+  }
+
   private handlePointerDown = (e: InkwellEvent) => {
     e.stopPropagation?.();
     this.isDragging = true;
     this.input?.focus();
+    this._dragPointerTarget = e.target as unknown as {
+      _worldMatrix?: [number, number, number, number, number, number];
+    } | null;
+    this.attachGlobalDragListeners();
 
     const pt = this.getLocalPoint(e);
     const index = this.getIndexAtPoint(pt.x, pt.y);
@@ -392,33 +588,33 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
     if (this.input) {
       this.input.setSelectionRange(index, index);
     }
+    this.scheduleEnsureCursorVisible();
   };
 
   private handlePointerMove = (e: InkwellEvent) => {
     e.stopPropagation?.();
+    const ne = (e as unknown as { nativeEvent?: PointerEvent } | null)?.nativeEvent;
+    if (this.isDragging && this._hasGlobalDragListeners && ne && typeof ne.clientX === 'number') {
+      return;
+    }
     if (!this.isDragging) {
       return;
     }
 
     const pt = this.getLocalPoint(e);
-    const index = this.getIndexAtPoint(pt.x, pt.y);
-
-    this.setState({
-      selectionEnd: index,
-    });
-
-    if (this.input) {
-      const start = Math.min(this.state.selectionStart, index);
-      const end = Math.max(this.state.selectionStart, index);
-      const dir = this.state.selectionStart > index ? 'backward' : 'forward';
-      this.input.setSelectionRange(start, end, dir);
-    }
+    this.updateSelectionByLocalPoint(pt.x, pt.y);
   };
 
-  private handlePointerUp = (_: InkwellEvent) => {
-    _.stopPropagation?.();
+  private handlePointerUp = (e: InkwellEvent) => {
+    e.stopPropagation?.();
+    const ne = (e as unknown as { nativeEvent?: PointerEvent } | null)?.nativeEvent;
+    if (this.isDragging && this._hasGlobalDragListeners && ne && typeof ne.clientX === 'number') {
+      return;
+    }
     this.isDragging = false;
+    this.detachGlobalDragListeners();
     this.input?.focus();
+    this.scheduleEnsureCursorVisible();
   };
 
   render() {
@@ -426,11 +622,14 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
       fontSize = 14,
       fontFamily = 'Arial, sans-serif',
       color = '#000000',
-      selectionColor = 'rgba(0, 150, 255, 0.3)',
       cursorColor = '#000000',
     } = this.props;
 
     const { text, selectionStart, selectionEnd, focused, cursorVisible } = this.state;
+    const theme = Themes[getCurrentThemeMode()];
+    const resolvedSelectionColor = focused
+      ? (this.props.selectionColor ?? theme.state.focus)
+      : theme.state.selected;
 
     // Calculate cursor
     const cursorInfo = this.getCursorInfoAtIndex(selectionEnd);
@@ -456,7 +655,7 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
 
           selectionWidgets.push(
             <Positioned key={`sel-${lineStart}`} left={line.x + preWidth} top={line.y}>
-              <Container width={selWidth} height={line.height} color={selectionColor} />
+              <Container width={selWidth} height={line.height} color={resolvedSelectionColor} />
             </Positioned>,
           );
         }
@@ -473,9 +672,11 @@ export class TextArea extends StatefulWidget<TextAreaProps, TextAreaState> {
         cursor="text"
       >
         <ScrollView
+          ref={(r) => (this.scrollViewRef = r as ScrollView)}
           enableBounceVertical={true}
           enableBounceHorizontal={false}
           alwaysShowScrollbarY={false}
+          scrollBarVisibilityMode="auto"
         >
           <Stack>
             {/* Selection */}

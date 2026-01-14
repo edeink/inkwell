@@ -239,7 +239,7 @@ describe('ScrollBar', () => {
 
     // 手动或通过交互附加监听器
     // 注意：实现会移除特定的绑定函数。
-    // dispose 调用 removeEventListener 并传入构造函数中创建的绑定函数。
+    // 释放时应移除监听器，并传入构造时创建的绑定函数。
 
     sb.dispose();
     expect(window.removeEventListener).toHaveBeenCalled();
