@@ -320,144 +320,123 @@ export class Text extends Widget<TextProps> {
     const m = ctx.measureText(this.text);
     const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
     const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
-    const textWidth = m.width;
+    const maxLines = this.maxLines || Infinity;
+    const text = this.text;
 
-    if (maxWidth === Infinity || textWidth <= maxWidth) {
-      lines.push(this.text);
-      lineWidths.push(textWidth);
-      lineIndices.push({ start: 0, end: this.text.length });
-      this.textMetrics = {
-        width: Math.max(
-          constraints.minWidth,
-          Math.min(textWidth, maxWidth === Infinity ? textWidth : maxWidth),
-        ),
-        height: Math.max(constraints.minHeight, lineHeightPx),
-        lines,
-        lineWidths,
-        lineIndices,
-        ascent,
-        descent,
-      };
+    let didWrap = false;
+    let overflowed = false;
+
+    let currentLine = '';
+    let currentLineStart = 0;
+    let currentWidth = 0;
+
+    if (text.length === 0) {
+      lines.push('');
+      lineWidths.push(0);
+      lineIndices.push({ start: 0, end: 0 });
     } else {
-      // 实现类似 word-wrap: break-word 的逻辑
-      // 1. 按空格分割单词
-      // 2. 尝试将单词放入当前行
-      // 3. 如果单词过长（超过 maxWidth），则强制拆分单词
-      const words = this.text.split(' ');
-      let currentLine = '';
-      let currentLineStart = 0;
-      let charCursor = 0; // 记录原始文本中的位置
+      let i = 0;
+      while (i < text.length) {
+        const codePoint = text.codePointAt(i);
+        if (codePoint === undefined) {
+          break;
+        }
+        const char = String.fromCodePoint(codePoint);
+        const charLen = char.length;
 
-      const maxLines = this.maxLines || Infinity;
+        if (char === '\n') {
+          lines.push(currentLine);
+          lineWidths.push(currentWidth);
+          lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
 
-      for (let i = 0; i < words.length && lines.length < maxLines; i++) {
-        const word = words[i];
-        // 如果不是第一个单词，我们需要跳过一个空格
-        if (i > 0) {
-          charCursor++;
+          currentLine = '';
+          currentWidth = 0;
+          i += 1;
+          currentLineStart = i;
+
+          if (lines.length >= maxLines) {
+            if (i < text.length) {
+              overflowed = true;
+            }
+            break;
+          }
+          continue;
         }
 
-        const wordStart = charCursor;
-        charCursor += word.length;
+        const charWidth = ctx.measureText(char).width;
 
-        const spacing = currentLine ? ' ' : '';
-        const testLine = currentLine + spacing + word;
-        const testWidth = ctx.measureText(testLine).width;
+        if (
+          maxWidth !== Infinity &&
+          currentLine.length > 0 &&
+          currentWidth + charWidth > maxWidth
+        ) {
+          didWrap = true;
 
-        if (testWidth <= maxWidth) {
-          currentLine = testLine;
-        } else {
-          // 当前行已有内容，先换行
-          if (currentLine) {
-            lines.push(currentLine);
-            lineWidths.push(ctx.measureText(currentLine).width);
-            lineIndices.push({
-              start: currentLineStart,
-              end: currentLineStart + currentLine.length,
-            });
+          lines.push(currentLine);
+          lineWidths.push(currentWidth);
+          lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
 
-            currentLine = '';
-            // 新行从当前单词开始
-            currentLineStart = wordStart;
+          currentLine = '';
+          currentWidth = 0;
+          currentLineStart = i;
 
-            // 如果达到最大行数，停止
-            if (lines.length >= maxLines) {
-              break;
-            }
+          if (lines.length >= maxLines) {
+            overflowed = true;
+            break;
           }
+          continue;
+        }
 
-          // 检查单词本身是否超过 maxWidth
-          const wordWidth = ctx.measureText(word).width;
-          if (wordWidth <= maxWidth) {
-            currentLine = word;
-            currentLineStart = wordStart;
-          } else {
-            // 单词过长，需要强制拆分 (break-word)
-            const chars = Array.from(word);
-            let subLine = '';
-            let subLineStart = wordStart;
+        currentLine += char;
+        currentWidth += charWidth;
+        i += charLen;
+      }
 
-            for (let j = 0; j < chars.length; j++) {
-              const char = chars[j];
-              const testSubLine = subLine + char;
-              if (ctx.measureText(testSubLine).width <= maxWidth) {
-                subLine = testSubLine;
-              } else {
-                lines.push(subLine);
-                lineWidths.push(ctx.measureText(subLine).width);
-                lineIndices.push({ start: subLineStart, end: subLineStart + subLine.length });
-
-                subLine = char;
-                // subLine 现在是单个字符，所以起始位置增加前一个 subLine 的长度
-                // 更新 subLineStart 位置，加上前一个片段的长度
-                subLineStart = subLineStart + (testSubLine.length - 1);
-
-                if (lines.length >= maxLines) {
-                  break;
-                }
-              }
-            }
-            if (lines.length < maxLines) {
-              currentLine = subLine;
-              currentLineStart = subLineStart;
-            } else {
-              // 已经达到最大行数，最后一部分被丢弃或用于 overflow 处理
-              currentLine = subLine; // 暂存
-            }
-          }
+      if (!overflowed && lines.length < maxLines) {
+        if (currentLine.length > 0 || lines.length === 0 || text.endsWith('\n')) {
+          lines.push(currentLine);
+          lineWidths.push(currentWidth);
+          lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
         }
       }
 
-      if (currentLine && lines.length < maxLines) {
-        lines.push(currentLine);
-        lineWidths.push(ctx.measureText(currentLine).width);
-        lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
+      if (lines.length > maxLines) {
+        lines.length = maxLines;
+        lineWidths.length = maxLines;
+        lineIndices.length = maxLines;
+        overflowed = true;
       }
 
-      if (lines.length >= maxLines && this.overflow === 'ellipsis') {
+      if (
+        lines.length >= maxLines &&
+        overflowed &&
+        this.overflow === Overflow.Ellipsis &&
+        maxWidth !== Infinity
+      ) {
         const lastLineIndex = maxLines - 1;
-        // 简单处理：重新取最后一行内容并尝试截断
-        let lastLine = lines[lastLineIndex];
-        // 需要重新测量宽度并更新指标
+        let lastLine = lines[lastLineIndex] ?? '';
         while (ctx.measureText(lastLine + '...').width > maxWidth && lastLine.length > 0) {
           lastLine = lastLine.slice(0, -1);
         }
         lines[lastLineIndex] = lastLine + '...';
         lineWidths[lastLineIndex] = ctx.measureText(lines[lastLineIndex]).width;
-        // 尝试缩短范围
         lineIndices[lastLineIndex].end = lineIndices[lastLineIndex].start + lastLine.length;
       }
-
-      this.textMetrics = {
-        width: maxWidth,
-        height: Math.max(constraints.minHeight, lines.length * lineHeightPx),
-        lines,
-        lineWidths,
-        lineIndices,
-        ascent,
-        descent,
-      };
     }
+
+    const maxLineWidth = lineWidths.reduce((acc, w) => Math.max(acc, w), 0);
+    const contentWidth =
+      maxWidth === Infinity ? maxLineWidth : didWrap ? maxWidth : Math.min(maxWidth, maxLineWidth);
+
+    this.textMetrics = {
+      width: Math.max(constraints.minWidth, contentWidth),
+      height: Math.max(constraints.minHeight, lines.length * lineHeightPx),
+      lines,
+      lineWidths,
+      lineIndices,
+      ascent,
+      descent,
+    };
   }
 
   // 当不存在 canvsa 2d 上下文时，计算文本指标（估计值）
@@ -467,46 +446,91 @@ export class Text extends Widget<TextProps> {
     const lineHeightPx = Math.max(fontSize, rawLineHeight);
     const avgCharWidth = fontSize * 0.6;
     const lines: string[] = [];
+    const lineWidths: number[] = [];
+    const lineIndices: { start: number; end: number }[] = [];
     const maxWidth = constraints.maxWidth;
     const ascent = fontSize * 0.8;
     const descent = fontSize * 0.2;
-    if (maxWidth === Infinity || this.text.length * avgCharWidth <= maxWidth) {
-      lines.push(this.text);
+    const text = this.text;
+    if (text.length === 0) {
+      lines.push('');
+      lineWidths.push(0);
+      lineIndices.push({ start: 0, end: 0 });
       this.textMetrics = {
-        width: Math.max(constraints.minWidth, Math.min(this.text.length * avgCharWidth, maxWidth)),
+        width: Math.max(constraints.minWidth, Math.min(0, maxWidth)),
         height: Math.max(constraints.minHeight, lineHeightPx),
         lines,
+        lineWidths,
+        lineIndices,
         ascent,
         descent,
       };
-    } else {
-      // 计算每行字符数，确保至少为1，防止非法数组长度错误
-      const charsPerLine = Math.max(1, Math.floor(maxWidth / avgCharWidth));
-      let remainingText = this.text;
-      const maxLines = this.maxLines || Infinity;
-      while (remainingText.length > 0 && lines.length < maxLines) {
-        let line = remainingText.substring(0, charsPerLine);
-        if (
-          lines.length === maxLines - 1 &&
-          remainingText.length > charsPerLine &&
-          this.overflow === Overflow.Ellipsis
-        ) {
-          line = line.substring(0, line.length - 3) + '...';
-        }
-        lines.push(line);
-        remainingText = remainingText.substring(charsPerLine);
+      return;
+    }
+
+    const maxLines = this.maxLines || Infinity;
+    const charsPerLine =
+      maxWidth === Infinity ? Infinity : Math.max(1, Math.floor(maxWidth / avgCharWidth));
+
+    let i = 0;
+    let currentLine = '';
+    let currentLineStart = 0;
+
+    while (i < text.length) {
+      const char = text[i];
+      if (char === '\n') {
+        lines.push(currentLine);
+        lineWidths.push(currentLine.length * avgCharWidth);
+        lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
+
+        currentLine = '';
+        i += 1;
+        currentLineStart = i;
+
         if (lines.length >= maxLines) {
           break;
         }
+        continue;
       }
-      this.textMetrics = {
-        width: maxWidth,
-        height: Math.max(constraints.minHeight, lines.length * lineHeightPx),
-        lines,
-        ascent,
-        descent,
-      };
+
+      if (currentLine.length >= charsPerLine) {
+        lines.push(currentLine);
+        lineWidths.push(currentLine.length * avgCharWidth);
+        lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
+
+        currentLine = '';
+        currentLineStart = i;
+
+        if (lines.length >= maxLines) {
+          break;
+        }
+        continue;
+      }
+
+      currentLine += char;
+      i += 1;
     }
+
+    if (lines.length < maxLines) {
+      if (currentLine.length > 0 || lines.length === 0 || text.endsWith('\n')) {
+        lines.push(currentLine);
+        lineWidths.push(currentLine.length * avgCharWidth);
+        lineIndices.push({ start: currentLineStart, end: currentLineStart + currentLine.length });
+      }
+    }
+
+    const maxLineWidth = lineWidths.reduce((acc, w) => Math.max(acc, w), 0);
+    const contentWidth = maxWidth === Infinity ? maxLineWidth : Math.min(maxWidth, maxLineWidth);
+
+    this.textMetrics = {
+      width: Math.max(constraints.minWidth, contentWidth),
+      height: Math.max(constraints.minHeight, lines.length * lineHeightPx),
+      lines,
+      lineWidths,
+      lineIndices,
+      ascent,
+      descent,
+    };
   }
 
   protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
