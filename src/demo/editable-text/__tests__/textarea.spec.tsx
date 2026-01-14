@@ -1,8 +1,9 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TextArea } from '../widget/TextArea';
+import { TextArea } from '../widget/textarea';
 
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 // Mock core components
@@ -39,7 +40,29 @@ vi.mock('@/core/text/layout', () => ({
   },
 }));
 
-describe('TextArea Component', () => {
+function findFirstCompiledContainerColor(
+  node: any,
+  predicate: (n: any) => boolean,
+): string | undefined {
+  if (!node || typeof node !== 'object') {
+    return undefined;
+  }
+  if (node.type === 'Container' && typeof node.color === 'string' && predicate(node)) {
+    return node.color;
+  }
+  const children = node.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      const found = findFirstCompiledContainerColor(child, predicate);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return undefined;
+}
+
+describe('TextArea 组件', () => {
   let textareaComponent: TextArea;
   let props: any;
 
@@ -84,7 +107,7 @@ describe('TextArea Component', () => {
   it('应该响应 input 事件并调用 onChange', () => {
     const textarea = document.querySelector('textarea');
     if (!textarea) {
-      throw new Error('Textarea not found');
+      throw new Error('未找到 textarea 元素');
     }
 
     textarea.value = 'Changed';
@@ -129,5 +152,67 @@ describe('TextArea Component', () => {
     expect(textareaComponent.state.selectionStart).toBeGreaterThanOrEqual(0);
     // @ts-expect-error 测试用访问内部状态
     expect(textareaComponent.state.selectionEnd).toBeGreaterThanOrEqual(0);
+  });
+
+  it('拖拽时应使用全局监听继续更新选区', () => {
+    (textareaComponent as any).textWidgetRef = {
+      lines: [
+        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
+        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+      ],
+    };
+
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    const element = compileElement(textareaComponent.render()) as any;
+    element.onPointerDown({ x: 10, y: 10, target: {}, stopPropagation: vi.fn() } as any);
+
+    expect(addSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
+    expect(addSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+
+    const MoveEvent = (window as any).PointerEvent ?? MouseEvent;
+    window.dispatchEvent(new MoveEvent('pointermove', { clientX: 30, clientY: 25 }) as any);
+
+    // @ts-expect-error 测试用访问内部状态
+    expect(textareaComponent.state.selectionEnd).toBeGreaterThan(0);
+
+    window.dispatchEvent(new MoveEvent('pointerup', { clientX: 30, clientY: 25 }) as any);
+    expect(removeSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+  });
+
+  it('聚焦与失焦时选区颜色应不同', () => {
+    (textareaComponent as any).textWidgetRef = {
+      lines: [
+        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
+        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+      ],
+    };
+
+    const element = compileElement(textareaComponent.render()) as any;
+    element.onPointerDown({ x: 0, y: 0, target: {}, stopPropagation: vi.fn() } as any);
+    element.onPointerMove({ x: 30, y: 25, stopPropagation: vi.fn() } as any);
+    element.onPointerUp({ x: 30, y: 25, stopPropagation: vi.fn() } as any);
+
+    const theme = Themes[getCurrentThemeMode()];
+
+    const textarea = document.querySelector('textarea');
+    expect(textarea).not.toBeNull();
+
+    const focusedTree = compileElement(textareaComponent.render()) as any;
+    const focusedColor = findFirstCompiledContainerColor(
+      focusedTree,
+      (n) => typeof n.color === 'string' && n.width !== 2,
+    );
+    expect(focusedColor).toBe(theme.state.focus);
+
+    textarea?.dispatchEvent(new Event('blur'));
+    const blurredTree2 = compileElement(textareaComponent.render()) as any;
+    const blurredColor2 = findFirstCompiledContainerColor(
+      blurredTree2,
+      (n) => typeof n.color === 'string' && n.width !== 2,
+    );
+    expect(blurredColor2).toBe(theme.state.selected);
   });
 });

@@ -1,6 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
-import { Input } from './widget/Input';
-import { TextArea } from './widget/TextArea';
+import { Input } from './widget/input';
+import { TextArea } from './widget/textarea';
 
 import {
   Column,

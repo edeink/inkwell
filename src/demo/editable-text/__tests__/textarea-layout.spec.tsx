@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { TextArea } from '../widget/TextArea';
+import { TextArea } from '../widget/textarea';
 
 import { createBoxConstraints, Widget } from '@/core/base';
 import { ScrollView } from '@/core/viewport/scroll-view';
