@@ -6,6 +6,7 @@ import { RawButton } from '../widgets/raw-button';
 import { createBoxConstraints } from '@/core/base';
 import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events';
 import { WidgetRegistry } from '@/core/registry';
+import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 // 注册组件以供 JSX 编译器识别
@@ -24,15 +25,21 @@ describe('RawButton 事件双重绑定问题验证', () => {
     // 使用 JSX 编译方式创建组件
     const element = (
       // @ts-ignore: 忽略 JSX 类型检查，RawButton 是自定义底层 Widget
-      <RawButton key="test-raw-btn" onClick={onClick} width={100} height={50} />
+      <RawButton
+        key="test-raw-btn"
+        onClick={onClick}
+        width={100}
+        height={50}
+        theme={Themes.light}
+      />
     );
 
     const data = compileElement(element);
-    const button = WidgetRegistry.createWidget(data) as RawButton;
+    const button = WidgetRegistry.createWidget(data as unknown as any) as RawButton;
     // 确保创建成功
     expect(button).toBeTruthy();
 
-    button.createElement(data);
+    button.createElement(data as unknown as any);
     button.layout(createBoxConstraints());
 
     // 模拟点击事件
@@ -53,12 +60,12 @@ describe('RawButton 事件双重绑定问题验证', () => {
   it('无回调函数时不应报错', () => {
     const element = (
       // @ts-ignore
-      <RawButton key="test-raw-btn-no-callback" width={100} height={50} />
+      <RawButton key="test-raw-btn-no-callback" width={100} height={50} theme={Themes.light} />
     );
 
     const data = compileElement(element);
-    const button = WidgetRegistry.createWidget(data) as RawButton;
-    button.createElement(data);
+    const button = WidgetRegistry.createWidget(data as unknown as any) as RawButton;
+    button.createElement(data as unknown as any);
     button.layout(createBoxConstraints());
 
     const pos = { dx: 0, dy: 0 };
@@ -76,12 +83,18 @@ describe('RawButton 事件双重绑定问题验证', () => {
 
     const element = (
       // @ts-ignore
-      <RawButton key="test-raw-btn-event" onClick={onClick} width={100} height={50} />
+      <RawButton
+        key="test-raw-btn-event"
+        onClick={onClick}
+        width={100}
+        height={50}
+        theme={Themes.light}
+      />
     );
 
     const data = compileElement(element);
-    const button = WidgetRegistry.createWidget(data) as RawButton;
-    button.createElement(data);
+    const button = WidgetRegistry.createWidget(data as unknown as any) as RawButton;
+    button.createElement(data as unknown as any);
     button.layout(createBoxConstraints());
 
     const clickX = 15;

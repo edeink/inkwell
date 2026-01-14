@@ -31,7 +31,8 @@ export class SwiperDemoApp extends StatelessWidget<SwiperDemoAppProps> {
 
   render(): Widget {
     const theme = this.props.theme || Themes.light;
-    const { width, height } = this.props;
+    const width = this.props.width as number | undefined;
+    const height = this.props.height as number | undefined;
 
     // Helper to create colored pages
     const createPages = (prefix: string, count: number = 3) =>

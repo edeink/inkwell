@@ -81,8 +81,8 @@ describe('Spreadsheet Selection Logic', () => {
     // Click (1, 1)
     handleCellDown(1, 1, createEvent({}));
 
-    expect(spreadsheet.state.selections).toHaveLength(1);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(1);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 1,
       startCol: 1,
       endRow: 1,
@@ -101,14 +101,14 @@ describe('Spreadsheet Selection Logic', () => {
     // Ctrl+Click (3, 3)
     handleCellDown(3, 3, createEvent({ ctrlKey: true }));
 
-    expect(spreadsheet.state.selections).toHaveLength(2);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(2);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 1,
       startCol: 1,
       endRow: 1,
       endCol: 1,
     });
-    expect(spreadsheet.state.selections[1]).toEqual({
+    expect((spreadsheet as any).state.selections[1]).toEqual({
       startRow: 3,
       startCol: 3,
       endRow: 3,
@@ -128,8 +128,8 @@ describe('Spreadsheet Selection Logic', () => {
     // Shift+Click (3, 3)
     handleCellDown(3, 3, createEvent({ shiftKey: true }));
 
-    expect(spreadsheet.state.selections).toHaveLength(1);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(1);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 1,
       startCol: 1,
       endRow: 3,
@@ -154,8 +154,8 @@ describe('Spreadsheet Selection Logic', () => {
       preventDefault: vi.fn(),
     });
 
-    expect(spreadsheet.state.selections).toHaveLength(1);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(1);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 1,
       startCol: 1,
       endRow: 2,
@@ -187,8 +187,8 @@ describe('Spreadsheet Selection Logic', () => {
       preventDefault: vi.fn(),
     });
 
-    expect(spreadsheet.state.selections).toHaveLength(1);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(1);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 2,
       startCol: 2,
       endRow: 2,
@@ -208,8 +208,8 @@ describe('Spreadsheet Selection Logic', () => {
     // Hover (2, 2)
     handleCellHover(2, 2);
 
-    expect(spreadsheet.state.selections).toHaveLength(1);
-    expect(spreadsheet.state.selections[0]).toEqual({
+    expect((spreadsheet as any).state.selections).toHaveLength(1);
+    expect((spreadsheet as any).state.selections[0]).toEqual({
       startRow: 1,
       startCol: 1,
       endRow: 2,

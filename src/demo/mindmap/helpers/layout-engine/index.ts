@@ -8,7 +8,6 @@ type EdgeRec = { from: string; to: string };
 
 interface MindMapWidget extends Widget {
   prefSide?: Side;
-  isPositioned?: boolean;
 }
 
 /**

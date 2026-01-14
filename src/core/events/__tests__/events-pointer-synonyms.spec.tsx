@@ -2,13 +2,19 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Container } from '@/core';
-import { Widget, createBoxConstraints, type BoxConstraints, type BuildContext } from '@/core/base';
+import {
+  Widget,
+  createBoxConstraints,
+  type BoxConstraints,
+  type BuildContext,
+  type WidgetProps,
+} from '@/core/base';
 import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events';
 import '@/core/registry';
 import { WidgetRegistry } from '@/core/registry';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-class SynWidget extends Widget<{ key?: string; type?: string; width?: number; height?: number }> {
+class SynWidget extends Widget<WidgetProps & { width?: number; height?: number }> {
   width = 40;
   height = 30;
 
@@ -39,7 +45,7 @@ function buildTree() {
   root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0] as Widget;
-  const leaf = inner?.children?.[0] as SynWidget;
+  const leaf = inner?.children?.[0] as unknown as SynWidget;
   return { root, leaf };
 }
 

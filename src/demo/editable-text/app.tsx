@@ -1,9 +1,11 @@
 /** @jsxImportSource @/utils/compiler */
+import { Input } from './widget/Input';
+import { TextArea } from './widget/TextArea';
+
 import {
   Column,
   Container,
   CrossAxisAlignment,
-  EditableText,
   Padding,
   Row,
   StatefulWidget,
@@ -55,7 +57,7 @@ export class EditableTextDemo extends StatefulWidget<EditableTextDemoProps, Edit
                 color={theme.background.container}
               >
                 <Padding padding={{ left: 12, top: 10, right: 12, bottom: 10 }}>
-                  <EditableText
+                  <Input
                     value={this.state.singleLineValue}
                     onChange={(val) => this.setState({ singleLineValue: val })}
                     color={theme.text.primary}
@@ -83,12 +85,11 @@ export class EditableTextDemo extends StatefulWidget<EditableTextDemoProps, Edit
                 color={theme.background.container}
               >
                 <Padding padding={12}>
-                  <EditableText
+                  <TextArea
                     value={this.state.multiLineValue}
                     onChange={(val) => this.setState({ multiLineValue: val })}
                     color={theme.text.primary}
                     fontSize={14}
-                    multiline={true}
                     selectionColor={theme.state.focus}
                     cursorColor={theme.text.primary}
                   />

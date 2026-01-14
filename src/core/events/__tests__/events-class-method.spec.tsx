@@ -12,10 +12,10 @@ import {
 import { EventRegistry, dispatchToTree, type InkwellEvent } from '@/core/events';
 import '@/core/registry';
 import { WidgetRegistry } from '@/core/registry';
-import { compileElement } from '@/utils/compiler/jsx-compiler';
+import { compileElement, type AnyElement } from '@/utils/compiler/jsx-compiler';
 import { testLogger } from '@/utils/test-logger';
 
-class CustomWidget extends Widget<{ key?: string; type: string; width?: number; height?: number }> {
+class CustomWidget extends Widget<WidgetProps & { width?: number; height?: number }> {
   width = 40;
   height = 30;
 
@@ -71,7 +71,7 @@ function buildTree(
   root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0] as Widget;
-  const leaf = inner.children[0] as CustomWidget;
+  const leaf = inner.children[0] as unknown as CustomWidget;
   return { root, inner, leaf };
 }
 
@@ -114,10 +114,10 @@ describe('事件系统（类方法）', () => {
   it('跨组件传播顺序一致：捕获→目标→冒泡（MouseOver）', () => {
     const calls: string[] = [];
     const { root, leaf } = buildTree();
-    root.onMouseOverCapture = (_e: InkwellEvent) => {
+    (root as unknown as Record<string, unknown>).onMouseOverCapture = (_e: InkwellEvent) => {
       calls.push('capture:root');
     };
-    root.onMouseOver = (_e: InkwellEvent) => {
+    (root as unknown as Record<string, unknown>).onMouseOver = (_e: InkwellEvent) => {
       calls.push('bubble:root');
     };
     leaf.onMouseOverCapture = (_e: InkwellEvent) => {
@@ -153,7 +153,7 @@ describe('事件系统（类方法）', () => {
     const rootAttr = WidgetRegistry.createWidget(dataAttr)!;
     rootAttr.createElement(dataAttr);
     rootAttr.layout(createBoxConstraints());
-    const leafAttr = rootAttr.children[0] as CustomWidget;
+    const leafAttr = rootAttr.children[0] as unknown as CustomWidget;
     const posAttr = leafAttr.getAbsolutePosition();
 
     // 纯类方法处理器

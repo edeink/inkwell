@@ -11,6 +11,7 @@ interface Props extends WidgetProps {
 }
 
 interface State {
+  [key: string]: unknown;
   count: number;
   active: boolean;
 }

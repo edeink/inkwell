@@ -1,10 +1,11 @@
 import { expose } from '../decorators';
+
 import { ScrollBar, type ScrollBarProps } from './scroll-bar';
 import { Viewport } from './viewport';
 
-import type { InkwellEvent } from '@/core/events/types';
 import type { Size } from '../base';
 import type { ViewportProps } from './viewport';
+import type { InkwellEvent } from '@/core/events/types';
 
 const DEFAULT_BOUNCE_DAMPING = 0.2;
 const DEFAULT_RESISTANCE_FACTOR = 0.5;
@@ -398,6 +399,32 @@ export class ScrollView extends Viewport {
   protected getConstraintsForChild(
     constraints: import('../base').BoxConstraints,
   ): import('../base').BoxConstraints {
+    const bounceH = this.data.enableBounceHorizontal;
+    const bounceV = this.data.enableBounceVertical;
+
+    const maxW = constraints.maxWidth;
+    const maxH = constraints.maxHeight;
+    const finiteW = Number.isFinite(maxW);
+    const finiteH = Number.isFinite(maxH);
+
+    if (bounceH === false && bounceV === true) {
+      return {
+        minWidth: finiteW ? maxW : 0,
+        maxWidth: finiteW ? maxW : Infinity,
+        minHeight: 0,
+        maxHeight: Infinity,
+      };
+    }
+
+    if (bounceV === false && bounceH === true) {
+      return {
+        minWidth: 0,
+        maxWidth: Infinity,
+        minHeight: finiteH ? maxH : 0,
+        maxHeight: finiteH ? maxH : Infinity,
+      };
+    }
+
     return {
       minWidth: 0,
       maxWidth: Infinity,
@@ -494,8 +521,9 @@ export class ScrollView extends Viewport {
       return;
     }
 
-    // PC端使用滚轮滚动，禁用鼠标拖拽
-    if (ne.pointerType === 'mouse') {
+    const pointerType = (ne as unknown as { pointerType?: string } | null)?.pointerType;
+    // 仅允许触摸/笔拖拽滚动；鼠标（以及不带 pointerType 的 MouseEvent）仅允许 wheel 滚动
+    if (pointerType !== 'touch' && pointerType !== 'pen') {
       return;
     }
 
@@ -548,6 +576,10 @@ export class ScrollView extends Viewport {
     }
 
     if (!this._pointerDown) {
+      const pointerType = (ne as unknown as { pointerType?: string } | null)?.pointerType;
+      if (pointerType !== 'touch' && pointerType !== 'pen') {
+        return;
+      }
       e.stopPropagation();
       return;
     }
@@ -568,6 +600,14 @@ export class ScrollView extends Viewport {
   }
 
   onPointerUp(e: InkwellEvent) {
+    const ne = e.nativeEvent as PointerEvent;
+    if (!this._pointerDown) {
+      const pointerType = (ne as unknown as { pointerType?: string } | null)?.pointerType;
+      if (pointerType !== 'touch' && pointerType !== 'pen') {
+        return;
+      }
+    }
+
     e.stopPropagation();
     this._pointerDown = false;
 

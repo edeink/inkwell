@@ -91,7 +91,7 @@ export async function buildScrollWidgetScene(
 
   console.log(
     `[Scroll Widget] Count: ${count}, MaxScroll: ${maxScroll}, ` +
-    `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
+      `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
   );
 
   const startTime = performance.now();

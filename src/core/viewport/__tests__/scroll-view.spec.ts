@@ -104,21 +104,33 @@ describe('ScrollView', () => {
     }
 
     // 暴露交互方法
-    public simulatePointerDown(x: number, y: number) {
+    public simulatePointerDown(
+      x: number,
+      y: number,
+      pointerType: 'touch' | 'pen' | 'mouse' | undefined = 'touch',
+    ) {
       this.onPointerDown({
-        nativeEvent: { clientX: x, clientY: y } as unknown as PointerEvent,
+        nativeEvent: { clientX: x, clientY: y, pointerType } as unknown as PointerEvent,
         stopPropagation: vi.fn(),
       } as any);
     }
-    public simulatePointerMove(x: number, y: number) {
+    public simulatePointerMove(
+      x: number,
+      y: number,
+      pointerType: 'touch' | 'pen' | 'mouse' | undefined = 'touch',
+    ) {
       this.onPointerMove({
-        nativeEvent: { clientX: x, clientY: y } as unknown as PointerEvent,
+        nativeEvent: { clientX: x, clientY: y, pointerType } as unknown as PointerEvent,
         stopPropagation: vi.fn(),
       } as any);
     }
-    public simulatePointerUp(x: number, y: number) {
+    public simulatePointerUp(
+      x: number,
+      y: number,
+      pointerType: 'touch' | 'pen' | 'mouse' | undefined = 'touch',
+    ) {
       this.onPointerUp({
-        nativeEvent: { clientX: x, clientY: y } as unknown as PointerEvent,
+        nativeEvent: { clientX: x, clientY: y, pointerType } as unknown as PointerEvent,
         stopPropagation: vi.fn(),
       } as any);
     }
@@ -292,8 +304,8 @@ describe('ScrollView', () => {
     });
     sv.simulateLayout(100, 100, 200, 200);
 
-    sv.simulatePointerDown(100, 100);
-    sv.simulatePointerMove(100, 150);
+    sv.simulatePointerDown(100, 100, 'touch');
+    sv.simulatePointerMove(100, 150, 'touch');
 
     expect(sv.scrollY).toBeLessThan(0);
     const posWhileDrag = sv.scrollY;
@@ -302,7 +314,7 @@ describe('ScrollView', () => {
 
     expect(sv.scrollY).toBe(posWhileDrag);
 
-    sv.simulatePointerUp(100, 150);
+    sv.simulatePointerUp(100, 150, 'touch');
     vi.advanceTimersByTime(60); // 防抖
     vi.advanceTimersByTime(1000); // 动画（给予足够时间）
 
@@ -355,7 +367,7 @@ describe('ScrollView', () => {
     expect(onBounceStart).toHaveBeenCalled();
 
     // 通过按下指针中断
-    sv.simulatePointerDown(100, 100);
+    sv.simulatePointerDown(100, 100, 'touch');
 
     // 应当停止动画（不再有来自回弹的滚动更新）
     const posAfterInterrupt = sv.scrollY;
@@ -386,8 +398,8 @@ describe('ScrollView', () => {
     // 模拟拖动 (指针事件)
     // 向左拖动 (startX 100 -> 移动到 80). dx = 20.
     // 应当向右滚动 (增加 scrollX).
-    sv.simulatePointerDown(100, 100);
-    sv.simulatePointerMove(80, 80); // X/Y 移动了 -20px
+    sv.simulatePointerDown(100, 100, 'touch');
+    sv.simulatePointerMove(80, 80, 'touch'); // X/Y 移动了 -20px
 
     // 预期: scrollX = 100 + 20 * 阻力
     // 在 100 处，overscroll 为 0。阻力 0.5。
@@ -396,11 +408,26 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBeCloseTo(110);
 
     // 继续拖动 (移动到 60). dx 再增加 20.
-    sv.simulatePointerMove(60, 60);
+    sv.simulatePointerMove(60, 60, 'touch');
 
     // 应当继续增加
     expect(sv.scrollX).toBeGreaterThan(110);
     expect(sv.scrollY).toBeGreaterThan(110);
+  });
+
+  it('鼠标拖拽不应触发滚动', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+    });
+    sv.simulateLayout(100, 100, 200, 200);
+
+    sv.simulatePointerDown(50, 50, undefined);
+    sv.simulatePointerMove(50, 80, undefined);
+    sv.simulatePointerUp(50, 80, undefined);
+
+    expect(sv.scrollY).toBe(0);
   });
 
   it('布局性能优化', () => {

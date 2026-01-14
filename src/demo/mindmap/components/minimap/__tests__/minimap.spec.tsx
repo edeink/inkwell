@@ -42,9 +42,10 @@ describe('Minimap 集成测试', () => {
       (HTMLCanvasElement.prototype as any)._minimapTestMocked = true;
       const originalGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (
-        type: string,
-        options?: any,
-      ): RenderingContext | null {
+        this: HTMLCanvasElement,
+        ...args: unknown[]
+      ) {
+        const [type, options] = args as [string, unknown];
         if (type === '2d') {
           const ctx: any = {
             canvas: this as HTMLCanvasElement,
@@ -62,7 +63,6 @@ describe('Minimap 集成测试', () => {
             clearRect: vi.fn(),
             setTransform: vi.fn(),
           };
-          // Allow setting properties
           return new Proxy(ctx, {
             get: (target, prop) => target[prop],
             set: (target, prop, value) => {
@@ -71,8 +71,8 @@ describe('Minimap 集成测试', () => {
             },
           });
         }
-        return originalGetContext.call(this, type, options);
-      };
+        return (originalGetContext as any).apply(this, [type, options]);
+      } as unknown as HTMLCanvasElement['getContext'];
     }
 
     // 模拟设置

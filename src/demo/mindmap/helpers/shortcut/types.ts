@@ -1,4 +1,4 @@
-import type { MindMapViewport } from '../mindmap-viewport';
+import type { MindMapViewport } from '../../widgets/mindmap-viewport';
 import type { InkwellEvent } from '@/core/events';
 
 /**

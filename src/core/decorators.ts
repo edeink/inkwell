@@ -1,16 +1,30 @@
-
 export const EXPOSED_METHODS = Symbol('exposed_methods');
+
+type ExposedHost = {
+  [EXPOSED_METHODS]?: Set<string | symbol>;
+};
+
+type StandardDecoratorContext = {
+  kind: 'method';
+  name: string | symbol;
+  addInitializer(initializer: (this: ExposedHost) => void): void;
+};
 
 /**
  * 标记方法为可暴露给外部调用 (Ref Handle)
  * 支持 Legacy Decorators (Stage 1) 和 Standard Decorators (Stage 3)
  */
-export function expose(targetOrValue: any, contextOrKey?: any, descriptor?: any) {
+export function expose(
+  targetOrValue: unknown,
+  contextOrKey?: unknown,
+  descriptor?: PropertyDescriptor,
+): void {
+  void descriptor;
   // Standard Decorator check: context object has 'kind'
   if (contextOrKey && typeof contextOrKey === 'object' && 'kind' in contextOrKey) {
-    const context = contextOrKey;
+    const context = contextOrKey as StandardDecoratorContext;
     if (context.kind === 'method') {
-      context.addInitializer(function (this: any) {
+      context.addInitializer(function (this: ExposedHost) {
         if (!this[EXPOSED_METHODS]) {
           this[EXPOSED_METHODS] = new Set();
         }
@@ -21,8 +35,8 @@ export function expose(targetOrValue: any, contextOrKey?: any, descriptor?: any)
   }
 
   // Legacy Decorator
-  const target = targetOrValue;
-  const propertyKey = contextOrKey;
+  const target = targetOrValue as ExposedHost;
+  const propertyKey = contextOrKey as string | symbol | undefined;
   if (propertyKey) {
     if (!target[EXPOSED_METHODS]) {
       // 避免修改父类的 Set
@@ -36,22 +50,34 @@ export function expose(targetOrValue: any, contextOrKey?: any, descriptor?: any)
 /**
  * 创建仅包含 @expose 标记方法的 Handle 对象
  */
-export function createExposedHandle<T>(instance: any): T | null {
-  if (!instance) return null;
+export function createExposedHandle<T>(instance: unknown): T | null {
+  if (!instance) {
+    return null;
+  }
 
+  const host = instance as ExposedHost;
+  const obj = instance as Record<string, unknown>;
   const exposedMethods = new Set<string>();
 
   // 1. Check instance own property (Standard Decorators via addInitializer)
-  if (instance[EXPOSED_METHODS]) {
-    (instance[EXPOSED_METHODS] as Set<string>).forEach(m => exposedMethods.add(m));
+  if (host[EXPOSED_METHODS]) {
+    host[EXPOSED_METHODS].forEach((m) => {
+      if (typeof m === 'string') {
+        exposedMethods.add(m);
+      }
+    });
   }
 
   // 2. Check prototype chain (Legacy Decorators)
   let proto = Object.getPrototypeOf(instance);
   while (proto && proto !== Object.prototype) {
     if (Object.prototype.hasOwnProperty.call(proto, EXPOSED_METHODS)) {
-      const methods = proto[EXPOSED_METHODS] as Set<string>;
-      methods.forEach(m => exposedMethods.add(m));
+      const p = proto as ExposedHost;
+      p[EXPOSED_METHODS]?.forEach((m) => {
+        if (typeof m === 'string') {
+          exposedMethods.add(m);
+        }
+      });
     }
     proto = Object.getPrototypeOf(proto);
   }
@@ -67,10 +93,11 @@ export function createExposedHandle<T>(instance: any): T | null {
     return instance as T;
   }
 
-  const handle: any = {};
-  exposedMethods.forEach(method => {
-    if (typeof instance[method] === 'function') {
-      handle[method] = instance[method].bind(instance);
+  const handle: Record<string, unknown> = {};
+  exposedMethods.forEach((method) => {
+    const fn = obj[method];
+    if (typeof fn === 'function') {
+      handle[method] = fn.bind(instance);
     }
   });
 
