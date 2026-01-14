@@ -19,6 +19,7 @@ export interface EditableState {
   selectionEnd: number;
   focused: boolean;
   cursorVisible: boolean;
+  caretAffinity?: 'start' | 'end';
   [key: string]: unknown;
 }
 
@@ -287,6 +288,13 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
   protected abstract ensureCursorVisible(): void;
   protected abstract getIndexAtLocalPoint(localX: number, localY: number): number;
 
+  protected getSelectionAtLocalPoint(
+    localX: number,
+    localY: number,
+  ): { index: number; caretAffinity?: 'start' | 'end' } {
+    return { index: this.getIndexAtLocalPoint(localX, localY) };
+  }
+
   protected handlePointerDown = (e: InkwellEvent) => {
     e.stopPropagation?.();
     this.input?.focus();
@@ -295,11 +303,13 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     this.attachGlobalDragListeners();
 
     const pt = this.getLocalPoint(e);
-    const index = this.getIndexAtLocalPoint(pt.x, pt.y);
+    const sel = this.getSelectionAtLocalPoint(pt.x, pt.y);
+    const index = sel.index;
 
     this.setState({
       selectionStart: index,
       selectionEnd: index,
+      caretAffinity: sel.caretAffinity,
     });
 
     this.setDomSelectionRange(index, index);
@@ -333,10 +343,11 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     if (!this.isDragging) {
       return;
     }
-    const index = this.getIndexAtLocalPoint(localX, localY);
+    const sel = this.getSelectionAtLocalPoint(localX, localY);
+    const index = sel.index;
     const st = this.state;
     if (index !== st.selectionEnd) {
-      this.setState({ selectionEnd: index });
+      this.setState({ selectionEnd: index, caretAffinity: sel.caretAffinity });
       if (this.input) {
         const start = Math.min(st.selectionStart, index);
         const end = Math.max(st.selectionStart, index);

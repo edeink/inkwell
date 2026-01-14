@@ -69,7 +69,7 @@ describe('TextArea 组件', () => {
   beforeEach(() => {
     const mockContext = {
       font: '',
-      measureText: vi.fn().mockReturnValue({ width: 50 }),
+      measureText: vi.fn().mockImplementation((text: string) => ({ width: text.length * 10 })),
     };
     // @ts-ignore
     HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue(mockContext);
@@ -214,5 +214,57 @@ describe('TextArea 组件', () => {
       (n) => typeof n.color === 'string' && n.width !== 2,
     );
     expect(blurredColor2).toBe(theme.state.selected);
+  });
+
+  it('区选时不应显示光标', () => {
+    (textareaComponent as any).textWidgetRef = {
+      lines: [
+        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
+        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+      ],
+    };
+
+    const element = compileElement(textareaComponent.render()) as any;
+    element.onPointerDown({ x: 0, y: 0, target: {}, stopPropagation: vi.fn() } as any);
+    element.onPointerMove({ x: 30, y: 25, stopPropagation: vi.fn() } as any);
+    element.onPointerUp({ x: 30, y: 25, stopPropagation: vi.fn() } as any);
+
+    (textareaComponent as any).setState({ focused: true, cursorVisible: true });
+    const tree = compileElement(textareaComponent.render()) as any;
+    const cursorColor = findFirstCompiledContainerColor(
+      tree,
+      (n) => typeof n.color === 'string' && n.width === 2,
+    );
+    expect(cursorColor).toBeUndefined();
+  });
+
+  it('光标在行首按下键应保持行首并携带标记位', () => {
+    (textareaComponent as any).textWidgetRef = {
+      lines: [
+        { text: 'abcd', width: 40, startIndex: 0, endIndex: 4, height: 20, x: 0, y: 0 },
+        { text: 'ef', width: 20, startIndex: 4, endIndex: 6, height: 20, x: 0, y: 20 },
+        { text: 'ghij', width: 40, startIndex: 6, endIndex: 10, height: 20, x: 0, y: 40 },
+      ],
+    };
+
+    (textareaComponent as any).setState({
+      text: 'abcdefghij',
+      selectionStart: 4,
+      selectionEnd: 4,
+      caretAffinity: 'start',
+    });
+
+    (textareaComponent as any).handleKeyDown({
+      key: 'ArrowDown',
+      shiftKey: false,
+      preventDefault: vi.fn(),
+    } as any);
+
+    // @ts-expect-error 测试用访问内部状态
+    expect(textareaComponent.state.selectionStart).toBe(6);
+    // @ts-expect-error 测试用访问内部状态
+    expect(textareaComponent.state.selectionEnd).toBe(6);
+    // @ts-expect-error 测试用访问内部状态
+    expect((textareaComponent.state as any).caretAffinity).toBe('start');
   });
 });

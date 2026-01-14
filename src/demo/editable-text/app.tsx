@@ -67,11 +67,13 @@ export class EditableTextDemo extends StatefulWidget<EditableTextDemoProps, Edit
                   />
                 </Padding>
               </Container>
-              <Text
-                text={`当前值: ${this.state.singleLineValue}`}
-                fontSize={12}
-                color={theme.text.placeholder}
-              />
+              <Container width={300}>
+                <Text
+                  text={`当前值: ${this.state.singleLineValue}`}
+                  fontSize={12}
+                  color={theme.text.placeholder}
+                />
+              </Container>
             </Column>
 
             {/* 多行编辑器 */}
@@ -95,11 +97,13 @@ export class EditableTextDemo extends StatefulWidget<EditableTextDemoProps, Edit
                   />
                 </Padding>
               </Container>
-              <Text
-                text={`字符数: ${this.state.multiLineValue.length}`}
-                fontSize={12}
-                color={theme.text.placeholder}
-              />
+              <Container width={300}>
+                <Text
+                  text={`字符数: ${this.state.multiLineValue.length}`}
+                  fontSize={12}
+                  color={theme.text.placeholder}
+                />
+              </Container>
             </Column>
           </Row>
         </Column>

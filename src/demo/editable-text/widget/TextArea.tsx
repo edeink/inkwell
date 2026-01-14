@@ -13,6 +13,7 @@ export interface TextAreaProps extends EditableProps {
 
 export class TextArea extends Editable<TextAreaProps> {
   private textWidgetRef: Text | null = null;
+  private preferredCursorX: number | null = null;
 
   constructor(props: TextAreaProps) {
     super(props);
@@ -34,7 +35,13 @@ export class TextArea extends Editable<TextAreaProps> {
       this.handleVerticalCursorMove('down', e);
       return;
     }
+    this.preferredCursorX = null;
     super.handleKeyDown(e);
+  }
+
+  protected override handleInput(e: Event) {
+    this.preferredCursorX = null;
+    super.handleInput(e);
   }
 
   private handleVerticalCursorMove(direction: 'up' | 'down', e: KeyboardEvent) {
@@ -46,48 +53,47 @@ export class TextArea extends Editable<TextAreaProps> {
 
     const lines = this.textWidgetRef.lines;
     const currentCursor = this.state.selectionEnd;
-    let lineIndex = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-      if (currentCursor >= lines[i].startIndex && currentCursor <= lines[i].endIndex) {
-        lineIndex = i;
-        break;
-      }
-    }
-
-    if (lineIndex === -1) {
-      if (lines.length > 0 && currentCursor >= lines[lines.length - 1].endIndex) {
-        lineIndex = lines.length - 1;
-      } else {
-        lineIndex = 0;
-      }
-    }
+    const lineIndex = this.getLineIndexAtCursor(currentCursor, this.state.caretAffinity);
 
     let newIndex = currentCursor;
+    let nextAffinity: 'start' | 'end' | undefined = this.state.caretAffinity;
 
     if (direction === 'up') {
       if (lineIndex > 0) {
         const prevLine = lines[lineIndex - 1];
-        const currInfo = this.getCursorInfoAtIndex(currentCursor);
+        const currInfo = this.getCursorInfoAtIndex(currentCursor, this.state.caretAffinity);
+        if (this.preferredCursorX === null) {
+          this.preferredCursorX = currInfo.x;
+        }
         const targetY = prevLine.y + prevLine.height / 2;
-        newIndex = this.getIndexAtPoint(currInfo.x, targetY);
+        const sel = this.getSelectionAtPoint(this.preferredCursorX, targetY);
+        newIndex = sel.index;
+        nextAffinity = sel.caretAffinity;
       } else {
         newIndex = 0;
+        nextAffinity = undefined;
       }
     } else {
       if (lineIndex < lines.length - 1) {
         const nextLine = lines[lineIndex + 1];
-        const currInfo = this.getCursorInfoAtIndex(currentCursor);
+        const currInfo = this.getCursorInfoAtIndex(currentCursor, this.state.caretAffinity);
+        if (this.preferredCursorX === null) {
+          this.preferredCursorX = currInfo.x;
+        }
         const targetY = nextLine.y + nextLine.height / 2;
-        newIndex = this.getIndexAtPoint(currInfo.x, targetY);
+        const sel = this.getSelectionAtPoint(this.preferredCursorX, targetY);
+        newIndex = sel.index;
+        nextAffinity = sel.caretAffinity;
       } else {
         newIndex = this.state.text.length;
+        nextAffinity = undefined;
       }
     }
 
     if (e.shiftKey) {
       this.setState({
         selectionEnd: newIndex,
+        caretAffinity: nextAffinity,
       });
       if (this.input) {
         const start = Math.min(this.state.selectionStart, newIndex);
@@ -99,6 +105,7 @@ export class TextArea extends Editable<TextAreaProps> {
       this.setState({
         selectionStart: newIndex,
         selectionEnd: newIndex,
+        caretAffinity: nextAffinity,
       });
 
       this.setDomSelectionRange(newIndex, newIndex);
@@ -189,7 +196,10 @@ export class TextArea extends Editable<TextAreaProps> {
     return this.measureCtx.measureText(text).width;
   }
 
-  private getCursorInfoAtIndex(index: number): { x: number; y: number; height: number } {
+  private getCursorInfoAtIndex(
+    index: number,
+    affinity?: 'start' | 'end',
+  ): { x: number; y: number; height: number } {
     const defaultInfo = { x: 0, y: 0, height: this.props.fontSize || 14 };
 
     if (!this.textWidgetRef || !this.textWidgetRef.lines || this.textWidgetRef.lines.length === 0) {
@@ -198,17 +208,8 @@ export class TextArea extends Editable<TextAreaProps> {
     }
 
     const lines = this.textWidgetRef.lines;
-    let targetLine = lines[0];
-    for (const line of lines) {
-      if (index >= line.startIndex && index <= line.endIndex) {
-        targetLine = line;
-        break;
-      }
-    }
-
-    if (index === this.state.text.length && lines.length > 0) {
-      targetLine = lines[lines.length - 1];
-    }
+    const idx = this.getLineIndexAtCursor(index, affinity);
+    const targetLine = lines[idx] || lines[0];
 
     if (!targetLine) {
       return defaultInfo;
@@ -224,16 +225,50 @@ export class TextArea extends Editable<TextAreaProps> {
     };
   }
 
-  private getIndexAtPoint(x: number, y: number): number {
-    if (!this.textWidgetRef || !this.textWidgetRef.lines) {
+  private getLineIndexAtCursor(index: number, affinity?: 'start' | 'end'): number {
+    const lines = this.textWidgetRef?.lines || [];
+    if (lines.length === 0) {
       return 0;
+    }
+
+    const hits: number[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (index >= line.startIndex && index <= line.endIndex) {
+        hits.push(i);
+      }
+    }
+
+    if (hits.length > 1) {
+      return affinity === 'start' ? hits[hits.length - 1] : hits[0];
+    }
+
+    if (hits.length === 1) {
+      return hits[0];
+    }
+
+    if (index >= lines[lines.length - 1].endIndex) {
+      return lines.length - 1;
+    }
+    return 0;
+  }
+
+  private getSelectionAtPoint(
+    x: number,
+    y: number,
+  ): { index: number; caretAffinity?: 'start' | 'end' } {
+    if (!this.textWidgetRef || !this.textWidgetRef.lines) {
+      return { index: 0 };
     }
     const lines = this.textWidgetRef.lines;
     let targetLine: TextLineMetrics | null = null;
+    let targetLineIndex = -1;
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       if (y >= line.y && y < line.y + line.height) {
         targetLine = line;
+        targetLineIndex = i;
         break;
       }
     }
@@ -241,13 +276,15 @@ export class TextArea extends Editable<TextAreaProps> {
     if (!targetLine) {
       if (y < lines[0].y) {
         targetLine = lines[0];
+        targetLineIndex = 0;
       } else if (lines.length > 0) {
         targetLine = lines[lines.length - 1];
+        targetLineIndex = lines.length - 1;
       }
     }
 
     if (!targetLine) {
-      return 0;
+      return { index: 0 };
     }
 
     const relX = x - targetLine.x;
@@ -266,11 +303,33 @@ export class TextArea extends Editable<TextAreaProps> {
       }
     }
 
-    return startIndex + bestOffset;
+    const index = startIndex + bestOffset;
+    let caretAffinity: 'start' | 'end' | undefined;
+    if (bestOffset === 0 && targetLineIndex > 0) {
+      const prev = lines[targetLineIndex - 1];
+      if (prev.endIndex === index) {
+        caretAffinity = 'start';
+      }
+    } else if (bestOffset === lineText.length && targetLineIndex < lines.length - 1) {
+      const next = lines[targetLineIndex + 1];
+      if (next.startIndex === index) {
+        caretAffinity = 'end';
+      }
+    }
+
+    return { index, caretAffinity };
   }
 
   protected getIndexAtLocalPoint(localX: number, localY: number): number {
-    return this.getIndexAtPoint(localX, localY);
+    return this.getSelectionAtPoint(localX, localY).index;
+  }
+
+  protected override getSelectionAtLocalPoint(
+    localX: number,
+    localY: number,
+  ): { index: number; caretAffinity?: 'start' | 'end' } {
+    this.preferredCursorX = null;
+    return this.getSelectionAtPoint(localX, localY);
   }
 
   render() {
@@ -284,7 +343,7 @@ export class TextArea extends Editable<TextAreaProps> {
     const { text, selectionStart, selectionEnd, focused, cursorVisible } = this.state;
     const resolvedSelectionColor = this.resolveSelectionColor();
 
-    const cursorInfo = this.getCursorInfoAtIndex(selectionEnd);
+    const cursorInfo = this.getCursorInfoAtIndex(selectionEnd, this.state.caretAffinity);
 
     const selectionWidgets: AnyElement[] = [];
     if (selectionStart !== selectionEnd && this.textWidgetRef && this.textWidgetRef.lines) {
@@ -339,9 +398,9 @@ export class TextArea extends Editable<TextAreaProps> {
               color={color}
             />
 
-            {focused && cursorVisible && (
+            {focused && cursorVisible && selectionStart === selectionEnd && (
               <Positioned left={cursorInfo.x} top={cursorInfo.y}>
-                <Container width={2} height={cursorInfo.height} color={cursorColor} />
+                <Container width={1} height={cursorInfo.height} color={cursorColor} />
               </Positioned>
             )}
           </Stack>

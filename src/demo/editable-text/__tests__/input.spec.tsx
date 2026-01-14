@@ -139,4 +139,16 @@ describe('Input 组件', () => {
     );
     expect(blurredColor2).toBe(theme.state.selected);
   });
+
+  it('区选时不应显示光标', () => {
+    const element = inputComponent.render() as any;
+    element.props.onPointerDown({ x: 0, y: 0, target: {}, stopPropagation: vi.fn() } as any);
+    element.props.onPointerMove({ x: 30, y: 0, stopPropagation: vi.fn() } as any);
+    element.props.onPointerUp({ x: 30, y: 0, stopPropagation: vi.fn() } as any);
+
+    (inputComponent as any).setState({ focused: true, cursorVisible: true });
+    const tree = inputComponent.render() as any;
+    const cursorColor = findFirstContainerColor(tree, (p) => p.width === 2);
+    expect(cursorColor).toBeUndefined();
+  });
 });

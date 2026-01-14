@@ -160,9 +160,9 @@ export class Input extends Editable<InputProps> {
                 lineHeight={fontSize * 1.5}
               />
 
-              {focused && cursorVisible && (
+              {focused && cursorVisible && selectionStart === selectionEnd && (
                 <Positioned left={cursorX} top={2}>
-                  <Container width={2} height={fontSize} color={cursorColor} />
+                  <Container width={1} height={fontSize} color={cursorColor} />
                 </Positioned>
               )}
             </Stack>
