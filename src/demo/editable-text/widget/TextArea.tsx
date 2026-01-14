@@ -25,12 +25,12 @@ export class TextArea extends Editable<TextAreaProps> {
   }
 
   protected override handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'ArrowUp') {
+    if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       this.resetCursorBlink();
       this.handleVerticalCursorMove('up', e);
       return;
     }
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       this.resetCursorBlink();
       this.handleVerticalCursorMove('down', e);
       return;
@@ -184,6 +184,32 @@ export class TextArea extends Editable<TextAreaProps> {
       return;
     }
     sv.scrollTo(nextScrollX, nextScrollY);
+  }
+
+  protected override getLineRangeAtIndex(index: number): { start: number; end: number } | null {
+    const lines = this.textWidgetRef?.lines || [];
+    if (lines.length === 0) {
+      return { start: 0, end: this.state.text.length };
+    }
+    const idx = this.getLineIndexAtCursor(index, this.state.caretAffinity);
+    const line = lines[idx] || lines[0];
+    if (!line) {
+      return { start: 0, end: this.state.text.length };
+    }
+    return { start: line.startIndex, end: line.endIndex };
+  }
+
+  protected override getCaretViewportRect(): {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null {
+    const sv = this.scrollViewRef;
+    const cursor = this.getCursorInfoAtIndex(this.state.selectionEnd, this.state.caretAffinity);
+    const scrollX = sv ? sv.scrollX : 0;
+    const scrollY = sv ? sv.scrollY : 0;
+    return { left: cursor.x - scrollX, top: cursor.y - scrollY, width: 2, height: cursor.height };
   }
 
   private measureTextWidth(text: string): number {
@@ -397,6 +423,45 @@ export class TextArea extends Editable<TextAreaProps> {
               fontFamily={fontFamily}
               color={color}
             />
+
+            {focused && selectionStart !== selectionEnd && (
+              <>
+                <Positioned
+                  left={this.getCursorInfoAtIndex(selectionStart, this.state.caretAffinity).x}
+                  top={
+                    this.getCursorInfoAtIndex(selectionStart, this.state.caretAffinity).y +
+                    this.getCursorInfoAtIndex(selectionStart, this.state.caretAffinity).height
+                  }
+                >
+                  <Container
+                    width={8}
+                    height={8}
+                    borderRadius={4}
+                    color={cursorColor}
+                    pointerEvent="auto"
+                    onPointerDown={(e) => this.beginSelectionHandleDrag('start', e)}
+                    onPointerUp={(_e) => this.endSelectionHandleDrag()}
+                  />
+                </Positioned>
+                <Positioned
+                  left={this.getCursorInfoAtIndex(selectionEnd, this.state.caretAffinity).x}
+                  top={
+                    this.getCursorInfoAtIndex(selectionEnd, this.state.caretAffinity).y +
+                    this.getCursorInfoAtIndex(selectionEnd, this.state.caretAffinity).height
+                  }
+                >
+                  <Container
+                    width={8}
+                    height={8}
+                    borderRadius={4}
+                    color={cursorColor}
+                    pointerEvent="auto"
+                    onPointerDown={(e) => this.beginSelectionHandleDrag('end', e)}
+                    onPointerUp={(_e) => this.endSelectionHandleDrag()}
+                  />
+                </Positioned>
+              </>
+            )}
 
             {focused && cursorVisible && selectionStart === selectionEnd && (
               <Positioned left={cursorInfo.x} top={cursorInfo.y}>

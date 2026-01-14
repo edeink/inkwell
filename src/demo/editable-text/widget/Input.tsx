@@ -91,6 +91,26 @@ export class Input extends Editable<InputProps> {
     return bestIndex;
   }
 
+  protected override getCaretViewportRect(): {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null {
+    if (!this.measureCtx) {
+      return null;
+    }
+    const sv = this.scrollViewRef;
+    const fontSize = this.props.fontSize || 14;
+    const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+    this.measureCtx.font = `${fontSize}px ${fontFamily}`;
+    const cursorIndex = this.state.selectionEnd;
+    const cursorX =
+      this.measureCtx.measureText(this.state.text.substring(0, cursorIndex)).width || 0;
+    const scrollX = sv ? sv.scrollX : 0;
+    return { left: cursorX - scrollX, top: 2, width: 2, height: fontSize };
+  }
+
   render() {
     const {
       fontSize = 14,
@@ -159,6 +179,41 @@ export class Input extends Editable<InputProps> {
                 color={color}
                 lineHeight={fontSize * 1.5}
               />
+
+              {focused && selectionStart !== selectionEnd && (
+                <>
+                  <Positioned
+                    left={
+                      this.measureCtx?.measureText(text.substring(0, selectionStart)).width || 0
+                    }
+                    top={fontSize * 1.2}
+                  >
+                    <Container
+                      width={8}
+                      height={8}
+                      borderRadius={4}
+                      color={cursorColor}
+                      pointerEvent="auto"
+                      onPointerDown={(e) => this.beginSelectionHandleDrag('start', e)}
+                      onPointerUp={(_e) => this.endSelectionHandleDrag()}
+                    />
+                  </Positioned>
+                  <Positioned
+                    left={this.measureCtx?.measureText(text.substring(0, selectionEnd)).width || 0}
+                    top={fontSize * 1.2}
+                  >
+                    <Container
+                      width={8}
+                      height={8}
+                      borderRadius={4}
+                      color={cursorColor}
+                      pointerEvent="auto"
+                      onPointerDown={(e) => this.beginSelectionHandleDrag('end', e)}
+                      onPointerUp={(_e) => this.endSelectionHandleDrag()}
+                    />
+                  </Positioned>
+                </>
+              )}
 
               {focused && cursorVisible && selectionStart === selectionEnd && (
                 <Positioned left={cursorX} top={2}>

@@ -45,6 +45,18 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
   private _handleKeyDownBound: (e: Event) => void;
   private _handleBlurBound: (e: Event) => void;
   private _handleFocusBound: (e: Event) => void;
+  private _lastClickTs = 0;
+  private _lastClickX = 0;
+  private _lastClickY = 0;
+  private _clickCount = 0;
+  private _dragLastViewportX: number | null = null;
+  private _dragLastViewportY: number | null = null;
+  private _dragAutoScrollRafId: number | null = null;
+  private _draggingHandle: 'start' | 'end' | null = null;
+  private _lastInputLeft = Number.NaN;
+  private _lastInputTop = Number.NaN;
+  private _lastInputW = Number.NaN;
+  private _lastInputH = Number.NaN;
 
   constructor(props: P) {
     super(props);
@@ -101,7 +113,7 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
   }
 
   protected getLocalPoint(e: InkwellEvent): { x: number; y: number } {
-    const target = e.target as unknown as DragPointerTarget | null;
+    const target = e.currentTarget as unknown as DragPointerTarget | null;
     if (target?._worldMatrix) {
       const inv = invert(target._worldMatrix);
       return transformPoint(inv, { x: e.x, y: e.y });
@@ -111,11 +123,14 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
 
   protected getLocalPointFromClient(clientX: number, clientY: number): { x: number; y: number } {
     const target = this._dragPointerTarget;
+    const canvasRect = this.getCanvasClientRect();
+    const x = canvasRect ? clientX - canvasRect.left : clientX;
+    const y = canvasRect ? clientY - canvasRect.top : clientY;
     if (target?._worldMatrix) {
       const inv = invert(target._worldMatrix);
-      return transformPoint(inv, { x: clientX, y: clientY });
+      return transformPoint(inv, { x, y });
     }
-    return { x: clientX, y: clientY };
+    return { x, y };
   }
 
   protected setDragPointerTarget(target: unknown) {
@@ -160,7 +175,10 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     this.input.style.opacity = '0';
     this.input.style.left = '-9999px';
     this.input.style.top = '0px';
-    this.input.style.zIndex = '-1';
+    this.input.style.zIndex = '0';
+    this.input.style.pointerEvents = 'none';
+    this.input.style.whiteSpace = 'pre';
+    this.input.style.caretColor = 'transparent';
 
     this.input.value = this.props.value;
 
@@ -184,6 +202,7 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     }
     const loop = () => {
       this._rafId = window.requestAnimationFrame(loop);
+      this.updateInputPosition();
     };
     loop();
   }
@@ -298,13 +317,70 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
   protected handlePointerDown = (e: InkwellEvent) => {
     e.stopPropagation?.();
     this.input?.focus();
-    this.isDragging = true;
-    this.setDragPointerTarget(e.target);
-    this.attachGlobalDragListeners();
+    this.setDragPointerTarget(e.currentTarget);
 
-    const pt = this.getLocalPoint(e);
+    const vp = this.getLocalPoint(e);
+    this._dragLastViewportX = vp.x;
+    this._dragLastViewportY = vp.y;
+
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const dt = now - this._lastClickTs;
+    const dx = vp.x - this._lastClickX;
+    const dy = vp.y - this._lastClickY;
+    const close = dx * dx + dy * dy <= 9;
+    if (dt <= 300 && close) {
+      this._clickCount += 1;
+    } else {
+      this._clickCount = 1;
+    }
+    this._lastClickTs = now;
+    this._lastClickX = vp.x;
+    this._lastClickY = vp.y;
+
+    const pt = this.toContentPoint(vp.x, vp.y);
     const sel = this.getSelectionAtLocalPoint(pt.x, pt.y);
     const index = sel.index;
+
+    if (this._clickCount === 2) {
+      const range = this.getWordRangeAtIndex(index);
+      if (range) {
+        this._draggingHandle = null;
+        this.isDragging = false;
+        this.detachGlobalDragListeners();
+        this.stopDragAutoScrollLoop();
+        this.setState({
+          selectionStart: range.start,
+          selectionEnd: range.end,
+          caretAffinity: undefined,
+        });
+        this.setDomSelectionRange(range.start, range.end, 'forward');
+        this.scheduleEnsureCursorVisible();
+        return;
+      }
+    }
+
+    if (this._clickCount >= 3) {
+      const range = this.getLineRangeAtIndex(index);
+      if (range) {
+        this._draggingHandle = null;
+        this.isDragging = false;
+        this.detachGlobalDragListeners();
+        this.stopDragAutoScrollLoop();
+        this.setState({
+          selectionStart: range.start,
+          selectionEnd: range.end,
+          caretAffinity: undefined,
+        });
+        this.setDomSelectionRange(range.start, range.end, 'forward');
+        this.scheduleEnsureCursorVisible();
+        return;
+      }
+    }
+
+    this._draggingHandle = null;
+    this.isDragging = true;
+    this.attachGlobalDragListeners();
+    this.startDragAutoScrollLoop();
 
     this.setState({
       selectionStart: index,
@@ -325,7 +401,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
       return;
     }
     const pt = this.getLocalPoint(e);
-    this.updateSelectionByLocalPoint(pt.x, pt.y);
+    this._dragLastViewportX = pt.x;
+    this._dragLastViewportY = pt.y;
+    this.updateSelectionByViewportPoint(pt.x, pt.y);
   };
 
   protected handlePointerUp = (e: InkwellEvent) => {
@@ -334,28 +412,15 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
       return;
     }
     this.isDragging = false;
+    this._draggingHandle = null;
     this.detachGlobalDragListeners();
+    this.stopDragAutoScrollLoop();
     this.input?.focus();
     this.scheduleEnsureCursorVisible();
   };
 
   protected updateSelectionByLocalPoint(localX: number, localY: number) {
-    if (!this.isDragging) {
-      return;
-    }
-    const sel = this.getSelectionAtLocalPoint(localX, localY);
-    const index = sel.index;
-    const st = this.state;
-    if (index !== st.selectionEnd) {
-      this.setState({ selectionEnd: index, caretAffinity: sel.caretAffinity });
-      if (this.input) {
-        const start = Math.min(st.selectionStart, index);
-        const end = Math.max(st.selectionStart, index);
-        const dir = st.selectionStart > index ? 'backward' : 'forward';
-        this.setDomSelectionRange(start, end, dir);
-      }
-    }
-    this.scheduleEnsureCursorVisible();
+    this.updateSelectionByViewportPoint(localX, localY);
   }
 
   protected attachGlobalDragListeners() {
@@ -387,7 +452,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
       return;
     }
     const pt = this.getLocalPointFromClient(e.clientX, e.clientY);
-    this.updateSelectionByLocalPoint(pt.x, pt.y);
+    this._dragLastViewportX = pt.x;
+    this._dragLastViewportY = pt.y;
+    this.updateSelectionByViewportPoint(pt.x, pt.y);
   }
 
   private handleWindowPointerUp(_e: PointerEvent) {
@@ -395,7 +462,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
       return;
     }
     this.isDragging = false;
+    this._draggingHandle = null;
     this.detachGlobalDragListeners();
+    this.stopDragAutoScrollLoop();
     this.input?.focus();
     this.scheduleEnsureCursorVisible();
   }
@@ -408,5 +477,259 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
       ne &&
       typeof ne.clientX === 'number'
     );
+  }
+
+  protected beginSelectionHandleDrag(which: 'start' | 'end', e: InkwellEvent) {
+    e.stopPropagation?.();
+    this.input?.focus();
+    this._draggingHandle = which;
+    this.isDragging = true;
+    this.setDragPointerTarget(this);
+    this.attachGlobalDragListeners();
+    this.startDragAutoScrollLoop();
+    const vp = this.getViewportLocalPointFromCanvasXY(e.x, e.y);
+    this._dragLastViewportX = vp.x;
+    this._dragLastViewportY = vp.y;
+    this.updateSelectionByViewportPoint(vp.x, vp.y);
+  }
+
+  protected endSelectionHandleDrag() {
+    if (!this.isDragging) {
+      return;
+    }
+    this.isDragging = false;
+    this._draggingHandle = null;
+    this.detachGlobalDragListeners();
+    this.stopDragAutoScrollLoop();
+    this.input?.focus();
+    this.scheduleEnsureCursorVisible();
+  }
+
+  private updateSelectionByViewportPoint(viewportX: number, viewportY: number) {
+    if (!this.isDragging) {
+      return;
+    }
+    const pt = this.toContentPoint(viewportX, viewportY);
+    const sel = this.getSelectionAtLocalPoint(pt.x, pt.y);
+    const index = sel.index;
+    const st = this.state;
+
+    let nextStart = st.selectionStart;
+    let nextEnd = st.selectionEnd;
+    if (this._draggingHandle === 'start') {
+      nextStart = index;
+    } else {
+      nextEnd = index;
+    }
+
+    if (nextStart === st.selectionStart && nextEnd === st.selectionEnd) {
+      return;
+    }
+
+    this.setState({
+      selectionStart: nextStart,
+      selectionEnd: nextEnd,
+      caretAffinity: sel.caretAffinity,
+    });
+    if (this.input) {
+      const start = Math.min(nextStart, nextEnd);
+      const end = Math.max(nextStart, nextEnd);
+      const dir = nextStart > nextEnd ? 'backward' : 'forward';
+      this.setDomSelectionRange(start, end, dir);
+    }
+    this.scheduleEnsureCursorVisible();
+  }
+
+  private startDragAutoScrollLoop() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._dragAutoScrollRafId !== null) {
+      return;
+    }
+    const step = () => {
+      this._dragAutoScrollRafId = window.requestAnimationFrame(step);
+      if (!this.isDragging) {
+        return;
+      }
+      const sv = this.scrollViewRef;
+      const x = this._dragLastViewportX;
+      const y = this._dragLastViewportY;
+      if (!sv || x === null || y === null) {
+        return;
+      }
+      const vw = sv.width;
+      const vh = sv.height;
+      if (vw <= 0 || vh <= 0) {
+        return;
+      }
+      const threshold = 24;
+      const maxSpeed = 24;
+
+      let dx = 0;
+      let dy = 0;
+
+      if (x < threshold) {
+        dx = -maxSpeed * (1 - Math.max(0, x) / threshold);
+      } else if (x > vw - threshold) {
+        dx = maxSpeed * (1 - Math.max(0, vw - x) / threshold);
+      }
+
+      if (y < threshold) {
+        dy = -maxSpeed * (1 - Math.max(0, y) / threshold);
+      } else if (y > vh - threshold) {
+        dy = maxSpeed * (1 - Math.max(0, vh - y) / threshold);
+      }
+
+      if (dx === 0 && dy === 0) {
+        return;
+      }
+      const nextX = sv.scrollX + dx;
+      const nextY = sv.scrollY + dy;
+      sv.scrollTo(nextX, nextY);
+      this.updateSelectionByViewportPoint(x, y);
+    };
+    this._dragAutoScrollRafId = window.requestAnimationFrame(step);
+  }
+
+  private stopDragAutoScrollLoop() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (this._dragAutoScrollRafId !== null) {
+      window.cancelAnimationFrame(this._dragAutoScrollRafId);
+      this._dragAutoScrollRafId = null;
+    }
+  }
+
+  private toContentPoint(viewportX: number, viewportY: number): { x: number; y: number } {
+    const sv = this.scrollViewRef;
+    if (!sv) {
+      return { x: viewportX, y: viewportY };
+    }
+    return { x: viewportX + sv.scrollX, y: viewportY + sv.scrollY };
+  }
+
+  protected getWordRangeAtIndex(index: number): { start: number; end: number } | null {
+    const text = this.state.text;
+    if (text.length === 0) {
+      return null;
+    }
+    const i = Math.max(0, Math.min(index, text.length));
+    const pivot = i === text.length ? i - 1 : i;
+    if (pivot < 0) {
+      return null;
+    }
+    const ch = text[pivot] ?? '';
+    if (!ch || /\s/.test(ch)) {
+      return null;
+    }
+    const isWord = /[A-Za-z0-9_]/.test(ch);
+    const isCjk = /[\u4E00-\u9FFF]/.test(ch);
+    const type = isWord ? 'word' : isCjk ? 'cjk' : 'other';
+    let start = pivot;
+    let end = pivot + 1;
+    while (start > 0) {
+      const c = text[start - 1] ?? '';
+      if (!c || /\s/.test(c)) {
+        break;
+      }
+      const cIsWord = /[A-Za-z0-9_]/.test(c);
+      const cIsCjk = /[\u4E00-\u9FFF]/.test(c);
+      const cType = cIsWord ? 'word' : cIsCjk ? 'cjk' : 'other';
+      if (cType !== type) {
+        break;
+      }
+      start -= 1;
+    }
+    while (end < text.length) {
+      const c = text[end] ?? '';
+      if (!c || /\s/.test(c)) {
+        break;
+      }
+      const cIsWord = /[A-Za-z0-9_]/.test(c);
+      const cIsCjk = /[\u4E00-\u9FFF]/.test(c);
+      const cType = cIsWord ? 'word' : cIsCjk ? 'cjk' : 'other';
+      if (cType !== type) {
+        break;
+      }
+      end += 1;
+    }
+    return { start, end };
+  }
+
+  protected getLineRangeAtIndex(_index: number): { start: number; end: number } | null {
+    return { start: 0, end: this.state.text.length };
+  }
+
+  protected getCaretViewportRect(): {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null {
+    return null;
+  }
+
+  private getCanvasClientRect(): { left: number; top: number } | null {
+    const rt = this.runtime as unknown as {
+      getRenderer?: () => { getRawInstance?: () => { canvas?: HTMLCanvasElement } | null } | null;
+      container?: HTMLElement | null;
+    } | null;
+    const raw = rt?.getRenderer?.()?.getRawInstance?.() as { canvas?: HTMLCanvasElement } | null;
+    const canvas = raw?.canvas ?? rt?.container?.querySelector?.('canvas') ?? null;
+    if (!canvas || typeof canvas.getBoundingClientRect !== 'function') {
+      return null;
+    }
+    const rect = canvas.getBoundingClientRect();
+    return { left: rect.left, top: rect.top };
+  }
+
+  private updateInputPosition() {
+    if (!this.input || !this.state.focused) {
+      return;
+    }
+    const caret = this.getCaretViewportRect();
+    if (!caret) {
+      return;
+    }
+    const canvasRect = this.getCanvasClientRect();
+    if (!canvasRect) {
+      return;
+    }
+    const abs = this.getAbsolutePosition();
+    const left = canvasRect.left + abs.dx + caret.left;
+    const top = canvasRect.top + abs.dy + caret.top;
+    const width = caret.width;
+    const height = caret.height;
+    if (
+      left === this._lastInputLeft &&
+      top === this._lastInputTop &&
+      width === this._lastInputW &&
+      height === this._lastInputH
+    ) {
+      return;
+    }
+    this._lastInputLeft = left;
+    this._lastInputTop = top;
+    this._lastInputW = width;
+    this._lastInputH = height;
+
+    this.input.style.left = `${left}px`;
+    this.input.style.top = `${top}px`;
+    this.input.style.width = `${Math.max(1, width)}px`;
+    this.input.style.height = `${Math.max(1, height)}px`;
+    this.input.style.fontSize = `${this.props.fontSize || 14}px`;
+    this.input.style.fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+    this.input.style.lineHeight = `${Math.max(1, height)}px`;
+  }
+
+  private getViewportLocalPointFromCanvasXY(x: number, y: number): { x: number; y: number } {
+    const self = this as unknown as DragPointerTarget | null;
+    if (self?._worldMatrix) {
+      const inv = invert(self._worldMatrix);
+      return transformPoint(inv, { x, y });
+    }
+    return { x, y };
   }
 }
