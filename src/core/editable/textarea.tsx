@@ -1,19 +1,42 @@
 /** @jsxImportSource @/utils/compiler */
-import { Editable, type EditableProps } from './editable';
+import { Container } from '../container';
+import { Positioned } from '../positioned';
+import { Stack } from '../stack';
+import { Text, type TextLineMetrics } from '../text';
+import { ScrollView } from '../viewport/scroll-view';
 
-import { Container, ScrollView, Stack, Text } from '@/core';
-import { Positioned } from '@/core/positioned';
-import { type TextLineMetrics } from '@/core/text';
+import { Editable, type EditableProps } from './base';
+
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
 import { type AnyElement } from '@/utils/compiler/jsx-compiler';
 
+/**
+ * TextArea 组件属性
+ *
+ * 在 EditableProps 基础上补充文本颜色等展示相关参数。
+ */
 export interface TextAreaProps extends EditableProps {
-  placeholder?: string;
+  /** 文本颜色 */
   color?: string;
 }
 
+type LinePrefixWidthCache = {
+  text: string;
+  fontKey: string;
+  prefix: Float32Array;
+};
+
+/**
+ * 多行输入框组件
+ *
+ * - 使用隐藏的原生 textarea 负责输入与输入法事件
+ * - 支持上下方向键的“列对齐”移动与纵向滚动，确保光标可见
+ */
 export class TextArea extends Editable<TextAreaProps> {
   private textWidgetRef: Text | null = null;
+  // 竖向移动光标（上下键）时，记录“偏好 x”，以实现与常见编辑器一致的列对齐体验
   private preferredCursorX: number | null = null;
+  private linePrefixWidths: Map<number, LinePrefixWidthCache> = new Map();
 
   constructor(props: TextAreaProps) {
     super(props);
@@ -21,6 +44,7 @@ export class TextArea extends Editable<TextAreaProps> {
   }
 
   protected createDomInput(): HTMLTextAreaElement {
+    // 多行输入使用原生 textarea 捕获键盘与输入法事件
     return document.createElement('textarea');
   }
 
@@ -49,6 +73,7 @@ export class TextArea extends Editable<TextAreaProps> {
       return;
     }
 
+    // 由组件自行计算“上一行/下一行”的落点，并阻止浏览器默认的 textarea 行为
     e.preventDefault();
 
     const lines = this.textWidgetRef.lines;
@@ -63,6 +88,7 @@ export class TextArea extends Editable<TextAreaProps> {
         const prevLine = lines[lineIndex - 1];
         const currInfo = this.getCursorInfoAtIndex(currentCursor, this.state.caretAffinity);
         if (this.preferredCursorX === null) {
+          // 第一次按下上下键时锁定当前列，后续连续按键沿用该列
           this.preferredCursorX = currInfo.x;
         }
         const targetY = prevLine.y + prevLine.height / 2;
@@ -222,6 +248,33 @@ export class TextArea extends Editable<TextAreaProps> {
     return this.measureCtx.measureText(text).width;
   }
 
+  private getLinePrefixWidths(lineIndex: number, line: TextLineMetrics): Float32Array {
+    const fontSize = this.props.fontSize || 14;
+    const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
+    const fontKey = `${fontSize}px ${fontFamily}`;
+
+    const cached = this.linePrefixWidths.get(lineIndex);
+    if (cached && cached.text === line.text && cached.fontKey === fontKey) {
+      return cached.prefix;
+    }
+
+    if (!this.measureCtx) {
+      const prefix = new Float32Array(line.text.length + 1);
+      this.linePrefixWidths.set(lineIndex, { text: line.text, fontKey, prefix });
+      return prefix;
+    }
+
+    this.measureCtx.font = fontKey;
+    const prefix = new Float32Array(line.text.length + 1);
+    // 为每行构建“累计宽度表”，后续命中测试可二分定位字符索引
+    for (let i = 0; i < line.text.length; i++) {
+      const w = this.measureCtx.measureText(line.text[i] ?? '').width;
+      prefix[i + 1] = prefix[i] + w;
+    }
+    this.linePrefixWidths.set(lineIndex, { text: line.text, fontKey, prefix });
+    return prefix;
+  }
+
   private getCursorInfoAtIndex(
     index: number,
     affinity?: 'start' | 'end',
@@ -266,6 +319,7 @@ export class TextArea extends Editable<TextAreaProps> {
     }
 
     if (hits.length > 1) {
+      // 光标正好落在换行边界时，可能同时命中前后两行；用 affinity 决定归属
       return affinity === 'start' ? hits[hits.length - 1] : hits[0];
     }
 
@@ -316,17 +370,30 @@ export class TextArea extends Editable<TextAreaProps> {
     const relX = x - targetLine.x;
     const lineText = targetLine.text;
     const startIndex = targetLine.startIndex;
-    let bestOffset = 0;
-    let minDiff = Infinity;
 
-    for (let i = 0; i <= lineText.length; i++) {
-      const sub = lineText.substring(0, i);
-      const w = this.measureTextWidth(sub);
-      const diff = Math.abs(relX - w);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestOffset = i;
+    let bestOffset = 0;
+    const prefix = this.getLinePrefixWidths(targetLineIndex, targetLine);
+    const totalW = prefix[prefix.length - 1] ?? 0;
+
+    if (relX <= 0) {
+      bestOffset = 0;
+    } else if (relX >= totalW) {
+      bestOffset = lineText.length;
+    } else {
+      // 通过累计宽度表二分搜索字符边界，找到最接近点击位置的字符索引
+      let lo = 0;
+      let hi = lineText.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        const left = prefix[mid] ?? 0;
+        const charW = (prefix[mid + 1] ?? left) - left;
+        if (left + charW / 2 > relX) {
+          hi = mid;
+        } else {
+          lo = mid + 1;
+        }
       }
+      bestOffset = Math.max(0, Math.min(lineText.length, lo));
     }
 
     const index = startIndex + bestOffset;
@@ -334,11 +401,13 @@ export class TextArea extends Editable<TextAreaProps> {
     if (bestOffset === 0 && targetLineIndex > 0) {
       const prev = lines[targetLineIndex - 1];
       if (prev.endIndex === index) {
+        // 命中前一行末尾与当前行行首的边界时，将光标归属到“行首侧”
         caretAffinity = 'start';
       }
     } else if (bestOffset === lineText.length && targetLineIndex < lines.length - 1) {
       const next = lines[targetLineIndex + 1];
       if (next.startIndex === index) {
+        // 命中当前行末尾与下一行行首的边界时，将光标归属到“行尾侧”
         caretAffinity = 'end';
       }
     }
@@ -346,24 +415,27 @@ export class TextArea extends Editable<TextAreaProps> {
     return { index, caretAffinity };
   }
 
-  protected getIndexAtLocalPoint(localX: number, localY: number): number {
-    return this.getSelectionAtPoint(localX, localY).index;
+  protected getIndexAtContentPoint(contentX: number, contentY: number): number {
+    return this.getSelectionAtPoint(contentX, contentY).index;
   }
 
-  protected override getSelectionAtLocalPoint(
-    localX: number,
-    localY: number,
+  protected override getSelectionAtContentPoint(
+    contentX: number,
+    contentY: number,
   ): { index: number; caretAffinity?: 'start' | 'end' } {
     this.preferredCursorX = null;
-    return this.getSelectionAtPoint(localX, localY);
+    return this.getSelectionAtPoint(contentX, contentY);
   }
 
   render() {
+    const theme = Themes[getCurrentThemeMode()];
     const {
       fontSize = 14,
       fontFamily = 'Arial, sans-serif',
       color = '#000000',
       cursorColor = '#000000',
+      placeholder,
+      disabled,
     } = this.props;
 
     const { text, selectionStart, selectionEnd, focused, cursorVisible } = this.state;
@@ -397,6 +469,10 @@ export class TextArea extends Editable<TextAreaProps> {
       }
     }
 
+    const showPlaceholder =
+      text.length === 0 && typeof placeholder === 'string' && placeholder.length > 0;
+    const placeholderColor = theme.text.placeholder;
+
     return (
       <Container
         onPointerDown={this.handlePointerDown}
@@ -404,7 +480,7 @@ export class TextArea extends Editable<TextAreaProps> {
         onPointerUp={this.handlePointerUp}
         pointerEvent="auto"
         alignment="topLeft"
-        cursor="text"
+        cursor={disabled ? 'not-allowed' : 'text'}
       >
         <ScrollView
           ref={(r) => (this.scrollViewRef = r as ScrollView)}
@@ -416,13 +492,32 @@ export class TextArea extends Editable<TextAreaProps> {
           <Stack>
             {selectionWidgets}
 
-            <Text
-              ref={(r) => (this.textWidgetRef = r as Text)}
-              text={text}
-              fontSize={fontSize}
-              fontFamily={fontFamily}
-              color={color}
-            />
+            {showPlaceholder ? (
+              <Text
+                ref={(r) => (this.textWidgetRef = r as Text)}
+                text={''}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                color={color}
+              />
+            ) : (
+              <Text
+                ref={(r) => (this.textWidgetRef = r as Text)}
+                text={text}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                color={color}
+              />
+            )}
+
+            {showPlaceholder && (
+              <Text
+                text={placeholder}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                color={placeholderColor}
+              />
+            )}
 
             {focused && selectionStart !== selectionEnd && (
               <>

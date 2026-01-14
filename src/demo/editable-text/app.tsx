@@ -1,15 +1,15 @@
 /** @jsxImportSource @/utils/compiler */
-import { Input } from './widget/input';
-import { TextArea } from './widget/textarea';
 
 import {
   Column,
   Container,
   CrossAxisAlignment,
+  Input,
   Padding,
   Row,
   StatefulWidget,
   Text,
+  TextArea,
   type WidgetProps,
 } from '@/core';
 import Runtime from '@/runtime';

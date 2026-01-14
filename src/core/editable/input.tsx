@@ -1,14 +1,30 @@
 /** @jsxImportSource @/utils/compiler */
-import { Editable, type EditableProps } from './editable';
+import { Container } from '../container';
+import { Positioned } from '../positioned';
+import { Stack } from '../stack';
+import { Text } from '../text';
+import { ScrollView } from '../viewport/scroll-view';
 
-import { Container, ScrollView, Stack, Text } from '@/core';
-import { Positioned } from '@/core/positioned';
+import { Editable, type EditableProps } from './base';
 
+import { getCurrentThemeMode, Themes } from '@/styles/theme';
+
+/**
+ * Input 组件属性
+ *
+ * 在 EditableProps 基础上补充文本颜色等展示相关参数。
+ */
 export interface InputProps extends EditableProps {
-  placeholder?: string;
+  /** 文本颜色 */
   color?: string;
 }
 
+/**
+ * 单行输入框组件
+ *
+ * - 使用隐藏的原生 input 负责输入与输入法事件
+ * - 使用 ScrollView 支持横向滚动，确保光标始终可见
+ */
 export class Input extends Editable<InputProps> {
   constructor(props: InputProps) {
     super(props);
@@ -16,6 +32,7 @@ export class Input extends Editable<InputProps> {
   }
 
   protected createDomInput(): HTMLInputElement {
+    // 单行输入使用原生 input 捕获键盘与输入法事件
     const input = document.createElement('input');
     input.type = 'text';
     return input;
@@ -27,6 +44,7 @@ export class Input extends Editable<InputProps> {
       return;
     }
 
+    // 以视口宽度为基准，计算光标是否落在“可视区域 + 内边距”之外，必要时调整 scrollX
     const viewportW = sv.width;
     if (viewportW <= 0) {
       return;
@@ -64,8 +82,8 @@ export class Input extends Editable<InputProps> {
     sv.scrollTo(nextScrollX, sv.scrollY);
   }
 
-  protected getIndexAtLocalPoint(localX: number, _localY: number): number {
-    return this.getIndexAtX(localX);
+  protected getIndexAtContentPoint(contentX: number, _contentY: number): number {
+    return this.getIndexAtX(contentX);
   }
 
   private getIndexAtX(x: number) {
@@ -73,6 +91,7 @@ export class Input extends Editable<InputProps> {
       return 0;
     }
 
+    // 单行文本长度通常较短，这里使用线性扫描找到最接近 x 的字符索引
     let bestIndex = 0;
     let minDiff = Infinity;
     const text = this.state.text;
@@ -112,11 +131,14 @@ export class Input extends Editable<InputProps> {
   }
 
   render() {
+    const theme = Themes[getCurrentThemeMode()];
     const {
       fontSize = 14,
       fontFamily = 'Arial, sans-serif',
       color = '#000000',
       cursorColor = '#000000',
+      placeholder,
+      disabled,
     } = this.props;
 
     const { text, selectionStart, selectionEnd, focused, cursorVisible } = this.state;
@@ -144,13 +166,17 @@ export class Input extends Editable<InputProps> {
       };
     }
 
+    const showPlaceholder =
+      text.length === 0 && typeof placeholder === 'string' && placeholder.length > 0;
+    const placeholderColor = theme.text.placeholder;
+
     return (
       <Container
         onPointerDown={this.handlePointerDown}
         onPointerMove={this.handlePointerMove}
         onPointerUp={this.handlePointerUp}
         pointerEvent="auto"
-        cursor="text"
+        cursor={disabled ? 'not-allowed' : 'text'}
       >
         <ScrollView
           ref={(r) => (this.scrollViewRef = r as ScrollView)}
@@ -172,13 +198,23 @@ export class Input extends Editable<InputProps> {
                 </Positioned>
               )}
 
-              <Text
-                text={text}
-                fontSize={fontSize}
-                fontFamily={fontFamily}
-                color={color}
-                lineHeight={fontSize * 1.5}
-              />
+              {showPlaceholder ? (
+                <Text
+                  text={placeholder}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  color={placeholderColor}
+                  lineHeight={fontSize * 1.5}
+                />
+              ) : (
+                <Text
+                  text={text}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  color={color}
+                  lineHeight={fontSize * 1.5}
+                />
+              )}
 
               {focused && selectionStart !== selectionEnd && (
                 <>

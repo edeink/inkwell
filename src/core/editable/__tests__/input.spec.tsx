@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Input } from '../widget/input';
+import { Input } from '../input';
 
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 

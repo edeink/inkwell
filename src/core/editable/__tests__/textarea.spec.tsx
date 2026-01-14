@@ -1,12 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TextArea } from '../widget/textarea';
+import { TextArea } from '../textarea';
 
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
-// Mock core components
+// Mock core 组件，避免渲染实现影响当前测试
 vi.mock('@/core', async () => {
   return {
     Container: (props: any) => ({ type: 'Container', props }),
@@ -23,15 +23,15 @@ vi.mock('@/core/positioned', () => ({
   Positioned: (props: any) => ({ type: 'Positioned', props }),
 }));
 
-// Mock TextLayout
+// Mock TextLayout，固定文本布局结果以便验证选区与光标逻辑
 vi.mock('@/core/text/layout', () => ({
   TextLayout: {
     layout: vi.fn().mockReturnValue({
       width: 100,
       height: 40,
       lines: [
-        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
-        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+        { text: '第一行', width: 50, startIndex: 0, endIndex: 3, height: 20, x: 0, y: 0 },
+        { text: '第二行', width: 50, startIndex: 4, endIndex: 7, height: 20, x: 0, y: 20 },
       ],
       lineHeight: 20,
     }),
@@ -78,7 +78,7 @@ describe('TextArea 组件', () => {
 
     props = {
       type: 'TextArea',
-      value: 'Line 1\nLine 2',
+      value: '第一行\n第二行',
       onChange: vi.fn(),
     };
 
@@ -93,15 +93,15 @@ describe('TextArea 组件', () => {
 
   it('应该创建隐藏的 textarea 元素', () => {
     const textarea = document.querySelector('textarea');
-    expect(textarea).not.toBeNull();
-    expect(textarea?.value).toBe('Line 1\nLine 2');
+    expect(textarea, '应创建隐藏的 textarea 元素').not.toBeNull();
+    expect(textarea?.value, '隐藏 textarea 的 value 应与初始值一致').toBe('第一行\n第二行');
   });
 
   it('当 props.value 改变时应该更新 textarea 值', () => {
-    const newProps = { ...props, value: 'New Value' };
+    const newProps = { ...props, value: '新值' };
     textareaComponent.createElement(newProps);
     const textarea = document.querySelector('textarea');
-    expect(textarea?.value).toBe('New Value');
+    expect(textarea?.value, '受控 value 更新后应同步到隐藏 textarea').toBe('新值');
   });
 
   it('应该响应 input 事件并调用 onChange', () => {
@@ -110,15 +110,15 @@ describe('TextArea 组件', () => {
       throw new Error('未找到 textarea 元素');
     }
 
-    textarea.value = 'Changed';
+    textarea.value = '已修改';
     textarea.dispatchEvent(new Event('input'));
 
-    expect(props.onChange).toHaveBeenCalledWith('Changed');
+    expect(props.onChange, '触发 input 事件后应回调 onChange').toHaveBeenCalledWith('已修改');
   });
 
   it('拖拽选区时应阻止事件冒泡并更新选区', () => {
     const element = compileElement(textareaComponent.render()) as any;
-    expect(element.type).toBe('Container');
+    expect(element.type, '根节点应为 Container').toBe('Container');
 
     const stopPropagation = vi.fn();
 
@@ -128,7 +128,7 @@ describe('TextArea 组件', () => {
       stopPropagation,
     } as any;
     element.onPointerDown(downEvent);
-    expect(stopPropagation).toHaveBeenCalled();
+    expect(stopPropagation, 'PointerDown 应阻止事件冒泡').toHaveBeenCalled();
 
     stopPropagation.mockClear();
     const moveEvent = {
@@ -137,7 +137,7 @@ describe('TextArea 组件', () => {
       stopPropagation,
     } as any;
     element.onPointerMove(moveEvent);
-    expect(stopPropagation).toHaveBeenCalled();
+    expect(stopPropagation, 'PointerMove 应阻止事件冒泡').toHaveBeenCalled();
 
     stopPropagation.mockClear();
     const upEvent = {
@@ -146,19 +146,23 @@ describe('TextArea 组件', () => {
       stopPropagation,
     } as any;
     element.onPointerUp(upEvent);
-    expect(stopPropagation).toHaveBeenCalled();
+    expect(stopPropagation, 'PointerUp 应阻止事件冒泡').toHaveBeenCalled();
 
-    // @ts-expect-error 测试用访问内部状态
-    expect(textareaComponent.state.selectionStart).toBeGreaterThanOrEqual(0);
-    // @ts-expect-error 测试用访问内部状态
-    expect(textareaComponent.state.selectionEnd).toBeGreaterThanOrEqual(0);
+    expect(
+      (textareaComponent as any).state.selectionStart,
+      '拖拽后选区起点应为有效索引',
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      (textareaComponent as any).state.selectionEnd,
+      '拖拽后选区终点应为有效索引',
+    ).toBeGreaterThanOrEqual(0);
   });
 
   it('拖拽时应使用全局监听继续更新选区', () => {
     (textareaComponent as any).textWidgetRef = {
       lines: [
-        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
-        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+        { text: '第一行', width: 50, startIndex: 0, endIndex: 3, height: 20, x: 0, y: 0 },
+        { text: '第二行', width: 50, startIndex: 4, endIndex: 7, height: 20, x: 0, y: 20 },
       ],
     };
 
@@ -168,25 +172,39 @@ describe('TextArea 组件', () => {
     const element = compileElement(textareaComponent.render()) as any;
     element.onPointerDown({ x: 10, y: 10, target: {}, stopPropagation: vi.fn() } as any);
 
-    expect(addSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
-    expect(addSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+    expect(addSpy, '开始拖拽后应注册全局 pointermove 监听').toHaveBeenCalledWith(
+      'pointermove',
+      expect.any(Function),
+    );
+    expect(addSpy, '开始拖拽后应注册全局 pointerup 监听').toHaveBeenCalledWith(
+      'pointerup',
+      expect.any(Function),
+    );
 
     const MoveEvent = (window as any).PointerEvent ?? MouseEvent;
     window.dispatchEvent(new MoveEvent('pointermove', { clientX: 30, clientY: 25 }) as any);
 
-    // @ts-expect-error 测试用访问内部状态
-    expect(textareaComponent.state.selectionEnd).toBeGreaterThan(0);
+    expect(
+      (textareaComponent as any).state.selectionEnd,
+      '全局 pointermove 应继续更新选区',
+    ).toBeGreaterThan(0);
 
     window.dispatchEvent(new MoveEvent('pointerup', { clientX: 30, clientY: 25 }) as any);
-    expect(removeSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
-    expect(removeSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+    expect(removeSpy, '结束拖拽后应移除全局 pointermove 监听').toHaveBeenCalledWith(
+      'pointermove',
+      expect.any(Function),
+    );
+    expect(removeSpy, '结束拖拽后应移除全局 pointerup 监听').toHaveBeenCalledWith(
+      'pointerup',
+      expect.any(Function),
+    );
   });
 
   it('聚焦与失焦时选区颜色应不同', () => {
     (textareaComponent as any).textWidgetRef = {
       lines: [
-        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
-        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+        { text: '第一行', width: 50, startIndex: 0, endIndex: 3, height: 20, x: 0, y: 0 },
+        { text: '第二行', width: 50, startIndex: 4, endIndex: 7, height: 20, x: 0, y: 20 },
       ],
     };
 
@@ -198,14 +216,14 @@ describe('TextArea 组件', () => {
     const theme = Themes[getCurrentThemeMode()];
 
     const textarea = document.querySelector('textarea');
-    expect(textarea).not.toBeNull();
+    expect(textarea, '应存在隐藏 textarea 元素').not.toBeNull();
 
     const focusedTree = compileElement(textareaComponent.render()) as any;
     const focusedColor = findFirstCompiledContainerColor(
       focusedTree,
       (n) => typeof n.color === 'string' && n.width !== 2,
     );
-    expect(focusedColor).toBe(theme.state.focus);
+    expect(focusedColor, '聚焦时应使用聚焦选区颜色').toBe(theme.state.focus);
 
     textarea?.dispatchEvent(new Event('blur'));
     const blurredTree2 = compileElement(textareaComponent.render()) as any;
@@ -213,14 +231,14 @@ describe('TextArea 组件', () => {
       blurredTree2,
       (n) => typeof n.color === 'string' && n.width !== 2,
     );
-    expect(blurredColor2).toBe(theme.state.selected);
+    expect(blurredColor2, '失焦时应使用非聚焦选区颜色').toBe(theme.state.selected);
   });
 
   it('区选时不应显示光标', () => {
     (textareaComponent as any).textWidgetRef = {
       lines: [
-        { text: 'Line 1', width: 50, startIndex: 0, endIndex: 6, height: 20, x: 0, y: 0 },
-        { text: 'Line 2', width: 50, startIndex: 7, endIndex: 13, height: 20, x: 0, y: 20 },
+        { text: '第一行', width: 50, startIndex: 0, endIndex: 3, height: 20, x: 0, y: 0 },
+        { text: '第二行', width: 50, startIndex: 4, endIndex: 7, height: 20, x: 0, y: 20 },
       ],
     };
 
@@ -235,20 +253,20 @@ describe('TextArea 组件', () => {
       tree,
       (n) => typeof n.color === 'string' && n.width === 2,
     );
-    expect(cursorColor).toBeUndefined();
+    expect(cursorColor, '存在选区时不应渲染光标').toBeUndefined();
   });
 
   it('光标在行首按下键应保持行首并携带标记位', () => {
     (textareaComponent as any).textWidgetRef = {
       lines: [
-        { text: 'abcd', width: 40, startIndex: 0, endIndex: 4, height: 20, x: 0, y: 0 },
-        { text: 'ef', width: 20, startIndex: 4, endIndex: 6, height: 20, x: 0, y: 20 },
-        { text: 'ghij', width: 40, startIndex: 6, endIndex: 10, height: 20, x: 0, y: 40 },
+        { text: '甲乙丙丁', width: 40, startIndex: 0, endIndex: 4, height: 20, x: 0, y: 0 },
+        { text: '戊己', width: 20, startIndex: 4, endIndex: 6, height: 20, x: 0, y: 20 },
+        { text: '庚辛壬癸', width: 40, startIndex: 6, endIndex: 10, height: 20, x: 0, y: 40 },
       ],
     };
 
     (textareaComponent as any).setState({
-      text: 'abcdefghij',
+      text: '甲乙丙丁戊己庚辛壬癸',
       selectionStart: 4,
       selectionEnd: 4,
       caretAffinity: 'start',
@@ -261,10 +279,12 @@ describe('TextArea 组件', () => {
     } as any);
 
     // @ts-expect-error 测试用访问内部状态
-    expect(textareaComponent.state.selectionStart).toBe(6);
+    expect(textareaComponent.state.selectionStart, '向下移动后 selectionStart 应更新').toBe(6);
     // @ts-expect-error 测试用访问内部状态
-    expect(textareaComponent.state.selectionEnd).toBe(6);
+    expect(textareaComponent.state.selectionEnd, '向下移动后 selectionEnd 应更新').toBe(6);
     // @ts-expect-error 测试用访问内部状态
-    expect((textareaComponent.state as any).caretAffinity).toBe('start');
+    expect((textareaComponent.state as any).caretAffinity, '应保留 caretAffinity 标记').toBe(
+      'start',
+    );
   });
 });
