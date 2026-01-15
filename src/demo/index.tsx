@@ -1,6 +1,6 @@
 import { theme as antTheme, ConfigProvider, Tabs } from 'antd';
 import cn from 'classnames';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import EditableText, { meta as EditableTextMeta } from './editable-text';
 import styles from './index.module.less';
@@ -16,6 +16,7 @@ import { DevTools } from '@/devtools';
 import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
 
 export default function UnifiedDemo() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [activeKey, setActiveKey] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
@@ -49,6 +50,48 @@ export default function UnifiedDemo() {
   }, []);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+
+    const allowHorizontalWheel = (target: EventTarget | null): boolean => {
+      let cur = (target as HTMLElement | null) ?? null;
+      while (cur && cur !== el) {
+        try {
+          const style = window.getComputedStyle(cur);
+          const overflowX = style.overflowX;
+          if (
+            (overflowX === 'auto' || overflowX === 'scroll') &&
+            cur.scrollWidth > cur.clientWidth
+          ) {
+            return true;
+          }
+        } catch {}
+        cur = cur.parentElement;
+      }
+      return false;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        return;
+      }
+      if (allowHorizontalWheel(e.target)) {
+        return;
+      }
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 0) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, []);
+
+  useEffect(() => {
     // 监听主题变化
     const unsubscribe = subscribeToThemeChange((mode) => {
       setTheme(mode === 'dark' ? ThemeType.Dark : ThemeType.Light);
@@ -75,7 +118,10 @@ export default function UnifiedDemo() {
         algorithm: theme === ThemeType.Dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
       }}
     >
-      <div className={cn(styles.container, { [styles.dark]: theme === ThemeType.Dark })}>
+      <div
+        ref={containerRef}
+        className={cn(styles.container, { [styles.dark]: theme === ThemeType.Dark })}
+      >
         <Tabs
           className={styles.tabs}
           activeKey={activeKey}

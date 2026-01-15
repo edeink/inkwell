@@ -5,9 +5,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SCALE_CONFIG } from '../../constants';
 import { useMindmapController } from '../../hooks/context';
 import { useMindmapView } from '../../hooks/use-mindmap-view';
+import { CustomComponentType } from '../../type';
 
 import { quantize } from './helper';
 import styles from './index.module.less';
+
+import { findWidget } from '@/core/helper/widget-selector';
 
 interface ZoomBarProps {
   min?: number;
@@ -24,11 +27,19 @@ export default function ZoomBar({
   const viewState = useMindmapView();
   const value = viewState.scale;
 
+  const getViewportCenter = useCallback((): { cx: number; cy: number; vw: number; vh: number } => {
+    const rect = controller.runtime.container?.getBoundingClientRect?.();
+    const vw = rect?.width ?? window.innerWidth;
+    const vh = rect?.height ?? window.innerHeight;
+    return { cx: vw / 2, cy: vh / 2, vw, vh };
+  }, [controller.runtime.container]);
+
   const onChange = useCallback(
     (v: number) => {
-      controller.viewport.setScale(v);
+      const { cx, cy } = getViewportCenter();
+      controller.zoomAt(v, cx, cy);
     },
-    [controller],
+    [controller, getViewportCenter],
   );
 
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -75,6 +86,7 @@ export default function ZoomBar({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
+      e.stopPropagation();
       setDragging(true);
       updateFromClientX(e.clientX);
     },
@@ -96,8 +108,26 @@ export default function ZoomBar({
   // 重置为 100% 并让父层居中（父层 onChange 已传入居中逻辑）
   const onReset = useCallback(() => {
     const next = quantize(1, min, max, step);
-    onChange(next);
-  }, [min, max, step, onChange]);
+    const root = controller.runtime.getRootWidget();
+    const layout = findWidget(root, CustomComponentType.MindMapLayout) as {
+      renderObject?: { size?: { width: number; height: number } };
+    } | null;
+    const size = layout?.renderObject?.size ?? null;
+
+    if (size) {
+      const { vw, vh } = getViewportCenter();
+      const scrollX = -((vw - size.width) / 2);
+      const scrollY = -((vh - size.height) / 2);
+      controller.viewport.scrollTo(scrollX, scrollY);
+    }
+
+    controller.viewport.setTransform(next, 0, 0);
+    controller.syncView({
+      scale: controller.viewport.scale,
+      tx: controller.viewport.tx,
+      ty: controller.viewport.ty,
+    });
+  }, [controller, getViewportCenter, max, min, step]);
 
   // 百分比输入（整数，10%~800%），实时同步缩放值
   const onPercentChange = useCallback(
@@ -112,7 +142,11 @@ export default function ZoomBar({
   );
 
   return (
-    <div className={styles.zoomBar}>
+    <div
+      className={styles.zoomBar}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className={styles.track} ref={trackRef} onPointerDown={handlePointerDown}>
         <div className={styles.fill} style={{ width: `${ratio * 100}%` }} />
         <div className={styles.thumb} style={{ left: `${ratio * 100}%` }} />

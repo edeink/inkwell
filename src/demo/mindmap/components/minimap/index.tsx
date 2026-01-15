@@ -24,7 +24,12 @@ export default function Minimap({ width = 200, height = 140 }: MinimapProps) {
     [width, height],
   );
   return (
-    <div className={styles.minimap} style={styleMemo}>
+    <div
+      className={styles.minimap}
+      style={styleMemo}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <ViewportPreview controller={controller} width={width} height={height} onFitChange={setFit} />
       <HighlightOverlay controller={controller} fit={fit} width={width} height={height} />
     </div>

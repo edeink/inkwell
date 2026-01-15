@@ -100,7 +100,7 @@ export default function HighlightOverlay({
     clear(ctx);
     ctx.save();
     ctx.scale(dpr, dpr);
-    ctx.strokeStyle = stroke ?? palette.primary;
+    ctx.strokeStyle = stroke ?? 'transparent';
     ctx.fillStyle = fill ?? palette.state.selected;
     ctx.lineWidth = borderWidth;
     ctx.beginPath();
@@ -115,7 +115,6 @@ export default function HighlightOverlay({
     fill,
     borderWidth,
     fit,
-    palette.primary,
     palette.state.selected,
     clear,
     width,

@@ -8,12 +8,21 @@
   backdrop-filter: blur(2px);
   overflow: hidden;
   box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
-  border: 1px solid rgb(255 255 255 / 25%);
+  background: rgb(255 255 255 / 70%);
+  border: 1px solid rgb(0 0 0 / 10%);
   transition:
     opacity 0.2s,
     transform 0.2s;
 
   @media (width <= 600px) {
     display: none;
+  }
+}
+
+:global(html[data-theme='dark']) {
+  .minimap {
+    background: rgb(0 0 0 / 35%);
+    border: 1px solid rgb(255 255 255 / 16%);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
   }
 }
