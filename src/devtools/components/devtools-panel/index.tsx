@@ -1,23 +1,17 @@
 import {
   AimOutlined,
   CloseOutlined,
+  CopyOutlined,
+  DownSquareOutlined,
+  ExpandOutlined,
   LeftOutlined,
   RightOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { Button, Input, Popover, Tooltip, Tree, message } from 'antd';
+import { Button, ConfigProvider, Input, Popover, Tooltip, Tree, message } from 'antd';
 import cn from 'classnames';
 import { throttle } from 'lodash-es';
-import {
-  Component,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ErrorInfo,
-  type Key,
-  type ReactNode,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type Key, type KeyboardEvent } from 'react';
 
 import Runtime from '../../../runtime';
 import { getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
@@ -30,6 +24,7 @@ import SimpleTip from '../simple-tip';
 
 import styles from './index.module.less';
 
+import type { DevTreeNode } from '../../helper/tree';
 import type { Widget } from '@/core/base';
 import type { DataNode } from 'antd/es/tree';
 
@@ -41,29 +36,49 @@ export interface DevToolsProps {
   shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
 }
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
+function collectTreeKeys(root: DevTreeNode | null): string[] {
+  if (!root) {
+    return [];
   }
-
-  static getDerivedStateFromError(_: Error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('DevToolsPanel Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: 16, color: '#ff4d4f', background: '#fff1f0' }}>
-          DevTools Panel Error (See Console)
-        </div>
-      );
+  const keys: string[] = [];
+  const stack: DevTreeNode[] = [root];
+  while (stack.length) {
+    const n = stack.pop()!;
+    keys.push(n.key);
+    for (let i = n.children.length - 1; i >= 0; i -= 1) {
+      stack.push(n.children[i]);
     }
-    return this.props.children;
+  }
+  return keys;
+}
+
+function toHotkeyFromEvent(e: KeyboardEvent<HTMLInputElement>): string {
+  const parts: string[] = [];
+  if (e.metaKey || e.ctrlKey) {
+    parts.push('CmdOrCtrl');
+  }
+  if (e.shiftKey) {
+    parts.push('Shift');
+  }
+  if (e.altKey) {
+    parts.push('Alt');
+  }
+  const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+  if (/^[A-Z]$/.test(key)) {
+    parts.push(key);
+  }
+  return parts.join('+');
+}
+
+async function copyToClipboard(text: string) {
+  if (!text) {
+    return false;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -127,7 +142,10 @@ export function DevToolsPanel(props: DevToolsProps) {
   // 监听 Runtime 的树更新
   // (Moved to after visible definition)
 
-  const tree = useMemo(() => toTree(runtime?.getRootWidget?.() ?? null), [runtime, version]);
+  const tree = useMemo(() => {
+    void version;
+    return toTree(runtime?.getRootWidget?.() ?? null);
+  }, [runtime, version]);
   const overlay = useMemo(() => (runtime ? new Overlay(runtime) : null), [runtime]);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState<string>('');
@@ -147,6 +165,136 @@ export function DevToolsPanel(props: DevToolsProps) {
     onToggle: () => setVisible((v) => !v),
     onInspectToggle: () => setActiveInspect((v) => !v),
   });
+
+  const allTreeKeys = useMemo(() => collectTreeKeys(tree), [tree]);
+
+  const settingsContent = (
+    <div className={styles.settingsPanel}>
+      <div className={styles.settingsRow}>
+        <div className={styles.settingsLabel}>快捷键</div>
+        <div className={styles.settingsControl}>
+          <Input
+            value={combo}
+            placeholder="按下组合键"
+            onKeyDown={(e) => {
+              e.preventDefault();
+              const next = toHotkeyFromEvent(e);
+              const invalid = ['Cmd+Q', 'Command+Q', 'Alt+F4', 'Ctrl+Shift+Esc'];
+              if (!next) {
+                return;
+              }
+              if (invalid.includes(next)) {
+                message.warning('该组合与系统/浏览器快捷键冲突');
+                return;
+              }
+              setCombo(next);
+            }}
+          />
+          <Button
+            size="small"
+            type="text"
+            onClick={() => setCombo('CmdOrCtrl+Shift+D')}
+            className={styles.settingsBtn}
+          >
+            重置
+          </Button>
+        </div>
+      </div>
+      <div className={styles.settingsHint}>建议使用 Cmd/Ctrl + Shift + 字母</div>
+
+      <div className={styles.settingsDivider} />
+
+      <div className={styles.settingsRow}>
+        <div className={styles.settingsLabel}>拾取</div>
+        <div className={styles.settingsControl}>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            icon={<AimOutlined />}
+            aria-pressed={activeInspect}
+            onClick={() => setActiveInspect((v) => !v)}
+          >
+            {activeInspect ? '已开启' : '已关闭'}
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.settingsRow}>
+        <div className={styles.settingsLabel}>节点</div>
+        <div className={styles.settingsControl}>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            icon={<CopyOutlined />}
+            disabled={!selected}
+            onClick={async () => {
+              const ok = await copyToClipboard(selected?.key ?? '');
+              if (ok) {
+                message.success('已复制节点 key');
+              } else {
+                message.warning('复制失败');
+              }
+            }}
+          >
+            复制 key
+          </Button>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            icon={<CopyOutlined />}
+            disabled={!selected}
+            onClick={async () => {
+              const ok = await copyToClipboard(selected ? `#${selected.key}` : '');
+              if (ok) {
+                message.success('已复制选择器');
+              } else {
+                message.warning('复制失败');
+              }
+            }}
+          >
+            复制选择器
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.settingsRow}>
+        <div className={styles.settingsLabel}>树</div>
+        <div className={styles.settingsControl}>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            icon={<ExpandOutlined />}
+            disabled={allTreeKeys.length === 0}
+            onClick={() => setExpandedKeys(new Set(allTreeKeys))}
+          >
+            展开全部
+          </Button>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            icon={<DownSquareOutlined />}
+            disabled={!tree}
+            onClick={() => setExpandedKeys(tree ? new Set([tree.key]) : new Set())}
+          >
+            折叠全部
+          </Button>
+          <Button
+            size="small"
+            type="text"
+            className={styles.settingsBtn}
+            onClick={() => setSearch('')}
+          >
+            清空搜索
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   // 监听 Runtime 的树更新
   useEffect(() => {
@@ -248,10 +396,16 @@ export function DevToolsPanel(props: DevToolsProps) {
   }, [runtime]);
 
   return (
-    <LayoutPanel
-      visible={visible}
-      headerLeft={
-        <Tooltip title={activeInspect ? 'Inspect 开启' : 'Inspect 关闭'} placement="bottom">
+    <ConfigProvider
+      getPopupContainer={(triggerNode) => {
+        const container =
+          (triggerNode?.closest?.('#inkwell-devtools-root') as HTMLElement | null) ?? null;
+        return container ?? document.body;
+      }}
+    >
+      <LayoutPanel
+        visible={visible}
+        headerLeft={
           <Button
             type="text"
             aria-pressed={activeInspect}
@@ -259,191 +413,158 @@ export function DevToolsPanel(props: DevToolsProps) {
             icon={<AimOutlined />}
             onClick={() => setActiveInspect((v) => !v)}
           />
-        </Tooltip>
-      }
-      headerRightExtra={(requestClose) => (
-        <>
-          <Popover
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div style={{ width: 260 }}>
-                <div style={{ marginBottom: 8 }}>当前快捷键：{combo}</div>
-                <Input
-                  placeholder="按下组合键以设置"
-                  onKeyDown={(e) => {
-                    e.preventDefault();
-                    const parts: string[] = [];
-                    if (e.metaKey || e.ctrlKey) {
-                      parts.push('CmdOrCtrl');
-                    }
-                    if (e.shiftKey) {
-                      parts.push('Shift');
-                    }
-                    if (e.altKey) {
-                      parts.push('Alt');
-                    }
-                    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
-                    if (/^[A-Z]$/.test(key)) {
-                      parts.push(key);
-                    }
-                    const next = parts.join('+');
-                    const invalid = ['Cmd+Q', 'Command+Q', 'Alt+F4', 'Ctrl+Shift+Esc'];
-                    if (invalid.includes(next)) {
-                      message.warning('该组合与系统/浏览器快捷键冲突');
-                      return;
-                    }
-                    setCombo(next);
-                  }}
-                />
-                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
-                  建议使用 Cmd/Ctrl + Shift + 字母 的组合
-                </div>
-              </div>
-            }
-          >
-            <Tooltip title="设置快捷键" placement="bottom">
-              <Button type="text" icon={<SettingOutlined />} />
+        }
+        headerRightExtra={(requestClose) => (
+          <>
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              overlayClassName={styles.settingsOverlay}
+              content={settingsContent}
+            >
+              <Tooltip title="设置快捷键" placement="bottom">
+                <Button type="text" icon={<SettingOutlined />} />
+              </Tooltip>
+            </Popover>
+            <Tooltip title="关闭" placement="bottom">
+              <Button type="text" icon={<CloseOutlined />} onClick={() => requestClose()} />
             </Tooltip>
-          </Popover>
-          <Tooltip title="关闭" placement="bottom">
-            <Button type="text" icon={<CloseOutlined />} onClick={() => requestClose()} />
-          </Tooltip>
-        </>
-      )}
-      onVisibleChange={setVisible}
-      renderTree={(info: LayoutInfo) => (
-        <>
-          {isMultiRuntime && (
-            <SimpleTip
-              message={
-                '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
-                '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
+          </>
+        )}
+        onVisibleChange={setVisible}
+        renderTree={(info: LayoutInfo) => (
+          <>
+            {isMultiRuntime && (
+              <SimpleTip
+                message={
+                  '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
+                  '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
+                }
+              />
+            )}
+            {/* 初始化逻辑会自动选择第一个 runtime，此处无需额外警告 */}
+            <div style={{ marginBottom: 8 }}>
+              <Input.Search
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="搜索节点..."
+                allowClear
+              />
+            </div>
+            <Tree
+              ref={treeRef}
+              className={styles.compactTree}
+              showLine
+              height={
+                info.isNarrow
+                  ? Math.max(120, info.treeHeight - 92)
+                  : info.dock === 'top' || info.dock === 'bottom'
+                    ? Math.max(120, info.height - 160)
+                    : info.height + 160
+              }
+              treeData={toAntTreeData(tree) as DataNode[]}
+              titleRender={(node) => (
+                <span
+                  data-key={String(node.key)}
+                  onMouseEnter={() => {
+                    const w = findWidget(
+                      runtime?.getRootWidget?.() ?? null,
+                      `#${String(node.key)}`,
+                    ) as Widget | null;
+                    hoverRef.current = w;
+                    overlay?.setActive(true);
+                    overlay?.highlight(w);
+                  }}
+                  onMouseLeave={() => {
+                    overlay?.setActive(false);
+                    overlay?.highlight(null);
+                  }}
+                >
+                  {String(node.title)}
+                </span>
+              )}
+              expandedKeys={Array.from(expandedKeys)}
+              onExpand={(keys: Key[]) => setExpandedKeys(new Set(keys as string[]))}
+              selectedKeys={selected ? [selected.key] : []}
+              onSelect={(keys: Key[]) => {
+                if (keys.length === 0) {
+                  return;
+                }
+                const k = String(keys[0]);
+                const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
+                setSelected(w);
+                if (w) {
+                  const path = getPathKeys(runtime?.getRootWidget?.() ?? null, k);
+                  setExpandedKeys(new Set(path));
+                }
+              }}
+              filterTreeNode={(node) =>
+                !!search && String(node.title).toLowerCase().includes(search.toLowerCase())
               }
             />
-          )}
-          {/* 初始化逻辑会自动选择第一个 runtime，此处无需额外警告 */}
-          <div style={{ marginBottom: 8 }}>
-            <Input.Search
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索节点..."
-              allowClear
-            />
-          </div>
-          <Tree
-            ref={treeRef}
-            className={styles.compactTree}
-            showLine
-            height={
-              info.isNarrow
-                ? Math.max(120, info.treeHeight - 92)
-                : info.dock === 'top' || info.dock === 'bottom'
-                  ? Math.max(120, info.height - 160)
-                  : info.height + 160
-            }
-            treeData={toAntTreeData(tree) as DataNode[]}
-            titleRender={(node) => (
-              <span
-                data-key={String(node.key)}
-                onMouseEnter={() => {
-                  const w = findWidget(
-                    runtime?.getRootWidget?.() ?? null,
-                    `#${String(node.key)}`,
-                  ) as Widget | null;
-                  hoverRef.current = w;
-                  overlay?.setActive(true);
-                  overlay?.highlight(w);
-                }}
-                onMouseLeave={() => {
-                  overlay?.setActive(false);
-                  overlay?.highlight(null);
+            <div className={styles.breadcrumbsContainer}>
+              <div
+                className={cn(styles.navBtn, { [styles.disabled]: !scrollState.left })}
+                onClick={() => {
+                  breadcrumbScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
                 }}
               >
-                {String(node.title)}
-              </span>
-            )}
-            expandedKeys={Array.from(expandedKeys)}
-            onExpand={(keys: Key[]) => setExpandedKeys(new Set(keys as string[]))}
-            selectedKeys={selected ? [selected.key] : []}
-            onSelect={(keys: Key[]) => {
-              if (keys.length === 0) {
-                return;
-              }
-              const k = String(keys[0]);
-              const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
-              setSelected(w);
-              if (w) {
-                const path = getPathKeys(runtime?.getRootWidget?.() ?? null, k);
-                setExpandedKeys(new Set(path));
-              }
-            }}
-            filterTreeNode={(node) =>
-              !!search && String(node.title).toLowerCase().includes(search.toLowerCase())
-            }
-          />
-          <div className={styles.breadcrumbsContainer}>
-            <div
-              className={cn(styles.navBtn, { [styles.disabled]: !scrollState.left })}
-              onClick={() => {
-                breadcrumbScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
-              }}
-            >
-              <LeftOutlined style={{ fontSize: 10 }} />
-            </div>
-            <div className={styles.scrollArea} ref={breadcrumbScrollRef}>
-              {breadcrumbs.map((w, index) => {
-                const isActive = index === breadcrumbs.length - 1;
-                return (
-                  <span key={w.key} style={{ display: 'flex', alignItems: 'center' }}>
-                    {index > 0 && (
-                      <span className={styles.separator}>
-                        <RightOutlined style={{ fontSize: 10 }} />
+                <LeftOutlined style={{ fontSize: 10 }} />
+              </div>
+              <div className={styles.scrollArea} ref={breadcrumbScrollRef}>
+                {breadcrumbs.map((w, index) => {
+                  const isActive = index === breadcrumbs.length - 1;
+                  return (
+                    <span key={w.key} style={{ display: 'flex', alignItems: 'center' }}>
+                      {index > 0 && (
+                        <span className={styles.separator}>
+                          <RightOutlined style={{ fontSize: 10 }} />
+                        </span>
+                      )}
+                      <span
+                        className={cn(styles.crumbItem, { [styles.active]: isActive })}
+                        onMouseEnter={() => {
+                          hoverRef.current = w;
+                          overlay?.setActive(true);
+                          overlay?.highlight(w);
+                        }}
+                        onMouseLeave={() => {
+                          overlay?.setActive(false);
+                          overlay?.highlight(null);
+                        }}
+                        onClick={() => {
+                          setSelected(w);
+                          const path = getPathKeys(runtime?.getRootWidget?.() ?? null, w.key);
+                          setExpandedKeys(new Set(path));
+                          requestAnimationFrame(() => {
+                            const el = document.querySelector(`[data-key="${w.key}"]`);
+                            if (el) {
+                              el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+                            } else if (treeRef.current?.scrollTo) {
+                              treeRef.current.scrollTo({ key: w.key, align: 'auto' });
+                            }
+                          });
+                        }}
+                      >
+                        {w.type}
                       </span>
-                    )}
-                    <span
-                      className={cn(styles.crumbItem, { [styles.active]: isActive })}
-                      onMouseEnter={() => {
-                        hoverRef.current = w;
-                        overlay?.setActive(true);
-                        overlay?.highlight(w);
-                      }}
-                      onMouseLeave={() => {
-                        overlay?.setActive(false);
-                        overlay?.highlight(null);
-                      }}
-                      onClick={() => {
-                        setSelected(w);
-                        const path = getPathKeys(runtime?.getRootWidget?.() ?? null, w.key);
-                        setExpandedKeys(new Set(path));
-                        requestAnimationFrame(() => {
-                          const el = document.querySelector(`[data-key="${w.key}"]`);
-                          if (el) {
-                            el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-                          } else if (treeRef.current?.scrollTo) {
-                            treeRef.current.scrollTo({ key: w.key, align: 'auto' });
-                          }
-                        });
-                      }}
-                    >
-                      {w.type}
                     </span>
-                  </span>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <div
+                className={cn(styles.navBtn, { [styles.disabled]: !scrollState.right })}
+                onClick={() => {
+                  breadcrumbScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
+                }}
+              >
+                <RightOutlined style={{ fontSize: 10 }} />
+              </div>
             </div>
-            <div
-              className={cn(styles.navBtn, { [styles.disabled]: !scrollState.right })}
-              onClick={() => {
-                breadcrumbScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
-              }}
-            >
-              <RightOutlined style={{ fontSize: 10 }} />
-            </div>
-          </div>
-        </>
-      )}
-      renderProps={() => <PropsEditor widget={selected} onChange={() => runtime?.rebuild()} />}
-    />
+          </>
+        )}
+        renderProps={() => <PropsEditor widget={selected} onChange={() => runtime?.rebuild()} />}
+      />
+    </ConfigProvider>
   );
 }

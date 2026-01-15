@@ -73,7 +73,7 @@
     }
   }
 
-  /* Global Ant Design Component Overrides */
+  /* Ant Design 组件全局样式覆盖（仅在 DevTools 面板范围内生效） */
   :global(.ant-input),
   :global(.ant-input-number),
   :global(.ant-input-number-input),
@@ -104,7 +104,7 @@
     }
   }
 
-  /* Input.Search specific */
+  /* Input.Search 特殊样式 */
   :global(.ant-input-search) {
     :global(.ant-input-group-addon) {
       background-color: transparent;
@@ -122,7 +122,7 @@
     }
   }
 
-  /* ColorPicker specific */
+  /* ColorPicker 特殊样式 */
   :global(.ant-color-picker-trigger) {
     border-color: var(--ink-demo-border);
     background-color: var(--ink-demo-bg-surface);
@@ -160,6 +160,102 @@
 
   :global(.ant-color-picker-trigger) {
     border-color: var(--ink-demo-border);
+  }
+
+  :global(.ant-tooltip) {
+    :global(.ant-tooltip-inner) {
+      background-color: var(--ink-demo-bg-surface) !important;
+      color: var(--ink-demo-text-primary) !important;
+      border: 1px solid var(--ink-demo-border);
+    }
+
+    :global(.ant-tooltip-arrow::before) {
+      background-color: var(--ink-demo-bg-surface) !important;
+    }
+  }
+
+  :global(.ant-input-clear-icon),
+  :global(.ant-input-clear-icon:hover) {
+    color: var(--ink-demo-text-secondary);
+  }
+
+  :global(.ant-input-search-button) {
+    color: var(--ink-demo-text-secondary);
+
+    :global(.anticon) {
+      color: inherit;
+    }
+
+    &:hover {
+      color: var(--ink-demo-primary);
+    }
+  }
+
+  /* 确保 Antd 文本按钮 hover 颜色遵循主题（DevTools 范围） */
+  :global(.ant-btn-variant-text:not(:disabled, .ant-btn-disabled)) {
+    color: var(--ink-demo-text-secondary);
+  }
+
+  :global(.ant-btn-variant-text:not(:disabled, .ant-btn-disabled):hover) {
+    color: var(--ink-demo-text-primary) !important;
+    background: var(--ink-demo-header-bg) !important;
+  }
+
+  /* Input.Search 的按钮（非主按钮）主题覆盖 */
+  :global(.ant-input-search > .ant-input-group > .ant-input-group-addon:last-child) {
+    :global(.ant-input-search-button:not(.ant-btn-color-primary)) {
+      color: var(--ink-demo-text-secondary);
+      background: var(--ink-demo-bg-surface);
+      border-color: var(--ink-demo-border);
+
+      &:hover {
+        color: var(--ink-demo-primary);
+        background: var(--ink-demo-header-bg);
+        border-color: var(--ink-demo-primary);
+      }
+    }
+  }
+
+  :global(.ant-tree) {
+    background: transparent;
+    color: var(--ink-demo-text-primary);
+
+    :global(.ant-tree-switcher) {
+      background: transparent;
+      color: var(--ink-demo-text-secondary);
+    }
+
+    :global(.ant-tree-switcher-line-icon) {
+      color: var(--ink-demo-text-secondary);
+    }
+
+    :global(.ant-tree-indent-unit::before) {
+      border-color: var(--ink-demo-border-secondary);
+    }
+
+    :global(.ant-tree-node-content-wrapper) {
+      color: var(--ink-demo-text-primary);
+      border-radius: 6px;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
+
+      &:hover {
+        background-color: var(--ink-demo-header-bg);
+        color: var(--ink-demo-text-primary) !important;
+      }
+    }
+
+    :global(.ant-tree-node-content-wrapper.ant-tree-node-selected),
+    :global(.ant-tree-treenode-selected > .ant-tree-node-content-wrapper) {
+      background-color: var(--ink-demo-bg-surface) !important;
+      color: var(--ink-demo-primary) !important;
+    }
+  }
+
+  /* Tooltip 需要在面板之上：提高层级 */
+  :global(.ant-tooltip) {
+    z-index: 4000 !important;
   }
 
   .contentGrid {
@@ -295,5 +391,93 @@
       transform: translateY(-1px);
       background: #ddd;
     }
+  }
+}
+
+:global(#inkwell-devtools-root) {
+  :global(.ant-tooltip) {
+    z-index: 4000 !important;
+  }
+
+  :global(.ant-tooltip .ant-tooltip-inner) {
+    background-color: var(--ink-demo-bg-surface) !important;
+    color: var(--ink-demo-text-primary) !important;
+    border: 1px solid var(--ink-demo-border);
+  }
+
+  :global(.ant-tooltip .ant-tooltip-arrow::before) {
+    background-color: var(--ink-demo-bg-surface) !important;
+  }
+
+  :global(.ant-popover) {
+    z-index: 4000 !important;
+  }
+
+  :global(.ant-popover .ant-popover-inner) {
+    background-color: var(--ink-demo-bg-surface) !important;
+    border: 1px solid var(--ink-demo-border);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  }
+
+  :global(.ant-popover .ant-popover-inner-content) {
+    color: var(--ink-demo-text-primary);
+  }
+
+  :global(.ant-popover .ant-popover-arrow::before) {
+    background-color: var(--ink-demo-bg-surface) !important;
+  }
+
+  :global(.ant-select-dropdown) {
+    background-color: var(--ink-demo-bg-surface) !important;
+    border: 1px solid var(--ink-demo-border);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  }
+
+  :global(.ant-select-item) {
+    color: var(--ink-demo-text-primary);
+  }
+
+  :global(.ant-select-item-option-active:not(.ant-select-item-option-disabled)) {
+    background-color: var(--ink-demo-header-bg) !important;
+  }
+
+  :global(.ant-select-item-option-selected:not(.ant-select-item-option-disabled)) {
+    background-color: var(--ink-demo-bg-base) !important;
+    color: var(--ink-demo-primary) !important;
+  }
+
+  :global(.ant-select:not(.ant-select-customize-input) .ant-select-selector) {
+    background-color: var(--ink-demo-bg-container) !important;
+    color: var(--ink-demo-text-primary) !important;
+    border-color: var(--ink-demo-border) !important;
+  }
+
+  :global(.ant-select:not(.ant-select-customize-input) .ant-select-selector:hover) {
+    border-color: var(--ink-demo-primary) !important;
+  }
+
+  :global(.ant-select .ant-select-selection-item) {
+    color: var(--ink-demo-text-primary) !important;
+  }
+
+  :global(.ant-select .ant-select-selection-placeholder) {
+    color: var(--ink-demo-text-placeholder) !important;
+  }
+
+  :global(.ant-select .ant-select-arrow) {
+    color: var(--ink-demo-text-secondary) !important;
+  }
+
+  :global(.ant-input-affix-wrapper .ant-input-suffix) {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  :global(.ant-input-affix-wrapper .ant-input-suffix .ant-color-picker-trigger) {
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 4px;
   }
 }

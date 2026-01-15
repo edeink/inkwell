@@ -1,8 +1,8 @@
-import { LockOutlined } from '@ant-design/icons';
-import { Button, ColorPicker, Divider, Input, InputNumber, Space, Tooltip } from 'antd';
-import { useEffect, useState } from 'react';
+import { EyeInvisibleOutlined, LockOutlined } from '@ant-design/icons';
+import { Button, ColorPicker, Input, InputNumber, Popover, Select, Space, Tooltip } from 'antd';
+import { useEffect, useState, type ReactNode } from 'react';
 
-import { isProtectedKey } from '../../helper/config';
+import { isHiddenKey, isProtectedKey } from '../../helper/config';
 import { ObjectEditor } from '../object-editor';
 
 import styles from './index.module.less';
@@ -14,6 +14,40 @@ import styles from './index.module.less';
  * 返回：无（通过父组件控制实际应用）
  */
 import type { Widget } from '../../../core/base';
+
+const enumOptionsMap: Record<string, string[]> = {
+  cursor: [
+    'auto',
+    'default',
+    'pointer',
+    'move',
+    'text',
+    'not-allowed',
+    'grab',
+    'grabbing',
+    'crosshair',
+    'zoom-in',
+    'zoom-out',
+  ],
+  display: ['block', 'inline', 'inline-block', 'flex', 'grid', 'none'],
+  position: ['static', 'relative', 'absolute', 'fixed', 'sticky'],
+  overflow: ['visible', 'hidden', 'scroll', 'auto'],
+  textAlign: ['left', 'center', 'right', 'justify'],
+  flexDirection: ['row', 'row-reverse', 'column', 'column-reverse'],
+  justifyContent: [
+    'flex-start',
+    'center',
+    'flex-end',
+    'space-between',
+    'space-around',
+    'space-evenly',
+  ],
+  alignItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
+};
+
+function isNumberArray(v: unknown): v is number[] {
+  return Array.isArray(v) && v.every((x) => typeof x === 'number' && Number.isFinite(x));
+}
 
 export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
   const [local, setLocal] = useState<Record<string, unknown>>(widget ? { ...widget.data } : {});
@@ -49,11 +83,149 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
     return <div className={styles.emptyHint}>未选择节点</div>;
   }
   const allEntries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
+  const hiddenEntries = allEntries.filter(([k]) => isHiddenKey(k));
+  const displayEntries = allEntries.filter(([k]) => !isHiddenKey(k));
   const isCallbackKey = (k: string) => /^on[A-Z]/.test(k);
-  const callbackEntries = allEntries.filter(([k]) => isCallbackKey(k));
-  const entries = allEntries.filter(([k]) => !isCallbackKey(k));
+  const callbackEntries = displayEntries.filter(([k]) => isCallbackKey(k));
+  const generalKeySet = new Set<string>(['key']);
+  const generalEntries = displayEntries.filter(([k]) => !isCallbackKey(k) && generalKeySet.has(k));
+  const widgetEntries = displayEntries.filter(([k]) => !isCallbackKey(k) && !generalKeySet.has(k));
+  const objectWidgetEntries = widgetEntries.filter(
+    ([, v]) => v && typeof v === 'object' && !Array.isArray(v),
+  );
+  const primitiveWidgetEntries = widgetEntries.filter(
+    ([, v]) => !(v && typeof v === 'object' && !Array.isArray(v)),
+  );
 
-  const hasNested = entries.some(([, v]) => v && typeof v === 'object' && !Array.isArray(v));
+  const hasNested = objectWidgetEntries.length > 0;
+
+  const renderNumberArrayEditor = (k: string, v: number[]) => (
+    <div className={styles.arrayEditor}>
+      <span className={styles.arrayBracket}>[</span>
+      <Space size={4} wrap={false}>
+        {v.map((n, idx) => (
+          <span key={`${k}-${idx}`} className={styles.arrayItem}>
+            <InputNumber
+              size="small"
+              value={n}
+              onChange={(num) => {
+                const next = [...v];
+                next[idx] = Number(num ?? 0);
+                updateField(k, next);
+              }}
+              disabled={isProtectedKey(k)}
+            />
+            {idx < v.length - 1 && <span className={styles.arrayComma}>,</span>}
+          </span>
+        ))}
+      </Space>
+      <span className={styles.arrayBracket}>]</span>
+    </div>
+  );
+
+  const renderEnumSelect = (k: string, v: unknown) => {
+    const options = enumOptionsMap[k];
+    if (!options) {
+      return null;
+    }
+    const valueStr = typeof v === 'string' ? v : undefined;
+    return (
+      <Select
+        className={styles.formInput}
+        size="small"
+        value={valueStr}
+        placeholder="请选择"
+        options={options.map((x) => ({ label: x, value: x }))}
+        onChange={(val) => updateField(k, val)}
+        disabled={isProtectedKey(k)}
+        getPopupContainer={(trigger) =>
+          (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+        }
+      />
+    );
+  };
+
+  const renderPrimitiveRow = (k: string, v: unknown) => (
+    <div key={k} className={styles.formRow}>
+      <div className={styles.formLeft}>
+        <label className={styles.formLabel}>
+          {k}
+          {isProtectedKey(k) && (
+            <Tooltip title={`${k}（受保护，禁止编辑）`}>
+              <LockOutlined />
+            </Tooltip>
+          )}
+        </label>
+      </div>
+      <div className={styles.formRight}>
+        {(() => {
+          if (typeof v === 'number') {
+            return (
+              <InputNumber
+                className={styles.formInput}
+                size="small"
+                value={Number(v)}
+                onChange={(num) => updateField(k, Number(num ?? 0))}
+                disabled={isProtectedKey(k)}
+              />
+            );
+          }
+          if (isNumberArray(v)) {
+            return renderNumberArrayEditor(k, v);
+          }
+          const enumSelect = renderEnumSelect(k, v);
+          if (enumSelect) {
+            return enumSelect;
+          }
+          const valStr = String(v ?? '');
+          const colorSuffix = (
+            <Space>
+              <span className={styles.colorPickerWrap}>
+                <ColorPicker
+                  value={valStr}
+                  size="small"
+                  showText={false}
+                  onChangeComplete={(c: { toHexString: () => string }) =>
+                    updateField(k, c.toHexString())
+                  }
+                  getPopupContainer={(trigger) =>
+                    (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                  }
+                />
+              </span>
+            </Space>
+          );
+          const isCol =
+            /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) ||
+            /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
+          return (
+            <Input
+              className={styles.formInput}
+              size="small"
+              value={valStr}
+              disabled={isProtectedKey(k)}
+              onChange={(e) => updateField(k, e.target.value)}
+              suffix={isCol ? colorSuffix : undefined}
+            />
+          );
+        })()}
+      </div>
+    </div>
+  );
+
+  const renderObjectBlock = (k: string, v: Record<string, unknown>) => (
+    <div key={k} className={styles.objectGroup}>
+      <div className={styles.objectTitle}>{k}</div>
+      <ObjectEditor value={v} onChange={(nv) => updateField(k, nv)} />
+    </div>
+  );
+
+  const renderGroup = (title: string, children: ReactNode) => (
+    <div className={styles.group}>
+      <div className={styles.groupTitle}>{title}</div>
+      <div className={styles.groupBody}>{children}</div>
+    </div>
+  );
   return (
     <div
       className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(' ')}
@@ -86,91 +258,90 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
           </>
         );
       })()}
-      {entries.length && <Divider />}
-      {entries.map(([k, v]) => (
-        <div key={k} className={styles.formRow}>
-          <div className={styles.formLeft}>
-            <label className={styles.formLabel}>
-              {k}
-              {isProtectedKey(k) && (
-                <Tooltip title={`${k}（受保护，禁止编辑）`}>
-                  <LockOutlined />
-                </Tooltip>
-              )}
-            </label>
-          </div>
-          <div className={styles.formRight}>
-            {v && typeof v === 'object' && !Array.isArray(v) ? (
-              <ObjectEditor
-                value={v as Record<string, unknown>}
-                onChange={(nv) => updateField(k, nv)}
-              />
-            ) : (
-              (() => {
-                if (typeof v === 'number') {
-                  return (
-                    <InputNumber
-                      className={styles.formInput}
-                      value={Number(v)}
-                      onChange={(num) => updateField(k, Number(num ?? 0))}
-                      disabled={isProtectedKey(k)}
-                    />
-                  );
-                }
-                const valStr = String(v ?? '');
-                const colorSuffix = (
-                  <Space>
-                    <ColorPicker
-                      value={valStr}
-                      onChangeComplete={(c: { toHexString: () => string }) =>
-                        updateField(k, c.toHexString())
-                      }
-                      getPopupContainer={(trigger) =>
-                        (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
-                      }
-                    />
-                  </Space>
-                );
-                const isCol =
-                  /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) ||
-                  /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
-                return (
-                  <Input
-                    className={styles.formInput}
-                    value={valStr}
-                    disabled={isProtectedKey(k)}
-                    onChange={(e) => updateField(k, e.target.value)}
-                    suffix={isCol ? colorSuffix : undefined}
-                  />
-                );
-              })()
-            )}
-          </div>
-        </div>
-      ))}
-      {callbackEntries.length > 0 && <Divider />}
-      {callbackEntries.length > 0 && (
-        <div className={styles.callbackGroup}>
-          {callbackEntries.map(([k, v]) => (
-            <div key={k} className={styles.formRow}>
-              <div className={styles.formLeft}>
-                <label className={styles.formLabel}>{k}</label>
+      {hiddenEntries.length > 0 && (
+        <div className={styles.hiddenHintRow}>
+          <Popover
+            trigger="click"
+            placement="bottom"
+            overlayClassName={styles.hiddenPopoverOverlay}
+            getPopupContainer={(trigger) =>
+              (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+            }
+            content={
+              <div className={styles.hiddenPopover}>
+                <div className={styles.hiddenPopoverHeader}>
+                  <EyeInvisibleOutlined />
+                  <span>内部属性</span>
+                  <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
+                </div>
+                <div className={styles.hiddenPopoverList}>
+                  {hiddenEntries.map(([k]) => (
+                    <div key={k} className={styles.hiddenItem}>
+                      {k}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className={styles.formRight}>
-                <Input
-                  className={styles.formInput}
-                  suffix={<span className={styles.callbackBadge}>[回调]</span>}
-                  value={typeof v === 'function' ? '[Function]' : String(v ?? '')}
-                  disabled
-                />
-              </div>
-            </div>
-          ))}
+            }
+          >
+            <Button
+              size="small"
+              type="text"
+              className={styles.hiddenHintBtn}
+              icon={<EyeInvisibleOutlined />}
+            >
+              已隐藏 {hiddenEntries.length} 个内部属性
+            </Button>
+          </Popover>
         </div>
       )}
+      {(generalEntries.length > 0 ||
+        primitiveWidgetEntries.length > 0 ||
+        objectWidgetEntries.length > 0) && (
+        <>
+          {generalEntries.length > 0 &&
+            renderGroup(
+              '通用属性',
+              generalEntries.map(([k, v]) => renderPrimitiveRow(k, v)),
+            )}
+          {(objectWidgetEntries.length > 0 || primitiveWidgetEntries.length > 0) &&
+            renderGroup(
+              '组件属性',
+              <>
+                {objectWidgetEntries.map(([k, v]) =>
+                  renderObjectBlock(k, v as Record<string, unknown>),
+                )}
+                {primitiveWidgetEntries.map(([k, v]) => renderPrimitiveRow(k, v))}
+              </>,
+            )}
+        </>
+      )}
+      {callbackEntries.length > 0 &&
+        renderGroup(
+          '事件',
+          <div className={styles.callbackGroup}>
+            {callbackEntries.map(([k, v]) => (
+              <div key={k} className={styles.formRow}>
+                <div className={styles.formLeft}>
+                  <label className={styles.formLabel}>{k}</label>
+                </div>
+                <div className={styles.formRight}>
+                  <Input
+                    className={styles.formInput}
+                    size="small"
+                    suffix={<span className={styles.callbackBadge}>[回调]</span>}
+                    value={typeof v === 'function' ? '[Function]' : String(v ?? '')}
+                    disabled
+                  />
+                </div>
+              </div>
+            ))}
+          </div>,
+        )}
       <div className={styles.formActions}>
         <Button
           type="primary"
+          size="small"
           onClick={(e) => {
             try {
               e.stopPropagation();

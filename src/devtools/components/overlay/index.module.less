@@ -1,34 +1,52 @@
+.overlayRoot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
 .overlayBox {
   position: absolute;
   pointer-events: none;
-  z-index: 999;
-  background: color-mix(in srgb, var(--ink-demo-primary), transparent 80%);
-  border: 1px solid var(--ink-demo-primary);
   box-sizing: border-box;
-
-  .overlayInfo {
-    position: absolute;
-    left: 0;
-    top: 0;
-    transform: translateY(-100%);
-    background: color-mix(in srgb, var(--ink-demo-text-primary), transparent 40%);
-    color: var(--ink-demo-bg-base);
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    pointer-events: none;
-    white-space: nowrap;
-  }
+  border: 1px solid var(--ink-demo-primary);
+  background: color-mix(in srgb, var(--ink-demo-primary), transparent 84%);
 }
 
-@keyframes pulse {
-  50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink-demo-primary), transparent 70%);
-  }
+.overlayInfo {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--ink-demo-text-primary), transparent 10%);
+  color: var(--ink-demo-bg-base);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+}
 
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink-demo-primary), transparent 100%);
-  }
+.overlayArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink-demo-bg-base), transparent 65%);
+  color: var(--ink-demo-text-primary);
+}
+
+.overlayLabel {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
 }
 
 .guideH {

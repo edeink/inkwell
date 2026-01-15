@@ -9,3 +9,7 @@ export const PROTECTED_KEYS: string[] = ['key'];
 export function isProtectedKey(k: string): boolean {
   return PROTECTED_KEYS.includes(k);
 }
+
+export function isHiddenKey(k: string): boolean {
+  return k.startsWith('__');
+}

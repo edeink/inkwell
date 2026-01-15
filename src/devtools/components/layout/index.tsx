@@ -53,7 +53,9 @@ export function LayoutPanel({
       if (raw) {
         return JSON.parse(raw);
       }
-    } catch {}
+    } catch {
+      void 0;
+    }
     return { dock: 'right', width: 380, height: Math.min(window.innerHeight, 420) } as {
       dock: Dock;
       width: number;
@@ -63,7 +65,7 @@ export function LayoutPanel({
   const [dock, setDock] = useState<Dock>(initialLayout.dock);
   const [width, setWidth] = useState<number>(initialLayout.width);
   const [height, setHeight] = useState<number>(initialLayout.height);
-  // visible is controlled by parent; remove internal closing state
+  // visible 由父组件控制；此处不再使用内部关闭态
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   const splitStorageKey = 'INKWELL_DEVTOOLS_SPLIT';
@@ -73,7 +75,9 @@ export function LayoutPanel({
       if (raw) {
         return JSON.parse(raw);
       }
-    } catch {}
+    } catch {
+      void 0;
+    }
     return { treeWidth: 300, treeHeight: 240 } as { treeWidth: number; treeHeight: number };
   })();
   const [treeWidth, setTreeWidth] = useState<number>(initialSplit.treeWidth);
@@ -95,13 +99,17 @@ export function LayoutPanel({
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify({ dock, width, height }));
-    } catch {}
+    } catch {
+      void 0;
+    }
   }, [dock, width, height]);
 
   useEffect(() => {
     try {
       localStorage.setItem(splitStorageKey, JSON.stringify({ treeWidth, treeHeight }));
-    } catch {}
+    } catch {
+      void 0;
+    }
   }, [treeWidth, treeHeight]);
 
   function onResizeMouseDown(e: React.MouseEvent) {
@@ -182,26 +190,28 @@ export function LayoutPanel({
   const gridClass = classnames(styles.layoutContentGrid);
 
   const info: LayoutInfo = { dock, width, height, treeWidth, treeHeight, isNarrow };
+  const panelStyle: React.CSSProperties & Record<string, string | number | undefined> = (() => {
+    if (dock === 'top' || dock === 'bottom') {
+      return {
+        height,
+        '--tree-width': `${treeWidth}px`,
+        '--tree-height': `${treeHeight}px`,
+        '--grid-height': `calc(${height}px - 53px)`,
+      };
+    }
+    return {
+      width,
+      '--tree-width': `${treeWidth}px`,
+      '--tree-height': `${treeHeight}px`,
+      '--grid-height': 'calc(100vh - 53px)',
+    };
+  })();
 
   return (
     <div
       ref={panelRef}
       className={panelClass}
-      style={
-        dock === 'top' || dock === 'bottom'
-          ? ({
-              height,
-              ['--tree-width']: `${treeWidth}px`,
-              ['--tree-height']: `${treeHeight}px`,
-              ['--grid-height']: `calc(${height}px - 53px)`,
-            } as React.CSSProperties)
-          : ({
-              width,
-              ['--tree-width']: `${treeWidth}px`,
-              ['--tree-height']: `${treeHeight}px`,
-              ['--grid-height']: 'calc(100vh - 53px)',
-            } as React.CSSProperties)
-      }
+      style={panelStyle}
       data-visible={visible ? '1' : '0'}
       onWheel={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
@@ -285,17 +295,23 @@ export function LayoutPanel({
           onMouseDown={(e) => {
             try {
               e.stopPropagation();
-            } catch {}
+            } catch {
+              void 0;
+            }
             onSplitMouseDown(e as unknown as React.MouseEvent);
           }}
         />
-        <div className={styles.propsPane}>{renderProps(info)}</div>
+        <div className={styles.propsPane}>
+          <div className={styles.propsPaneBody}>{renderProps(info)}</div>
+        </div>
       </div>
       <div
         onMouseDown={(e) => {
           try {
             e.stopPropagation();
-          } catch {}
+          } catch {
+            void 0;
+          }
           onResizeMouseDown(e as unknown as React.MouseEvent);
         }}
         className={handleClass}
@@ -307,7 +323,7 @@ export function LayoutPanel({
 
 export default LayoutPanel;
 function DockIcon({ side, active }: { side: Dock; active?: boolean }) {
-  // Uses currentColor to inherit from parent button
+  // 使用 currentColor 继承父按钮颜色
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={styles.dockIconSvg}>
       <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="currentColor" />

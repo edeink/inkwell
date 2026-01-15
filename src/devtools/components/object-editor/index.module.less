@@ -1,12 +1,12 @@
 .kvGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 
   .kvRow {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     position: relative;
     background: var(--ink-demo-bg-surface);
@@ -27,7 +27,7 @@
     .kvLeft {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
 
       .kvKey {
@@ -38,7 +38,7 @@
     .kvRight {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
 
       .kvValue {
@@ -55,5 +55,153 @@
 
   .kvActions {
     margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+}
+
+.nestedGroup {
+  .kvRow {
+    grid-template-columns: 1fr;
+    padding: 6px;
+  }
+
+  .kvLeft {
+    width: 100%;
+  }
+
+  .kvRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nested {
+    padding-left: 12px;
+    margin-left: 2px;
+    border-left: 1px solid var(--ink-demo-border-secondary);
+  }
+}
+
+.addBtn {
+  color: var(--ink-demo-text-secondary);
+  padding: 0 6px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 18px;
+
+  &:hover {
+    color: var(--ink-demo-primary) !important;
+  }
+}
+
+.hiddenHintBtn {
+  color: var(--ink-demo-text-secondary);
+  padding: 0 6px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.hiddenPopoverOverlay {
+  :global(.ant-popover-inner) {
+    min-width: 220px;
+  }
+}
+
+.hiddenPopover {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hiddenPopoverHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-demo-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  user-select: none;
+}
+
+.hiddenPopoverCount {
+  color: var(--ink-demo-text-placeholder);
+}
+
+.hiddenPopoverList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
+  padding-top: 4px;
+}
+
+.hiddenItem {
+  font-family: monospace;
+  color: var(--ink-demo-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.arrayEditor {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  height: 24px;
+  background: var(--ink-demo-bg-container);
+  border: 1px solid var(--ink-demo-border);
+  border-radius: 6px;
+
+  :global(.ant-input-number) {
+    width: 54px;
+    min-width: 54px;
+  }
+}
+
+.arrayBracket {
+  font-family: monospace;
+  color: var(--ink-demo-text-placeholder);
+}
+
+.arrayItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arrayComma {
+  font-family: monospace;
+  color: var(--ink-demo-text-placeholder);
+}
+
+.colorPickerWrap {
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+
+  :global(.ant-color-picker-trigger) {
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 4px;
+  }
+}
+
+.deleteBtn {
+  color: var(--ink-demo-text-secondary);
+
+  &:hover {
+    color: var(--ink-demo-danger) !important;
   }
 }

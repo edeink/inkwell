@@ -57,7 +57,7 @@
     gap: 10px;
   }
 
-  /* General style for buttons in header */
+  /* Header 内按钮的通用样式 */
   :global(.ant-btn-text) {
     color: var(--ink-demo-text-secondary);
 
@@ -73,9 +73,10 @@
   display: grid;
   gap: 8px;
   padding: 10px;
-  overflow: auto;
+  overflow: hidden;
   grid-template-columns: var(--tree-width, 260px) 8px 1fr;
   height: var(--grid-height, calc(100vh - 53px));
+  min-height: 0;
 }
 
 .layoutPanel.isNarrow .layoutContentGrid {
@@ -90,6 +91,8 @@
   background: var(--ink-demo-bg-base);
   border-radius: 8px;
   grid-column: 1 / 2;
+  min-width: 0;
+  min-height: 0;
 }
 
 .layoutPanel.isNarrow .treePane {
@@ -99,17 +102,28 @@
 
 .propsPane {
   border: 1px solid var(--ink-demo-border);
-  padding: 16px;
   background: var(--ink-demo-bg-base);
   border-radius: 12px;
   position: relative;
-  padding-bottom: 60px;
   grid-column: 3 / 4;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 .layoutPanel.isNarrow .propsPane {
   grid-column: auto;
   grid-row: 3 / 4;
+}
+
+.propsPaneBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 16px 0;
 }
 
 .splitHandle {
@@ -125,12 +139,12 @@
     bottom: 0;
     width: 1px;
     transform: translateX(-1px);
-    background: #ddd;
+    background: var(--ink-demo-border-secondary);
   }
 }
 
 .splitActive::before {
-  background: #4ea3ff;
+  background: var(--ink-demo-primary);
 }
 
 .layoutPanel.isNarrow .splitHandle {
@@ -189,5 +203,5 @@
 }
 
 .btnTextPrimary {
-  color: #1677ff;
+  color: var(--ink-demo-primary);
 }

@@ -1,23 +1,47 @@
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
 import type Runtime from '../../../runtime';
 
+type BoxRect = { left: number; top: number; width: number; height: number };
+type ViewportRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  right: number;
+  bottom: number;
+};
+
+type OverlayRenderState = {
+  active: boolean;
+  boxRect?: BoxRect;
+  label?: string;
+  targetRect?: ViewportRect;
+  direction?: string | null;
+  debug?: boolean;
+};
+
 /**
  * Overlay 高亮框
- * 功能：渲染并控制画布上的高亮框，支持跟随 Inspect 模式显示/隐藏
- * 参数：editor - 编辑器实例，用于获取容器与渲染器
- * 返回：类实例，提供 mount/unmount/setActive/highlight 方法
+ * - 使用 React 的 JSX 声明式渲染，避免散落的 DOM 操作
+ * - 高亮框使用绝对定位（相对画布容器）
+ * - info 使用 fixed，确保目标越界时仍在窗口内可见
  */
 export default class Overlay {
   private editor: Runtime;
-  private box: HTMLDivElement | null = null;
-  private info: HTMLDivElement | null = null;
+  private rootEl: HTMLDivElement | null = null;
+  private reactRoot: Root | null = null;
   private active = false;
   private mo: MutationObserver | null = null;
   private getCurrent: (() => Widget | null) | null = null;
   private onWindowResize = () => this.highlight(this.getCurrent?.() ?? null);
   private onWindowScroll = () => this.highlight(this.getCurrent?.() ?? null);
+  private rafId: number | null = null;
+  private renderState: OverlayRenderState = { active: false };
 
   constructor(editor: Runtime) {
     this.editor = editor;
@@ -34,61 +58,71 @@ export default class Overlay {
         container.style.position = 'relative';
       }
     } catch (e) {
-      console.debug('DevTools overlay: unable to set container position', e);
+      console.debug('DevTools Overlay：无法设置容器定位方式', e);
     }
-    const box = document.createElement('div');
-    box.className = styles.overlayBox;
-    const info = document.createElement('div');
-    info.className = styles.overlayInfo;
-    box.appendChild(info);
-    const isDev =
-      typeof window !== 'undefined' &&
-      /localhost|127\.0\.0\.1/.test(window.location?.hostname ?? '');
-    if (isDev) {
-      const guideH = document.createElement('div');
-      guideH.className = styles.guideH;
-      const guideV = document.createElement('div');
-      guideV.className = styles.guideV;
-      box.appendChild(guideH);
-      box.appendChild(guideV);
-      box.classList.add(styles.debug);
-    }
-    container.appendChild(box);
-    this.box = box;
-    this.info = info;
-    this.setActive(false);
+
+    const rootEl = document.createElement('div');
+    rootEl.className = styles.overlayRoot;
+    container.appendChild(rootEl);
+    this.rootEl = rootEl;
+    this.reactRoot = createRoot(rootEl);
+    this.renderState = { active: false };
+    this.render();
   }
 
   unmount(): void {
-    if (this.box && this.box.parentElement) {
-      this.box.parentElement.removeChild(this.box);
+    if (this.rafId != null) {
+      try {
+        cancelAnimationFrame(this.rafId);
+      } catch {
+        void 0;
+      }
+      this.rafId = null;
     }
-    this.box = null;
-    this.info = null;
+    if (this.reactRoot) {
+      try {
+        this.reactRoot.unmount();
+      } catch {
+        void 0;
+      }
+    }
+    this.reactRoot = null;
+    if (this.rootEl && this.rootEl.parentElement) {
+      this.rootEl.parentElement.removeChild(this.rootEl);
+    }
+    this.rootEl = null;
     this.active = false;
     this.stopAutoUpdate();
   }
 
   setActive(v: boolean): void {
     this.active = v;
-    if (this.box && !v) {
-      this.box.style.display = 'none';
-    }
+    this.renderState = { ...this.renderState, active: v };
+    this.scheduleRender();
   }
 
+  /**
+   * 计算目标在容器内的屏幕坐标，并更新渲染状态
+   * 说明：
+   * - boxRect：相对容器定位（绝对定位）
+   * - targetRect：相对窗口定位（用于 info 贴边与越界提示）
+   */
   highlight(widget: Widget | null): void {
     try {
       const container = this.editor.container;
       const renderer = this.editor.getRenderer();
       const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
       const canvas = raw?.canvas ?? container?.querySelector('canvas') ?? null;
-      if (!container || !this.box || !this.info || !canvas) {
+      if (!container || !canvas || !this.reactRoot) {
         return;
       }
+
       if (!this.active || !widget) {
-        this.box.style.display = 'none';
+        this.renderState = { ...this.renderState, active: this.active, boxRect: undefined };
+        this.scheduleRender();
         return;
       }
+
       const containerRect = container.getBoundingClientRect();
       const canvasRect = canvas.getBoundingClientRect();
       const cssTransform = window.getComputedStyle(canvas).transform;
@@ -115,44 +149,46 @@ export default class Overlay {
         cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
       const scaleX = sx0 * cssS.sx;
       const scaleY = sy0 * cssS.sy;
+
       const screenLeft = offsetX + x0 * cssS.sx;
       const screenTop = offsetY + y0 * cssS.sy;
       const screenWidth = width * scaleX;
       const screenHeight = height * scaleY;
 
-      this.box.style.display = 'block';
-      this.box.style.left = `${screenLeft}px`;
-      this.box.style.top = `${screenTop}px`;
-      this.box.style.width = `${screenWidth}px`;
-      this.box.style.height = `${screenHeight}px`;
-      this.box.style.transform = 'none';
-      this.box.style.transformOrigin = '0 0';
+      const viewportLeft = containerRect.left + screenLeft;
+      const viewportTop = containerRect.top + screenTop;
+      const targetRect: ViewportRect = {
+        left: viewportLeft,
+        top: viewportTop,
+        width: screenWidth,
+        height: screenHeight,
+        right: viewportLeft + screenWidth,
+        bottom: viewportTop + screenHeight,
+      };
+
+      const direction = resolveOffscreenDirection(
+        targetRect,
+        window.innerWidth,
+        window.innerHeight,
+      );
+      const isDev =
+        typeof window !== 'undefined' &&
+        /localhost|127\.0\.0\.1/.test(window.location?.hostname ?? '');
 
       const wTxt = Math.round(screenWidth);
       const hTxt = Math.round(screenHeight);
-      this.info.textContent = `${widget.type} · w:${wTxt} h:${hTxt}`;
 
-      const infoRect = this.info.getBoundingClientRect();
-      const overTop = infoRect.top < containerRect.top;
-      const overRight = infoRect.right > containerRect.right;
-      if (overTop) {
-        this.info.style.top = '100%';
-        this.info.style.bottom = '';
-        this.info.style.transform = 'translateY(0)';
-      } else {
-        this.info.style.top = '0';
-        this.info.style.bottom = '';
-        this.info.style.transform = 'translateY(-100%)';
-      }
-      if (overRight) {
-        this.info.style.left = '';
-        this.info.style.right = '0';
-      } else {
-        this.info.style.left = '0';
-        this.info.style.right = '';
-      }
+      this.renderState = {
+        active: true,
+        boxRect: { left: screenLeft, top: screenTop, width: screenWidth, height: screenHeight },
+        label: `${widget.type} · w:${wTxt} h:${hTxt}`,
+        targetRect,
+        direction,
+        debug: isDev,
+      };
+      this.scheduleRender();
     } catch (err) {
-      console.warn('DevTools overlay highlight failed:', err);
+      console.warn('DevTools Overlay 高亮失败：', err);
     }
   }
 
@@ -199,6 +235,138 @@ export default class Overlay {
     this.mo = null;
     this.getCurrent = null;
   }
+
+  private scheduleRender() {
+    if (!this.reactRoot) {
+      return;
+    }
+    if (this.rafId != null) {
+      return;
+    }
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
+      this.render();
+    });
+  }
+
+  private render() {
+    if (!this.reactRoot) {
+      return;
+    }
+    this.reactRoot.render(<OverlayView {...this.renderState} />);
+  }
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function resolveOffscreenDirection(
+  rect: ViewportRect,
+  viewportW: number,
+  viewportH: number,
+): string | null {
+  const outLeft = rect.right < 0;
+  const outRight = rect.left > viewportW;
+  const outTop = rect.bottom < 0;
+  const outBottom = rect.top > viewportH;
+  if (!outLeft && !outRight && !outTop && !outBottom) {
+    return null;
+  }
+  if (outTop && outLeft) {
+    return '↖';
+  }
+  if (outTop && outRight) {
+    return '↗';
+  }
+  if (outBottom && outLeft) {
+    return '↙';
+  }
+  if (outBottom && outRight) {
+    return '↘';
+  }
+  if (outTop) {
+    return '↑';
+  }
+  if (outBottom) {
+    return '↓';
+  }
+  if (outLeft) {
+    return '←';
+  }
+  return '→';
+}
+
+function OverlayView({ active, boxRect, label, targetRect, direction, debug }: OverlayRenderState) {
+  const infoRef = useRef<HTMLDivElement | null>(null);
+  const [infoPos, setInfoPos] = useState<{ left: number; top: number } | null>(null);
+
+  const infoText = useMemo(() => label ?? '', [label]);
+  const dirText = useMemo(() => direction ?? '', [direction]);
+
+  useLayoutEffect(() => {
+    if (!active || !targetRect || !infoRef.current) {
+      setInfoPos(null);
+      return;
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = 8;
+    const gap = 8;
+
+    const infoBox = infoRef.current.getBoundingClientRect();
+
+    const preferAbove = targetRect.top - gap - infoBox.height >= margin;
+    let top = preferAbove ? targetRect.top - gap - infoBox.height : targetRect.bottom + gap;
+    top = clamp(top, margin, Math.max(margin, vh - margin - infoBox.height));
+
+    let left = targetRect.left;
+    left = clamp(left, margin, Math.max(margin, vw - margin - infoBox.width));
+
+    setInfoPos({ left, top });
+  }, [active, targetRect?.left, targetRect?.top, targetRect?.width, targetRect?.height, infoText]);
+
+  if (!active || !boxRect) {
+    return null;
+  }
+
+  return (
+    <>
+      <div
+        className={[styles.overlayBox, debug ? styles.debug : ''].filter(Boolean).join(' ')}
+        style={{
+          left: `${boxRect.left}px`,
+          top: `${boxRect.top}px`,
+          width: `${boxRect.width}px`,
+          height: `${boxRect.height}px`,
+        }}
+      >
+        {debug ? (
+          <>
+            <div className={styles.guideH} />
+            <div className={styles.guideV} />
+          </>
+        ) : null}
+      </div>
+
+      <div
+        ref={infoRef}
+        className={styles.overlayInfo}
+        style={
+          infoPos
+            ? {
+                left: `${infoPos.left}px`,
+                top: `${infoPos.top}px`,
+              }
+            : undefined
+        }
+      >
+        {dirText ? <span className={styles.overlayArrow}>{dirText}</span> : null}
+        <span className={styles.overlayLabel}>{infoText}</span>
+      </div>
+    </>
+  );
 }
 
 /**
@@ -262,6 +430,7 @@ function parseCssScale(transform: string): { sx: number; sy: number } {
   }
   return { sx: 1, sy: 1 };
 }
+
 type ConnectorBounds = { x: number; y: number; width: number; height: number };
 type ConnectorLike = Widget & { type: string; getBounds: () => ConnectorBounds | null };
 function isConnectorLike(w: Widget): w is ConnectorLike {
