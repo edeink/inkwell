@@ -229,6 +229,7 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
           value={value}
           fontSize={fontSize}
           color={color || theme.text.primary}
+          cursorColor={color || theme.text.primary}
           autoFocus={visible}
           disabled={!visible}
           onChange={this.handleChange}

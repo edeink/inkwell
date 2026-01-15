@@ -240,12 +240,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
     const cur = curState.graph;
     const nextGraph = MindMapModel.setNodeTitle(cur, targetKey, value);
-    this.setState({
-      graph: nextGraph,
-      editingKey: null,
-      editorRect: null,
-    });
-    this.editingSessionKey = null;
+    if (nextGraph === cur) {
+      return;
+    }
+    this.setState({ graph: nextGraph });
+    this.scheduleSyncEditorRect();
   };
 
   /**
@@ -808,6 +807,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
           targetKey={this.state.editingKey}
           rect={this.state.editorRect}
           value={this.state.editingKey ? (s.nodes.get(this.state.editingKey)?.title ?? '') : ''}
+          scale={view.scale}
           theme={theme}
           onCommit={this.commitEditing}
           onCancel={this.cancelEditing}

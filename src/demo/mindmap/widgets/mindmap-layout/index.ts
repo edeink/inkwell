@@ -5,8 +5,20 @@ import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/
 
 import { Widget } from '@/core/base';
 
+/**
+ * 思维导图布局模式。
+ *
+ * - radial：辐射布局
+ * - tree：树布局
+ * - treeBalanced：平衡树布局
+ */
 export type LayoutMode = 'radial' | 'tree' | 'treeBalanced';
 
+/**
+ * 思维导图布局组件属性。
+ *
+ * spacingX/spacingY 用于控制层级间距，nodeSpacing 用于控制同级节点间距。
+ */
 export interface MindMapLayoutProps extends WidgetProps {
   layout?: LayoutMode;
   spacingX?: number;
@@ -16,6 +28,11 @@ export interface MindMapLayoutProps extends WidgetProps {
   onLayout?: (size: Size) => void;
 }
 
+/**
+ * 思维导图布局容器。
+ *
+ * 负责收集节点/连线信息，并调用布局引擎计算每个子节点的偏移与整体尺寸。
+ */
 export class MindMapLayout extends Widget<MindMapLayoutProps> {
   mode: LayoutMode = 'tree';
   spacingX: number = 40;

@@ -8,9 +8,8 @@ import { MindMapViewport } from '../widgets/mindmap-viewport';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
-import { testLogger } from '@/utils/test-logger';
 
-describe('MindmapDemo State Management', async () => {
+describe('MindmapDemo 状态管理', async () => {
   beforeEach(() => {
     WidgetRegistry.registerType('MindmapDemo', MindmapDemo);
     if (!(HTMLCanvasElement.prototype as any)._inkwellCtxPatched) {
@@ -50,7 +49,7 @@ describe('MindmapDemo State Management', async () => {
     }
   });
 
-  it('initializes with correct state', async () => {
+  it('初始化状态应正确', async () => {
     const container = document.createElement('div');
     container.id = `mm-demo-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -61,18 +60,17 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
     const state = (demoInstance as any).state;
 
     expect(state.activeKey).toBeNull();
     expect(state.editingKey).toBeNull();
     expect(state.graph).toBeDefined();
-    // activeKey removed from graph
     expect((state.graph as any).activeKey).toBeUndefined();
   });
 
-  it('updates activeKey when onActive is called', async () => {
+  it('调用 onActive 时应更新 activeKey', async () => {
     const container = document.createElement('div');
     container.id = `mm-demo-active-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -83,10 +81,9 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
 
-    // Simulate onActive callback
     (demoInstance as any).onActive('n1');
 
     await new Promise((r) => setTimeout(r, 50));
@@ -94,7 +91,6 @@ describe('MindmapDemo State Management', async () => {
     const state = (demoInstance as any).state;
     expect(state.activeKey).toBe('n1');
 
-    // Check if Viewport receives the new activeKey
     const vp = findWidget(
       demoInstance,
       `#${CustomComponentType.MindMapViewport}`,
@@ -103,7 +99,7 @@ describe('MindmapDemo State Management', async () => {
     expect(vp.activeKey).toBe('n1');
   });
 
-  it('updates activeKey and editingKey when adding sibling', async () => {
+  it('添加兄弟节点时应更新 activeKey 和 editingKey', async () => {
     const container = document.createElement('div');
     container.id = `mm-demo-add-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -114,23 +110,21 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
-    testLogger.log('onActive keys:', Object.keys(demoInstance));
 
-    // Simulate onActive callbackadding sibling
     (demoInstance as any).onAddSibling('n1', 1);
 
     await new Promise((r) => setTimeout(r, 0));
 
     const state = (demoInstance as any).state;
-    const newId = `n${state.graph.nextId - 1}`; // The ID of the newly added node
+    const newId = `n${state.graph.nextId - 1}`;
 
     expect(state.activeKey).toBe(newId);
     expect(state.editingKey).toBe(newId);
   });
 
-  it('clears activeKey when selection is deleted', async () => {
+  it('删除选区时应清空 activeKey', async () => {
     const container = document.createElement('div');
     container.id = `mm-demo-del-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -141,14 +135,12 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
 
-    // Set active key first
     (demoInstance as any).onActive('n1');
     await new Promise((r) => setTimeout(r, 0));
 
-    // Delete selection
     (demoInstance as any).onDeleteSelection();
     await new Promise((r) => setTimeout(r, 0));
 
@@ -167,7 +159,7 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
 
     (demoInstance as any).onEdit('n1');
@@ -182,7 +174,7 @@ describe('MindmapDemo State Management', async () => {
     expect(state.graph.nodes.get('n1')?.title).toBe('新的标题');
   });
 
-  it('失焦导致 editingKey 被清空后仍应回写节点标题', async () => {
+  it('失焦退出编辑时应保留输入中已写入的标题', async () => {
     const container = document.createElement('div');
     container.id = `mm-demo-blur-commit-${Math.random().toString(36).slice(2)}`;
     document.body.appendChild(container);
@@ -193,22 +185,23 @@ describe('MindmapDemo State Management', async () => {
 
     const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
     if (!demoInstance) {
-      throw new Error('Root widget not found');
+      throw new Error('未找到根组件');
     }
 
     (demoInstance as any).onEdit('n1');
     await new Promise((r) => setTimeout(r, 0));
     expect(((demoInstance as any).state as any).editingKey).toBe('n1');
 
+    (demoInstance as any).commitEditing('输入中的标题');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(((demoInstance as any).state as any).graph.nodes.get('n1')?.title).toBe('输入中的标题');
+
     (demoInstance as any).onEditingKeyChange(null);
     await new Promise((r) => setTimeout(r, 0));
     expect(((demoInstance as any).state as any).editingKey).toBeNull();
 
-    (demoInstance as any).commitEditing('失焦后的标题');
-    await new Promise((r) => setTimeout(r, 0));
-
     const state = (demoInstance as any).state as any;
     expect(state.editingKey).toBeNull();
-    expect(state.graph.nodes.get('n1')?.title).toBe('失焦后的标题');
+    expect(state.graph.nodes.get('n1')?.title).toBe('输入中的标题');
   });
 });

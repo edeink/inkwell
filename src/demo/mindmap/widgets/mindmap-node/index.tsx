@@ -15,6 +15,13 @@ import { TextLayout } from '@/core/text/layout';
 import Runtime from '@/runtime';
 import { Themes, getCurrentThemeMode, type ThemePalette } from '@/styles/theme';
 
+export const nodePaddingVertical = 12;
+export const nodePaddingHorizontal = 8;
+export const nodeBorderRadius = 8;
+export const minNodeWidth = 80;
+export const maxNodeWidth = 650;
+export const maxNodeHeight = 200;
+
 export interface MindMapNodeProps extends WidgetProps {
   title: string;
   prefSide?: Side;
@@ -96,6 +103,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
         ...this.state,
         title: this.title,
       };
+      this.markNeedsLayout();
     }
   }
 
@@ -111,8 +119,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
       withEvents.onPointerUp = (e: InkwellEvent) => this.onPointerUp(e);
       withEvents.onDblClick = () => this.onDblClick();
     }
-    super.createElement(withEvents);
     this.initNode(withEvents);
+    super.createElement(withEvents);
     return this;
   }
 
@@ -448,18 +456,12 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
       editing: 'text',
       reading: 'pointer',
     };
+
     const cursor = (localConfig[state] || defaults[state] || 'default') as CursorType;
 
-    const paddingVertical = 12;
-    const paddingHorizontal = 8;
-
-    const minNodeWidth = 80;
-    const maxNodeWidth = 650;
-    const maxNodeHeight = 200;
-
-    const minContentWidth = Math.max(0, minNodeWidth - paddingHorizontal * 2);
-    const maxContentWidth = maxNodeWidth - paddingHorizontal * 2;
-    const maxContentHeight = Math.max(0, maxNodeHeight - paddingVertical * 2);
+    const minContentWidth = Math.max(0, minNodeWidth - nodePaddingHorizontal * 2);
+    const maxContentWidth = maxNodeWidth - nodePaddingHorizontal * 2;
+    const maxContentHeight = Math.max(0, maxNodeHeight - nodePaddingVertical * 2);
 
     const displayText = st.title || '输入文本';
     const layout = TextLayout.layout(
@@ -501,14 +503,14 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
     return (
       <Container
         key={`${String(this.key)}-box`}
-        padding={[12, 8]}
+        padding={[nodePaddingVertical, nodePaddingHorizontal]}
         color={baseFill}
         border={{
           color: borderColor,
           width: borderWidth,
           style: selected && !active && !editing ? 'dashed' : 'solid',
         }}
-        borderRadius={8}
+        borderRadius={nodeBorderRadius}
         minWidth={minNodeWidth}
         maxWidth={maxNodeWidth}
         maxHeight={maxNodeHeight}
