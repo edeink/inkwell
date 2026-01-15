@@ -33,7 +33,14 @@ export class MindMapEditorOverlay extends StatefulWidget<
 > {
   private textAreaRef: TextArea | null = null;
   private pendingFocus = false;
+  /** 是否抑制由程序触发 blur 导致的提交 */
+  private suppressNextBlurCommit = false;
 
+  /**
+   * 创建编辑器覆盖层。
+   *
+   * @param data 组件属性
+   */
   constructor(data: MindMapEditorOverlayProps) {
     super(data);
     const active = !!data.targetKey && !!data.rect;
@@ -41,6 +48,12 @@ export class MindMapEditorOverlay extends StatefulWidget<
     this.pendingFocus = active;
   }
 
+  /**
+   * props 更新后同步内部受控文本与焦点行为。
+   *
+   * @param oldProps 旧属性
+   * @returns void
+   */
   protected didUpdateWidget(oldProps: MindMapEditorOverlayProps) {
     const prevActive = !!oldProps.targetKey && !!oldProps.rect;
     const nextActive = !!this.props.targetKey && !!this.props.rect;
@@ -68,18 +81,31 @@ export class MindMapEditorOverlay extends StatefulWidget<
     if (prevActive && !nextActive) {
       const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null })
         .input;
+      this.suppressNextBlurCommit = true;
       domInput?.blur?.();
     }
   }
 
+  /**
+   * 提交编辑内容：确保只提交一次，并回调 onCommit。
+   *
+   * @returns void
+   */
   private commit = (): void => {
     if (this.state.isSaved) {
       return;
     }
+    const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null }).input;
+    const nextText = typeof domInput?.value === 'string' ? domInput.value : this.state.text;
     this.setState({ isSaved: true });
-    this.props.onCommit(this.state.text);
+    this.props.onCommit(nextText);
   };
 
+  /**
+   * 取消编辑：确保只触发一次，并回调 onCancel。
+   *
+   * @returns void
+   */
   private cancel = (): void => {
     if (this.state.isSaved) {
       return;
@@ -88,6 +114,11 @@ export class MindMapEditorOverlay extends StatefulWidget<
     this.props.onCancel();
   };
 
+  /**
+   * 渲染覆盖层：当 active=false 时保持不可见，避免影响事件派发。
+   *
+   * @returns JSX 元素
+   */
   render() {
     const resolvedTheme = this.props.theme ?? Themes[getCurrentThemeMode()];
     const rect = this.props.rect;
@@ -170,6 +201,10 @@ export class MindMapEditorOverlay extends StatefulWidget<
               return true;
             }}
             onBlur={() => {
+              if (this.suppressNextBlurCommit) {
+                this.suppressNextBlurCommit = false;
+                return;
+              }
               if (!this.state.isSaved) {
                 this.commit();
               }

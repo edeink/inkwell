@@ -91,6 +91,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this.initMindMap(data);
   }
 
+  /**
+   * 初始化内部状态（用于受控/非受控属性的兼容）。
+   *
+   * @param data 传入的 Viewport props
+   * @returns void
+   */
   private initMindMap(data: MindMapViewportProps): void {
     if (data.selectionRect !== undefined) {
       this._selectionRect = data.selectionRect;
@@ -106,6 +112,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
   }
 
+  /**
+   * 注册默认快捷键集合。
+   *
+   * @returns void
+   */
   private registerDefaultShortcuts() {
     this.shortcutManager.register(UndoCommand);
     this.shortcutManager.register(RedoCommand);
@@ -117,6 +128,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     this.shortcutManager.register(PreventBrowserZoomCommand);
   }
 
+  /**
+   * 组件更新时同步受控属性，并强制触发布局以更新子组件布局信息。
+   *
+   * @param data 新的 props
+   * @returns Widget 实例本身
+   */
   createElement(data: MindMapViewportProps): Widget<MindMapViewportProps> {
     super.createElement(data);
     this.initMindMap(data);
@@ -171,6 +188,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   // --- 业务操作 (Business Actions) ---
 
+  /**
+   * 执行撤销；若历史栈无法撤销，则回退到外部回调处理。
+   *
+   * @returns Promise<void>
+   */
   public async undo(): Promise<void> {
     const success = await this.historyManager.undo();
     if (!success) {
@@ -178,6 +200,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
   }
 
+  /**
+   * 执行重做；若历史栈无法重做，则回退到外部回调处理。
+   *
+   * @returns Promise<void>
+   */
   public async redo(): Promise<void> {
     const success = await this.historyManager.redo();
     if (!success) {
@@ -186,7 +213,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
   }
 
   /**
-   * 兼容旧 API：设置位置
+   * 兼容旧 API：设置视口平移位置。
+   *
+   * @param tx 平移 X
+   * @param ty 平移 Y
+   * @returns void
    */
   setPosition(tx: number, ty: number): void {
     this.setTransform(this.scale, tx, ty);
@@ -201,6 +232,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return this._selectionRect;
   }
 
+  /**
+   * 设置框选矩形（世界坐标），并触发重绘。
+   *
+   * @param rect 框选矩形；传 null 表示清空
+   * @returns void
+   */
   setSelectionRect(rect: { x: number; y: number; width: number; height: number } | null): void {
     this._selectionRect = rect ? { ...rect } : null;
     this.markDirty();
@@ -212,6 +249,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return this.data.selectedKeys ?? this._internalSelectedKeys;
   }
 
+  /**
+   * 设置选中节点 keys，并将状态广播到节点组件。
+   *
+   * @param keys 选中节点 key 列表
+   * @returns void
+   */
   setSelectedKeys(keys: string[]): void {
     if (this.data.onSetSelectedKeys) {
       this.data.onSetSelectedKeys(keys);
@@ -225,6 +268,15 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return this.data.activeKey !== undefined ? this.data.activeKey : this._internalActiveKey;
   }
 
+  /**
+   * 设置激活节点 key。
+   *
+   * - 若提供 onActiveKeyChange 回调，则优先通知外部状态管理
+   * - 内部仍会维护一份 fallback 状态，以兼容非受控使用
+   *
+   * @param key 节点 key；传 null 表示清空
+   * @returns void
+   */
   setActiveKey(key: string | null): void {
     if (this.data.onActiveKeyChange) {
       this.data.onActiveKeyChange(key);
@@ -259,6 +311,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return this.data.editingKey !== undefined ? this.data.editingKey : this._internalEditingKey;
   }
 
+  /**
+   * 设置当前编辑节点 key。
+   *
+   * @param key 节点 key；传 null 表示退出编辑态
+   * @returns void
+   */
   setEditingKey(key: string | null): void {
     if (this.data.onEditingKeyChange) {
       this.data.onEditingKeyChange(key);
@@ -276,16 +334,33 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     void keys;
   }
 
+  /**
+   * 触发“删除选区”回调，并返回用于撤销的快照数据。
+   *
+   * @returns SelectionData | void
+   */
   public deleteSelection(): SelectionData | void {
     return this.data.onDeleteSelection?.();
   }
 
+  /**
+   * 触发“恢复选区”回调（通常用于撤销删除）。
+   *
+   * @param data 待恢复的节点与边
+   * @returns void
+   */
   public restoreSelection(data: SelectionData): void {
     this.data.onRestoreSelection?.(data);
   }
 
   // --- 交互处理程序 ---
 
+  /**
+   * 指针按下：支持框选、全选（Ctrl/Meta + 左键）等交互入口。
+   *
+   * @param e 指针事件
+   * @returns boolean | void（返回 false 表示阻止默认处理）
+   */
   onPointerDown(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
     const pe = e?.nativeEvent as PointerEvent | undefined;
@@ -313,6 +388,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return false;
   }
 
+  /**
+   * 指针移动：更新框选矩形，并触发节流的选区计算；同时支持双指捏合缩放。
+   *
+   * @param e 指针事件
+   * @returns boolean | void
+   */
   onPointerMove(e: InkwellEvent): boolean | void {
     const world = this.getWorldXY(e);
 
@@ -337,6 +418,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
   }
 
+  /**
+   * 指针抬起：结束框选并清理临时状态。
+   *
+   * @param e 指针事件
+   * @returns boolean | void
+   */
   onPointerUp(e: InkwellEvent): boolean | void {
     // 简单处理：释放时清理状态
     this.pinchState = null;
@@ -356,6 +443,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
   }
 
+  /**
+   * 滚轮：支持滚动平移与按键辅助缩放（Ctrl/Meta + 滚轮）。
+   *
+   * @param e 滚轮事件
+   * @returns boolean | void
+   */
   onWheel(e: InkwellEvent): boolean | void {
     const we = e?.nativeEvent as WheelEvent | undefined;
     if (we && (we.ctrlKey || we.metaKey)) {
@@ -383,6 +476,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return false;
   }
 
+  /**
+   * 键盘事件入口：交由 ShortcutManager 处理快捷键，并在命中时阻止冒泡。
+   *
+   * @param e 键盘事件
+   * @returns boolean | void
+   */
   onKeyDown(e: InkwellEvent): boolean | void {
     const ke = e?.nativeEvent as KeyboardEvent | undefined;
     if (!ke) {
@@ -400,6 +499,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return false;
   }
 
+  /**
+   * 绘制框选矩形（在视口局部坐标系中绘制）。
+   *
+   * @param context 构建上下文
+   * @returns void
+   */
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const rect = this.selectionRect;
@@ -428,6 +533,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
 
   // --- 辅助方法 (捏合缩放 & 框选) ---
 
+  /**
+   * 处理双指捏合缩放：记录起始距离与中心点，按比例更新缩放。
+   *
+   * @param touches 触点列表
+   * @returns void
+   */
   private handlePinchMove(touches: TouchList) {
     const t1 = touches[0];
     const t2 = touches[1];
@@ -458,6 +569,12 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     }
   }
 
+  /**
+   * 将可能为负宽高的矩形规范化为左上角 + 正宽高的形式。
+   *
+   * @param r 原始矩形
+   * @returns 规范化后的矩形
+   */
   private normalizeRect(r: { x: number; y: number; width: number; height: number }) {
     const x = r.width >= 0 ? r.x : r.x + r.width;
     const y = r.height >= 0 ? r.y : r.y + r.height;
@@ -466,6 +583,11 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     return { x, y, width: w, height: h };
   }
 
+  /**
+   * 构建节点空间索引，用于框选时快速命中测试。
+   *
+   * @returns void
+   */
   private buildSpatialIndex(): void {
     const items: { item: { key: string; rect: BBox }; bbox: BBox }[] = [];
     const root = this as unknown as Widget;

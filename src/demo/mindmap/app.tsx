@@ -1,7 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
 import { ConnectorStyle } from './helpers/connection-drawer';
 import { AddChildNodeCommand, AddSiblingNodeCommand } from './helpers/shortcut/commands/edit';
-import { findParent, makeInitialState } from './helpers/state-helper';
+import { makeInitialState } from './helpers/state-helper';
+import { MindMapModel } from './mindmap-model';
 import { CustomComponentType, Side } from './type';
 import { Connector } from './widgets/connector';
 import { MindMapEditorOverlay, type MindMapEditorRect } from './widgets/mindmap-editor-overlay';
@@ -10,7 +11,7 @@ import { MindMapNode } from './widgets/mindmap-node';
 import { MindMapNodeToolbar } from './widgets/mindmap-node-toolbar';
 import { MindMapViewport } from './widgets/mindmap-viewport';
 
-import type { GraphEdge, GraphNode, GraphState, NodeId, SelectionData } from './type';
+import type { GraphState, NodeId, SelectionData } from './type';
 import type { MindMapViewport as MindMapViewportCls } from './widgets/mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
@@ -56,6 +57,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   > = new Map();
   private nodeElementCache: Map<NodeId, MindMapNode> = new Map();
   private edgeElementCache: Map<string, Connector> = new Map();
+  private editingSessionKey: string | null = null;
 
   constructor(data: SceneProps) {
     super(data);
@@ -118,6 +120,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
 
   // onRenderComplete 移除：统一由基类调度下一 Tick
 
+  /**
+   * 删除当前激活节点与框选节点对应的子树，并返回用于撤销的快照。
+   *
+   * @returns SelectionData | void
+   */
   private onDeleteSelection = (): SelectionData | void => {
     const vp = this.getViewport();
     const cur = (this.state as SceneState).graph;
@@ -135,95 +142,48 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     if (!keys.length) {
       return;
     }
-    const childrenMap = new Map<string, string[]>();
-    for (const e of cur.edges) {
-      const arr = childrenMap.get(e.from) || [];
-      arr.push(e.to);
-      childrenMap.set(e.from, arr);
-    }
-    const toDelete = new Set<string>();
-    const dfs = (k: string) => {
-      toDelete.add(k);
-      const arr = childrenMap.get(k) || [];
-      for (const c of arr) {
-        if (!toDelete.has(c)) {
-          dfs(c);
-        }
-      }
-    };
-    for (const k of keys) {
-      if (!toDelete.has(k)) {
-        dfs(k);
-      }
-    }
-
-    // 收集被删除的数据
-    const deletedNodes: GraphNode[] = [];
-    const nextNodes = new Map(cur.nodes);
-    for (const k of Array.from(toDelete)) {
-      const node = nextNodes.get(k);
-      if (node) {
-        deletedNodes.push(node);
-        nextNodes.delete(k);
-      }
-    }
-
-    const deletedEdges: GraphEdge[] = [];
-    const nextEdges: GraphEdge[] = [];
-    for (const e of cur.edges) {
-      if (toDelete.has(e.from) || toDelete.has(e.to)) {
-        deletedEdges.push(e);
-      } else {
-        nextEdges.push(e);
-      }
-    }
-
-    const next: GraphState = {
-      ...cur,
-      nodes: nextNodes,
-      edges: nextEdges,
-      version: cur.version + 1,
-      nextId: cur.nextId,
-    };
-    this.setState({ graph: next, activeKey: null });
-
-    return {
-      nodes: deletedNodes,
-      edges: deletedEdges,
-    };
+    const res = MindMapModel.deleteSubtrees(cur, keys);
+    this.setState({ graph: res.graph, activeKey: null });
+    return res.deleted;
   };
 
+  /**
+   * 将撤销数据恢复回图中（用于撤销删除）。
+   *
+   * @param data 待恢复的节点与边
+   * @returns void
+   */
   private onRestoreSelection = (data: SelectionData): void => {
     if (!data || !data.nodes || !data.edges) {
       return;
     }
     const cur = (this.state as SceneState).graph;
-    const nextNodes = new Map(cur.nodes);
-    for (const node of data.nodes) {
-      nextNodes.set(node.id, node);
-    }
-    const nextEdges = [...cur.edges, ...data.edges];
-
-    // 简单的去重（针对 edge）
-    // 实际场景中可能需要更复杂的合并逻辑
-
-    const next: GraphState = {
-      ...cur,
-      nodes: nextNodes,
-      edges: nextEdges,
-      version: cur.version + 1,
-      nextId: cur.nextId,
-    };
+    const next = MindMapModel.restoreSelection(cur, data);
     this.setState({ graph: next });
   };
 
+  /**
+   * 设置当前选中节点 key 列表。
+   *
+   * @param keys 选中 key 列表
+   * @returns void
+   */
   private onSetSelectedKeys = (keys: string[]): void => {
     this.setState({
       selectedKeys: keys,
     });
   };
 
+  /**
+   * 切换编辑节点，并计算编辑器覆盖层的位置与尺寸。
+   *
+   * @param key 进入编辑的节点 key；传 null 表示退出编辑态
+   * @returns void
+   */
   private onEditingKeyChange = (key: string | null): void => {
+    if (key) {
+      this.editingSessionKey = key;
+    }
     const rect = key ? this.computeEditorRect(key) : null;
     this.setState({ editingKey: key, editorRect: rect });
     if (key) {
@@ -231,6 +191,15 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   };
 
+  /**
+   * 编辑事件入口：
+   * - 当 key 非空时进入/切换编辑态
+   * - 当 key 为 null 且 value 提供时，将文本回写到节点标题并退出编辑态
+   *
+   * @param key 目标编辑节点 key；传 null 表示结束编辑
+   * @param value 结束编辑时提交的标题文本（可选）
+   * @returns void
+   */
   private onEdit = (key: string | null, value?: string): void => {
     const curState = this.state as SceneState;
     const cur = curState.graph;
@@ -238,61 +207,66 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
 
     let nextGraph = cur;
     if (typeof value === 'string') {
-      const targetKey = editingKey ?? key;
+      const targetKey = this.editingSessionKey ?? editingKey ?? key;
       if (targetKey) {
-        const node = cur.nodes.get(targetKey);
-        if (node && node.title !== value) {
-          const nextNodes = new Map(cur.nodes);
-          nextNodes.set(targetKey, { ...node, title: value });
-          nextGraph = {
-            ...cur,
-            nodes: nextNodes,
-            version: cur.version + 1,
-          };
-        }
+        nextGraph = MindMapModel.setNodeTitle(cur, targetKey, value);
       }
     }
 
     const nextEditingKey = key;
     const rect = nextEditingKey ? this.computeEditorRect(nextEditingKey) : null;
     this.setState({ graph: nextGraph, editingKey: nextEditingKey, editorRect: rect });
+    if (!nextEditingKey) {
+      this.editingSessionKey = null;
+    } else {
+      this.editingSessionKey = nextEditingKey;
+    }
     if (nextEditingKey) {
       this.scheduleSyncEditorRect();
     }
   };
 
+  /**
+   * 提交编辑内容并写回节点标题。
+   *
+   * @param value 最终标题文本
+   * @returns void
+   */
   private commitEditing = (value: string): void => {
     const curState = this.state as SceneState;
-    const targetKey = curState.editingKey;
+    const targetKey = this.editingSessionKey ?? curState.editingKey;
     if (!targetKey) {
       return;
     }
     const cur = curState.graph;
-    const node = cur.nodes.get(targetKey);
-    let nextGraph = cur;
-    if (node && node.title !== value) {
-      const nextNodes = new Map(cur.nodes);
-      nextNodes.set(targetKey, { ...node, title: value });
-      nextGraph = {
-        ...cur,
-        nodes: nextNodes,
-        version: cur.version + 1,
-      };
-    }
+    const nextGraph = MindMapModel.setNodeTitle(cur, targetKey, value);
     this.setState({
       graph: nextGraph,
       editingKey: null,
       editorRect: null,
     });
+    this.editingSessionKey = null;
   };
 
+  /**
+   * 取消编辑并退出编辑态（不写回数据）。
+   *
+   * @returns void
+   */
   private cancelEditing = (): void => {
+    this.editingSessionKey = null;
     this.setState({ editingKey: null, editorRect: null });
   };
 
+  /**
+   * 切换激活节点，并触发版本递增以刷新视图。
+   *
+   * @param key 激活节点 key；传 null 表示清空
+   * @returns void
+   */
   private onActive = (key: string | null): void => {
     const cur = (this.state as SceneState).graph;
-    const next: GraphState = { ...cur, version: cur.version + 1 };
+    const next: GraphState = MindMapModel.touch(cur);
 
     // 如果激活了新节点，且之前有选区，清除选区
     let selectedKeys = (this.state as SceneState).selectedKeys;
@@ -310,6 +284,12 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     });
   };
 
+  /**
+   * 键盘事件入口：转交给 Viewport 处理快捷键与交互。
+   *
+   * @param e 键盘事件
+   * @returns boolean | void
+   */
   onKeyDown(e: InkwellEvent): boolean | void {
     const vp = this.getViewport();
     if (vp) {
@@ -317,59 +297,38 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   }
 
+  /**
+   * 在参照节点旁新增兄弟节点，并将其设为激活/编辑。
+   *
+   * @param refKey 参照节点 key
+   * @param dir 插入方向：-1 前置；1 后置
+   * @param side 可选偏好侧
+   * @returns 新节点 key；若新增失败则返回 void
+   */
   private handleAddSiblingNode = (refKey: string, dir: -1 | 1, side?: Side): string | void => {
     const cur = (this.state as SceneState).graph;
-    const parent = findParent(cur, refKey);
-    if (!parent) {
+    const res = MindMapModel.addSiblingNode(cur, refKey, dir, side);
+    if (!res) {
       return;
     }
-    const title = '';
-    const id = `n${cur.nextId}`;
-    const nextId = cur.nextId + 1;
-
-    const refEdgeIndex = cur.edges.findIndex((e) => e.from === parent && e.to === refKey);
-    let nextEdges: GraphEdge[];
-    const newEdge: GraphEdge = { from: parent, to: id };
-
-    if (refEdgeIndex !== -1) {
-      if (dir === -1) {
-        nextEdges = [
-          ...cur.edges.slice(0, refEdgeIndex),
-          newEdge,
-          ...cur.edges.slice(refEdgeIndex),
-        ];
-      } else {
-        nextEdges = [
-          ...cur.edges.slice(0, refEdgeIndex + 1),
-          newEdge,
-          ...cur.edges.slice(refEdgeIndex + 1),
-        ];
-      }
-    } else {
-      nextEdges = [...cur.edges, newEdge];
-    }
-
-    const newNode: GraphNode = { id, title };
-    if (side) {
-      newNode.prefSide = side;
-    }
-
-    const next: GraphState = {
-      ...cur,
-      nextId,
-      nodes: new Map(cur.nodes).set(id, newNode),
-      edges: nextEdges,
-      version: cur.version + 1,
-    };
     this.setState({
-      graph: next,
+      graph: res.graph,
       selectedKeys: [],
-      editingKey: id,
-      activeKey: id,
+      editingKey: res.id,
+      activeKey: res.id,
     });
-    return id;
+    this.editingSessionKey = res.id;
+    return res.id;
   };
 
+  /**
+   * 通过历史命令新增兄弟节点（用于撤销/重做）。
+   *
+   * @param refKey 参照节点 key
+   * @param dir 插入方向：-1 前置；1 后置
+   * @param side 可选偏好侧
+   * @returns void
+   */
   private onAddSibling = (refKey: string, dir: -1 | 1, side?: Side): void => {
     const vp = this.getViewport();
     if (vp) {
@@ -377,27 +336,33 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   };
 
+  /**
+   * 在参照节点下新增子节点，并将其设为激活/编辑。
+   *
+   * @param refKey 父节点 key
+   * @param side 新节点偏好侧
+   * @returns 新节点 key
+   */
   private handleAddChildNode = (refKey: string, side: Side): string | void => {
     const cur = (this.state as SceneState).graph;
-    const title = '';
-    const id = `n${cur.nextId}`;
-    const nextId = cur.nextId + 1;
-    const next: GraphState = {
-      ...cur,
-      nextId,
-      nodes: new Map(cur.nodes).set(id, { id, title, prefSide: side }),
-      edges: [...cur.edges, { from: refKey, to: id }],
-      version: cur.version + 1,
-    };
+    const res = MindMapModel.addChildNode(cur, refKey, side);
     this.setState({
-      graph: next,
+      graph: res.graph,
       selectedKeys: [],
-      editingKey: id,
-      activeKey: id,
+      editingKey: res.id,
+      activeKey: res.id,
     });
-    return id;
+    this.editingSessionKey = res.id;
+    return res.id;
   };
 
+  /**
+   * 通过历史命令新增子节点（用于撤销/重做）。
+   *
+   * @param refKey 父节点 key
+   * @param side 新节点偏好侧
+   * @returns void
+   */
   private onAddChildSide = (refKey: string, side: Side): void => {
     const vp = this.getViewport();
     if (vp) {
@@ -405,6 +370,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   };
 
+  /**
+   * 以“最小更新”的方式移动某个节点的渲染偏移（用于拖拽交互）。
+   *
+   * @param key 节点 key
+   * @param dx 目标偏移 X
+   * @param dy 目标偏移 Y
+   * @returns void
+   */
   private onMoveNode = (key: string, dx: number, dy: number): void => {
     const rt = this.runtime;
     if (!rt) {
@@ -435,6 +408,14 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     }
   };
 
+  /**
+   * 将当前 GraphState 渲染为节点与连线，并对不变节点进行实例复用。
+   *
+   * @param state 图状态
+   * @param handlers 交互回调集合
+   * @param theme 主题（可选）
+   * @returns 包含 elements 与 toolbar 的渲染结果
+   */
   private renderGraphCached(
     state: GraphState,
     handlers: {
@@ -552,6 +533,16 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     return { elements: [...nodes, ...edges], toolbar };
   }
 
+  /**
+   * 布局回调：在 MindMapLayout 完成布局后触发。
+   *
+   * - 通知控制器布局变更（用于缩略图等订阅方刷新）
+   * - 可选地将视图居中一次（首次加载或 setGraphData 后）
+   * - 同步编辑器覆盖层位置，避免滚动/缩放/布局导致错位
+   *
+   * @param size 布局内容尺寸
+   * @returns void
+   */
   private onLayout = (size: { width: number; height: number }) => {
     // 通知 Controller 布局更新
     if (this.runtime) {
@@ -581,34 +572,19 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     this.scheduleSyncEditorRect();
   };
 
+  /**
+   * 用外部数据重建图状态（例如导入、服务端下发）。
+   *
+   * @param data 图数据（nodes/edges/activeKey）
+   * @returns void
+   */
   public setGraphData(data: {
     nodes: Array<{ key: string; title: string; parent?: string }>;
     edges: Array<{ from: string; to: string }>;
     activeKey?: string | null;
   }) {
-    const nodes = new Map<string, GraphNode>();
-    let maxId = 0;
-
-    data.nodes.forEach((n) => {
-      nodes.set(n.key, { id: n.key, title: n.title });
-      // 尝试解析 ID 中的数字以更新 nextId
-      const match = n.key.match(/\d+$/);
-      if (match) {
-        const idNum = parseInt(match[0], 10);
-        if (!isNaN(idNum) && idNum > maxId) {
-          maxId = idNum;
-        }
-      }
-    });
-
-    const nextId = maxId > 0 ? maxId + 1 : 1000;
-
-    const newState: GraphState = {
-      nodes,
-      edges: data.edges,
-      version: (this.state as SceneState).graph.version + 1,
-      nextId,
-    };
+    const cur = (this.state as SceneState).graph;
+    const newState = MindMapModel.fromGraphData(cur, data);
 
     this.setState({ graph: newState, activeKey: data.activeKey ?? null });
 
@@ -619,6 +595,12 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
 
   private shouldCenter = true;
 
+  /**
+   * 视口视图变更回调：同步本地 viewState，并转发给控制器。
+   *
+   * @param view 视图状态（缩放与平移）
+   * @returns void
+   */
   private onViewChange = (view: { scale: number; tx: number; ty: number }): void => {
     this.setState({
       ...this.state,
@@ -639,6 +621,12 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     this.scheduleSyncEditorRect();
   };
 
+  /**
+   * 激活节点变更回调：同步 activeKey，并在清空激活时退出编辑态。
+   *
+   * @param key 激活节点 key；传 null 表示清空
+   * @returns void
+   */
   private onActiveKeyChange = (key: string | null): void => {
     const activeKey = (this.state as SceneState).activeKey;
     if (activeKey === key) {
@@ -658,6 +646,16 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     });
   };
 
+  /**
+   * 计算编辑器覆盖层在 DOM 中的绝对矩形。
+   *
+   * 实现思路：
+   * - 当节点存在非平凡世界矩阵时：用世界矩阵将节点四个角点变换到屏幕空间并取包围盒
+   * - 当矩阵为单位矩阵时：走快速路径，基于 Viewport 的 tx/ty/scale 与相对位置计算
+   *
+   * @param targetKey 目标节点 key
+   * @returns 目标节点的屏幕矩形；不可用时返回 null
+   */
   private computeEditorRect(targetKey: string): MindMapEditorRect | null {
     const rt = this.runtime;
     if (!rt) {
@@ -715,6 +713,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     return { left, top, width, height };
   }
 
+  /**
+   * 调度下一帧同步编辑器覆盖层矩形，避免滚动/缩放/布局时出现跳动。
+   *
+   * @returns void
+   */
   private scheduleSyncEditorRect(): void {
     const key = (this.state as SceneState).editingKey;
     if (!key) {

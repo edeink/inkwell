@@ -181,4 +181,34 @@ describe('MindmapDemo State Management', async () => {
     expect(state.editingKey).toBeNull();
     expect(state.graph.nodes.get('n1')?.title).toBe('新的标题');
   });
+
+  it('失焦导致 editingKey 被清空后仍应回写节点标题', async () => {
+    const container = document.createElement('div');
+    container.id = `mm-demo-blur-commit-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
+
+    const demo = <MindmapDemo key="demo-blur-commit" width={800} height={600} />;
+    await runtime.renderFromJSX(demo as any);
+
+    const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
+
+    (demoInstance as any).onEdit('n1');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(((demoInstance as any).state as any).editingKey).toBe('n1');
+
+    (demoInstance as any).onEditingKeyChange(null);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(((demoInstance as any).state as any).editingKey).toBeNull();
+
+    (demoInstance as any).commitEditing('失焦后的标题');
+    await new Promise((r) => setTimeout(r, 0));
+
+    const state = (demoInstance as any).state as any;
+    expect(state.editingKey).toBeNull();
+    expect(state.graph.nodes.get('n1')?.title).toBe('失焦后的标题');
+  });
 });
