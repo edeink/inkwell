@@ -3,7 +3,6 @@ export { Center } from './center';
 export { ClipRect } from './clip-rect';
 export { Container } from './container';
 export { createExposedHandle } from './decorators';
-export { EditableText, type EditableTextProps } from './editable-text';
 export { Input, type InputProps } from './editable/input';
 export { TextArea, type TextAreaProps } from './editable/textarea';
 export { Column } from './flex/column';

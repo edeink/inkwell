@@ -1,5 +1,6 @@
 import { Widget, createBoxConstraints } from './base';
 import { Positioned } from './positioned';
+import { StatelessWidget } from './state/stateless';
 
 import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
@@ -57,6 +58,24 @@ export class Stack extends Widget<StackProps> {
     this.initStackProperties(data);
   }
 
+  private getPositionedProxy(child: Widget): Positioned | null {
+    let w: Widget | null = child;
+    for (let depth = 0; depth < 32 && w; depth++) {
+      if (w.isPositioned) {
+        return w as Positioned;
+      }
+      if (w instanceof StatelessWidget) {
+        const childList = w.children as Widget[];
+        if (childList && childList.length === 1) {
+          w = childList[0];
+          continue;
+        }
+      }
+      return null;
+    }
+    return null;
+  }
+
   private initStackProperties(data: StackProps): void {
     // 默认开启点击穿透
     if (data.pointerEvent === undefined) {
@@ -110,7 +129,7 @@ export class Stack extends Widget<StackProps> {
     // 避免使用 map/filter 减少内存分配
     for (let i = 0; i < this.children.length; i++) {
       const child = this.children[i];
-      if (!child.isPositioned) {
+      if (!this.getPositionedProxy(child)) {
         const s = childrenSizes[i];
         if (s) {
           if (s.width > maxNonPosW) {
@@ -185,9 +204,9 @@ export class Stack extends Widget<StackProps> {
         continue;
       }
 
-      if (child.isPositioned) {
+      const posChild = this.getPositionedProxy(child);
+      if (posChild) {
         // 优化：内联 Positioned 计算逻辑，避免创建 Offset 对象
-        const posChild = child as Positioned;
         const childW = child.renderObject.size.width;
         const childH = child.renderObject.size.height;
 
@@ -245,18 +264,17 @@ export class Stack extends Widget<StackProps> {
       parentConstraints.minHeight === parentConstraints.maxHeight;
 
     if (isTight || this.allowOverflowPositioned) {
-      const posConstraints = this.allowOverflowPositioned
-        ? parentConstraints
-        : createBoxConstraints({
-            minWidth: 0,
-            maxWidth: parentConstraints.maxWidth,
-            minHeight: 0,
-            maxHeight: parentConstraints.maxHeight,
-          });
+      const loosePosConstraints = createBoxConstraints({
+        minWidth: 0,
+        maxWidth: parentConstraints.maxWidth,
+        minHeight: 0,
+        maxHeight: parentConstraints.maxHeight,
+      });
+      const posConstraints = this.allowOverflowPositioned ? parentConstraints : loosePosConstraints;
 
       for (let i = 0; i < len; i++) {
         const child = this.children[i];
-        if (child.isPositioned) {
+        if (this.getPositionedProxy(child)) {
           sizes[i] = child.layout(posConstraints);
         } else {
           const constraints = this.getConstraintsForChild(parentConstraints, i);
@@ -277,7 +295,7 @@ export class Stack extends Widget<StackProps> {
       if (i === 0 && !child.isPositioned && child.type === 'Positioned') {
         // console.error('Stack Layout Error: Positioned widget has isPositioned=false');
       }
-      if (!child.isPositioned) {
+      if (!this.getPositionedProxy(child)) {
         const constraints = this.getConstraintsForChild(parentConstraints, i);
         const s = child.layout(constraints);
         sizes[i] = s;
@@ -315,18 +333,19 @@ export class Stack extends Widget<StackProps> {
     }
 
     // 2) 布局 Positioned 子项，使用基于参考尺寸的约束避免无穷大尺寸
+    const refPosConstraints = createBoxConstraints({
+      minWidth: 0,
+      maxWidth: refWidth === 0 ? parentConstraints.maxWidth : refWidth,
+      minHeight: 0,
+      maxHeight: refHeight === 0 ? parentConstraints.maxHeight : refHeight,
+    });
     const posConstraints = this.props.allowOverflowPositioned
       ? parentConstraints
-      : createBoxConstraints({
-          minWidth: 0,
-          maxWidth: refWidth === 0 ? parentConstraints.maxWidth : refWidth,
-          minHeight: 0,
-          maxHeight: refHeight === 0 ? parentConstraints.maxHeight : refHeight,
-        });
+      : refPosConstraints;
 
     for (let i = 0; i < len; i++) {
       const child = this.children[i];
-      if (child.isPositioned) {
+      if (this.getPositionedProxy(child)) {
         sizes[i] = child.layout(posConstraints);
       }
     }
@@ -369,12 +388,23 @@ export class Stack extends Widget<StackProps> {
     const child = this.children[childIndex];
 
     // 检查是否是 Positioned 组件
-    if (child.isPositioned) {
-      // 对于 Positioned 组件，使用其 getStackPosition 方法
-      const posChild = child as Positioned;
-      if (typeof posChild.getStackPosition === 'function') {
-        return posChild.getStackPosition(stackSize);
+    const posChild = this.getPositionedProxy(child);
+    if (posChild) {
+      let dx = 0;
+      let dy = 0;
+
+      if (posChild.left !== undefined) {
+        dx = posChild.left;
+      } else if (posChild.right !== undefined) {
+        dx = stackSize.width - posChild.right - childSize.width;
       }
+
+      if (posChild.top !== undefined) {
+        dy = posChild.top;
+      } else if (posChild.bottom !== undefined) {
+        dy = stackSize.height - posChild.bottom - childSize.height;
+      }
+      return { dx, dy };
     }
 
     // 根据对齐方式计算位置

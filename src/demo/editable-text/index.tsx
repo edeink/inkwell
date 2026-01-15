@@ -12,7 +12,7 @@ export const meta = {
   key: DemoKey.EditableText,
   label: '文本编辑',
   description:
-    '展示可编辑文本组件（EditableText）的能力，支持单行和多行编辑模式，支持光标控制、选区、剪贴板等操作。',
+    '展示文本编辑组件（Input/TextArea）的能力，支持单行和多行编辑模式，支持光标控制、选区、剪贴板等操作。',
 };
 
 export default function EditableTextDemo() {

@@ -38,12 +38,7 @@ export class EditableTextDemo extends StatefulWidget<EditableTextDemoProps, Edit
     return (
       <Padding padding={40}>
         <Column spacing={40} crossAxisAlignment={CrossAxisAlignment.Start}>
-          <Text
-            text="EditableText 示例"
-            fontSize={24}
-            fontWeight="bold"
-            color={theme.text.primary}
-          />
+          <Text text="文本编辑示例" fontSize={24} fontWeight="bold" color={theme.text.primary} />
 
           <Row spacing={40} crossAxisAlignment={CrossAxisAlignment.Start}>
             {/* 单行编辑器 */}

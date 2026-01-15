@@ -1,149 +1,77 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EditableText, type EditableTextProps } from '../editable-text';
+import { TextArea, type TextAreaProps } from '../editable/textarea';
 
-// Mock Widget from @/core/base
-vi.mock('@/core/base', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/core/base')>();
-
-  class MockWidget {
-    props: any;
-    state: any;
-    renderObject: any = { offset: { dx: 0, dy: 0 }, size: { width: 0, height: 0 } };
-    parent: any = null;
-    _dirty: boolean = false;
-
-    constructor(props: any) {
-      this.props = props;
-    }
-
-    dispose() {}
-    markDirty() {}
-    createElement(data: any) {
-      this.props = data;
-      return this;
-    }
-  }
-
-  return {
-    ...actual,
-    Widget: MockWidget,
-  };
-});
-
-// Mock other core components to avoid rendering issues
-vi.mock('@/core', () => ({
-  Container: () => ({ type: 'Container', props: {} }),
-  Stack: () => ({ type: 'Stack', props: {} }),
-  Text: () => ({ type: 'Text', props: {} }),
-}));
-
-vi.mock('@/core/positioned', () => ({
-  Positioned: () => ({ type: 'Positioned', props: {} }),
-}));
-
-describe('EditableText Core Component', () => {
-  let editor: EditableText;
-  let props: EditableTextProps;
+describe('TextArea 基础交互', () => {
+  let editor: TextArea;
+  let props: TextAreaProps;
 
   beforeEach(() => {
-    // Mock canvas context
-    const mockContext = {
-      font: '',
-      measureText: vi.fn().mockReturnValue({ width: 50 }),
-    };
-    // @ts-ignore
-    HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue(mockContext);
-
     document.body.innerHTML = '';
 
     props = {
-      // @ts-ignore
-      type: 'EditableText',
+      type: 'TextArea',
       value: 'Hello',
       onChange: vi.fn(),
-      onFinish: vi.fn(),
-      onCancel: vi.fn(),
-      getViewState: vi.fn().mockReturnValue({ scale: 1, tx: 0, ty: 0 }),
-      stopTraversalAt: vi.fn(),
+      onBlur: vi.fn(),
+      onKeyDown: vi.fn(),
     };
 
-    editor = new EditableText(props);
+    editor = new TextArea(props);
   });
 
   afterEach(() => {
-    if (editor) {
-      editor.dispose();
-    }
+    editor.dispose();
   });
 
-  it('应该在初始化时创建隐藏的 input 元素', () => {
-    const input = document.querySelector('input');
+  it('初始化时应创建隐藏的 textarea 元素', () => {
+    const input = document.querySelector('textarea');
     expect(input).not.toBeNull();
     expect(input?.value).toBe('Hello');
     expect(input?.style.opacity).toBe('0');
     expect(input?.style.position).toBe('fixed');
   });
 
-  it('当 props.value 改变时应该更新 input 值', () => {
-    const newProps = { ...props, value: 'World' };
-    editor.createElement(newProps);
-    const input = document.querySelector('input');
+  it('props.value 改变时应同步更新 textarea 的值', () => {
+    const nextProps = { ...props, value: 'World' };
+    editor.createElement(nextProps);
+    const input = document.querySelector('textarea');
     expect(input?.value).toBe('World');
   });
 
-  it('应该正确处理输入事件', () => {
-    const input = document.querySelector('input');
+  it('输入事件应触发 onChange', () => {
+    const input = document.querySelector('textarea');
     if (!input) {
-      throw new Error('找不到 input 元素');
+      throw new Error('找不到 textarea 元素');
     }
 
     input.value = 'Hello World';
     input.dispatchEvent(new Event('input'));
-
     expect(props.onChange).toHaveBeenCalledWith('Hello World');
   });
 
-  it('应该在按下 Enter 键时调用 onFinish', () => {
-    const input = document.querySelector('input');
+  it('按键事件应触发 onKeyDown 且可阻止默认行为', () => {
+    const input = document.querySelector('textarea');
     if (!input) {
-      throw new Error('找不到 input 元素');
+      throw new Error('找不到 textarea 元素');
     }
 
-    input.focus(); // 确保 input 获得焦点，否则 blur() 无效
-    const event = new KeyboardEvent('keydown', { key: 'Enter' });
+    const onKeyDown = vi.fn(() => false);
+    editor.createElement({ ...props, onKeyDown });
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
     input.dispatchEvent(event);
 
-    expect(props.onFinish).toHaveBeenCalledWith('Hello');
+    expect(onKeyDown).toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
   });
 
-  it('应该在按下 Escape 键时调用 onCancel', () => {
-    const input = document.querySelector('input');
+  it('失焦事件应触发 onBlur', () => {
+    const input = document.querySelector('textarea');
     if (!input) {
-      throw new Error('找不到 input 元素');
+      throw new Error('找不到 textarea 元素');
     }
-
-    const event = new KeyboardEvent('keydown', { key: 'Escape' });
-    input.dispatchEvent(event);
-
-    expect(props.onCancel).toHaveBeenCalled();
-  });
-
-  it('应该在 blur 时调用 onFinish', async () => {
-    const input = document.querySelector('input');
-    if (!input) {
-      throw new Error('找不到 input 元素');
-    }
-
-    // 使用 fake timers
-    vi.useFakeTimers();
-
     input.dispatchEvent(new Event('blur'));
-
-    vi.advanceTimersByTime(100);
-
-    expect(props.onFinish).toHaveBeenCalled();
-
-    vi.useRealTimers();
+    expect(props.onBlur).toHaveBeenCalled();
   });
 });

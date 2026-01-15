@@ -4,6 +4,7 @@ import { AddChildNodeCommand, AddSiblingNodeCommand } from './helpers/shortcut/c
 import { findParent, makeInitialState } from './helpers/state-helper';
 import { CustomComponentType, Side } from './type';
 import { Connector } from './widgets/connector';
+import { MindMapEditorOverlay, type MindMapEditorRect } from './widgets/mindmap-editor-overlay';
 import { MindMapLayout } from './widgets/mindmap-layout';
 import { MindMapNode } from './widgets/mindmap-node';
 import { MindMapNodeToolbar } from './widgets/mindmap-node-toolbar';
@@ -15,7 +16,8 @@ import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 import type { ThemePalette } from '@/styles/theme';
 
-import { StatefulWidget } from '@/core';
+import { Stack, StatefulWidget } from '@/core';
+import { transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 
@@ -30,6 +32,7 @@ type SceneState = {
   selectedKeys: string[];
   editingKey: string | null;
   activeKey: string | null;
+  editorRect: MindMapEditorRect | null;
 };
 
 /**
@@ -62,7 +65,18 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       selectedKeys: [],
       editingKey: null,
       activeKey: null,
+      editorRect: null,
     };
+  }
+
+  private editorRectRaf: number | null = null;
+
+  dispose(): void {
+    if (this.editorRectRaf != null) {
+      cancelAnimationFrame(this.editorRectRaf);
+      this.editorRectRaf = null;
+    }
+    super.dispose();
   }
 
   private getViewport(): MindMapViewportCls | null {
@@ -82,6 +96,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     if (ctrl && typeof ctrl.notifyViewChange === 'function') {
       ctrl.notifyViewChange();
     }
+    this.scheduleSyncEditorRect();
   };
 
   private onZoomAt = (scale: number, cx: number, cy: number): void => {
@@ -98,6 +113,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     if (ctrl && typeof ctrl.notifyViewChange === 'function') {
       ctrl.notifyViewChange();
     }
+    this.scheduleSyncEditorRect();
   };
 
   // onRenderComplete 移除：统一由基类调度下一 Tick
@@ -208,9 +224,70 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
   };
 
   private onEditingKeyChange = (key: string | null): void => {
+    const rect = key ? this.computeEditorRect(key) : null;
+    this.setState({ editingKey: key, editorRect: rect });
+    if (key) {
+      this.scheduleSyncEditorRect();
+    }
+  };
+
+  private onEdit = (key: string | null, value?: string): void => {
+    const curState = this.state as SceneState;
+    const cur = curState.graph;
+    const editingKey = curState.editingKey;
+
+    let nextGraph = cur;
+    if (typeof value === 'string') {
+      const targetKey = editingKey ?? key;
+      if (targetKey) {
+        const node = cur.nodes.get(targetKey);
+        if (node && node.title !== value) {
+          const nextNodes = new Map(cur.nodes);
+          nextNodes.set(targetKey, { ...node, title: value });
+          nextGraph = {
+            ...cur,
+            nodes: nextNodes,
+            version: cur.version + 1,
+          };
+        }
+      }
+    }
+
+    const nextEditingKey = key;
+    const rect = nextEditingKey ? this.computeEditorRect(nextEditingKey) : null;
+    this.setState({ graph: nextGraph, editingKey: nextEditingKey, editorRect: rect });
+    if (nextEditingKey) {
+      this.scheduleSyncEditorRect();
+    }
+  };
+
+  private commitEditing = (value: string): void => {
+    const curState = this.state as SceneState;
+    const targetKey = curState.editingKey;
+    if (!targetKey) {
+      return;
+    }
+    const cur = curState.graph;
+    const node = cur.nodes.get(targetKey);
+    let nextGraph = cur;
+    if (node && node.title !== value) {
+      const nextNodes = new Map(cur.nodes);
+      nextNodes.set(targetKey, { ...node, title: value });
+      nextGraph = {
+        ...cur,
+        nodes: nextNodes,
+        version: cur.version + 1,
+      };
+    }
     this.setState({
-      editingKey: key,
+      graph: nextGraph,
+      editingKey: null,
+      editorRect: null,
     });
+  };
+
+  private cancelEditing = (): void => {
+    this.setState({ editingKey: null, editorRect: null });
   };
 
   private onActive = (key: string | null): void => {
@@ -228,6 +305,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       selectedKeys,
       // 切换激活节点时，通常退出编辑模式，除非是由双击触发（由 onEditingKeyChange 处理）
       editingKey: null,
+      editorRect: null,
       activeKey: key ?? null,
     });
   };
@@ -364,7 +442,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       onMoveNode: (key: string, dx: number, dy: number) => void;
       onAddSibling: (refKey: string, dir: -1 | 1, side?: Side) => void;
       onAddChildSide: (refKey: string, side: Side) => void;
-      onEdit: (key: string | null) => void;
+      onEdit: (key: string | null, value?: string) => void;
       getViewState: () => { scale: number; tx: number; ty: number };
     },
     theme?: ThemePalette,
@@ -500,6 +578,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       vp.scrollTo(-tx, -ty);
       this.shouldCenter = false;
     }
+    this.scheduleSyncEditorRect();
   };
 
   public setGraphData(data: {
@@ -557,6 +636,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         ctrl.bindViewport(vp);
       }
     }
+    this.scheduleSyncEditorRect();
   };
 
   private onActiveKeyChange = (key: string | null): void => {
@@ -570,12 +650,100 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     // 当激活节点被清除时，同时清除编辑状态
     if (!key) {
       nextState.editingKey = null;
+      nextState.editorRect = null;
     }
     this.setState({
       ...this.state,
       ...nextState,
     });
   };
+
+  private computeEditorRect(targetKey: string): MindMapEditorRect | null {
+    const rt = this.runtime;
+    if (!rt) {
+      return null;
+    }
+    const root = (rt as Runtime).getRootWidget?.() ?? null;
+    const target = root ? (findWidget(root, `#${targetKey}`) as Widget | null) : null;
+    if (!target) {
+      return null;
+    }
+    const w = target.renderObject.size.width;
+    const h = target.renderObject.size.height;
+    if (w <= 0 || h <= 0) {
+      return null;
+    }
+    const m = target.getWorldMatrix();
+    const identity =
+      m[0] === 1 && m[1] === 0 && m[2] === 0 && m[3] === 1 && m[4] === 0 && m[5] === 0;
+
+    let minX = 0;
+    let maxX = 0;
+    let minY = 0;
+    let maxY = 0;
+    if (!identity) {
+      const p0 = transformPoint(m, { x: 0, y: 0 });
+      const p1 = transformPoint(m, { x: w, y: 0 });
+      const p2 = transformPoint(m, { x: 0, y: h });
+      const p3 = transformPoint(m, { x: w, y: h });
+      minX = Math.min(p0.x, p1.x, p2.x, p3.x);
+      maxX = Math.max(p0.x, p1.x, p2.x, p3.x);
+      minY = Math.min(p0.y, p1.y, p2.y, p3.y);
+      maxY = Math.max(p0.y, p1.y, p2.y, p3.y);
+    } else {
+      const vp = this.getViewport();
+      const view = (this.state as SceneState).viewState;
+      const vpPos = vp ? vp.getAbsolutePosition() : { dx: 0, dy: 0 };
+      const nodePos = target.getAbsolutePosition();
+      const relX = nodePos.dx - vpPos.dx;
+      const relY = nodePos.dy - vpPos.dy;
+      const left = vpPos.dx + view.tx + relX * view.scale;
+      const top = vpPos.dy + view.ty + relY * view.scale;
+      minX = left;
+      minY = top;
+      maxX = left + w * view.scale;
+      maxY = top + h * view.scale;
+    }
+    const round1 = (v: number) => Math.round(v * 10) / 10;
+    const left = round1(minX);
+    const top = round1(minY);
+    const width = Math.max(0, round1(maxX - minX));
+    const height = Math.max(0, round1(maxY - minY));
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+    return { left, top, width, height };
+  }
+
+  private scheduleSyncEditorRect(): void {
+    const key = (this.state as SceneState).editingKey;
+    if (!key) {
+      return;
+    }
+    if (this.editorRectRaf != null) {
+      return;
+    }
+    this.editorRectRaf = requestAnimationFrame(() => {
+      this.editorRectRaf = null;
+      const curKey = (this.state as SceneState).editingKey;
+      if (!curKey) {
+        return;
+      }
+      const nextRect = this.computeEditorRect(curKey);
+      const prev = (this.state as SceneState).editorRect;
+      const same =
+        (!!prev &&
+          !!nextRect &&
+          prev.left === nextRect.left &&
+          prev.top === nextRect.top &&
+          prev.width === nextRect.width &&
+          prev.height === nextRect.height) ||
+        (!prev && !nextRect);
+      if (!same) {
+        this.setState({ editorRect: nextRect });
+      }
+    });
+  }
 
   render() {
     const s = (this.state as SceneState).graph;
@@ -590,46 +758,59 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
         onMoveNode: (key, dx, dy) => this.onMoveNode(key, dx, dy),
         onAddSibling: (refKey, dir, side) => this.onAddSibling(refKey, dir, side),
         onAddChildSide: (refKey, side) => this.onAddChildSide(refKey, side),
-        onEdit: (key) => this.onEditingKeyChange(key),
+        onEdit: (key, value) => this.onEdit(key, value),
         getViewState: () => this.state.viewState,
       },
       theme,
     );
     return (
-      <MindMapViewport
-        key={CustomComponentType.MindMapViewport}
-        width={width}
-        height={height}
-        theme={theme ? theme : undefined}
-        scale={view.scale}
-        tx={view.tx}
-        ty={view.ty}
-        activeKey={this.state.activeKey}
-        selectedKeys={this.state.selectedKeys}
-        editingKey={this.state.editingKey}
-        onScroll={this.onScroll}
-        onViewChange={this.onViewChange}
-        onActiveKeyChange={this.onActiveKeyChange}
-        onZoomAt={this.onZoomAt}
-        onDeleteSelection={this.onDeleteSelection}
-        onRestoreSelection={this.onRestoreSelection}
-        onSetSelectedKeys={this.onSetSelectedKeys}
-        onEditingKeyChange={this.onEditingKeyChange}
-        onAddSiblingNode={this.handleAddSiblingNode}
-        onAddChildNode={this.handleAddChildNode}
-      >
-        <MindMapLayout
-          key="layout-root"
-          layout="treeBalanced"
-          spacingX={48}
-          spacingY={48}
-          version={s.version}
-          onLayout={this.onLayout}
+      <Stack>
+        <MindMapViewport
+          key={CustomComponentType.MindMapViewport}
+          width={width}
+          height={height}
+          theme={theme ? theme : undefined}
+          scale={view.scale}
+          tx={view.tx}
+          ty={view.ty}
+          activeKey={this.state.activeKey}
+          selectedKeys={this.state.selectedKeys}
+          editingKey={this.state.editingKey}
+          onScroll={this.onScroll}
+          onViewChange={this.onViewChange}
+          onActiveKeyChange={this.onActiveKeyChange}
+          onZoomAt={this.onZoomAt}
+          onDeleteSelection={this.onDeleteSelection}
+          onRestoreSelection={this.onRestoreSelection}
+          onSetSelectedKeys={this.onSetSelectedKeys}
+          onEditingKeyChange={this.onEditingKeyChange}
+          onAddSiblingNode={this.handleAddSiblingNode}
+          onAddChildNode={this.handleAddChildNode}
         >
-          {toolbar}
-          {elements}
-        </MindMapLayout>
-      </MindMapViewport>
+          <MindMapLayout
+            key="layout-root"
+            layout="treeBalanced"
+            spacingX={48}
+            spacingY={48}
+            version={s.version}
+            onLayout={this.onLayout}
+          >
+            {toolbar}
+            {elements}
+          </MindMapLayout>
+        </MindMapViewport>
+
+        <MindMapEditorOverlay
+          key="mindmap-editor-overlay"
+          visible={!!this.state.editingKey && !!this.state.editorRect}
+          targetKey={this.state.editingKey}
+          rect={this.state.editorRect}
+          value={this.state.editingKey ? (s.nodes.get(this.state.editingKey)?.title ?? '') : ''}
+          theme={theme}
+          onCommit={this.commitEditing}
+          onCancel={this.cancelEditing}
+        />
+      </Stack>
     );
   }
 }

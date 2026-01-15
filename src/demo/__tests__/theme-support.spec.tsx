@@ -1,15 +1,13 @@
-import { describe, expect, it, vi, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { EditableTextDemo } from '../editable-text/app';
 import { MarkdownPreviewApp } from '../markdown-preview/app';
-import { MarkdownViewer } from '../markdown-preview/widgets/markdown-viewer';
 import { NodeType } from '../markdown-preview/widgets/markdown-viewer/../../utils/parser';
 import { BlockNodeRenderer } from '../markdown-preview/widgets/markdown-viewer/block-renderer';
 
-import { EditableText, Container, Text } from '@/core';
 import { Themes } from '@/styles/theme';
 
-// Mock Canvas
+// 模拟 Canvas（避免在测试环境中访问真实渲染上下文）
 beforeAll(() => {
   if (typeof HTMLCanvasElement !== 'undefined' && !HTMLCanvasElement.prototype.getContext) {
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -19,16 +17,16 @@ beforeAll(() => {
   }
 });
 
-describe('Demo Theme Support', () => {
+describe('示例主题支持', () => {
   describe('EditableTextDemo', () => {
-    it('should use light theme colors by default', () => {
+    it('默认应使用浅色主题颜色', () => {
       const demo = new EditableTextDemo({ type: 'EditableTextDemo' });
       const tree = demo.render() as any;
 
       const theme = Themes.light;
 
-      // Navigate to EditableText
-      // Padding -> Column -> [Text, Row] -> Row -> [Column, Column] -> Column -> [Text, Container, Text] -> Container -> Padding -> EditableText
+      // 定位到输入组件节点
+      // Padding -> Column -> [Text, Row] -> Row -> [Column, Column] -> Column -> [Text, Container, Text] -> Container -> Padding -> Input/TextArea
       const mainColumn = tree.props.children;
       const titleText = mainColumn.props.children[0];
 
@@ -47,7 +45,7 @@ describe('Demo Theme Support', () => {
       expect(editable1.props.cursorColor).toBe(theme.text.primary);
     });
 
-    it('should use dark theme colors when provided', () => {
+    it('传入深色主题时应使用深色主题颜色', () => {
       const theme = Themes.dark;
       const demo = new EditableTextDemo({ type: 'EditableTextDemo', theme });
       const tree = demo.render() as any;
@@ -71,11 +69,11 @@ describe('Demo Theme Support', () => {
   });
 
   describe('MarkdownPreviewApp', () => {
-    it('should pass theme to MarkdownViewer', () => {
+    it('应将主题透传给 MarkdownViewer', () => {
       const theme = Themes.dark;
       const app = MarkdownPreviewApp({ width: 800, height: 600, theme });
 
-      // ScrollView -> Container -> Container -> MarkdownViewer
+      // 结构：ScrollView -> Container -> Container -> MarkdownViewer
       const scrollView = app;
       const outerContainer = scrollView.props.children;
       expect(outerContainer.props.color).toBe(theme.background.surface);
@@ -89,10 +87,10 @@ describe('Demo Theme Support', () => {
     });
   });
 
-  describe('MarkdownViewer & Renderers', () => {
-    it('should render headers with theme colors', () => {
+  describe('MarkdownViewer 与渲染器', () => {
+    it('应使用主题颜色渲染标题', () => {
       const theme = Themes.dark;
-      // Manually invoke BlockNodeRenderer for a header
+      // 手动调用 BlockNodeRenderer 渲染标题节点
       const node = {
         type: NodeType.Header,
         level: 1,
@@ -100,17 +98,17 @@ describe('Demo Theme Support', () => {
       };
       const result = BlockNodeRenderer({ node, theme }) as any;
 
-      // Padding -> Text
+      // 结构：Padding -> Text
       const text = result.props.children;
       expect(text.props.color).toBe(theme.text.primary);
     });
 
-    it('should render code blocks with theme background', () => {
+    it('应使用主题背景渲染代码块', () => {
       const theme = Themes.dark;
       const node = { type: NodeType.CodeBlock, content: 'code', language: 'js' };
       const result = BlockNodeRenderer({ node, theme }) as any;
 
-      // Container -> Padding -> Highlighter
+      // 结构：Container -> Padding -> Highlighter
       expect(result.props.color).toBe(theme.component.headerBg);
     });
   });

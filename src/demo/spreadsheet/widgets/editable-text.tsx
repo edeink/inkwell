@@ -1,9 +1,9 @@
 /** @jsxImportSource @/utils/compiler */
 import type { WidgetProps } from '@/core/base';
+import type { InkwellEvent } from '@/core/type';
 import type { ThemePalette } from '@/styles/theme';
 
-import { Container, Positioned, ScrollView, Stack } from '@/core';
-import { EditableText as CoreEditableText } from '@/core/editable-text';
+import { Container, Positioned, ScrollView, Stack, TextArea } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextLayout } from '@/core/text/layout';
 
@@ -49,6 +49,8 @@ interface State {
 }
 
 export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableTextProps, State> {
+  private textAreaRef: TextArea | null = null;
+
   constructor(props: SpreadsheetEditableTextProps) {
     super(props);
     this.state = {
@@ -85,6 +87,23 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
         ...this.calculateState(this.props.value),
         isSaved: false,
       });
+    }
+
+    if (oldProps.visible && !this.props.visible) {
+      const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null })
+        .input;
+      domInput?.blur?.();
+      if (!this.state.isSaved) {
+        this.setState({ isSaved: true });
+      }
+    }
+
+    if (!oldProps.visible && this.props.visible) {
+      setTimeout(() => {
+        const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null })
+          .input;
+        domInput?.focus?.();
+      }, 0);
     }
     super.didUpdateWidget(oldProps);
   }
@@ -142,6 +161,25 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
     });
   };
 
+  private handleCancel = () => {
+    if (this.state.isSaved) {
+      return;
+    }
+
+    this.props.onCancel();
+
+    const emptyState = this.calculateState('');
+    this.setState({
+      value: '',
+      width: emptyState.width,
+      height: emptyState.height,
+      isSaved: true,
+    });
+
+    const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null }).input;
+    domInput?.blur?.();
+  };
+
   private handleBlur = () => {
     // 失去焦点时作为兜底保存
     if (!this.state.isSaved) {
@@ -149,18 +187,27 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
     }
   };
 
+  private handleKeyDown = (e: InkwellEvent) => {
+    const ke = e.nativeEvent as KeyboardEvent | undefined;
+    if (!ke) {
+      return;
+    }
+
+    if (ke.key === 'Enter' && !ke.shiftKey) {
+      e.stopPropagation();
+      this.handleFinish(this.state.value);
+      return false;
+    }
+
+    if (ke.key === 'Escape') {
+      e.stopPropagation();
+      this.handleCancel();
+      return false;
+    }
+  };
+
   render() {
-    const {
-      x,
-      y,
-      maxWidth,
-      maxHeight,
-      theme,
-      fontSize = 14,
-      color,
-      onCancel,
-      visible = true,
-    } = this.props;
+    const { x, y, maxWidth, maxHeight, theme, fontSize = 14, color, visible = true } = this.props;
     const { value, width, height } = this.state;
 
     // 限制最终显示尺寸不超过 max
@@ -177,19 +224,16 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
         height={needScroll ? Math.max(height, displayHeight) : displayHeight}
         color={visible ? theme.background.base : 'transparent'}
       >
-        <CoreEditableText
-          // 移除 key，允许复用实例。通过 visible 变化来控制焦点。
+        <TextArea
+          ref={(r) => (this.textAreaRef = r as TextArea)}
           value={value}
-          width={needScroll ? Math.max(width, displayWidth) : displayWidth}
-          height={needScroll ? Math.max(height, displayHeight) : displayHeight}
           fontSize={fontSize}
           color={color || theme.text.primary}
-          autoFocus={true} // CoreEditableText 会结合 visible 属性来判断是否真正聚焦
-          visible={visible}
+          autoFocus={visible}
+          disabled={!visible}
           onChange={this.handleChange}
-          onFinish={this.handleFinish}
           onBlur={this.handleBlur}
-          onCancel={onCancel}
+          onKeyDown={this.handleKeyDown}
         />
       </Container>
     );

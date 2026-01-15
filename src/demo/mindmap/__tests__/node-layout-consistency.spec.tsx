@@ -1,6 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { MindmapDemo } from '../app';
 import { ConnectorStyle } from '../helpers/connection-drawer';
 import { CustomComponentType } from '../type';
 import { Connector } from '../widgets/connector';
@@ -55,6 +56,10 @@ async function createSceneWithoutToolbar(width: number, height: number, runtime:
     </MindMapViewport>
   );
   await runtime.renderFromJSX(scene);
+}
+
+async function waitNextFrame(ms: number = 30) {
+  await new Promise((r) => setTimeout(r, ms));
 }
 
 describe('MindMapNode 布局稳定性与激活位置', () => {
@@ -139,5 +144,141 @@ describe('MindMapNode 布局稳定性与激活位置', () => {
     const p1 = nodeA.getAbsolutePosition();
     expect(Math.abs(p1.dx - p0.dx)).toBeLessThan(1);
     expect(Math.abs(p1.dy - p0.dy)).toBeLessThan(1);
+  });
+});
+
+describe('MindMap 全局编辑器覆盖层', () => {
+  it('非编辑状态下覆盖层应为 0 尺寸且不响应事件', async () => {
+    const container = document.createElement('div');
+    container.id = `mm-editor-hidden-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
+
+    await runtime.renderFromJSX((<MindmapDemo width={800} height={600} />) as any);
+    const demo = runtime.getRootWidget() as unknown as MindmapDemo;
+    demo.setGraphData({
+      nodes: [
+        { key: 'root', title: '主题' },
+        { key: 'n1', title: '分支 1', parent: 'root' },
+      ],
+      edges: [{ from: 'root', to: 'n1' }],
+      activeKey: 'n1',
+    });
+    await waitNextFrame();
+
+    const p0 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-pos') as any;
+    expect(p0.props.width).toBe(0);
+    expect(p0.props.height).toBe(0);
+
+    const box = p0.children[0] as any;
+    expect(box.pointerEvent).toBe('none');
+  });
+
+  it('缩放时覆盖层应随节点同步更新', async () => {
+    const container = document.createElement('div');
+    container.id = `mm-editor-scale-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
+
+    await runtime.renderFromJSX((<MindmapDemo width={800} height={600} />) as any);
+    const demo = runtime.getRootWidget() as unknown as MindmapDemo;
+    demo.setGraphData({
+      nodes: [
+        { key: 'root', title: '主题' },
+        { key: 'n1', title: '分支 1', parent: 'root' },
+      ],
+      edges: [{ from: 'root', to: 'n1' }],
+      activeKey: 'n1',
+    });
+    await waitNextFrame();
+
+    const root = runtime.getRootWidget()!;
+    const n1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as any;
+    n1.onDblClick();
+    await waitNextFrame();
+
+    const p0 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-pos') as any;
+    expect(p0.props.width).toBeGreaterThan(0);
+    expect(p0.props.height).toBeGreaterThan(0);
+    const w0 = p0.props.width;
+    const demo2 = runtime.getRootWidget() as unknown as MindmapDemo;
+    const rect0 = (demo2 as any).state.editorRect;
+    expect(Math.abs(p0.props.left - rect0.left)).toBeLessThan(0.5);
+    expect(Math.abs(p0.props.top - rect0.top)).toBeLessThan(0.5);
+    expect(Math.abs(p0.props.width - rect0.width)).toBeLessThan(0.5);
+    expect(Math.abs(p0.props.height - rect0.height)).toBeLessThan(0.5);
+
+    const vp = findWidget(
+      runtime.getRootWidget(),
+      `#${CustomComponentType.MindMapViewport}`,
+    ) as any;
+    for (const nextScale of [0.5, 2]) {
+      vp.setTransform(nextScale, vp.tx, vp.ty);
+      await waitNextFrame();
+
+      const p1 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-pos') as any;
+      const demo3 = runtime.getRootWidget() as unknown as MindmapDemo;
+      const rect1 = (demo3 as any).state.editorRect;
+      expect(Math.abs(p1.props.left - rect1.left)).toBeLessThan(0.5);
+      expect(Math.abs(p1.props.top - rect1.top)).toBeLessThan(0.5);
+      expect(Math.abs(p1.props.width - rect1.width)).toBeLessThan(0.5);
+      expect(Math.abs(p1.props.height - rect1.height)).toBeLessThan(0.5);
+    }
+
+    const p2 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-pos') as any;
+    expect(p2.props.width).toBeGreaterThan(w0);
+
+    const box = p2.children[0] as any;
+    expect(box.padding).toEqual({ top: 12, right: 8, bottom: 12, left: 8 });
+    expect(box.borderRadius).toEqual({ topLeft: 8, topRight: 8, bottomRight: 8, bottomLeft: 8 });
+  });
+
+  it('快速切换编辑节点时应更新目标与回写内容', async () => {
+    const container = document.createElement('div');
+    container.id = `mm-editor-switch-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
+
+    await runtime.renderFromJSX((<MindmapDemo width={800} height={600} />) as any);
+    const demo = runtime.getRootWidget() as unknown as MindmapDemo;
+    demo.setGraphData({
+      nodes: [
+        { key: 'root', title: '主题' },
+        { key: 'n1', title: '分支 1', parent: 'root' },
+        { key: 'n2', title: '分支 2', parent: 'root' },
+      ],
+      edges: [
+        { from: 'root', to: 'n1' },
+        { from: 'root', to: 'n2' },
+      ],
+      activeKey: 'n1',
+    });
+    await waitNextFrame();
+
+    const root = runtime.getRootWidget()!;
+    const n1 = findWidget(root, `${CustomComponentType.MindMapNode}#n1`) as any;
+    const n2 = findWidget(root, `${CustomComponentType.MindMapNode}#n2`) as any;
+
+    n1.onDblClick();
+    await waitNextFrame();
+    n2.onDblClick();
+    await waitNextFrame();
+
+    const overlay = findWidget(runtime.getRootWidget()!, '#mindmap-editor-overlay') as any;
+    expect(overlay.props.targetKey).toBe('n2');
+    expect(overlay.props.value).toBe('分支 2');
+
+    const p0 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-pos') as any;
+    expect(p0.props.width).toBeGreaterThan(0);
+    expect(p0.props.height).toBeGreaterThan(0);
+
+    overlay.props.onCommit('新标题 2');
+    await waitNextFrame();
+
+    const demo2 = runtime.getRootWidget() as unknown as MindmapDemo;
+    expect((demo2 as any).state.graph.nodes.get('n2').title).toBe('新标题 2');
+
+    const overlay2 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-overlay') as any;
+    expect(overlay2.props.visible).toBe(false);
   });
 });

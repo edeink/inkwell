@@ -36,26 +36,26 @@ vi.mock('@/styles/theme', () => ({
   },
 }));
 
-describe('MindMapNode Layout Update', () => {
+describe('MindMapNode 布局更新', () => {
   // Register components
   WidgetRegistry.registerType(CustomComponentType.MindMapNode, MindMapNode);
   WidgetRegistry.registerType('Container', Container);
   WidgetRegistry.registerType('Text', Text);
 
-  class MockEditableText extends Widget {
+  class MockTextArea extends Widget {
     constructor(props: any) {
-      super({ ...props, type: 'EditableText' });
+      super({ ...props, type: 'TextArea' });
     }
-    // Mock layout to avoid errors if layout is called
-    protected performLayout(constraints: BoxConstraints) {
+    protected performLayout(_constraints: BoxConstraints) {
       return { width: 100, height: 20 };
     }
   }
-  WidgetRegistry.registerType('EditableText', MockEditableText);
+  WidgetRegistry.registerType('TextArea', MockTextArea);
 
-  it('场景1: 从编辑状态切换回阅读状态时，Container应该标记为需要布局', () => {
+  it('场景1: 编辑状态与阅读状态切换时，节点内容应保持为文本展示', () => {
     const initialProps = {
       type: CustomComponentType.MindMapNode,
+      key: 'node-edit',
       title: 'Test Node',
       isEditing: true,
       onEdit: vi.fn(),
@@ -65,40 +65,31 @@ describe('MindMapNode Layout Update', () => {
 
     const node = new MindMapNode(initialProps);
 
-    // 1. Initial Render (Editing)
-    // createElement calls render(), compiles it, and calls buildChildren on itself.
-    // This creates the Container child.
     node.createElement(initialProps);
 
     const container = node.children[0] as Container;
     expect(container).toBeInstanceOf(Container);
-    expect(container.children[0].type).toBe('EditableText');
+    expect(container.cursor).toBe('text');
+    const contentBox = container.children[0] as Container;
+    expect(contentBox).toBeInstanceOf(Container);
+    expect(contentBox.children[0]).toBeInstanceOf(Text);
 
-    // Clear dirty flags to simulate stable state
-    (container as any)._needsLayout = false;
-
-    // 2. Switch to Reading (isEditing = false)
     const newProps = { ...initialProps, isEditing: false };
     node.createElement(newProps);
 
-    // 3. Verify
     const newContainer = node.children[0] as Container;
     expect(newContainer).toBe(container); // Container should be reused
+    expect(newContainer.cursor).toBe('default');
+    const textBox = newContainer.children[0] as Container;
+    expect(textBox.children[0]).toBeInstanceOf(Text);
 
-    // The child of container should now be Text
-    expect(newContainer.children[0]).toBeInstanceOf(Text);
-
-    // CRITICAL CHECK: Container must be marked for layout because children changed
-    expect((newContainer as any)._needsLayout).toBe(true);
-
-    // Verify padding is still there (props update ensures it)
-    // padding={[12, 8]} means vertical=12, horizontal=8
     expect(newContainer.padding).toEqual({ left: 8, top: 12, right: 8, bottom: 12 });
   });
 
-  it('场景2: 连续切换状态多次，布局更新应该始终正确触发', () => {
+  it('场景2: 连续切换状态多次，节点内容不应渲染 TextArea', () => {
     const props = {
       type: CustomComponentType.MindMapNode,
+      key: 'node-switch',
       title: 'Switch Test',
       isEditing: false,
       onEdit: vi.fn(),
@@ -107,25 +98,24 @@ describe('MindMapNode Layout Update', () => {
     node.createElement(props);
 
     const container = node.children[0] as Container;
+    expect(container.cursor).toBe('default');
 
-    // Cycle 1: Read -> Edit
     node.createElement({ ...props, isEditing: true });
-    expect(container.children[0].type).toBe('EditableText');
-    expect((container as any)._needsLayout).toBe(true);
+    expect(container.cursor).toBe('text');
+    const box1 = container.children[0] as Container;
+    expect(box1.children[0]).toBeInstanceOf(Text);
 
-    // Reset flag
-    (container as any)._needsLayout = false;
-
-    // Cycle 2: Edit -> Read
     node.createElement({ ...props, isEditing: false });
-    expect(container.children[0]).toBeInstanceOf(Text);
-    expect((container as any)._needsLayout).toBe(true);
+    expect(container.cursor).toBe('default');
+    const box2 = container.children[0] as Container;
+    expect(box2.children[0]).toBeInstanceOf(Text);
   });
 
   it('场景3: 边界情况 - 空标题节点', () => {
     // Empty title should show placeholder text
     const props = {
       type: CustomComponentType.MindMapNode,
+      key: 'node-empty',
       title: '',
       isEditing: false,
       onEdit: vi.fn(),
@@ -134,17 +124,19 @@ describe('MindMapNode Layout Update', () => {
     node.createElement(props);
 
     const container = node.children[0] as Container;
-    const text = container.children[0] as Text;
+    const textBox = container.children[0] as Container;
+    const text = textBox.children[0] as Text;
 
     expect(text.text).toBe('输入文本'); // Placeholder
 
-    // Switch to edit
     node.createElement({ ...props, isEditing: true });
-    expect(container.children[0].type).toBe('EditableText');
+    const textBox2 = container.children[0] as Container;
+    const text2 = textBox2.children[0] as Text;
+    expect(text2.text).toBe('输入文本');
 
-    // Switch back
-    (container as any)._needsLayout = false;
     node.createElement({ ...props, isEditing: false });
-    expect((container as any)._needsLayout).toBe(true);
+    const textBox3 = container.children[0] as Container;
+    const text3 = textBox3.children[0] as Text;
+    expect(text3.text).toBe('输入文本');
   });
 });

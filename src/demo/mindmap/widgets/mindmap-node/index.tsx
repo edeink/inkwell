@@ -6,11 +6,12 @@ import { Connector } from '../connector';
 import type { CursorType, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
 
-import { Container, EditableText, Text } from '@/core';
+import { Container, Text } from '@/core';
 import { Widget } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { StatefulWidget } from '@/core/state/stateful';
-import { TextAlign, TextAlignVertical } from '@/core/text';
+import { Overflow, TextAlign, TextAlignVertical } from '@/core/text';
+import { TextLayout } from '@/core/text/layout';
 import Runtime from '@/runtime';
 import { Themes, getCurrentThemeMode, type ThemePalette } from '@/styles/theme';
 
@@ -22,7 +23,7 @@ export interface MindMapNodeProps extends WidgetProps {
   selected?: boolean;
   enableLayer?: boolean; // 支持 RepaintBoundary 优化
   onActive?: (key: string | null) => void;
-  onEdit?: (key: string | null) => void;
+  onEdit?: (key: string | null, value?: string) => void;
   onAddSibling?: (refKey: string, dir: -1 | 1) => void;
   onAddChildSide?: (refKey: string, side: Side) => void;
   onMoveNode?: (key: string, dx: number, dy: number) => void;
@@ -37,11 +38,18 @@ export interface MindMapNodeProps extends WidgetProps {
   };
 }
 
+interface MindMapNodeState {
+  title: string;
+  dragging: boolean;
+  hovering: boolean;
+  [key: string]: unknown;
+}
+
 /**
  * MindMapNode
  * 有状态的思维导图节点组件，负责渲染节点外观与处理点击/拖拽/编辑交互
  */
-export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
+export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeState> {
   title: string = '';
   prefSide: Side | undefined = undefined;
   active: boolean = false;
@@ -68,7 +76,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 初始化状态
    * 从节点数据推导初始标题文本与拖拽标记
    */
-  private initialState(data: MindMapNodeProps): MindMapNodeProps {
+  private initialState(data: MindMapNodeProps): MindMapNodeState {
     return { title: data.title || '', dragging: false, hovering: false };
   }
 
@@ -92,15 +100,17 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
   }
 
   createElement(data: MindMapNodeProps): Widget<MindMapNodeProps> {
-    const withEvents = {
+    const withEvents: MindMapNodeProps = {
       ...data,
-      onPointerDown: (e: InkwellEvent) => this.onPointerDown(e),
-      onPointerMove: (e: InkwellEvent) => this.onPointerMove(e),
-      onPointerUp: (e: InkwellEvent) => this.onPointerUp(e),
-      onDblClick: () => this.onDblClick(),
-      onPointerEnter: () => this.setState({ hovering: true } as Partial<MindMapNodeProps>),
-      onPointerLeave: () => this.setState({ hovering: false } as Partial<MindMapNodeProps>),
-    } as MindMapNodeProps;
+      onPointerEnter: () => this.setState({ hovering: true }),
+      onPointerLeave: () => this.setState({ hovering: false }),
+    };
+    if (!data.isEditing) {
+      withEvents.onPointerDown = (e: InkwellEvent) => this.onPointerDown(e);
+      withEvents.onPointerMove = (e: InkwellEvent) => this.onPointerMove(e);
+      withEvents.onPointerUp = (e: InkwellEvent) => this.onPointerUp(e);
+      withEvents.onDblClick = () => this.onDblClick();
+    }
     super.createElement(withEvents);
     this.initNode(withEvents);
     return this;
@@ -187,7 +197,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           }
         }
       }
-    } catch {}
+    } catch (err) {
+      void err;
+    }
     return null;
   }
 
@@ -213,7 +225,8 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
       const x = cx - rect.left;
       const y = cy - rect.top;
       return { x, y };
-    } catch {
+    } catch (err) {
+      void err;
       return null;
     }
   }
@@ -363,7 +376,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
             }
           }
         }
-      } catch {}
+      } catch (err) {
+        void err;
+      }
       this.markDirty();
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
@@ -396,7 +411,7 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
    * 使用 Container + Text 保持视觉效果与交互绑定，避免直接使用底层绘制方法
    */
   render() {
-    const st = this.state as MindMapNodeProps;
+    const st = this.state as MindMapNodeState;
     const props = this.props as MindMapNodeProps;
     const theme = props.theme || Themes[getCurrentThemeMode()];
     const editing = props.isEditing;
@@ -435,39 +450,52 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
     };
     const cursor = (localConfig[state] || defaults[state] || 'default') as CursorType;
 
-    const content = editing ? (
-      <EditableText
-        key="editor"
-        value={st.title}
-        fontSize={14}
-        color={theme.text.primary}
-        selectionColor={theme.state.focus}
-        cursorColor={theme.text.primary}
-        stopTraversalAt={(node) => node.type === CustomComponentType.MindMapViewport}
-        onFinish={(val: string) => {
-          this.setState({ title: val });
-          if (props.onEdit) {
-            props.onEdit(null);
-          }
-        }}
-        onCancel={() => {
-          if (props.onEdit) {
-            props.onEdit(null);
-          }
-        }}
-        getViewState={props.getViewState}
-      />
-    ) : (
-      <Text
-        key={`${String(this.key)}-text`}
-        text={st.title || '输入文本'}
-        fontSize={st.title ? 14 : 14}
-        color={st.title ? theme.text.primary : theme.text.placeholder}
-        textAlign={TextAlign.Left}
-        textAlignVertical={TextAlignVertical.Top}
-        lineHeight={st.title ? undefined : 1.5}
-        pointerEvent={'none'}
-      />
+    const paddingVertical = 12;
+    const paddingHorizontal = 8;
+
+    const minNodeWidth = 80;
+    const maxNodeWidth = 650;
+    const maxNodeHeight = 200;
+
+    const minContentWidth = Math.max(0, minNodeWidth - paddingHorizontal * 2);
+    const maxContentWidth = maxNodeWidth - paddingHorizontal * 2;
+    const maxContentHeight = Math.max(0, maxNodeHeight - paddingVertical * 2);
+
+    const displayText = st.title || '输入文本';
+    const layout = TextLayout.layout(
+      displayText,
+      { text: displayText, fontSize: 14 },
+      { minWidth: 0, maxWidth: maxContentWidth, minHeight: 0, maxHeight: Infinity },
+    );
+    const contentWidth = layout.lines.reduce((max, line) => Math.max(max, line.width), 0);
+    const measuredContentWidth = Math.ceil(contentWidth);
+    const measuredContentHeight = Math.ceil(layout.height);
+
+    const contentBoxWidth = Math.max(
+      minContentWidth,
+      Math.max(0, Math.min(maxContentWidth, measuredContentWidth)),
+    );
+    const contentBoxHeight = Math.max(0, Math.min(maxContentHeight, measuredContentHeight));
+
+    const maxLines =
+      typeof layout.lineHeight === 'number' && layout.lineHeight > 0
+        ? Math.max(1, Math.floor(contentBoxHeight / layout.lineHeight))
+        : undefined;
+
+    const content = (
+      <Container width={contentBoxWidth} height={contentBoxHeight}>
+        <Text
+          key={`${String(this.key)}-text`}
+          text={st.title || '输入文本'}
+          fontSize={14}
+          color={st.title ? theme.text.primary : theme.text.placeholder}
+          textAlign={TextAlign.Left}
+          textAlignVertical={TextAlignVertical.Top}
+          maxLines={maxLines}
+          overflow={Overflow.Ellipsis}
+          pointerEvent={'none'}
+        />
+      </Container>
     );
 
     return (
@@ -481,8 +509,9 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps> {
           style: selected && !active && !editing ? 'dashed' : 'solid',
         }}
         borderRadius={8}
-        minWidth={80}
-        maxWidth={650}
+        minWidth={minNodeWidth}
+        maxWidth={maxNodeWidth}
+        maxHeight={maxNodeHeight}
         cursor={cursor}
       >
         {content}

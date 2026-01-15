@@ -21,24 +21,24 @@ describe('MindmapDemo State Management', async () => {
         }
         const ctx: any = {
           canvas: this as HTMLCanvasElement,
-          save() {},
-          restore() {},
-          translate() {},
-          scale() {},
-          rotate() {},
-          clearRect() {},
-          fillRect() {},
-          strokeRect() {},
-          beginPath() {},
-          closePath() {},
-          moveTo() {},
-          lineTo() {},
-          quadraticCurveTo() {},
-          fill() {},
-          stroke() {},
-          setLineDash() {},
-          fillText() {},
-          drawImage() {},
+          save: () => undefined,
+          restore: () => undefined,
+          translate: () => undefined,
+          scale: () => undefined,
+          rotate: () => undefined,
+          clearRect: () => undefined,
+          fillRect: () => undefined,
+          strokeRect: () => undefined,
+          beginPath: () => undefined,
+          closePath: () => undefined,
+          moveTo: () => undefined,
+          lineTo: () => undefined,
+          quadraticCurveTo: () => undefined,
+          fill: () => undefined,
+          stroke: () => undefined,
+          setLineDash: () => undefined,
+          fillText: () => undefined,
+          drawImage: () => undefined,
           getTransform() {
             return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as any;
           },
@@ -154,5 +154,31 @@ describe('MindmapDemo State Management', async () => {
 
     const state = (demoInstance as any).state;
     expect(state.activeKey).toBeNull();
+  });
+
+  it('结束编辑时应通过 onEdit 回写节点标题', async () => {
+    const container = document.createElement('div');
+    container.id = `mm-demo-edit-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { backgroundAlpha: 0 });
+
+    const demo = <MindmapDemo key="demo-edit" width={800} height={600} />;
+    await runtime.renderFromJSX(demo as any);
+
+    const demoInstance = runtime.getRootWidget() as unknown as MindmapDemo;
+    if (!demoInstance) {
+      throw new Error('Root widget not found');
+    }
+
+    (demoInstance as any).onEdit('n1');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(((demoInstance as any).state as any).editingKey).toBe('n1');
+
+    (demoInstance as any).onEdit(null, '新的标题');
+    await new Promise((r) => setTimeout(r, 0));
+
+    const state = (demoInstance as any).state as any;
+    expect(state.editingKey).toBeNull();
+    expect(state.graph.nodes.get('n1')?.title).toBe('新的标题');
   });
 });

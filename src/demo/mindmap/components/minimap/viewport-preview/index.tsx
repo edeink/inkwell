@@ -268,7 +268,7 @@ export default function ViewportPreview({
     getRoot,
     palette.primary,
     palette.background.container,
-    palette.text.secondary,
+    palette.border.secondary,
     collectNodeRects,
     collectConnectorPaths,
   ]);

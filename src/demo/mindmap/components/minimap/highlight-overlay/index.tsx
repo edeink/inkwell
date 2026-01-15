@@ -115,7 +115,7 @@ export default function HighlightOverlay({
     fill,
     borderWidth,
     fit,
-    palette.state.focus,
+    palette.primary,
     palette.state.selected,
     clear,
     width,

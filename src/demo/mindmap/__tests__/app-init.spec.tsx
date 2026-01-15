@@ -27,6 +27,26 @@ function createMockRuntime() {
   return runtime;
 }
 
+function findFirstByType(root: Widget | null | undefined, type: string): Widget | null {
+  if (!root) {
+    return null;
+  }
+  if ((root as any).type === type) {
+    return root as any;
+  }
+  const children = (root as any).children as Widget[] | undefined;
+  if (!children || children.length === 0) {
+    return null;
+  }
+  for (const child of children) {
+    const found = findFirstByType(child, type);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
 describe('Mindmap App 初始化流程', () => {
   it('MindmapDemo 应正确初始化并挂载', () => {
     const runtime = createMockRuntime();
@@ -50,12 +70,13 @@ describe('Mindmap App 初始化流程', () => {
     // createElement 会触发 build -> render
     // 但在测试中，我们需要检查 app.children
     expect(app.children.length).toBeGreaterThan(0);
-    const viewport = app.children[0];
-    expect(viewport.type).toBe('MindMapViewport');
+    const viewport = findFirstByType(app, 'MindMapViewport');
+    expect(viewport).toBeDefined();
+    expect(viewport?.type).toBe('MindMapViewport');
 
     // 验证 Viewport 也已挂载
-    expect(viewport.isMounted).toBe(true);
-    expect(viewport.owner).toBeDefined();
+    expect(viewport?.isMounted).toBe(true);
+    expect(viewport?.owner).toBeDefined();
   });
 
   it('组件创建后立即挂载，防止游离状态', () => {

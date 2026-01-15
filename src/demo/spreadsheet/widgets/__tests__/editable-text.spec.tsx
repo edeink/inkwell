@@ -2,20 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SpreadsheetEditableText, type SpreadsheetEditableTextProps } from '../editable-text';
 
-import { EditableText as CoreEditableText } from '@/core/editable-text';
-
-// Mock CoreEditableText
-vi.mock('@/core/editable-text', () => ({
-  EditableText: class MockCoreEditableText {
-    props: any;
-    constructor(props: any) {
-      this.props = props;
-    }
-    render() {
-      return null;
-    }
-  },
-}));
+import { TextArea } from '@/core';
 
 // Mock TextLayout
 vi.mock('@/core/text/layout', () => ({
@@ -112,12 +99,12 @@ describe('SpreadsheetEditableText 组件', () => {
     const widget = new SpreadsheetEditableText(props);
     const element = widget.render();
 
-    // Helper to find CoreEditableText element
+    // Helper to find TextArea element
     function findCoreElement(el: any): any {
       if (!el) {
         return null;
       }
-      if (el.type === CoreEditableText) {
+      if (el.type === TextArea) {
         return el;
       }
 
@@ -153,8 +140,7 @@ describe('SpreadsheetEditableText 组件', () => {
     // key 应该被移除或为 undefined/null
     expect(coreElement.key).toBeNull();
     expect(coreElement.props.autoFocus).toBe(true);
-    // 默认可见
-    expect(coreElement.props.visible).toBe(true);
+    expect(coreElement.props.disabled).toBe(false);
 
     // 测试 visible=false
     const hiddenProps = { ...props, visible: false };
@@ -166,7 +152,8 @@ describe('SpreadsheetEditableText 组件', () => {
     const hiddenElement = widget.render();
     const hiddenCoreElement = findCoreElement(hiddenElement);
     expect(hiddenCoreElement).toBeTruthy();
-    expect(hiddenCoreElement.props.visible).toBe(false);
+    expect(hiddenCoreElement.props.autoFocus).toBe(false);
+    expect(hiddenCoreElement.props.disabled).toBe(true);
   });
 
   it('Type Error Check: 构造函数和 setState 应符合类型定义', () => {
@@ -195,12 +182,12 @@ describe('SpreadsheetEditableText 组件', () => {
     const widget = new SpreadsheetEditableText(props);
     const element = widget.render();
 
-    // Helper to find CoreEditableText element
+    // Helper to find TextArea element
     function findCoreElement(el: any): any {
       if (!el) {
         return null;
       }
-      if (el.type === CoreEditableText) {
+      if (el.type === TextArea) {
         return el;
       }
 
@@ -236,7 +223,7 @@ describe('SpreadsheetEditableText 组件', () => {
       coreElement.props.onBlur();
       expect(props.onFinish).toHaveBeenCalledWith('测试文本');
     } else {
-      throw new Error('onBlur prop missing on CoreEditableText');
+      throw new Error('TextArea 缺少 onBlur 属性');
     }
   });
 });

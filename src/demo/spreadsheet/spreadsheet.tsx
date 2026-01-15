@@ -154,7 +154,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     }
 
     if (this.state.editingCell) {
-      // EditableText 处理自己的输入，但如果需要，我们可以通过在此处捕获 Enter 键。
+      // 单元格编辑器会自行处理输入；如需扩展，可在此处捕获 Enter 等按键。
       return;
     }
 
