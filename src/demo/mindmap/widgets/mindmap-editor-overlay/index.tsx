@@ -14,7 +14,6 @@ export type MindMapEditorRect = {
 };
 
 export type MindMapEditorOverlayProps = WidgetProps & {
-  visible: boolean;
   targetKey: string | null;
   rect: MindMapEditorRect | null;
   value: string;
@@ -37,27 +36,28 @@ export class MindMapEditorOverlay extends StatefulWidget<
 
   constructor(data: MindMapEditorOverlayProps) {
     super(data);
-    this.state = { text: data.visible ? data.value : '', isSaved: false };
-    this.pendingFocus = !!data.visible;
+    const active = !!data.targetKey && !!data.rect;
+    this.state = { text: active ? data.value : '', isSaved: false };
+    this.pendingFocus = active;
   }
 
   protected didUpdateWidget(oldProps: MindMapEditorOverlayProps) {
-    const prevVisible = !!oldProps.visible;
-    const nextVisible = !!this.props.visible;
+    const prevActive = !!oldProps.targetKey && !!oldProps.rect;
+    const nextActive = !!this.props.targetKey && !!this.props.rect;
     const keyChanged = this.props.targetKey !== oldProps.targetKey;
     const valueChanged = this.props.value !== oldProps.value;
 
     if (
-      (prevVisible !== nextVisible && !nextVisible) ||
-      (nextVisible && (keyChanged || valueChanged))
+      (prevActive !== nextActive && !nextActive) ||
+      (nextActive && (keyChanged || valueChanged))
     ) {
       this.setState({
-        text: nextVisible ? this.props.value : '',
+        text: nextActive ? this.props.value : '',
         isSaved: false,
       });
     }
 
-    if (!prevVisible && nextVisible) {
+    if (!prevActive && nextActive) {
       this.setState({
         text: this.props.value,
         isSaved: false,
@@ -65,7 +65,7 @@ export class MindMapEditorOverlay extends StatefulWidget<
       this.pendingFocus = true;
     }
 
-    if (prevVisible && !nextVisible) {
+    if (prevActive && !nextActive) {
       const domInput = (this.textAreaRef as unknown as { input?: HTMLTextAreaElement | null })
         .input;
       domInput?.blur?.();
@@ -91,23 +91,23 @@ export class MindMapEditorOverlay extends StatefulWidget<
   render() {
     const resolvedTheme = this.props.theme ?? Themes[getCurrentThemeMode()];
     const rect = this.props.rect;
-    const visible = !!this.props.visible && !!rect;
+    const active = !!this.props.targetKey && !!rect;
 
-    const left = visible ? rect!.left : 0;
-    const top = visible ? rect!.top : 0;
-    const width = visible ? rect!.width : 0;
-    const height = visible ? rect!.height : 0;
+    const left = active ? rect!.left : 0;
+    const top = active ? rect!.top : 0;
+    const width = active ? rect!.width : 0;
+    const height = active ? rect!.height : 0;
 
     const textColor = resolvedTheme.text.primary;
     const selectionColor = resolvedTheme.state.focus;
     const borderColor = resolvedTheme.primary;
     const borderWidth = 2;
     const fill = resolvedTheme.background.container;
-    const padding: 0 | [number, number] = visible ? [12, 8] : 0;
-    const border = visible
+    const padding: 0 | [number, number] = active ? [12, 8] : 0;
+    const border = active
       ? ({ color: borderColor, width: borderWidth, style: 'solid' } as const)
       : undefined;
-    const borderRadius = visible ? 8 : 0;
+    const borderRadius = active ? 8 : 0;
 
     return (
       <Positioned key="mindmap-editor-pos" left={left} top={top} width={width} height={height}>
@@ -115,10 +115,11 @@ export class MindMapEditorOverlay extends StatefulWidget<
           width={width}
           height={height}
           padding={padding}
-          color={visible ? fill : undefined}
+          color={active ? fill : undefined}
           border={border}
           borderRadius={borderRadius}
-          pointerEvent={visible ? 'auto' : 'none'}
+          opacity={active ? 1 : 0}
+          pointerEvent={active ? 'auto' : 'none'}
         >
           <TextArea
             key="mindmap-global-textarea"
@@ -134,14 +135,14 @@ export class MindMapEditorOverlay extends StatefulWidget<
                 }, 0);
               }
             }}
-            value={visible ? this.state.text : ''}
-            disabled={!visible}
+            value={this.state.text}
+            disabled={!active}
             fontSize={14}
             fontFamily="Arial, sans-serif"
             color={textColor}
             selectionColor={selectionColor}
             cursorColor={textColor}
-            autoFocus={visible}
+            autoFocus={false}
             placeholder={'输入文本'}
             onChange={(val: string) => {
               if (!this.state.isSaved) {
@@ -169,9 +170,6 @@ export class MindMapEditorOverlay extends StatefulWidget<
               return true;
             }}
             onBlur={() => {
-              if (!visible) {
-                return;
-              }
               if (!this.state.isSaved) {
                 this.commit();
               }

@@ -17,13 +17,13 @@ import {
   type Offset,
   type PointerEvents,
   type Ref,
+  type RenderObject,
   type Size,
   type WidgetEventHandler,
   type WidgetProps,
 } from './type';
 
 import type { PipelineOwner } from './pipeline/owner';
-import type { RenderObject } from './type';
 import type { IRenderer } from '@/renderer/IRenderer';
 import type Runtime from '@/runtime';
 
@@ -425,7 +425,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       dirtyRect: undefined,
     };
 
-    this._paintWithLayer(context, false);
+    this._paintWithLayer(context, 1, false);
   }
 
   public isDirty(): boolean {
@@ -1003,6 +1003,20 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 绘制组件及其子组件
    */
   paint(context: BuildContext): void {
+    const parentOpacity = typeof context.opacity === 'number' ? context.opacity : 1;
+    let selfOpacity = typeof this.props.opacity === 'number' ? (this.props.opacity as number) : 1;
+    if (!isFinite(selfOpacity)) {
+      selfOpacity = 1;
+    }
+    if (selfOpacity < 0) {
+      selfOpacity = 0;
+    } else if (selfOpacity > 1) {
+      selfOpacity = 1;
+    }
+    const nextOpacity = parentOpacity * selfOpacity;
+    const nextContext =
+      nextOpacity === parentOpacity ? context : { ...context, opacity: nextOpacity };
+
     // 脏区域剔除 (Culling)
     if (context.dirtyRect) {
       // 计算当前的世界矩阵
@@ -1027,10 +1041,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
 
     if (this.isRepaintBoundary && context.enableOffscreenRendering !== false) {
-      this._paintWithLayer(context);
+      this._paintWithLayer(context, nextOpacity);
       return;
     }
-    this._performPaint(context);
+    this._performPaint(nextContext);
     this._needsPaint = false;
   }
 
@@ -1089,6 +1103,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     context.renderer?.save?.();
     applySteps(context.renderer, steps);
 
+    if (context.opacity != null && context.opacity !== 1) {
+      context.renderer.setGlobalAlpha?.(context.opacity);
+    }
+
     this.paintSelf({ ...context, worldMatrix: next });
 
     const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
@@ -1099,7 +1117,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     context.renderer?.restore?.();
   }
 
-  private _paintWithLayer(context: BuildContext, composite: boolean = true): void {
+  private _paintWithLayer(
+    context: BuildContext,
+    compositeOpacity: number = 1,
+    composite: boolean = true,
+  ): void {
     // 1. 计算当前边界的全局矩阵
     const steps = this.getSelfTransformSteps();
     const local = composeSteps(steps);
@@ -1151,7 +1173,13 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       // 使用 next (Global Matrix) 作为 worldMatrix，以便子节点计算正确的全局矩阵
       // 使用 offsetOverride: {0,0} 确保内容绘制在 Layer 原点
       this._performPaint(
-        { ...context, renderer: layerRenderer, worldMatrix: next, dirtyRect: undefined },
+        {
+          ...context,
+          renderer: layerRenderer,
+          worldMatrix: next,
+          dirtyRect: undefined,
+          opacity: 1,
+        },
         { dx: 0, dy: 0 },
       );
 
@@ -1170,6 +1198,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       applySteps(context.renderer, steps);
 
       if (this._layer) {
+        if (compositeOpacity !== 1) {
+          context.renderer.setGlobalAlpha?.(compositeOpacity);
+        }
         context.renderer.drawImage({
           image: this._layer.canvas,
           x: 0,

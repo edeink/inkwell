@@ -87,6 +87,8 @@ export interface IRenderer {
    */
   restore(): void;
 
+  setGlobalAlpha?(alpha: number): void;
+
   /**
    * 平移坐标系
    * @param x X轴偏移量

@@ -104,8 +104,7 @@ describe('RepaintBoundary 显示与开关测试', () => {
       </Container>
     );
 
-    // @ts-ignore
-    const rootJson = compileElement(root);
+    const rootJson = compileElement(root as any);
     const rootWidget = WidgetRegistry.createWidget(rootJson);
     if (!rootWidget) {
       throw new Error('rootWidget creation failed');
@@ -169,8 +168,7 @@ describe('RepaintBoundary 显示与开关测试', () => {
       />
     );
 
-    // @ts-ignore
-    const rootJson = compileElement(root);
+    const rootJson = compileElement(root as any);
     const rootWidget = WidgetRegistry.createWidget(rootJson);
     if (!rootWidget) {
       throw new Error('rootWidget creation failed');
@@ -193,5 +191,114 @@ describe('RepaintBoundary 显示与开关测试', () => {
     expect(drawImageSpy).not.toHaveBeenCalled();
     // 应该直接调用 drawRect (绘制 Container 背景)
     expect(drawRectSpy).toHaveBeenCalled();
+  });
+
+  it('opacity 应在绘制时正确下发到 renderer', () => {
+    const setGlobalAlpha = vi.fn();
+    const drawRect = vi.fn();
+
+    const mockRenderer = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      rotate: vi.fn(),
+      transform: vi.fn(),
+      setTransform: vi.fn(),
+      setGlobalAlpha,
+      drawRect,
+      drawText: vi.fn(),
+      drawImage: vi.fn(),
+      render: vi.fn(),
+      getResolution: () => 1,
+      getRawInstance: () => null,
+      setContext: vi.fn(),
+      clipRect: vi.fn(),
+    };
+
+    const root = (
+      <Container width={200} height={200} opacity={0.5}>
+        <Container width={100} height={100} color="red" opacity={0.5} />
+      </Container>
+    );
+
+    // @ts-ignore
+    const rootJson = compileElement(root);
+    const rootWidget = WidgetRegistry.createWidget(rootJson);
+    if (!rootWidget) {
+      throw new Error('rootWidget creation failed');
+    }
+
+    rootWidget.createElement(rootJson);
+    rootWidget.layout({ minWidth: 0, maxWidth: 500, minHeight: 0, maxHeight: 500 });
+    rootWidget.paint({ renderer: mockRenderer } as any);
+
+    expect(setGlobalAlpha).toHaveBeenCalledWith(0.5);
+    expect(setGlobalAlpha).toHaveBeenCalledWith(0.25);
+    expect(drawRect).toHaveBeenCalled();
+  });
+
+  it('RepaintBoundary 合成时应应用 opacity', () => {
+    const setGlobalAlpha = vi.fn();
+    const drawImage = vi.fn();
+
+    const mockRenderer = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      rotate: vi.fn(),
+      transform: vi.fn(),
+      setTransform: vi.fn(),
+      setGlobalAlpha,
+      drawRect: vi.fn(),
+      drawText: vi.fn(),
+      drawImage,
+      render: vi.fn(),
+      getResolution: () => 1,
+      getRawInstance: () => null,
+      setContext: vi.fn(),
+      clipRect: vi.fn(),
+      constructor: class MockLayerRenderer {
+        save = vi.fn();
+        restore = vi.fn();
+        translate = vi.fn();
+        scale = vi.fn();
+        rotate = vi.fn();
+        transform = vi.fn();
+        setTransform = vi.fn();
+        drawRect = vi.fn();
+        drawText = vi.fn();
+        drawImage = vi.fn();
+        render = vi.fn();
+        setContext = vi.fn();
+        clipRect = vi.fn();
+      },
+    };
+
+    const root = (
+      <Container width={200} height={200}>
+        <Container
+          width={100}
+          height={100}
+          color="red"
+          opacity={0.5}
+          {...({ isRepaintBoundary: true } as any)}
+        />
+      </Container>
+    );
+
+    const rootJson = compileElement(root as any);
+    const rootWidget = WidgetRegistry.createWidget(rootJson);
+    if (!rootWidget) {
+      throw new Error('rootWidget creation failed');
+    }
+
+    rootWidget.createElement(rootJson);
+    rootWidget.layout({ minWidth: 0, maxWidth: 500, minHeight: 0, maxHeight: 500 });
+    rootWidget.paint({ renderer: mockRenderer, enableOffscreenRendering: true } as any);
+
+    expect(setGlobalAlpha).toHaveBeenCalledWith(0.5);
+    expect(drawImage).toHaveBeenCalled();
   });
 });

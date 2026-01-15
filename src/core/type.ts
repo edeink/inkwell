@@ -235,6 +235,7 @@ export interface WidgetProps extends WidgetEventHandler {
   type?: string; // TODO 此方法需要移除？
   flex?: FlexProperties;
   zIndex?: number;
+  opacity?: number;
   /**
    * 指针事件控制
    * 类似于 CSS pointer-events
@@ -315,6 +316,7 @@ export interface BuildContext {
   worldMatrix?: [number, number, number, number, number, number];
   dirtyRect?: { x: number; y: number; width: number; height: number };
   enableOffscreenRendering?: boolean;
+  opacity?: number;
   [key: string]: unknown;
 }
 

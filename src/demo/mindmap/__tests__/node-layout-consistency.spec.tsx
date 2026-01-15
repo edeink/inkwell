@@ -279,6 +279,7 @@ describe('MindMap 全局编辑器覆盖层', () => {
     expect((demo2 as any).state.graph.nodes.get('n2').title).toBe('新标题 2');
 
     const overlay2 = findWidget(runtime.getRootWidget()!, '#mindmap-editor-overlay') as any;
-    expect(overlay2.props.visible).toBe(false);
+    expect(overlay2.props.targetKey).toBe(null);
+    expect(overlay2.props.rect).toBe(null);
   });
 });

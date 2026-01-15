@@ -233,6 +233,13 @@ export class Canvas2DRenderer implements IRenderer {
     this._cachedFont = '';
   }
 
+  setGlobalAlpha(alpha: number): void {
+    if (!this.ctx) {
+      return;
+    }
+    this.ctx.globalAlpha = alpha;
+  }
+
   /**
    * 平移坐标系
    * @param x X轴偏移量

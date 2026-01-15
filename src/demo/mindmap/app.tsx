@@ -802,7 +802,6 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
 
         <MindMapEditorOverlay
           key="mindmap-editor-overlay"
-          visible={!!this.state.editingKey && !!this.state.editorRect}
           targetKey={this.state.editingKey}
           rect={this.state.editorRect}
           value={this.state.editingKey ? (s.nodes.get(this.state.editingKey)?.title ?? '') : ''}
