@@ -94,6 +94,23 @@ export class Wrap extends Widget<WrapProps> {
     };
   }
 
+  protected positionChildren(childrenSizes: Size[]): void {
+    const offsets = this._childOffsets;
+    if (!offsets) {
+      super.positionChildren(childrenSizes);
+      return;
+    }
+
+    const children = this.children;
+    const len = children.length;
+    for (let i = 0; i < len; i++) {
+      const child = children[i];
+      const idx = i * 2;
+      child.renderObject.offset.dx = offsets[idx];
+      child.renderObject.offset.dy = offsets[idx + 1];
+    }
+  }
+
   protected positionChild(childIndex: number, _childSize: Size): Offset {
     if (this._childOffsets) {
       const idx = childIndex * 2;

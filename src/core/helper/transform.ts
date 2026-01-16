@@ -10,6 +10,21 @@ export const IDENTITY_MATRIX: [number, number, number, number, number, number] =
 export function composeSteps(
   steps: TransformStep[],
 ): [number, number, number, number, number, number] {
+  if (steps.length === 0) {
+    return IDENTITY_MATRIX;
+  }
+  if (steps.length === 1) {
+    const s = steps[0];
+    if (s.t === 'translate') {
+      return [1, 0, 0, 1, s.x, s.y];
+    }
+    if (s.t === 'scale') {
+      return [s.sx, 0, 0, s.sy, 0, 0];
+    }
+    const c = Math.cos(s.rad);
+    const g = Math.sin(s.rad);
+    return [c, g, -g, c, 0, 0];
+  }
   let m = IDENTITY_MATRIX;
   for (const s of steps) {
     if (s.t === 'translate') {
@@ -49,6 +64,20 @@ export function multiply(
     a0 * b4 + a2 * b5 + a4,
     a1 * b4 + a3 * b5 + a5,
   ];
+}
+
+export function multiplyTranslate(
+  m: [number, number, number, number, number, number],
+  x: number,
+  y: number,
+): [number, number, number, number, number, number] {
+  const a0 = m[0],
+    a1 = m[1],
+    a2 = m[2],
+    a3 = m[3],
+    a4 = m[4],
+    a5 = m[5];
+  return [a0, a1, a2, a3, a0 * x + a2 * y + a4, a1 * x + a3 * y + a5];
 }
 
 export function applySteps(renderer: IRenderer, steps: TransformStep[]): void {

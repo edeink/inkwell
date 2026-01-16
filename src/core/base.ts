@@ -5,6 +5,7 @@ import {
   IDENTITY_MATRIX,
   invert,
   multiply,
+  multiplyTranslate,
   transformPoint,
   type TransformStep,
 } from './helper/transform';
@@ -716,8 +717,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       // 构建后验证
       if (this.children.length !== childrenData.length) {
         console.warn(
-          `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个` +
-            `子节点，但实际得到 ${this.children.length} 个。`,
+          `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个子节点，但实际得到 ${this.children.length} 个。`,
         );
       }
     } finally {
@@ -968,7 +968,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       const child = this.children[i];
       const childSize = childrenSizes[i];
       const childOffset = this.positionChild(i, childSize);
-      child.renderObject.offset = childOffset;
+      child.renderObject.offset.dx = childOffset.dx;
+      child.renderObject.offset.dy = childOffset.dy;
     }
   }
 
@@ -1021,9 +1022,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (context.dirtyRect) {
       // 计算当前的世界矩阵
       const steps = this.getSelfTransformSteps();
-      const local = composeSteps(steps);
       const parentMatrix = context.worldMatrix ?? IDENTITY_MATRIX;
-      const currentMatrix = multiply(parentMatrix, local);
+      const currentMatrix =
+        steps.length === 1 && steps[0].t === 'translate'
+          ? multiplyTranslate(parentMatrix, steps[0].x, steps[0].y)
+          : multiply(parentMatrix, composeSteps(steps));
 
       const bounds = this.getBoundingBox(currentMatrix);
       const dr = context.dirtyRect;
@@ -1093,25 +1096,55 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       ? [{ t: 'translate', x: offsetOverride.dx, y: offsetOverride.dy }]
       : this.getSelfTransformSteps();
 
-    const local = composeSteps(steps);
     const prev = context.worldMatrix ?? IDENTITY_MATRIX;
-    const next = multiply(prev, local);
+    const next =
+      steps.length === 0
+        ? prev
+        : steps.length === 1 && steps[0].t === 'translate'
+          ? multiplyTranslate(prev, steps[0].x, steps[0].y)
+          : multiply(prev, composeSteps(steps));
     this._worldMatrix = next;
     this._cachedBoundingBox = null;
     this._inverseWorldMatrix = null;
 
     context.renderer?.save?.();
-    applySteps(context.renderer, steps);
+    if (steps.length !== 0) {
+      applySteps(context.renderer, steps);
+    }
 
     if (context.opacity != null && context.opacity !== 1) {
       context.renderer.setGlobalAlpha?.(context.opacity);
     }
 
-    this.paintSelf({ ...context, worldMatrix: next });
+    const ctxWithWorld = context.worldMatrix === next ? context : { ...context, worldMatrix: next };
+    this.paintSelf(ctxWithWorld);
 
-    const children = this.children.slice().sort((a, b) => a.zIndex - b.zIndex);
-    for (const child of children) {
-      child.paint({ ...context, worldMatrix: next });
+    const children = this.children;
+    const len = children.length;
+    if (len === 1) {
+      children[0].paint(ctxWithWorld);
+    } else if (len > 1) {
+      let isNonDecreasing = true;
+      let prevZ = children[0].zIndex;
+      for (let i = 1; i < len; i++) {
+        const z = children[i].zIndex;
+        if (z < prevZ) {
+          isNonDecreasing = false;
+          break;
+        }
+        prevZ = z;
+      }
+
+      if (isNonDecreasing) {
+        for (let i = 0; i < len; i++) {
+          children[i].paint(ctxWithWorld);
+        }
+      } else {
+        const sorted = children.slice().sort((a, b) => a.zIndex - b.zIndex);
+        for (let i = 0; i < sorted.length; i++) {
+          sorted[i].paint(ctxWithWorld);
+        }
+      }
     }
 
     context.renderer?.restore?.();
@@ -1124,9 +1157,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   ): void {
     // 1. 计算当前边界的全局矩阵
     const steps = this.getSelfTransformSteps();
-    const local = composeSteps(steps);
     const prev = context.worldMatrix ?? IDENTITY_MATRIX;
-    const next = multiply(prev, local);
+    const next =
+      steps.length === 1 && steps[0].t === 'translate'
+        ? multiplyTranslate(prev, steps[0].x, steps[0].y)
+        : multiply(prev, composeSteps(steps));
     this._worldMatrix = next;
     this._cachedBoundingBox = null;
     this._inverseWorldMatrix = null;
@@ -1223,8 +1258,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     const children = this.children;
     for (const child of children) {
       const steps = child.getSelfTransformSteps();
-      const local = composeSteps(steps);
-      const next = multiply(parentMatrix, local);
+      const next =
+        steps.length === 1 && steps[0].t === 'translate'
+          ? multiplyTranslate(parentMatrix, steps[0].x, steps[0].y)
+          : multiply(parentMatrix, composeSteps(steps));
       child._worldMatrix = next;
       // @ts-ignore
       child._cachedBoundingBox = null;

@@ -68,6 +68,25 @@ describe('Pipeline 基准测试', () => {
       expect(stage.children.length).toBe(1); // 应该仍然是 1，而不是 2
       expect((stage.firstElementChild as HTMLElement).children.length).toBe(5);
     });
+
+    it('每一帧都应重建节点树', async () => {
+      const raf = vi
+        .spyOn(globalThis, 'requestAnimationFrame')
+        .mockImplementation((cb: FrameRequestCallback) => {
+          cb(performance.now());
+          return 0;
+        });
+      const replace = vi.spyOn(stage, 'replaceChildren');
+
+      await createPipelineDomNodes(stage, 10, 3);
+
+      expect(replace).toHaveBeenCalledTimes(3);
+      expect(stage.children.length).toBe(1);
+      expect((stage.firstElementChild as HTMLElement).children.length).toBe(10);
+
+      replace.mockRestore();
+      raf.mockRestore();
+    });
   });
 
   describe('Widget 实现', () => {

@@ -18,22 +18,13 @@ export async function createPipelineDomNodes(
   root.style.cssText =
     'position: relative; width: 100%; height: 100%; overflow: hidden; background: #000;';
 
-  const items: HTMLDivElement[] = [];
   for (let i = 0; i < count; i++) {
     const div = document.createElement('div');
-    div.style.cssText = `
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: ${i % 2 ? '#ff0055' : '#00ccff'};
-      border-radius: 50%;
-      left: 0;
-      top: 0;
-    `;
-    // Removed will-change: transform as we are testing layout
-
+    const color = i % 2 ? '#ff0055' : '#00ccff';
+    div.style.cssText =
+      `position: absolute; width: 6px; height: 6px; ` +
+      `background: ${color}; border-radius: 50%; left: 0; top: 0;`;
     root.appendChild(div);
-    items.push(div);
   }
 
   const tBuild1 = performance.now();
@@ -61,16 +52,24 @@ export async function createPipelineDomNodes(
 
       const time = (performance.now() - startTime) / 1000;
 
-      // 批量更新样式
+      const nextRoot = document.createElement('div');
+      nextRoot.style.cssText =
+        'position: relative; width: 100%; height: 100%; overflow: hidden; background: #000;';
+
+      const frag = document.createDocumentFragment();
       for (let i = 0; i < count; i++) {
-        const item = items[i];
-        // 简单的粒子运动算法
-        const x = (Math.sin(time + i * 0.05) * 0.4 + 0.5) * w;
-        const y = (Math.cos(time + i * 0.07) * 0.4 + 0.5) * h;
-        // 使用 left/top 替代 transform，确保与 Widget 测试维度一致 (都触发 Layout)
-        item.style.left = `${x}px`;
-        item.style.top = `${y}px`;
+        const x = (Math.sin(time + i * 0.05) * 0.4 + 0.5) * (w - 10);
+        const y = (Math.cos(time + i * 0.07) * 0.4 + 0.5) * (h - 10);
+
+        const div = document.createElement('div');
+        const color = i % 2 ? '#ff0055' : '#00ccff';
+        div.style.cssText =
+          `position: absolute; width: 6px; height: 6px; ` +
+          `background: ${color}; border-radius: 50%; left: ${x}px; top: ${y}px;`;
+        frag.appendChild(div);
       }
+      nextRoot.appendChild(frag);
+      stage.replaceChildren(nextRoot);
 
       f++;
       requestAnimationFrame(loop);
