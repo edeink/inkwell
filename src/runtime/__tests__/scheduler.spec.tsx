@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Runtime from '../index';
 
-import { Container, StatelessWidget } from '@/core';
+import { Container, StatelessWidget, TextArea } from '@/core';
 
 // Mock renderer
 const mockRenderer = {
@@ -37,6 +37,12 @@ const mockRenderer = {
 class TestWidget extends StatelessWidget {
   protected render() {
     return <Container />;
+  }
+}
+
+class TestEditableWidget extends StatelessWidget {
+  protected render() {
+    return <TextArea value="可输入" />;
   }
 }
 
@@ -243,5 +249,18 @@ describe('Runtime Scheduler (调度器)', () => {
 
     await vi.runAllTimersAsync();
     expect(rebuildSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('destroy 应清理可编辑组件的隐藏输入框', async () => {
+    const root = new TestEditableWidget({ type: 'TestEditableWidget' });
+    root.createElement(root.data);
+    (runtime as any).rootWidget = root;
+    (runtime as any).rootWidget.runtime = runtime;
+
+    expect(document.querySelector('textarea'), '销毁前应存在隐藏 textarea').not.toBeNull();
+
+    runtime.destroy();
+
+    expect(document.querySelector('textarea'), '销毁后不应残留隐藏 textarea').toBeNull();
   });
 });

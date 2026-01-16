@@ -1,6 +1,7 @@
 import { Widget } from '../core/base';
 import { EventManager } from '../core/events/manager';
 import { EventRegistry } from '../core/events/registry';
+import { clearSelectorCache } from '../core/helper/widget-selector';
 import { PipelineOwner } from '../core/pipeline/owner';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 import { LOCAL_RESOLUTION } from '../utils/local-storage';
@@ -80,6 +81,8 @@ export default class Runtime {
    * 释放资源，清理事件监听，销毁 Canvas
    */
   destroy(): void {
+    const root = this.rootWidget;
+
     // 1. 取消正在进行的布局调度
     if (this.__layoutRaf) {
       cancelAnimationFrame(this.__layoutRaf);
@@ -107,6 +110,35 @@ export default class Runtime {
     this._canvas = null;
     this._container = null;
     this.dirtyWidgets.clear();
+    this.tickListeners.clear();
+    this.pipelineOwner.clearNodesNeedingLayout();
+    this.pipelineOwner.clearNodesNeedingPaint();
+    EventRegistry.clearRuntime(this);
+
+    if (root) {
+      clearSelectorCache(root);
+      this.disposeWidgetTree(root);
+      Widget._pool.clear();
+    }
+  }
+
+  private disposeWidgetTree(root: Widget) {
+    const stack: Widget[] = [root];
+    const postOrder: Widget[] = [];
+    while (stack.length > 0) {
+      const cur = stack.pop()!;
+      postOrder.push(cur);
+      const children = cur.children;
+      for (let i = 0; i < children.length; i++) {
+        const c = children[i];
+        if (c) {
+          stack.push(c);
+        }
+      }
+    }
+    for (let i = postOrder.length - 1; i >= 0; i--) {
+      postOrder[i].dispose();
+    }
   }
 
   private constructor() {
