@@ -12,6 +12,7 @@ import Runtime from '../../../runtime';
 import { type ScrollMetrics } from '../../index.types';
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 import { BENCHMARK_CONFIG } from '../../utils/config';
+import { getThemeColor } from '../../utils/theme';
 
 export async function buildScrollWidgetScene(
   stageEl: HTMLElement,
@@ -21,8 +22,11 @@ export async function buildScrollWidgetScene(
   const w = stageEl.clientWidth || 800;
   const h = stageEl.clientHeight || 600;
 
-  // 滚动测试固定为：垂直方向，单向滚动，重复1次（外部 iterationCount 控制）
-  // stepSize 将在下面动态计算
+  const bgEven = getThemeColor('--ink-demo-bg-surface');
+  const bgOdd = getThemeColor('--ink-demo-bg-container');
+  const textPrimary = getThemeColor('--ink-demo-text-primary');
+  const border = getThemeColor('--ink-demo-border');
+  const scrollBar = getThemeColor('--ink-demo-text-secondary');
 
   const tBuild0 = performance.now();
 
@@ -35,12 +39,12 @@ export async function buildScrollWidgetScene(
           <Container
             width={w}
             height={BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT - 1}
-            color={i % 2 === 0 ? '#f0f0f0' : '#ffffff'}
+            color={i % 2 === 0 ? bgEven : bgOdd}
             padding={{ left: 16, top: 15 }}
           >
-            <Text text={`List Item ${i}`} style={{ fontSize: 14, color: '#333' }} />
+            <Text text={`List Item ${i}`} style={{ fontSize: 14, color: textPrimary }} />
           </Container>
-          <Container width={w} height={1} color="#ddd" />
+          <Container width={w} height={1} color={border} />
         </Column>
       ))}
     </Column>
@@ -51,42 +55,35 @@ export async function buildScrollWidgetScene(
       key="sv"
       ref={
         withRef
-          ? (r: unknown) => {
-              scrollView = createExposedHandle<ScrollViewHandle>(r);
-            }
+          ? (r: unknown) => (scrollView = createExposedHandle<ScrollViewHandle>(r))
           : undefined
       }
       width={w}
       height={h}
       scrollY={scrollY}
       scrollX={0}
-      scrollBarColor="#999"
+      scrollBarColor={scrollBar}
       scrollBarWidth={6}
     >
       {content}
     </ScrollView>
   );
 
-  // 构建初始树
   const initialTree = buildTree(0, true);
 
   const tBuild1 = performance.now();
 
   runtime.render(initialTree);
 
-  // 这里的 layoutMs 难以精确测量，因为 runtime 是异步调度的
-  // 我们记录渲染提交后的第一帧时间
   const paintMs = await measureNextPaint();
 
   const sv = scrollView as ScrollViewHandle | null;
   const isRealRuntime = runtime instanceof Runtime;
 
-  // 滚动测试参数
   const contentSize = count * BENCHMARK_CONFIG.SCROLL.ITEM_HEIGHT;
   const viewportSize = h;
   const maxScroll = Math.max(0, contentSize - viewportSize);
 
-  // 动态滚动速度调节算法
   const targetDurationMs = Math.max(
     BENCHMARK_CONFIG.SCROLL.MIN_DURATION,
     Math.min(
@@ -96,8 +93,7 @@ export async function buildScrollWidgetScene(
   );
 
   console.log(
-    `[Scroll Widget] Count: ${count}, MaxScroll: ${maxScroll}, ` +
-      `TargetDuration: ${targetDurationMs.toFixed(0)}ms`,
+    `[滚动 Widget] 数量: ${count}, 最大滚动: ${maxScroll}, 目标耗时: ${targetDurationMs.toFixed(0)}ms`,
   );
 
   const startTime = performance.now();
@@ -108,7 +104,6 @@ export async function buildScrollWidgetScene(
   let minFps = 60;
   let maxFps = 0;
 
-  // 执行一次完整滚动
   let currentScroll = 0;
 
   if (maxScroll > 0) {
@@ -137,7 +132,6 @@ export async function buildScrollWidgetScene(
         break;
       }
 
-      // Wait for next frame
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
       const frameTime = performance.now();
@@ -150,7 +144,6 @@ export async function buildScrollWidgetScene(
       }
 
       if (delta > 32) {
-        // < 30fps
         jankCount++;
       }
       lastTime = frameTime;
@@ -162,13 +155,14 @@ export async function buildScrollWidgetScene(
   const durationMs = endTime - startTime;
   const avgFps = frameCount / (durationMs / 1000);
 
-  console.log(`[Scroll Widget] Finished. Duration: 
-    ${durationMs.toFixed(0)}ms, AvgFPS: ${avgFps.toFixed(1)}, Frames: ${frameCount}`);
+  console.log(
+    `[滚动 Widget] 完成。耗时: ${durationMs.toFixed(0)}ms, 平均FPS: ${avgFps.toFixed(1)}, 帧数: ${frameCount}`,
+  );
 
   return {
     timings: {
       createTimeMs: tBuild1 - tBuild0,
-      layoutMs: 0, // Runtime handles layout internally
+      layoutMs: 0,
       paintMs,
       buildMs: 0,
     },

@@ -68,6 +68,16 @@ export const CASE_CONFIGS: Record<TestCaseType, Record<PresetType, CaseConfig>> 
     [PresetType.Common]: { start: 500, end: 5000, step: 500 },
     [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
   },
+  [TestCaseType.StateLayout]: {
+    [PresetType.Small]: { start: 50, end: 500, step: 50 },
+    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
+    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
+  },
+  [TestCaseType.StateText]: {
+    [PresetType.Small]: { start: 50, end: 500, step: 50 },
+    [PresetType.Common]: { start: 500, end: 5000, step: 500 },
+    [PresetType.Large]: { start: 5000, end: 20000, step: 2000 },
+  },
   [TestCaseType.CanvasBenchmark]: {
     [PresetType.Small]: { start: 100, end: 1000, step: 20 },
     [PresetType.Common]: { start: 1000, end: 10000, step: 200 },

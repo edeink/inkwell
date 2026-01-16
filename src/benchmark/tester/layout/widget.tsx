@@ -54,7 +54,7 @@ export async function buildLayoutWidgetScene(
   };
 
   const tree = (
-    <Container width={w} height={h} color="#fff">
+    <Container width={w} height={h}>
       <Wrap spacing={2} runSpacing={2}>
         {Array.from({ length: chains }).map((_, i) => (
           <Container key={`chain-${i}`} width={50} height={50}>

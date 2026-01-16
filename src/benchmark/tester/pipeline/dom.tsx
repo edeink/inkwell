@@ -1,5 +1,6 @@
 import { measureNextPaint, type Timings } from '../../metrics/collector';
 import { BENCHMARK_CONFIG } from '../../utils/config';
+import { getThemeColor } from '../../utils/theme';
 
 /**
  * 渲染管线压力测试 DOM 实现
@@ -14,9 +15,16 @@ export async function createPipelineDomNodes(
   stage.innerHTML = '';
   const tBuild0 = performance.now();
 
+  const bgBase = getThemeColor('--ink-demo-bg-base');
+
   const root = document.createElement('div');
-  root.style.cssText =
-    'position: relative; width: 100%; height: 100%; overflow: hidden; background: #000;';
+  root.style.cssText = [
+    'position: relative',
+    'width: 100%',
+    'height: 100%',
+    'overflow: hidden',
+    `background: ${bgBase}`,
+  ].join(';');
 
   for (let i = 0; i < count; i++) {
     const div = document.createElement('div');
@@ -53,8 +61,13 @@ export async function createPipelineDomNodes(
       const time = (performance.now() - startTime) / 1000;
 
       const nextRoot = document.createElement('div');
-      nextRoot.style.cssText =
-        'position: relative; width: 100%; height: 100%; overflow: hidden; background: #000;';
+      nextRoot.style.cssText = [
+        'position: relative',
+        'width: 100%',
+        'height: 100%',
+        'overflow: hidden',
+        `background: ${bgBase}`,
+      ].join(';');
 
       const frag = document.createDocumentFragment();
       for (let i = 0; i < count; i++) {

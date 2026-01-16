@@ -9,8 +9,10 @@ import { buildAbsoluteWidgetScene } from '../tester/absolute/widget';
 import { buildFlexRowColWidgetScene, buildFlexWidgetScene } from '../tester/flex/widget';
 import { buildLayoutWidgetScene } from '../tester/layout/widget';
 import { buildPipelineWidgetScene } from '../tester/pipeline/widget';
-import { buildScrollWidgetScene } from '../tester/scroll/widget';
-import { buildStateWidgetScene } from '../tester/state/widget';
+import { buildStateWidgetScene } from '../tester/state-color/widget';
+import { buildScrollWidgetScene } from '../tester/state-scroll/widget';
+import { buildStateLayoutWidgetScene } from '../tester/state-size/widget';
+import { buildStateTextWidgetScene } from '../tester/state-text/widget';
 import { buildTextWidgetScene } from '../tester/text/widget';
 import { buildTextWidgetSceneV2 } from '../tester/text/widget-v2';
 
@@ -100,6 +102,16 @@ export default class WidgetPerformanceTest extends PerformanceTestInterface {
         break;
       case TestCaseType.State:
         this.lastTimings = await buildStateWidgetScene(this.ctx.stageEl, runtime, targetCount);
+        break;
+      case TestCaseType.StateLayout:
+        this.lastTimings = await buildStateLayoutWidgetScene(
+          this.ctx.stageEl,
+          runtime,
+          targetCount,
+        );
+        break;
+      case TestCaseType.StateText:
+        this.lastTimings = await buildStateTextWidgetScene(this.ctx.stageEl, runtime, targetCount);
         break;
       case TestCaseType.Text:
         if (this.variant === 'v1') {

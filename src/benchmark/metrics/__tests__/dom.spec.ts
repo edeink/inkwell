@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createLayoutDomNodes } from '../../tester/layout/dom';
-import { createStateDomNodes } from '../../tester/state/dom';
+import { createStateDomNodes } from '../../tester/state-color/dom';
 import DomPerformanceTest, { clearDomStage } from '../dom';
 
 describe('DOM 指标与工具', () => {
@@ -74,6 +74,7 @@ describe('布局 DOM 测试器', () => {
   let stage: HTMLElement;
 
   beforeEach(() => {
+    document.documentElement.style.setProperty('--ink-demo-bg-base', '#fff');
     // 简化版功能测试：缩小构建规模，仅保留结构与样式断言
     vi.useFakeTimers();
     let currentTime = 0;
@@ -92,6 +93,7 @@ describe('布局 DOM 测试器', () => {
   });
 
   afterEach(() => {
+    document.documentElement.style.removeProperty('--ink-demo-bg-base');
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });

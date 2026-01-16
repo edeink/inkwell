@@ -8,8 +8,10 @@ import { createAbsoluteDomNodes } from '../tester/absolute/dom';
 import { createFlexDomNodes, createFlexRowColDomNodes } from '../tester/flex/dom';
 import { createLayoutDomNodes } from '../tester/layout/dom';
 import { createPipelineDomNodes } from '../tester/pipeline/dom';
-import { createScrollDomNodes } from '../tester/scroll/dom';
-import { createStateDomNodes } from '../tester/state/dom';
+import { createStateDomNodes } from '../tester/state-color/dom';
+import { createScrollDomNodes } from '../tester/state-scroll/dom';
+import { createStateLayoutDomNodes } from '../tester/state-size/dom';
+import { createStateTextDomNodes } from '../tester/state-text/dom';
 import { createTextDomNodes } from '../tester/text/dom';
 
 import { FrameSampler, round1, type Timings } from './collector';
@@ -104,6 +106,14 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
         this.lastTimings = await createStateDomNodes(this.ctx.stage, targetCount);
         break;
       }
+      case TestCaseType.StateLayout: {
+        this.lastTimings = await createStateLayoutDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
+      case TestCaseType.StateText: {
+        this.lastTimings = await createStateTextDomNodes(this.ctx.stage, targetCount);
+        break;
+      }
       case TestCaseType.Text: {
         this.lastTimings = await createTextDomNodes(this.ctx.stage, targetCount);
         break;
@@ -128,7 +138,9 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       try {
         this.beforeMem = this.getMemoryUsage();
         this.memoryDebug.push({ t: 0, used: this.beforeMem.heapUsed });
-      } catch {}
+      } catch (e) {
+        void e;
+      }
       this.frameSampler.start(this.startMark);
       return;
     }
@@ -140,7 +152,9 @@ export default class DomPerformanceTest extends PerformanceTestInterface {
       if (this.beforeMem) {
         delta = afterMem.heapUsed - this.beforeMem.heapUsed;
       }
-    } catch {}
+    } catch (e) {
+      void e;
+    }
     this.frameSampler.stop();
     const t = this.lastTimings || { buildMs: 0, layoutMs: 0, paintMs: 0 };
     const createTimeMs = round1(t.buildMs + t.layoutMs + t.paintMs);

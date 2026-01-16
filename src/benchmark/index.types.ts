@@ -101,6 +101,8 @@ export enum TestCaseType {
   Layout = 'layout',
   Pipeline = 'pipeline',
   State = 'state',
+  StateLayout = 'state_layout',
+  StateText = 'state_text',
 }
 
 /**
@@ -122,14 +124,17 @@ export type CaseConfig = {
 };
 
 export const TestCaseOptions: { label: string; value: TestCaseType }[] = [
-  { label: '盒子绝对布局测试', value: TestCaseType.Absolute },
-  { label: '文字渲染测试', value: TestCaseType.Text },
-  { label: 'Wrap 布局测试', value: TestCaseType.Flex },
-  { label: 'Flex 布局测试', value: TestCaseType.FlexRowCol },
-  { label: '滚动列表测试', value: TestCaseType.Scroll },
-  { label: 'Stack/Flex 布局测试 ', value: TestCaseType.Layout },
-  { label: '渲染管线测试', value: TestCaseType.Pipeline },
-  { label: '状态更新测试', value: TestCaseType.State },
+  { label: '【全量】盒子绝对布局', value: TestCaseType.Absolute },
+  { label: '【全量】文字渲染', value: TestCaseType.Text },
+  { label: '【全量】Wrap 布局', value: TestCaseType.Flex },
+  { label: '【全量】Flex 布局', value: TestCaseType.FlexRowCol },
+  { label: '【全量】Stack/Flex 布局', value: TestCaseType.Layout },
+  { label: '【全量】渲染管线', value: TestCaseType.Pipeline },
+  { label: '【状态】滚动列表', value: TestCaseType.Scroll },
+  { label: '【状态】更新（颜色）', value: TestCaseType.State },
+  // 新增内容，未具体分析
+  // { label: '【状态】更新（尺寸）', value: TestCaseType.StateLayout },
+  // { label: '【状态】更新（文本）', value: TestCaseType.StateText },
 ];
 
 export enum TestStatus {
@@ -226,6 +231,9 @@ export function averageSamples(samples: TestSample[]): TestSample {
   let avgScrollMetrics: ScrollMetrics | undefined;
   const hasScroll = samples.every((s) => !!s.scrollMetrics);
   if (hasScroll && samples.length > 0) {
+    const firstNonCompleted = samples.find(
+      (s) => s.scrollMetrics!.terminationReason !== 'completed',
+    );
     avgScrollMetrics = {
       direction: samples[0].scrollMetrics!.direction,
       mode: samples[0].scrollMetrics!.mode,
@@ -235,9 +243,8 @@ export function averageSamples(samples: TestSample[]): TestSample {
       maxFps: round1(samples.reduce((a, b) => a + b.scrollMetrics!.maxFps, 0) / n),
       jankCount: round1(samples.reduce((a, b) => a + b.scrollMetrics!.jankCount, 0) / n),
       totalFrames: round1(samples.reduce((a, b) => a + b.scrollMetrics!.totalFrames, 0) / n),
-      terminationReason: samples.some((s) => s.scrollMetrics!.terminationReason !== 'completed')
-        ? samples.find((s) => s.scrollMetrics!.terminationReason !== 'completed')!.scrollMetrics!
-            .terminationReason
+      terminationReason: firstNonCompleted
+        ? firstNonCompleted.scrollMetrics!.terminationReason
         : 'completed',
     };
   }
