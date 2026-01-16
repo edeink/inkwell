@@ -59,14 +59,14 @@ graph TD
 
 ### 2. Update (更新)
 
-当父组件重建、自身 State 改变 (`setState`) 或 `markDirty` 被调用时触发。
+当父组件重建或自身 State 改变（`setState` -> 内部调用 `markDirty`）时触发。
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
 | `build` / `render` | 构建 UI 结构 | 组合子组件，返回新的 Widget 树 |
 | `didUpdateWidget` | 响应属性变更 | **v0.9.0 新增**。当组件接收到新的 Props 时触发。用于比较新旧 Props，同步内部 State 或执行副作用。在 `render` 之前调用。 |
 | `rebuild` | 框架内部机制 | 对比新旧数据 (Diff)，决定是否需要更新子树 |
-| `markDirty` | 标记脏节点 | **核心方法**。手动触发更新流程。不仅标记脏状态，还会级联触发 `markNeedsLayout`，确保视图数据同步。 |
+| `markDirty` | 标记脏节点 | **核心方法**。用于触发更新流程，并会级联触发 `markNeedsLayout`。对 `StatefulWidget` 通常应使用 `setState` 触发更新。 |
 
 #### API 详解: `didUpdateWidget`
 

@@ -90,7 +90,10 @@ describe('增量渲染性能测试', () => {
 
     const performRenderSpy = vi.spyOn(runtime as any, 'performRender');
 
-    node1.markNeedsPaint();
+    node1.clearDirty();
+    node1.clearPaintDirty();
+    (node1 as any)._needsLayout = false;
+    node1.setState({ hovering: true });
 
     expect((node1 as any)._needsPaint).toBe(true);
 
@@ -137,7 +140,10 @@ describe('增量渲染性能测试', () => {
     expect(node2).toBeDefined();
     expect(node2.key).toBe('node2');
 
-    node2.markNeedsPaint();
+    node2.clearDirty();
+    node2.clearPaintDirty();
+    (node2 as any)._needsLayout = false;
+    node2.setState({ hovering: true });
 
     expect((node2 as any)._needsPaint).toBe(true);
 

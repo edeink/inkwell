@@ -97,14 +97,6 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
     if (data.enableLayer) {
       this.isRepaintBoundary = true;
     }
-
-    if (this.state && this.state.title !== this.title) {
-      this.state = {
-        ...this.state,
-        title: this.title,
-      };
-      this.markNeedsLayout();
-    }
   }
 
   createElement(data: MindMapNodeProps): Widget<MindMapNodeProps> {
@@ -122,6 +114,14 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
     this.initNode(withEvents);
     super.createElement(withEvents);
     return this;
+  }
+
+  protected didUpdateWidget(oldProps: MindMapNodeProps): void {
+    const nextTitle = ((this.props as MindMapNodeProps).title || '') as string;
+    if ((oldProps.title || '') !== nextTitle) {
+      this.setState({ title: nextTitle });
+    }
+    super.didUpdateWidget(oldProps);
   }
 
   /**
@@ -387,14 +387,12 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
       } catch (err) {
         void err;
       }
-      this.markDirty();
       this.clickCandidate = null;
     } else if (this.clickCandidate) {
       if (props.onActive) {
         props.onActive(this.key);
       }
       this.clickCandidate = null;
-      this.markDirty();
     }
   }
 

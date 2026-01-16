@@ -24,30 +24,12 @@ import MindmapDemo from '@mindmap';
 
 ```mermaid
 graph TD
-  A["MindmapDemo（React）"] --> B["InkwellCanvas"]
-  A --> C["MindmapContext.Provider"]
-
-  B --> D["Runtime"]
-  D --> E["runApp"]
-  E --> F["MindmapDemo（Widget）"]
-
-  F --> G["MindMapViewport"]
-  G --> H["MindMapLayout"]
-  H --> I["MindMapNode"]
-  H --> J["Connector"]
-  H --> K["MindMapNodeToolbar"]
-  F --> L["MindMapEditorOverlay"]
-
-  D --> M["MindmapController"]
-  M --> N["ViewModule"]
-  M --> O["InteractionModule"]
-  M --> P["LayoutModule"]
-
-  C --> Q["Toolbar（React）"]
-  C --> R["ZoomBar（React）"]
-  C --> S["Minimap（React）"]
-  S --> T["ViewportPreview"]
-  S --> U["HighlightOverlay"]
+  E["MindmapDemo"] --> F["MindMapViewport"]
+  F --> G["MindMapLayout"]
+  G --> H["MindMapNode"]
+  G --> I["Connector"]
+  G --> J["MindMapNodeToolbar"]
+  E --> K["MindMapEditorOverlay"]
 ```
 
 ## 功能特性
@@ -71,29 +53,24 @@ graph TD
 
 ## 关键模块
 
-1.  **React 层（UI 外壳与辅助交互）**
-    *   `src/demo/mindmap/index.tsx`：挂载 `InkwellCanvas`，负责创建 `Runtime`、重建 App、初始化 Controller 与主题订阅。
-    *   `src/demo/mindmap/components/*`：`Toolbar`、`ZoomBar`、`Minimap` 等，依赖 `MindmapController` 实现 UI 控制与状态显示。
+1.  **Widget 层（渲染与命中）**
+    *   `src/demo/mindmap/app.tsx`：`MindmapDemo`（`StatefulWidget`），维护图数据、选中与编辑态，并渲染 `MindMapViewport` / `MindMapLayout` / `MindMapNode` / `Connector` 等。
+    *   `src/demo/mindmap/widgets/*`：节点、连接线、布局容器、视口，以及编辑器覆盖层等组件。
 
-2.  **Controller（视图状态与交互协调）**
-    *   `src/demo/mindmap/controller/index.ts`：桥接 Runtime 与 Viewport，对外提供 `zoomAt`、`setViewPosition`、`addViewChangeListener` 等稳定 API。
-    *   `src/demo/mindmap/controller/modules/*`：按职责拆分（视图、交互、布局），便于扩展与测试。
-
-3.  **Widget 层（渲染与命中）**
-    *   `src/demo/mindmap/app.tsx`：`MindmapDemo`（`StatefulWidget`），维护图数据与编辑态，并渲染 `MindMapViewport` / `MindMapLayout` / `MindMapNode` / `Connector` 等。
-    *   `src/demo/mindmap/widgets/*`：节点、连接线、布局容器、视口，以及 DOM 覆盖层相关组件（编辑器、工具栏）。
-
-4.  **算法与基础能力**
+2.  **算法与基础能力**
     *   `src/demo/mindmap/helpers/layout-engine/*`：树形/平衡树等布局算法。
     *   `src/demo/mindmap/helpers/shortcut/*`：快捷键与历史记录（撤销/重做）。
     *   `src/demo/mindmap/helpers/connection-drawer.ts`：连接线路径与样式计算。
     *   `src/demo/mindmap/helpers/state-helper.ts`：图状态初始化与更新辅助。
 
+3.  **React 入口（仅负责挂载画布）**
+    *   `src/demo/mindmap/index.tsx`：挂载 `InkwellCanvas`，创建 `Runtime` 并调用 `runApp`。
+
 ## Inkwell 最佳实践
 
 ### 1. 状态收敛与受控同步
 
-导图的核心状态集中在 `MindmapDemo(Widget)`：图数据（节点/边）、选中与编辑态，以及 Viewport 的 `scale/tx/ty`。当 Viewport 发生变换时，通过回调同步到 Controller，再由 Controller 广播给 React 层订阅者（例如缩略图与缩放条）。
+导图的核心状态集中在 `MindmapDemo（Widget）`：图数据（节点/边）、选中与编辑态，以及 Viewport 的 `scale/tx/ty`。当 Viewport 发生变换时，通过 `onViewChange` 回调同步到 `MindmapDemo` 的状态，确保编辑器覆盖层与命中逻辑在任意缩放下保持一致。
 
 ### 2. 自定义布局与零分配思路
 
@@ -119,9 +96,7 @@ graph TD
 
 ## 代码结构
 
-*   `src/demo/mindmap/index.tsx`: React 挂载入口（Runtime、主题订阅、Controller 初始化）。
+*   `src/demo/mindmap/index.tsx`: React 挂载入口（创建 Runtime 并调用 `runApp`）。
 *   `src/demo/mindmap/app.tsx`: 画布场景（`StatefulWidget`）与核心状态管理。
-*   `src/demo/mindmap/controller/`: 控制器与模块化扩展点。
 *   `src/demo/mindmap/widgets/`: Viewport、Layout、Node、Connector、编辑器覆盖层等渲染组件。
-*   `src/demo/mindmap/components/`: ZoomBar、Minimap、Toolbar 等 React UI 组件。
 *   `src/demo/mindmap/helpers/`: 布局引擎、快捷键、连接线绘制、状态辅助等。

@@ -1,17 +1,15 @@
 import {
   AimOutlined,
   CloseOutlined,
-  CopyOutlined,
-  DownSquareOutlined,
-  ExpandOutlined,
   LeftOutlined,
+  QuestionCircleOutlined,
   RightOutlined,
-  SettingOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
-import { Button, ConfigProvider, Input, Popover, Tooltip, Tree, message } from 'antd';
+import { Button, ConfigProvider, Input, Popover, Tooltip, Tree } from 'antd';
 import cn from 'classnames';
 import { throttle } from 'lodash-es';
-import { useEffect, useMemo, useRef, useState, type Key, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type Key } from 'react';
 
 import Runtime from '../../../runtime';
 import { getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
@@ -24,7 +22,6 @@ import SimpleTip from '../simple-tip';
 
 import styles from './index.module.less';
 
-import type { DevTreeNode } from '../../helper/tree';
 import type { Widget } from '@/core/base';
 import type { DataNode } from 'antd/es/tree';
 
@@ -34,52 +31,6 @@ export interface DevToolsProps {
   onClose?: () => void;
   /** 快捷键配置：字符串或对象（默认 Ctrl/Cmd+Shift+D 切换面板显示） */
   shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
-}
-
-function collectTreeKeys(root: DevTreeNode | null): string[] {
-  if (!root) {
-    return [];
-  }
-  const keys: string[] = [];
-  const stack: DevTreeNode[] = [root];
-  while (stack.length) {
-    const n = stack.pop()!;
-    keys.push(n.key);
-    for (let i = n.children.length - 1; i >= 0; i -= 1) {
-      stack.push(n.children[i]);
-    }
-  }
-  return keys;
-}
-
-function toHotkeyFromEvent(e: KeyboardEvent<HTMLInputElement>): string {
-  const parts: string[] = [];
-  if (e.metaKey || e.ctrlKey) {
-    parts.push('CmdOrCtrl');
-  }
-  if (e.shiftKey) {
-    parts.push('Shift');
-  }
-  if (e.altKey) {
-    parts.push('Alt');
-  }
-  const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
-  if (/^[A-Z]$/.test(key)) {
-    parts.push(key);
-  }
-  return parts.join('+');
-}
-
-async function copyToClipboard(text: string) {
-  if (!text) {
-    return false;
-  }
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -153,7 +104,7 @@ export function DevToolsPanel(props: DevToolsProps) {
   const [activeInspect, setActiveInspect] = useState<boolean>(false);
   // 面板显隐状态：默认隐藏，热键/按钮控制
   const [visible, setVisible] = useState<boolean>(false);
-  const { combo, setCombo } = useDevtoolsHotkeys({
+  const { combo } = useDevtoolsHotkeys({
     combo:
       typeof props.shortcut === 'string'
         ? props.shortcut
@@ -166,131 +117,73 @@ export function DevToolsPanel(props: DevToolsProps) {
     onInspectToggle: () => setActiveInspect((v) => !v),
   });
 
-  const allTreeKeys = useMemo(() => collectTreeKeys(tree), [tree]);
+  const helpContent = (
+    <div className={styles.helpPanel}>
+      <div className={styles.helpTitle}>DevTools</div>
 
-  const settingsContent = (
-    <div className={styles.settingsPanel}>
-      <div className={styles.settingsRow}>
-        <div className={styles.settingsLabel}>快捷键</div>
-        <div className={styles.settingsControl}>
-          <Input
-            value={combo}
-            placeholder="按下组合键"
-            onKeyDown={(e) => {
-              e.preventDefault();
-              const next = toHotkeyFromEvent(e);
-              const invalid = ['Cmd+Q', 'Command+Q', 'Alt+F4', 'Ctrl+Shift+Esc'];
-              if (!next) {
-                return;
-              }
-              if (invalid.includes(next)) {
-                message.warning('该组合与系统/浏览器快捷键冲突');
-                return;
-              }
-              setCombo(next);
-            }}
-          />
-          <Button
-            size="small"
-            type="text"
-            onClick={() => setCombo('CmdOrCtrl+Shift+D')}
-            className={styles.settingsBtn}
-          >
-            重置
-          </Button>
+      <div className={styles.helpGroup}>
+        <div className={styles.helpGroupTitle}>顶部图标</div>
+        <div className={styles.helpItem}>
+          <div className={styles.helpIcon}>
+            <AimOutlined />
+          </div>
+          <div className={styles.helpText}>
+            <div className={styles.helpItemTitle}>拾取</div>
+            <div className={styles.helpItemDesc}>悬浮高亮，点击选中</div>
+          </div>
         </div>
-      </div>
-      <div className={styles.settingsHint}>建议使用 Cmd/Ctrl + Shift + 字母</div>
-
-      <div className={styles.settingsDivider} />
-
-      <div className={styles.settingsRow}>
-        <div className={styles.settingsLabel}>拾取</div>
-        <div className={styles.settingsControl}>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            icon={<AimOutlined />}
-            aria-pressed={activeInspect}
-            onClick={() => setActiveInspect((v) => !v)}
-          >
-            {activeInspect ? '已开启' : '已关闭'}
-          </Button>
+        <div className={styles.helpItem}>
+          <div className={styles.helpIcon}>
+            <QuestionCircleOutlined />
+          </div>
+          <div className={styles.helpText}>
+            <div className={styles.helpItemTitle}>说明</div>
+            <div className={styles.helpItemDesc}>打开这份速览</div>
+          </div>
+        </div>
+        <div className={styles.helpItem}>
+          <div className={styles.helpIcon}>
+            <CloseOutlined />
+          </div>
+          <div className={styles.helpText}>
+            <div className={styles.helpItemTitle}>关闭</div>
+            <div className={styles.helpItemDesc}>隐藏面板</div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.settingsRow}>
-        <div className={styles.settingsLabel}>节点</div>
-        <div className={styles.settingsControl}>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            icon={<CopyOutlined />}
-            disabled={!selected}
-            onClick={async () => {
-              const ok = await copyToClipboard(selected?.key ?? '');
-              if (ok) {
-                message.success('已复制节点 key');
-              } else {
-                message.warning('复制失败');
-              }
-            }}
-          >
-            复制 key
-          </Button>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            icon={<CopyOutlined />}
-            disabled={!selected}
-            onClick={async () => {
-              const ok = await copyToClipboard(selected ? `#${selected.key}` : '');
-              if (ok) {
-                message.success('已复制选择器');
-              } else {
-                message.warning('复制失败');
-              }
-            }}
-          >
-            复制选择器
-          </Button>
+      <div className={styles.helpDivider} />
+
+      <div className={styles.helpGroup}>
+        <div className={styles.helpGroupTitle}>面板操作</div>
+        <div className={styles.helpItem}>
+          <div className={styles.helpIcon}>
+            <SearchOutlined />
+          </div>
+          <div className={styles.helpText}>
+            <div className={styles.helpItemTitle}>搜索</div>
+            <div className={styles.helpItemDesc}>过滤组件树</div>
+          </div>
+        </div>
+        <div className={styles.helpItem}>
+          <div className={styles.helpIconGroup}>
+            <LeftOutlined />
+            <RightOutlined />
+          </div>
+          <div className={styles.helpText}>
+            <div className={styles.helpItemTitle}>面包屑</div>
+            <div className={styles.helpItemDesc}>快速跳转到路径节点</div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.settingsRow}>
-        <div className={styles.settingsLabel}>树</div>
-        <div className={styles.settingsControl}>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            icon={<ExpandOutlined />}
-            disabled={allTreeKeys.length === 0}
-            onClick={() => setExpandedKeys(new Set(allTreeKeys))}
-          >
-            展开全部
-          </Button>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            icon={<DownSquareOutlined />}
-            disabled={!tree}
-            onClick={() => setExpandedKeys(tree ? new Set([tree.key]) : new Set())}
-          >
-            折叠全部
-          </Button>
-          <Button
-            size="small"
-            type="text"
-            className={styles.settingsBtn}
-            onClick={() => setSearch('')}
-          >
-            清空搜索
-          </Button>
+      <div className={styles.helpDivider} />
+
+      <div className={styles.helpGroup}>
+        <div className={styles.helpGroupTitle}>快捷键</div>
+        <div className={styles.helpShortcut}>
+          <span className={styles.helpKbd}>{combo}</span>
+          <span className={styles.helpShortcutDesc}>显示/隐藏面板</span>
         </div>
       </div>
     </div>
@@ -419,11 +312,11 @@ export function DevToolsPanel(props: DevToolsProps) {
             <Popover
               trigger="click"
               placement="bottomRight"
-              overlayClassName={styles.settingsOverlay}
-              content={settingsContent}
+              overlayClassName={styles.helpOverlay}
+              content={helpContent}
             >
-              <Tooltip title="设置快捷键" placement="bottom">
-                <Button type="text" icon={<SettingOutlined />} />
+              <Tooltip title="说明" placement="bottom">
+                <Button type="text" icon={<QuestionCircleOutlined />} />
               </Tooltip>
             </Popover>
             <Tooltip title="关闭" placement="bottom">

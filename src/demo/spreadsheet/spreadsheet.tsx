@@ -573,7 +573,7 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     }
     // 如果数据版本发生变化，强制重绘
     if (this.props.dataVersion !== oldProps.dataVersion) {
-      this.markNeedsPaint();
+      this.setState({ version: this.state.version + 1 });
     }
     super.didUpdateWidget(oldProps);
   }

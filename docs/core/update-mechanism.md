@@ -39,18 +39,19 @@ sidebar_position: 2
 标记当前组件为"脏"状态，请求重新构建。
 
 - **API**: `markDirty(): void`
-- **触发**: `setState` 内部自动调用，或在特殊情况下手动调用。
+- **触发**: 通常由 `setState` 内部自动调用；仅在直接继承 `Widget` 等低层组件中手动调用。
 - **机制**:
     1.  将 `_dirty` 标志置为 `true`。
     2.  调用 `runtime.scheduleUpdate(this)` 将自身加入调度队列。
     3.  **关键联动**: 自动调用 `markNeedsLayout()`，因为重建通常意味着布局可能改变。
 
 ```typescript
-// 示例：自定义交互组件手动触发更新
-class InteractiveBox extends StatefulWidget {
+// 示例：StatefulWidget 使用 setState 触发更新（内部会调用 markDirty）
+class InteractiveBox extends StatefulWidget<WidgetProps, { highlight: boolean }> {
+  state = { highlight: false };
+
   onHover() {
-    this.highlight = true;
-    this.markDirty(); // 手动触发更新
+    this.setState({ highlight: true });
   }
 }
 ```
