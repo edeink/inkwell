@@ -77,8 +77,10 @@ export class NextText extends Widget<NextTextProps> {
   maxLines?: number;
   overflow?: Overflow;
 
-  private static measureCanvas: HTMLCanvasElement = document.createElement('canvas');
-  private static measureCtx: CanvasRenderingContext2D = NextText.measureCanvas.getContext('2d')!;
+  private static measureCanvas: HTMLCanvasElement | null =
+    typeof document === 'undefined' ? null : document.createElement('canvas');
+  private static measureCtx: CanvasRenderingContext2D | null =
+    NextText.measureCanvas?.getContext('2d') ?? null;
 
   protected createChildWidget(_childData: WidgetProps): Widget | null {
     void _childData;

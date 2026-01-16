@@ -84,8 +84,10 @@ export class Text extends Widget<TextProps> {
   maxLines?: number;
   overflow?: Overflow;
 
-  private static measureCanvas: HTMLCanvasElement = document.createElement('canvas');
-  private static measureCtx: CanvasRenderingContext2D = Text.measureCanvas.getContext('2d')!;
+  private static measureCanvas: HTMLCanvasElement | null =
+    typeof document === 'undefined' ? null : document.createElement('canvas');
+  private static measureCtx: CanvasRenderingContext2D | null =
+    Text.measureCanvas?.getContext('2d') ?? null;
 
   protected createChildWidget(_childData: WidgetProps): Widget | null {
     void _childData;

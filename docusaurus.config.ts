@@ -7,6 +7,27 @@ import type { Config } from '@docusaurus/types';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+class EmitCommonjsPackageJsonPlugin {
+  apply(compiler: any) {
+    const pluginName = 'EmitCommonjsPackageJsonPlugin';
+    const { webpack } = compiler;
+    compiler.hooks.thisCompilation.tap(pluginName, (compilation: any) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: pluginName,
+          stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+        },
+        () => {
+          compilation.emitAsset(
+            'package.json',
+            new webpack.sources.RawSource(JSON.stringify({ type: 'commonjs' })),
+          );
+        },
+      );
+    });
+  }
+}
+
 const config: Config = {
   title: 'Inkwell 文档',
   tagline: '基于 Canvas 的高性能 UI 系统，友好的 JSX 体验',
@@ -75,6 +96,7 @@ const config: Config = {
                 '@spreadsheet': path.resolve(__dirname, './src/demo/spreadsheet'),
               },
             },
+            plugins: isServer ? [new EmitCommonjsPackageJsonPlugin()] : [],
             module: {
               rules: [
                 {
@@ -85,22 +107,32 @@ const config: Config = {
                 {
                   test: /\.module\.less$/,
                   use: [
-                    'style-loader',
-                    {
-                      loader: 'css-loader',
-                      options: {
-                        modules: {
-                          localIdentName: 'ink_[local]_[hash:base64:5]',
-                        },
-                        importLoaders: 1,
+                    ...getStyleLoaders(isServer, {
+                      modules: {
+                        localIdentName: 'ink_[local]_[hash:base64:5]',
+                        exportOnlyLocals: isServer,
                       },
+                      importLoaders: 2,
+                      sourceMap: !isProd,
+                    }),
+                    {
+                      loader: 'less-loader',
+                      options: { sourceMap: !isProd },
                     },
-                    'less-loader',
                   ],
                 },
                 {
                   test: /(?<!module)\.less$/,
-                  use: ['style-loader', 'css-loader', 'less-loader'],
+                  use: [
+                    ...getStyleLoaders(isServer, {
+                      importLoaders: 2,
+                      sourceMap: !isProd,
+                    }),
+                    {
+                      loader: 'less-loader',
+                      options: { sourceMap: !isProd },
+                    },
+                  ],
                 },
               ],
             },

@@ -20,6 +20,17 @@
   --ink-shadow-lg: 0 8px 24px rgb(0 0 0 / 15%);
 }
 
+html {
+  /* 禁止 chrome 左右滑动返回上一页 */
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+body {
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
 html[data-theme='dark'] {
   --ink-surface: #0d1117;
   --ink-card: #0b1320;
