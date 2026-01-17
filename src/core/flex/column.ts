@@ -174,7 +174,7 @@ export class Column extends Widget<ColumnProps> {
     _childIndex: number,
   ): BoxConstraints {
     // 根据交叉轴对齐方式确定子组件宽度约束
-    if (this.crossAxisAlignment === 'stretch') {
+    if (this.crossAxisAlignment === 'stretch' && constraints.maxWidth !== Infinity) {
       // 拉伸子组件以填充整个宽度
       return {
         minWidth: constraints.maxWidth,

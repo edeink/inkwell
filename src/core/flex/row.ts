@@ -217,7 +217,7 @@ export class Row extends Widget<RowProps> {
     _childIndex: number,
   ): BoxConstraints {
     // 根据交叉轴对齐方式确定子组件高度约束
-    if (this.crossAxisAlignment === 'stretch') {
+    if (this.crossAxisAlignment === 'stretch' && constraints.maxHeight !== Infinity) {
       // 拉伸子组件以填充整个高度
       return {
         minWidth: 0,
