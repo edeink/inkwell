@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { BlockNodeRenderer } from '../block-renderers';
+import { hasFrontMatter } from '../front-matter/has-front-matter';
 import { MarkdownParser, NodeType } from '../parser';
 
 import type { ComponentType } from '@/core/type';
@@ -132,6 +133,20 @@ describe('MarkdownParser', () => {
     const text = '---';
     const ast = parser.parse(text);
     expect(ast.children![0].type).toBe(NodeType.HorizontalRule);
+  });
+});
+
+describe('FrontMatter', () => {
+  it('hasFrontMatter 在空数据时应返回 false', () => {
+    expect(hasFrontMatter({})).toBe(false);
+    expect(hasFrontMatter({ categories: [] })).toBe(false);
+  });
+
+  it('hasFrontMatter 在任意字段存在时应返回 true', () => {
+    expect(hasFrontMatter({ title: 'T' })).toBe(true);
+    expect(hasFrontMatter({ date: '2026-01-01' })).toBe(true);
+    expect(hasFrontMatter({ link: 'https://example.com' })).toBe(true);
+    expect(hasFrontMatter({ categories: ['a'] })).toBe(true);
   });
 });
 

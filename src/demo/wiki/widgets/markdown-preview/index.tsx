@@ -20,12 +20,14 @@
  */
 import { parseMarkdownFrontMatter } from '../../helpers/wiki-doc';
 
-import { BlockNodeRenderer } from './block-renderers';
-import { MarkdownParser, NodeType, type MarkdownNode } from './parser';
+import { hasFrontMatter } from './front-matter/has-front-matter.ts';
+import { FrontMatter } from './front-matter/index.tsx';
+import { MarkdownBody } from './markdown-body.tsx';
+import { MarkdownParser, type MarkdownNode } from './parser';
 
 import type { ThemePalette } from '@/styles/theme';
 
-import { Column, Container, Padding, Row, StatelessWidget, Text, type WidgetProps } from '@/core';
+import { Column, StatelessWidget, type WidgetProps } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
 
 export type MarkdownPreviewProps = {
@@ -37,22 +39,17 @@ export type MarkdownPreviewProps = {
 
 const parser = new MarkdownParser();
 
-export { BlockNodeRenderer, MarkdownParser, NodeType, type MarkdownNode };
+export { BlockNodeRenderer } from './block-renderers';
+export { MarkdownParser, NodeType, type MarkdownNode } from './parser';
 
 export class MarkdownPreview extends StatelessWidget<MarkdownPreviewProps> {
   protected render() {
     const { content, theme, ast: astProp, headerKeyPrefix } = this.props;
-    const parsed = parseMarkdownFrontMatter(content);
-    const ast = astProp ?? parser.parse(parsed.body);
+    const { frontMatter, body } = parseMarkdownFrontMatter(content);
+    const ast = astProp ?? parser.parse(body);
 
     const effectiveHeaderKeyPrefix = headerKeyPrefix ?? `${this.key || 'md'}-h`;
-    let headerIdx = 0;
-
-    const hasFrontMatter =
-      !!parsed.frontMatter.title ||
-      !!parsed.frontMatter.link ||
-      !!parsed.frontMatter.date ||
-      (parsed.frontMatter.categories?.length ?? 0) > 0;
+    const showFrontMatter = hasFrontMatter(frontMatter);
 
     return (
       <Column
@@ -60,74 +57,8 @@ export class MarkdownPreview extends StatelessWidget<MarkdownPreviewProps> {
         mainAxisAlignment={MainAxisAlignment.Start}
         mainAxisSize={MainAxisSize.Min}
       >
-        {hasFrontMatter ? (
-          <Container alignment="topLeft">
-            <Padding padding={{ bottom: 16 }}>
-              <Column crossAxisAlignment={CrossAxisAlignment.Start} spacing={10}>
-                {parsed.frontMatter.title ? (
-                  <Text
-                    text={parsed.frontMatter.title}
-                    fontSize={28}
-                    lineHeight={36}
-                    fontWeight="bold"
-                    color={theme.text.primary}
-                  />
-                ) : null}
-                {parsed.frontMatter.date || (parsed.frontMatter.categories?.length ?? 0) > 0 ? (
-                  <Row spacing={10}>
-                    {parsed.frontMatter.date ? (
-                      <Text
-                        text={parsed.frontMatter.date}
-                        fontSize={12}
-                        lineHeight={16}
-                        color={theme.text.secondary}
-                      />
-                    ) : null}
-                    {(parsed.frontMatter.categories?.length ?? 0) > 0 ? (
-                      <Row spacing={6}>
-                        {parsed.frontMatter.categories!.map((c) => (
-                          <Container
-                            key={c}
-                            color={theme.state.hover}
-                            borderRadius={999}
-                            padding={{ left: 8, right: 8, top: 2, bottom: 2 }}
-                          >
-                            <Text
-                              text={c}
-                              fontSize={12}
-                              lineHeight={16}
-                              color={theme.text.secondary}
-                            />
-                          </Container>
-                        ))}
-                      </Row>
-                    ) : null}
-                  </Row>
-                ) : null}
-                {parsed.frontMatter.link ? (
-                  <Text
-                    text={`link: ${parsed.frontMatter.link}`}
-                    fontSize={12}
-                    lineHeight={16}
-                    color={theme.text.placeholder}
-                  />
-                ) : null}
-              </Column>
-            </Padding>
-          </Container>
-        ) : null}
-        {ast.children?.map((node, index) => (
-          <BlockNodeRenderer
-            key={String(index)}
-            node={node}
-            theme={theme}
-            anchorKey={
-              node.type === NodeType.Header
-                ? `${effectiveHeaderKeyPrefix}-${headerIdx++}`
-                : undefined
-            }
-          />
-        ))}
+        {showFrontMatter ? <FrontMatter frontMatter={frontMatter} theme={theme} /> : null}
+        <MarkdownBody ast={ast} theme={theme} headerKeyPrefix={effectiveHeaderKeyPrefix} />
       </Column>
     );
   }
