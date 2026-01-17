@@ -46,7 +46,11 @@ export function getMetricsReport() {
   return Object.entries(PerfMetrics)
     .map(([key, val]) => {
       const avg = val.totalTime / val.count;
-      return `${key}: avg=${avg.toFixed(2)}ms, total=${val.totalTime.toFixed(2)}ms, count=${val.count}`;
+      return (
+        `${key}: avg=${avg.toFixed(2)}ms, ` +
+        `total=${val.totalTime.toFixed(2)}ms, ` +
+        `count=${val.count}`
+      );
     })
     .join('\n');
 }

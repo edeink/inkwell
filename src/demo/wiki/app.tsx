@@ -2,6 +2,7 @@
 import {
   createWikiDocLoader,
   flattenSidebarToDocMetas,
+  parseMarkdownFrontMatter,
   type SidebarItem,
 } from './helpers/wiki-doc';
 import gettingStarted from './raw/guide/getting-started.markdown?raw';
@@ -27,6 +28,25 @@ const rawMarkdownModules: Record<string, () => Promise<unknown>> = {
   './raw/sum-2025.markdown': async () => sum2025,
 };
 
+const rawMarkdownByDocKey: Record<string, string> = {
+  intro,
+  'guide/getting-started': gettingStarted,
+  'guide/layout': layout,
+  sample,
+  'sum-2025': sum2025,
+};
+
+const docLinkByKey: Record<string, string> = Object.fromEntries(
+  Object.entries(rawMarkdownByDocKey).map(([docKey, raw]) => {
+    const parsed = parseMarkdownFrontMatter(raw);
+    return [docKey, parsed.frontMatter.link || docKey];
+  }),
+);
+
+const docKeyByLink: Record<string, string> = Object.fromEntries(
+  Object.entries(docLinkByKey).map(([docKey, link]) => [link, docKey]),
+);
+
 const sidebarItems = (sidebars as WikiSidebarRoot).docs;
 const docs: WikiDoc[] = flattenSidebarToDocMetas(sidebarItems).map((m) => ({
   key: m.id,
@@ -38,6 +58,15 @@ const docs: WikiDoc[] = flattenSidebarToDocMetas(sidebarItems).map((m) => ({
 const loadDoc = createWikiDocLoader(rawMarkdownModules);
 
 export function runApp(runtime: Runtime, width: number, height: number, theme: ThemePalette) {
+  const initialSelectedKey = (() => {
+    if (typeof window === 'undefined') {
+      return '';
+    }
+    const params = new URLSearchParams(window.location.search);
+    const link = params.get('link') || '';
+    return docKeyByLink[link] || '';
+  })();
+
   runtime.render(
     <WikiApp
       width={width}
@@ -46,6 +75,8 @@ export function runApp(runtime: Runtime, width: number, height: number, theme: T
       docs={docs}
       loadDoc={loadDoc}
       sidebarItems={sidebarItems}
+      initialSelectedKey={initialSelectedKey}
+      docLinkByKey={docLinkByKey}
     />,
   );
 }

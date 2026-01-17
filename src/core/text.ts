@@ -27,12 +27,17 @@ export enum TextBaseline {
   Alphabetic = 'alphabetic',
 }
 
+export type FontStyle = 'normal' | 'italic' | 'oblique';
+export type TextDecoration = 'underline' | 'line-through';
+
 export interface TextProps extends WidgetProps {
   text: string;
   fontSize?: number;
   fontFamily?: string;
   fontWeight?: string | number;
+  fontStyle?: FontStyle;
   color?: string;
+  textDecoration?: TextDecoration | TextDecoration[] | 'none';
   height?: number;
   lineHeight?: number;
   textAlign?: TextAlign;
@@ -50,7 +55,7 @@ const DefaultStyle: {
   textAlign: TextAlign;
   textAlignVertical: TextAlignVertical;
 } = {
-  fontSize: 12,
+  fontSize: 14,
   fontFamily: 'Arial, sans-serif',
   fontWeight: 'normal',
   color: '#000000',
@@ -73,10 +78,12 @@ export interface TextLineMetrics {
 
 export class Text extends Widget<TextProps> {
   text: string = '';
-  fontSize: number = 16;
+  fontSize: number = DefaultStyle.fontSize;
   fontFamily: string = DefaultStyle.fontFamily;
   fontWeight: string | number = DefaultStyle.fontWeight;
+  fontStyle: FontStyle = 'normal';
   color: string = DefaultStyle.color;
+  textDecoration: TextDecoration[] = [];
   height?: number;
   lineHeight?: number;
   textAlign: TextAlign = DefaultStyle.textAlign;
@@ -174,6 +181,19 @@ export class Text extends Widget<TextProps> {
     this.initTextProperties(data);
   }
 
+  private normalizeTextDecoration(val: TextProps['textDecoration']): TextDecoration[] {
+    if (!val || val === 'none') {
+      return [];
+    }
+    if (Array.isArray(val)) {
+      return val.filter((v): v is TextDecoration => v === 'underline' || v === 'line-through');
+    }
+    if (val === 'underline' || val === 'line-through') {
+      return [val];
+    }
+    return [];
+  }
+
   private initTextProperties(data: TextProps): void {
     let needsLayout = false;
     let needsPaint = false;
@@ -219,11 +239,29 @@ export class Text extends Widget<TextProps> {
       needsLayout = true;
     }
 
+    // FontStyle
+    const newFontStyle = (data.fontStyle ?? this.fontStyle) as FontStyle;
+    if (this.fontStyle !== newFontStyle) {
+      this.fontStyle = newFontStyle;
+      needsLayout = true;
+    }
+
     // Color
     const newColor = (data.color ?? this.color) as string;
     if (this.color !== newColor) {
       this.color = newColor;
       needsPaint = true;
+    }
+
+    // TextDecoration
+    if (data.textDecoration !== undefined) {
+      const normalized = this.normalizeTextDecoration(data.textDecoration);
+      const prev = this.textDecoration;
+      const same = prev.length === normalized.length && prev.every((v, i) => v === normalized[i]);
+      if (!same) {
+        this.textDecoration = normalized;
+        needsPaint = true;
+      }
     }
 
     // Height
@@ -289,7 +327,7 @@ export class Text extends Widget<TextProps> {
 
   private getLayoutHash(constraints: BoxConstraints): string {
     return (
-      `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-` +
+      `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-${this.fontStyle}-` +
       `${this.lineHeight}-${this.textAlign}-${this.textAlignVertical}-${this.maxLines}-` +
       `${this.overflow}-${constraints.minWidth}-${constraints.maxWidth}-` +
       `${constraints.minHeight}-${constraints.maxHeight}`
@@ -318,7 +356,8 @@ export class Text extends Widget<TextProps> {
     }
     const fontFamily = this.fontFamily || DefaultStyle.fontFamily;
     const fontWeight = this.fontWeight || DefaultStyle.fontWeight;
-    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const fontStyle = this.fontStyle || 'normal';
+    ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
     const m = ctx.measureText(this.text);
     const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
     const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
@@ -590,7 +629,9 @@ export class Text extends Widget<TextProps> {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
       fontWeight: this.fontWeight,
+      fontStyle: this.fontStyle,
       color: this.color,
+      textDecoration: this.textDecoration,
       lineHeight: lineHeightPx,
       textAlign: horiz,
       textBaseline: DefaultStyle.textBaseline,

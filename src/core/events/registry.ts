@@ -70,7 +70,6 @@ class EventRegistryImpl {
       // 这里简单合并，优先执行 global (通常是 props)，然后是 runtime dynamic?
       // 或者保持注册顺序？
       // 目前实现：简单的数组合并，并去重
-      // console.log(`[EventRegistry] getHandlers key=${key} type=${type} global=${globalHandlers.length} local=${local.length}`);
       const merged = [...globalHandlers, ...local];
       const unique: HandlerEntry[] = [];
       const seen = new Set<EventHandler>();

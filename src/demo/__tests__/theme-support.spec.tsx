@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { EditableTextDemo } from '../editable-text/app';
-import { BlockNodeRenderer } from '../wiki/widgets/markdown-preview/block-renderer';
+import { BlockNodeRenderer } from '../wiki/widgets/markdown-preview/block-renderers';
 import { NodeType } from '../wiki/widgets/markdown-preview/parser';
 import { WikiContent } from '../wiki/widgets/wiki-content';
 

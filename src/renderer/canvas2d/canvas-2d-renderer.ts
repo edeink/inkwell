@@ -4,6 +4,10 @@ import type { IRenderer, RendererOptions } from '../IRenderer';
  * Canvas2D 渲染器实现
  * 基于原生 HTML5 Canvas 2D Context
  */
+type BorderRadius =
+  | number
+  | { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number };
+
 export class Canvas2DRenderer implements IRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
@@ -309,30 +313,70 @@ export class Canvas2DRenderer implements IRenderer {
     fontSize?: number;
     fontFamily?: string;
     fontWeight?: string | number;
+    fontStyle?: 'normal' | 'italic' | 'oblique';
     color?: string;
+    textDecoration?: Array<'underline' | 'line-through'>;
     lineHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
-    textBaseline?: 'top' | 'middle' | 'bottom';
+    textBaseline?: 'top' | 'middle' | 'bottom' | 'alphabetic';
     lines?: string[];
   }): void {
-    if (!this.ctx) {
+    const ctx = this.ctx;
+    if (!ctx) {
       return;
     }
 
-    this.ctx.save();
+    ctx.save();
 
     // 设置字体样式
-    const fontSize = options.fontSize || 16;
+    const fontSize = options.fontSize || 14;
     const fontFamily = options.fontFamily || 'Arial, sans-serif';
     const fontWeight = options.fontWeight || 'normal';
-    this.ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const fontStyle = options.fontStyle || 'normal';
+    ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
 
     // 设置文本颜色
-    this.ctx.fillStyle = options.color || '#000000';
+    ctx.fillStyle = options.color || '#000000';
 
     // 设置文本对齐
-    this.ctx.textAlign = options.textAlign || 'left';
-    this.ctx.textBaseline = options.textBaseline || 'top';
+    ctx.textAlign = options.textAlign || 'left';
+    ctx.textBaseline = options.textBaseline || 'top';
+
+    const drawDecorations = (text: string, x: number, baselineY: number) => {
+      const decorations = options.textDecoration ?? [];
+      if (decorations.length === 0) {
+        return;
+      }
+
+      const m = ctx.measureText(text);
+      const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
+      const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
+      const width = m.width;
+      const align = options.textAlign || 'left';
+      const startX = align === 'left' ? x : align === 'center' ? x - width / 2 : x - width;
+
+      ctx.save();
+      ctx.strokeStyle = String(ctx.fillStyle);
+      ctx.lineWidth = Math.max(1, Math.round(fontSize / 14));
+
+      for (const deco of decorations) {
+        if (deco === 'underline') {
+          const y = baselineY + Math.max(1, descent * 0.5);
+          ctx.beginPath();
+          ctx.moveTo(startX, y);
+          ctx.lineTo(startX + width, y);
+          ctx.stroke();
+        } else if (deco === 'line-through') {
+          const y = baselineY - ascent * 0.35;
+          ctx.beginPath();
+          ctx.moveTo(startX, y);
+          ctx.lineTo(startX + width, y);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    };
 
     // 如果提供了分行文本，使用分行渲染
     if (options.lines && options.lines.length > 0) {
@@ -340,15 +384,17 @@ export class Canvas2DRenderer implements IRenderer {
       let currentY = options.y;
 
       for (const line of options.lines) {
-        this.ctx.fillText(line, options.x, currentY);
+        ctx.fillText(line, options.x, currentY);
+        drawDecorations(line, options.x, currentY);
         currentY += lineHeight;
       }
     } else {
       // 单行文本渲染
-      this.ctx.fillText(options.text, options.x, options.y);
+      ctx.fillText(options.text, options.x, options.y);
+      drawDecorations(options.text, options.x, options.y);
     }
 
-    this.ctx.restore();
+    ctx.restore();
   }
 
   /**
@@ -372,14 +418,7 @@ export class Canvas2DRenderer implements IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    borderRadius?:
-      | number
-      | {
-          topLeft: number;
-          topRight: number;
-          bottomLeft: number;
-          bottomRight: number;
-        };
+    borderRadius?: BorderRadius;
   }): void {
     if (!this.ctx) {
       return;

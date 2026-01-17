@@ -16,6 +16,10 @@ export interface RendererOptions {
   height: number;
 }
 
+export type BorderRadius =
+  | number
+  | { topLeft: number; topRight: number; bottomLeft: number; bottomRight: number };
+
 /**
  * 渲染器接口
  * 所有渲染引擎实现都需要遵循此接口
@@ -124,7 +128,9 @@ export interface IRenderer {
     fontSize?: number;
     fontFamily?: string;
     fontWeight?: string | number;
+    fontStyle?: 'normal' | 'italic' | 'oblique';
     color?: string;
+    textDecoration?: Array<'underline' | 'line-through'>;
     lineHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
     textBaseline?: 'top' | 'middle' | 'bottom' | 'alphabetic';
@@ -143,14 +149,7 @@ export interface IRenderer {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    borderRadius?:
-      | number
-      | {
-          topLeft: number;
-          topRight: number;
-          bottomLeft: number;
-          bottomRight: number;
-        };
+    borderRadius?: BorderRadius;
   }): void;
 
   drawLine(options: {

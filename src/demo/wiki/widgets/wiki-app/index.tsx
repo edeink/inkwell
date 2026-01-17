@@ -1,13 +1,11 @@
 /** @jsxImportSource @/utils/compiler */
+import { parseMarkdownFrontMatter, type SidebarItem } from '../../helpers/wiki-doc';
 import { FStateWidget } from '../fstate-widget';
 import { MarkdownPreview } from '../markdown-preview';
 import { MarkdownParser, NodeType, type MarkdownNode } from '../markdown-preview/parser';
+import { type WikiDoc, type WikiDocMeta, type WikiSidebarProps } from '../types';
 import { WikiSidebar } from '../wiki-sidebar';
 import { WikiToc, type MarkdownTocItem } from '../wiki-toc';
-
-import type { SidebarItem } from '../../helpers/wiki-doc';
-import type { WikiDoc, WikiDocMeta, WikiSidebarProps } from '../types';
-import type { ThemePalette } from '@/styles/theme';
 
 import {
   Container,
@@ -23,6 +21,7 @@ import {
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
 import { findWidget } from '@/core/helper/widget-selector';
+import { type ThemePalette } from '@/styles/theme';
 
 type WikiAppProps = {
   width: number;
@@ -31,6 +30,8 @@ type WikiAppProps = {
   docs: WikiDoc[];
   loadDoc: (docId: string) => Promise<{ content: string }>;
   sidebarItems?: SidebarItem[];
+  initialSelectedKey?: string;
+  docLinkByKey?: Record<string, string>;
 } & WidgetProps;
 
 type State = {
@@ -91,8 +92,13 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
 
   protected getInitialState(props: WikiAppProps): State {
     const first = props.docs[0]?.key || '';
+    const initialFromProps = props.initialSelectedKey || '';
+    const initial =
+      initialFromProps && props.docs.some((d) => d.key === initialFromProps)
+        ? initialFromProps
+        : first;
     return {
-      selectedKey: first,
+      selectedKey: initial,
       scrollY: 0,
       activeTocKey: '',
       sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
@@ -108,6 +114,13 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       this.tocOffsetYs = [];
       this.setState({ selectedKey: key, scrollY: 0, activeTocKey: '' });
       this.ensureDocLoaded(key);
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.set('tab', 'wiki');
+        params.set('link', this.props.docLinkByKey?.[key] || key);
+        const nextUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+        window.history.replaceState(null, '', nextUrl);
+      }
     }
   };
 
@@ -163,7 +176,8 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     const key = doc.key;
     const content = this.getDocContent(doc);
     if (this.cachedDocKey !== key || this.cachedContent !== content || !this.cachedAst) {
-      const ast = parser.parse(content);
+      const parsed = parseMarkdownFrontMatter(content);
+      const ast = parser.parse(parsed.body);
       const tocKeyPrefix = `md-${key}-h`;
       const toc = collectToc(ast, tocKeyPrefix);
 

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
+
 import { expose, createExposedHandle } from '../decorators';
 
-describe('Decorator @expose', () => {
+describe('装饰器 @expose', () => {
   class BaseComponent {
     @expose
     baseMethod() {
@@ -29,7 +30,7 @@ describe('Decorator @expose', () => {
     }
   }
 
-  it('should expose marked methods', () => {
+  it('应该暴露被标记的方法', () => {
     const component = new Component();
     const handle = createExposedHandle<any>(component);
 
@@ -38,14 +39,14 @@ describe('Decorator @expose', () => {
     expect(handle.publicMethod()).toBe('public');
   });
 
-  it('should hide unmarked methods', () => {
+  it('应该隐藏未标记的方法', () => {
     const component = new Component();
     const handle = createExposedHandle<any>(component);
 
     expect(handle.privateMethod).toBeUndefined();
   });
 
-  it('should inherit exposed methods from base class', () => {
+  it('应该继承基类中被暴露的方法', () => {
     const component = new Component();
     const handle = createExposedHandle<any>(component);
 
@@ -54,7 +55,7 @@ describe('Decorator @expose', () => {
     expect(handle.hiddenBaseMethod).toBeUndefined();
   });
 
-  it('should work with overridden methods', () => {
+  it('应该对重写方法生效', () => {
     const component = new Component();
     const handle = createExposedHandle<any>(component);
 

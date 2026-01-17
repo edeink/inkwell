@@ -325,7 +325,7 @@ function OverlayView({ active, boxRect, label, targetRect, direction, debug }: O
     left = clamp(left, margin, Math.max(margin, vw - margin - infoBox.width));
 
     setInfoPos({ left, top });
-  }, [active, targetRect?.left, targetRect?.top, targetRect?.width, targetRect?.height, infoText]);
+  }, [active, targetRect, infoText]);
 
   if (!active || !boxRect) {
     return null;

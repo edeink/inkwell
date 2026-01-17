@@ -717,7 +717,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       // 构建后验证
       if (this.children.length !== childrenData.length) {
         console.warn(
-          `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个子节点，但实际得到 ${this.children.length} 个。`,
+          `[构建检查] 组件 ${this.type}(${this.key}) 预期包含 ${childrenData.length} 个子节点，` +
+            `但实际得到 ${this.children.length} 个。`,
         );
       }
     } finally {

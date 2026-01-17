@@ -1,3 +1,19 @@
+/**
+ * Markdown 解析器（Demo 级别实现）。
+ *
+ * 该解析器的目标是为 Wiki Demo 提供“足够覆盖常用语法”的 AST，
+ * 并保持实现轻量、易读、可测试。
+ *
+ * 支持范围（按节点类型）：
+ * - 块级：Header/Paragraph/List/OrderedList/TaskList/Quote/CodeBlock/Table/HorizontalRule
+ * - 行内：Text/Bold/Italic/Link/Image/CodeBlock(行内)
+ *
+ * 重要实现说明：
+ * - parse：按行扫描，识别块级结构。
+ * - parseInline：在一行内按最先出现的语法片段切分为多个行内节点。
+ *
+ * 注意：这是简化解析器，不追求完整 Markdown 规范覆盖。
+ */
 export enum NodeType {
   Root = 'root',
   Header = 'header',
