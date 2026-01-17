@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { runApp } from 'wiki-app';
 
 import { InkwellCanvas } from '../common/inkwell-canvas';
 import { DemoKey } from '../type';
-
-import { runApp } from './app';
 
 import type Runtime from '@/runtime';
 
@@ -33,7 +32,7 @@ export default function WikiDemo() {
 
   useEffect(() => {
     if (runtimeRef.current) {
-      runApp(runtimeRef.current, sizeRef.current.width, sizeRef.current.height, theme);
+      runApp(runtimeRef.current!, sizeRef.current.width, sizeRef.current.height, theme);
     }
   }, [theme]);
 

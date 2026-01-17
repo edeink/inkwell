@@ -11,6 +11,9 @@
       "@/*": [
         "./src/*"
       ],
+      "wiki-app": [
+        "./src/demo/wiki/app.tsx"
+      ],
       "@mindmap/*": [
         "./src/demo/mindmap/*"
       ],

@@ -1,7 +1,9 @@
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import Layout from '@theme/Layout';
 
-import UnifiedDemo from '@/demo';
+import type { ComponentType } from 'react';
+
+declare const require: (id: string) => unknown;
 
 export default function DemoPage() {
   return (
@@ -16,7 +18,11 @@ export default function DemoPage() {
         }}
       >
         <BrowserOnly fallback={<div style={{ padding: 20 }}>Loading Playground...</div>}>
-          {() => <UnifiedDemo />}
+          {() => {
+            const mod = require('@/demo') as { default: ComponentType };
+            const UnifiedDemo = mod.default as ComponentType;
+            return <UnifiedDemo />;
+          }}
         </BrowserOnly>
       </div>
     </Layout>

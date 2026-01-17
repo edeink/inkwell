@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'wiki-app': fileURLToPath(new URL('./src/demo/wiki/app.tsx', import.meta.url)),
     },
   },
   test: {

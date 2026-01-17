@@ -5,8 +5,8 @@ import { MarkdownParser, NodeType, type MarkdownNode } from '../markdown-preview
 import { WikiSidebar } from '../wiki-sidebar';
 import { WikiToc, type MarkdownTocItem } from '../wiki-toc';
 
+import type { SidebarItem } from '../../helpers/wiki-doc';
 import type { WikiDoc, WikiDocMeta, WikiSidebarProps } from '../types';
-import type { WidgetProps } from '@/core';
 import type { ThemePalette } from '@/styles/theme';
 
 import {
@@ -19,6 +19,7 @@ import {
   Widget,
   createExposedHandle,
   type ScrollViewHandle,
+  type WidgetProps,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
 import { findWidget } from '@/core/helper/widget-selector';
@@ -28,6 +29,8 @@ type WikiAppProps = {
   height: number;
   theme: ThemePalette;
   docs: WikiDoc[];
+  loadDoc: (docId: string) => Promise<{ content: string }>;
+  sidebarItems?: SidebarItem[];
 } & WidgetProps;
 
 type State = {
@@ -35,6 +38,7 @@ type State = {
   scrollY: number;
   activeTocKey: string;
   sidebarWidth: number;
+  docVersion: number;
 };
 
 const SIDEBAR_DEFAULT_WIDTH = 285;
@@ -73,6 +77,8 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
   private scrollView: ScrollViewHandle | null = null;
   private tocScrollView: ScrollViewHandle | null = null;
   private contentRoot: Widget | null = null;
+  private docContentCache = new Map<string, string>();
+  private docLoading = new Set<string>();
   private cachedDocKey = '';
   private cachedContent = '';
   private cachedAst: MarkdownNode | null = null;
@@ -90,6 +96,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       scrollY: 0,
       activeTocKey: '',
       sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
+      docVersion: 0,
     };
   }
 
@@ -100,8 +107,35 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       this.tocOffsetKeys = [];
       this.tocOffsetYs = [];
       this.setState({ selectedKey: key, scrollY: 0, activeTocKey: '' });
+      this.ensureDocLoaded(key);
     }
   };
+
+  private ensureDocLoaded(docId: string) {
+    if (!docId) {
+      return;
+    }
+    if (this.docContentCache.has(docId)) {
+      return;
+    }
+    if (this.docLoading.has(docId)) {
+      return;
+    }
+    this.docLoading.add(docId);
+    this.props
+      .loadDoc(docId)
+      .then(({ content }) => {
+        this.docContentCache.set(docId, content);
+      })
+      .finally(() => {
+        this.docLoading.delete(docId);
+        this.setState({ docVersion: this.state.docVersion + 1 });
+      });
+  }
+
+  private getDocContent(doc: WikiDoc): string {
+    return this.docContentCache.get(doc.key) ?? doc.content;
+  }
 
   private handleSidebarResize = (nextWidth: number) => {
     const clamped = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, nextWidth));
@@ -127,7 +161,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
 
   private getParsedDoc(doc: WikiDoc) {
     const key = doc.key;
-    const content = doc.content;
+    const content = this.getDocContent(doc);
     if (this.cachedDocKey !== key || this.cachedContent !== content || !this.cachedAst) {
       const ast = parser.parse(content);
       const tocKeyPrefix = `md-${key}-h`;
@@ -272,6 +306,9 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     const contentW = Math.max(0, width - sidebarWidth - DIVIDER_WIDTH - TOC_WIDTH);
 
     const doc = docs.find((d) => d.key === selectedKey) || docs[0] || null;
+    if (doc) {
+      this.ensureDocLoaded(doc.key);
+    }
     const docMetas: WikiDocMeta[] = docs.map((d) => ({
       key: d.key,
       title: d.title,
@@ -286,6 +323,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       minWidth: SIDEBAR_MIN_WIDTH,
       maxWidth: SIDEBAR_MAX_WIDTH,
       dividerWidth: DIVIDER_WIDTH,
+      sidebarItems: this.props.sidebarItems,
       docs: docMetas,
       selectedKey: selectedKey || '',
       onSelect: this.handleSelect,
@@ -310,36 +348,47 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
             <Expanded flex={{ flex: 1 }}>
               <Container width={contentW} height={height} color={theme.background.surface}>
                 <Padding padding={24}>
-                  <ScrollView
-                    key={`md-${doc.key}-sv`}
-                    ref={this.setScrollViewRef}
-                    onScroll={this.handleContentScroll}
-                  >
-                    <Row
-                      mainAxisSize={MainAxisSize.Max}
-                      mainAxisAlignment={MainAxisAlignment.Center}
-                      crossAxisAlignment={CrossAxisAlignment.Start}
+                  {this.getDocContent(doc) ? (
+                    <ScrollView
+                      key={`md-${doc.key}-sv`}
+                      ref={this.setScrollViewRef}
+                      onScroll={this.handleContentScroll}
                     >
-                      <Container
-                        width={Math.min(Math.max(0, contentW - 24 * 2 - 20 * 2), 900)}
-                        color={theme.background.container}
-                        borderRadius={8}
-                        margin={{ bottom: 28 }}
+                      <Row
+                        mainAxisSize={MainAxisSize.Max}
+                        mainAxisAlignment={MainAxisAlignment.Center}
+                        crossAxisAlignment={CrossAxisAlignment.Start}
                       >
-                        <Padding padding={20}>
-                          <Container ref={(r: unknown) => (this.contentRoot = r as Widget)}>
-                            <MarkdownPreview
-                              key={`md-${doc.key}`}
-                              theme={theme}
-                              content={doc.content}
-                              ast={this.getParsedDoc(doc).ast}
-                              headerKeyPrefix={this.getParsedDoc(doc).tocKeyPrefix}
-                            />
-                          </Container>
-                        </Padding>
-                      </Container>
-                    </Row>
-                  </ScrollView>
+                        <Container
+                          width={Math.min(Math.max(0, contentW - 24 * 2 - 20 * 2), 900)}
+                          color={theme.background.container}
+                          borderRadius={8}
+                          margin={{ bottom: 28 }}
+                        >
+                          <Padding padding={20}>
+                            <Container ref={(r: unknown) => (this.contentRoot = r as Widget)}>
+                              <MarkdownPreview
+                                key={`md-${doc.key}`}
+                                theme={theme}
+                                content={this.getDocContent(doc)}
+                                ast={this.getParsedDoc(doc).ast}
+                                headerKeyPrefix={this.getParsedDoc(doc).tocKeyPrefix}
+                              />
+                            </Container>
+                          </Padding>
+                        </Container>
+                      </Row>
+                    </ScrollView>
+                  ) : (
+                    <Container
+                      width={contentW}
+                      height={Math.max(0, height - 24 * 2)}
+                      alignment="center"
+                      color={theme.background.surface}
+                    >
+                      <Text text="正在加载文档" fontSize={14} color={theme.text.secondary} />
+                    </Container>
+                  )}
                 </Padding>
               </Container>
             </Expanded>
@@ -348,7 +397,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
               width={TOC_WIDTH}
               height={height}
               theme={theme}
-              toc={this.getParsedDoc(doc).toc}
+              toc={this.getDocContent(doc) ? this.getParsedDoc(doc).toc : []}
               activeKey={this.state.activeTocKey}
               onSelect={this.scrollToAnchor}
               onRef={this.setTocScrollViewRef}

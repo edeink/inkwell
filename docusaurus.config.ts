@@ -93,6 +93,7 @@ const config: Config = {
                 '@': path.resolve(__dirname, './src'),
                 '@site/src': path.resolve(__dirname, './src/docusaurus'),
                 '@demo': path.resolve(__dirname, './src/demo'),
+                'wiki-app': path.resolve(__dirname, './src/demo/wiki/app.tsx'),
                 '@mindmap': path.resolve(__dirname, './src/demo/mindmap'),
                 '@spreadsheet': path.resolve(__dirname, './src/demo/spreadsheet'),
               },
@@ -101,9 +102,7 @@ const config: Config = {
             module: {
               rules: [
                 {
-                  test: /\.(md|markdown)$/,
-                  include: [path.resolve(__dirname, './src/demo/wiki/raw')],
-                  resourceQuery: /raw/,
+                  test: /\.markdown$/,
                   type: 'asset/source',
                 },
                 {

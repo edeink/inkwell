@@ -1,3 +1,4 @@
+import type { SidebarItem } from '../helpers/wiki-doc';
 import type { WidgetProps } from '@/core';
 import type { ThemePalette } from '@/styles/theme';
 
@@ -21,6 +22,7 @@ export type WikiSidebarProps = {
   minWidth?: number;
   maxWidth?: number;
   dividerWidth?: number;
+  sidebarItems?: SidebarItem[];
   docs: WikiDocMeta[];
   selectedKey: string;
   onSelect: (key: string) => void;
