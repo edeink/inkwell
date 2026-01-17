@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { EditableTextDemo } from '../editable-text/app';
-import { MarkdownPreviewApp } from '../markdown-preview/app';
-import { NodeType } from '../markdown-preview/widgets/markdown-viewer/../../utils/parser';
-import { BlockNodeRenderer } from '../markdown-preview/widgets/markdown-viewer/block-renderer';
+import { BlockNodeRenderer } from '../wiki/widgets/markdown-preview/block-renderer';
+import { NodeType } from '../wiki/widgets/markdown-preview/parser';
+import { WikiContent } from '../wiki/widgets/wiki-content';
 
 import { Themes } from '@/styles/theme';
 
@@ -68,22 +68,23 @@ describe('示例主题支持', () => {
     });
   });
 
-  describe('MarkdownPreviewApp', () => {
-    it('应将主题透传给 MarkdownViewer', () => {
+  describe('WikiContent', () => {
+    it('WikiContent 应使用主题背景色', () => {
       const theme = Themes.dark;
-      const app = MarkdownPreviewApp({ width: 800, height: 600, theme });
-
-      // 结构：ScrollView -> Container -> Container -> MarkdownViewer
-      const scrollView = app;
-      const outerContainer = scrollView.props.children;
-      expect(outerContainer.props.color).toBe(theme.background.surface);
-
-      const innerContainer = outerContainer.props.children;
-      expect(innerContainer.props.color).toBe(theme.background.container);
-      expect(innerContainer.props.decoration.boxShadow.color).toBe(theme.state.active);
-
-      const markdownViewer = innerContainer.props.children;
-      expect(markdownViewer.props.theme).toBe(theme);
+      const widget = new WikiContent({
+        type: 'WikiContent',
+        width: 800,
+        height: 600,
+        theme,
+        doc: {
+          key: 'sample',
+          path: 'sample.md',
+          title: '示例',
+          content: '# 标题\n\n正文',
+        },
+      } as any);
+      const tree = widget.render() as any;
+      expect(tree.props.color).toBe(theme.background.surface);
     });
   });
 

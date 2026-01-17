@@ -86,6 +86,7 @@ const config: Config = {
         configureWebpack(config, isServer, utils) {
           const { getStyleLoaders } = utils;
           return {
+            mergeStrategy: { 'module.rules': 'prepend' },
             devtool: 'source-map',
             resolve: {
               alias: {
@@ -99,6 +100,12 @@ const config: Config = {
             plugins: isServer ? [new EmitCommonjsPackageJsonPlugin()] : [],
             module: {
               rules: [
+                {
+                  test: /\.(md|markdown)$/,
+                  include: [path.resolve(__dirname, './src/demo/wiki/raw')],
+                  resourceQuery: /raw/,
+                  type: 'asset/source',
+                },
                 {
                   test: /\.js$/,
                   include: [path.resolve(__dirname, '.docusaurus')],

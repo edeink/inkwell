@@ -77,4 +77,20 @@ export default tseslint.config([
       'max-len': 'off',
     },
   },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression',
+          message: '禁止在代码中使用 import()，请改为文件顶部的静态 import。',
+        },
+        {
+          selector: 'TSImportType',
+          message: '禁止在类型中使用 import() 查询，请改为文件顶部的 type import。',
+        },
+      ],
+    },
+  },
 ]);

@@ -1,0 +1,298 @@
+/** @jsxImportSource @/utils/compiler */
+import { FStateWidget } from '../fstate-widget';
+
+import type { WikiDocMeta, WikiSidebarProps } from '../types';
+
+import { Column, Container, Padding, Row, ScrollView, Text, type InkwellEvent } from '@/core';
+import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
+
+type Node =
+  | { type: 'dir'; key: string; title: string; depth: number; children: Node[] }
+  | { type: 'file'; key: string; title: string; depth: number; docKey: string };
+
+type State = {
+  expanded: Set<string>;
+};
+
+function toTitleFromPath(path: string): string {
+  const base = path.split('/').pop() || path;
+  return base.replace(/\.md$/i, '');
+}
+
+function buildTree(docs: WikiDocMeta[]): Node[] {
+  const root: { type: 'dir'; key: string; title: string; depth: number; children: Node[] } = {
+    type: 'dir',
+    key: 'root',
+    title: 'root',
+    depth: -1,
+    children: [],
+  };
+
+  const dirMap = new Map<string, Node>();
+  dirMap.set('root', root);
+
+  const ensureDir = (pathKey: string, title: string, depth: number): Node => {
+    const exist = dirMap.get(pathKey);
+    if (exist && exist.type === 'dir') {
+      return exist;
+    }
+    const node: Node = { type: 'dir', key: pathKey, title, depth, children: [] };
+    dirMap.set(pathKey, node);
+    return node;
+  };
+
+  const sorted = docs.slice().sort((a, b) => a.path.localeCompare(b.path));
+  for (const doc of sorted) {
+    const segs = doc.path.split('/').filter(Boolean);
+    let parentKey = 'root';
+    let depth = 0;
+    for (let i = 0; i < segs.length; i++) {
+      const seg = segs[i];
+      const isFile = i === segs.length - 1;
+      if (isFile) {
+        const parent = dirMap.get(parentKey) as Node;
+        if (parent && parent.type === 'dir') {
+          parent.children.push({
+            type: 'file',
+            key: `file:${doc.key}`,
+            title: doc.title || toTitleFromPath(doc.path),
+            depth,
+            docKey: doc.key,
+          });
+        }
+      } else {
+        const dirKey = `${parentKey}/${seg}`;
+        const parent = dirMap.get(parentKey) as Node;
+        const cur = ensureDir(dirKey, seg, depth);
+        if (parent && parent.type === 'dir') {
+          if (!parent.children.some((c) => c.type === 'dir' && c.key === dirKey)) {
+            parent.children.push(cur);
+          }
+        }
+        parentKey = dirKey;
+        depth++;
+      }
+    }
+  }
+
+  const sortChildren = (nodes: Node[]) => {
+    nodes.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'dir' ? -1 : 1;
+      }
+      return a.title.localeCompare(b.title);
+    });
+    for (const n of nodes) {
+      if (n.type === 'dir') {
+        sortChildren(n.children);
+      }
+    }
+  };
+
+  sortChildren(root.children);
+  return root.children;
+}
+
+function flatten(nodes: Node[], expanded: Set<string>): Node[] {
+  const out: Node[] = [];
+  const walk = (ns: Node[]) => {
+    for (const n of ns) {
+      out.push(n);
+      if (n.type === 'dir') {
+        const isOpen = expanded.has(n.key);
+        if (isOpen) {
+          walk(n.children);
+        }
+      }
+    }
+  };
+  walk(nodes);
+  return out;
+}
+
+export class WikiSidebar extends FStateWidget<WikiSidebarProps, State> {
+  private dragging = false;
+  private startClientX = 0;
+  private startWidth = 0;
+  private activePointerId: number | null = null;
+
+  private windowMoveHandler: ((ev: PointerEvent) => void) | null = null;
+  private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
+
+  protected getInitialState(): State {
+    return { expanded: new Set<string>(['root']) };
+  }
+
+  private toggleDir(key: string) {
+    const next = new Set(this.state.expanded);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.setState({ expanded: next });
+  }
+
+  private attachWindowPointerListeners(native?: Event): void {
+    const pe = native as PointerEvent | undefined;
+    this.activePointerId = typeof pe?.pointerId === 'number' ? pe.pointerId : null;
+    if (!this.windowMoveHandler) {
+      this.windowMoveHandler = (ev: PointerEvent) => {
+        if (!this.dragging) {
+          return;
+        }
+        if (this.activePointerId != null && ev.pointerId !== this.activePointerId) {
+          return;
+        }
+        const props = this.props;
+        const onResize = props.onResize;
+        if (!onResize) {
+          return;
+        }
+        const minWidth = props.minWidth ?? 240;
+        const maxWidth = props.maxWidth ?? 600;
+        const dx = ev.clientX - this.startClientX;
+        const next = Math.max(minWidth, Math.min(maxWidth, this.startWidth + dx));
+        onResize(next);
+      };
+    }
+    if (!this.windowUpHandler) {
+      this.windowUpHandler = (ev: PointerEvent) => {
+        if (this.activePointerId != null && ev.pointerId !== this.activePointerId) {
+          return;
+        }
+        this.dragging = false;
+        this.detachWindowPointerListeners();
+      };
+    }
+    window.addEventListener('pointermove', this.windowMoveHandler as EventListener, {
+      capture: true,
+    });
+    window.addEventListener('pointerup', this.windowUpHandler as EventListener, { capture: true });
+  }
+
+  private detachWindowPointerListeners(): void {
+    if (this.windowMoveHandler) {
+      window.removeEventListener('pointermove', this.windowMoveHandler as EventListener, {
+        capture: true,
+      });
+    }
+    if (this.windowUpHandler) {
+      window.removeEventListener('pointerup', this.windowUpHandler as EventListener, {
+        capture: true,
+      });
+    }
+    this.windowMoveHandler = null;
+    this.windowUpHandler = null;
+    this.activePointerId = null;
+  }
+
+  override dispose(): void {
+    this.detachWindowPointerListeners();
+    super.dispose();
+  }
+
+  private onDividerPointerDown(e: InkwellEvent) {
+    const props = this.props;
+    if (!props.onResize) {
+      return false;
+    }
+    this.dragging = true;
+    this.startWidth = props.width;
+    this.startClientX = (e.nativeEvent as PointerEvent).clientX || 0;
+    this.attachWindowPointerListeners(e.nativeEvent as Event);
+    e.stopPropagation?.();
+    return false;
+  }
+
+  render() {
+    const { width, height, theme, docs, selectedKey, onSelect } = this.props;
+    const dividerWidth = this.props.dividerWidth ?? 16;
+    const tree = buildTree(docs);
+    const nodes = flatten(tree, this.state.expanded);
+
+    return (
+      <Container width={width + dividerWidth} height={height} color={theme.background.surface}>
+        <Row
+          width={width + dividerWidth}
+          height={height}
+          crossAxisAlignment={CrossAxisAlignment.Stretch}
+          mainAxisSize={MainAxisSize.Max}
+        >
+          <Container width={width} height={height} color={theme.background.surface}>
+            <ScrollView
+              width={width}
+              height={height}
+              scrollBarWidth={6}
+              scrollBarColor={theme.text.secondary}
+            >
+              <Padding padding={12}>
+                <Column
+                  mainAxisSize={MainAxisSize.Min}
+                  crossAxisAlignment={CrossAxisAlignment.Start}
+                  mainAxisAlignment={MainAxisAlignment.Start}
+                  spacing={6}
+                >
+                  {nodes.map((n) => {
+                    const padLeft = Math.max(0, n.depth) * 12;
+                    if (n.type === 'dir') {
+                      const open = this.state.expanded.has(n.key);
+                      return (
+                        <Container
+                          key={n.key}
+                          width={width - 24}
+                          height={28}
+                          padding={{ left: 8 + padLeft, right: 8 }}
+                          borderRadius={6}
+                          color={theme.background.surface}
+                          cursor="pointer"
+                          onClick={() => this.toggleDir(n.key)}
+                        >
+                          <Text
+                            text={`${open ? '▾' : '▸'} ${n.title}`}
+                            fontSize={14}
+                            color={theme.text.primary}
+                          />
+                        </Container>
+                      );
+                    }
+                    const active = n.docKey === selectedKey;
+                    return (
+                      <Container
+                        key={n.key}
+                        width={width - 24}
+                        height={28}
+                        padding={{ left: 24 + padLeft, right: 8 }}
+                        borderRadius={6}
+                        color={active ? theme.state.hover : theme.background.surface}
+                        cursor="pointer"
+                        onClick={() => onSelect(n.docKey)}
+                      >
+                        <Text
+                          text={n.title}
+                          fontSize={14}
+                          color={active ? theme.text.primary : theme.text.secondary}
+                        />
+                      </Container>
+                    );
+                  })}
+                </Column>
+              </Padding>
+            </ScrollView>
+          </Container>
+
+          <Container
+            width={dividerWidth}
+            height={height}
+            cursor="col-resize"
+            color="transparent"
+            alignment="center"
+            onPointerDown={this.onDividerPointerDown.bind(this)}
+          >
+            <Container width={1} height={height} color={theme.border.base} pointerEvent="none" />
+          </Container>
+        </Row>
+      </Container>
+    );
+  }
+}

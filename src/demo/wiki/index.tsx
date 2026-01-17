@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { InkwellCanvas } from '../common/inkwell-canvas';
+import { DemoKey } from '../type';
 
 import { runApp } from './app';
 
@@ -9,12 +10,12 @@ import type Runtime from '@/runtime';
 import { useTheme } from '@/styles/theme';
 
 export const meta = {
-  key: 'markdown-preview',
-  label: 'Markdown',
-  description: '使用 Inkwell 组件库实现的 Markdown 解析和渲染演示。',
+  key: DemoKey.Wiki,
+  label: 'Wiki',
+  description: '基于 Inkwell 的多文档 Markdown Wiki。',
 };
 
-export default function MarkdownPreviewDemo() {
+export default function WikiDemo() {
   const theme = useTheme();
   const runtimeRef = useRef<Runtime | null>(null);
   const sizeRef = useRef({ width: 0, height: 0 });

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScrollView } from '../scroll-view';
 
-import type { Size } from '@/core/base';
+import type { BoxConstraints, Size } from '@/core/base';
 
 describe('ScrollView', () => {
   beforeEach(() => {
@@ -54,7 +54,7 @@ describe('ScrollView', () => {
     }
 
     // 重写 layoutChildren 以统计调用次数
-    protected layoutChildren(constraints: import('@/core/base').BoxConstraints): Size[] {
+    protected layoutChildren(constraints: BoxConstraints): Size[] {
       this.layoutChildrenCallCount++;
       return super.layoutChildren(constraints);
     }

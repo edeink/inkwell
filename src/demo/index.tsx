@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import EditableText, { meta as EditableTextMeta } from './editable-text';
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
-import MarkdownPreview, { meta as MarkdownPreviewMeta } from './markdown-preview';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
 import Spreadsheet, { meta as SpreadsheetMeta } from './spreadsheet';
 import Swiper, { meta as SwiperMeta } from './swiper';
 import { DemoKey, ThemeType } from './type';
 import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
+import Wiki, { meta as WikiMeta } from './wiki';
 
 import { DevTools } from '@/devtools';
 import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
@@ -23,7 +23,7 @@ export default function UnifiedDemo() {
     if (tab && Object.values(DemoKey).includes(tab as DemoKey)) {
       return tab;
     }
-    return DemoKey.MarkdownPreview;
+    return DemoKey.Wiki;
   });
 
   const [theme, setTheme] = useState<ThemeType>(() => {
@@ -67,7 +67,9 @@ export default function UnifiedDemo() {
           ) {
             return true;
           }
-        } catch {}
+        } catch (err) {
+          void err;
+        }
         cur = cur.parentElement;
       }
       return false;
@@ -107,7 +109,7 @@ export default function UnifiedDemo() {
       { Component: Swiper, ...SwiperMeta },
       { Component: Mindmap, ...MindmapMeta },
       { Component: Spreadsheet, ...SpreadsheetMeta },
-      { Component: MarkdownPreview, ...MarkdownPreviewMeta },
+      { Component: Wiki, ...WikiMeta },
     ],
     [],
   );

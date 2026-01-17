@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TextArea } from '../textarea';
 
+import { Widget } from '@/core/base';
+import { StatefulWidget } from '@/core/state/stateful';
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
@@ -14,8 +16,8 @@ vi.mock('@/core', async () => {
     Text: (props: any) => ({ type: 'Text', props }),
     Padding: (props: any) => ({ type: 'Padding', props }),
     ScrollView: (props: any) => ({ type: 'ScrollView', props }),
-    StatefulWidget: (await import('@/core/state/stateful')).StatefulWidget,
-    Widget: (await import('@/core/base')).Widget,
+    StatefulWidget,
+    Widget,
   };
 });
 

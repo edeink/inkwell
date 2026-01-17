@@ -2,7 +2,7 @@ export enum NodeType {
   Root = 'root',
   Header = 'header',
   Paragraph = 'paragraph',
-  List = 'list', // Unordered
+  List = 'list',
   OrderedList = 'orderedList',
   TaskList = 'taskList',
   ListItem = 'listItem',
@@ -28,38 +28,32 @@ export interface MarkdownNode {
   language?: string;
   href?: string;
   alt?: string;
-  checked?: boolean; // For task list items
-  align?: 'left' | 'center' | 'right'; // For table cells
-  isHeader?: boolean; // For table cells
+  checked?: boolean;
+  align?: 'left' | 'center' | 'right';
+  isHeader?: boolean;
 }
 
 export class MarkdownParser {
   parse(text: string): MarkdownNode {
     const lines = text.split(/\r?\n/);
-    const root: MarkdownNode = {
-      type: NodeType.Root,
-      children: [],
-    };
+    const root: MarkdownNode = { type: NodeType.Root, children: [] };
 
     let i = 0;
     while (i < lines.length) {
       const line = lines[i];
       const trimmedLine = line.trim();
 
-      // Empty line
       if (trimmedLine === '') {
         i++;
         continue;
       }
 
-      // Horizontal Rule
       if (trimmedLine.match(/^(\*{3,}|-{3,}|_{3,})$/)) {
         root.children!.push({ type: NodeType.HorizontalRule });
         i++;
         continue;
       }
 
-      // Code Block
       if (trimmedLine.startsWith('```')) {
         const language = trimmedLine.slice(3).trim();
         let codeContent = '';
@@ -71,13 +65,12 @@ export class MarkdownParser {
         root.children!.push({
           type: NodeType.CodeBlock,
           content: codeContent,
-          language: language,
+          language,
         });
         i++;
         continue;
       }
 
-      // Header
       const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
       if (headerMatch) {
         root.children!.push({
@@ -89,14 +82,9 @@ export class MarkdownParser {
         continue;
       }
 
-      // Table
       if (trimmedLine.startsWith('|')) {
-        const tableNode: MarkdownNode = {
-          type: NodeType.Table,
-          children: [],
-        };
+        const tableNode: MarkdownNode = { type: NodeType.Table, children: [] };
 
-        // Parse header row
         const headerCells = trimmedLine
           .split('|')
           .filter((c) => c.trim() !== '')
@@ -112,20 +100,15 @@ export class MarkdownParser {
         tableNode.children!.push(headerRow);
         i++;
 
-        // Check for separator row (and alignments)
         if (i < lines.length && lines[i].trim().startsWith('|') && lines[i].includes('-')) {
-          // We can parse alignment from separator row here if needed
-          // | :--- | :---: | ---: |
           i++;
         }
 
-        // Parse body rows
         while (i < lines.length && lines[i].trim().startsWith('|')) {
           const rowCells = lines[i]
             .trim()
             .split('|')
             .filter((c, idx, arr) => {
-              // filter out empty strings from start/end if the row starts/ends with |
               if (idx === 0 && c === '') {
                 return false;
               }
@@ -151,12 +134,8 @@ export class MarkdownParser {
         continue;
       }
 
-      // Task List
       if (trimmedLine.match(/^-\s+\[([ x])\]\s+(.+)$/)) {
-        const listNode: MarkdownNode = {
-          type: NodeType.TaskList,
-          children: [],
-        };
+        const listNode: MarkdownNode = { type: NodeType.TaskList, children: [] };
 
         while (i < lines.length) {
           const match = lines[i].trim().match(/^-\s+\[([ x])\]\s+(.+)$/);
@@ -175,20 +154,14 @@ export class MarkdownParser {
         continue;
       }
 
-      // Unordered List
       if (trimmedLine.match(/^(\*|-)\s+(.+)$/)) {
-        const listNode: MarkdownNode = {
-          type: NodeType.List,
-          children: [],
-        };
+        const listNode: MarkdownNode = { type: NodeType.List, children: [] };
 
         while (i < lines.length) {
           const listMatch = lines[i].match(/^(\s*)(\*|-)\s+(.+)$/);
           if (!listMatch) {
             break;
           }
-          // Note: This simple parser doesn't handle nested lists perfectly by indentation yet
-          // But it's good enough for basic flat lists
           listNode.children!.push({
             type: NodeType.ListItem,
             children: this.parseInline(listMatch[3]),
@@ -199,12 +172,8 @@ export class MarkdownParser {
         continue;
       }
 
-      // Ordered List
       if (trimmedLine.match(/^(\d+)\.\s+(.+)$/)) {
-        const listNode: MarkdownNode = {
-          type: NodeType.OrderedList,
-          children: [],
-        };
+        const listNode: MarkdownNode = { type: NodeType.OrderedList, children: [] };
 
         while (i < lines.length) {
           const listMatch = lines[i].match(/^(\s*)(\d+)\.\s+(.+)$/);
@@ -222,26 +191,18 @@ export class MarkdownParser {
         continue;
       }
 
-      // Quote
       if (trimmedLine.startsWith('>')) {
-        const quoteNode: MarkdownNode = {
-          type: NodeType.Quote,
-          children: [],
-        };
+        const quoteNode: MarkdownNode = { type: NodeType.Quote, children: [] };
 
         while (i < lines.length && lines[i].trim().startsWith('>')) {
           const content = lines[i].trim().replace(/^>\s?/, '');
           quoteNode.children!.push(...this.parseInline(content));
-          // Add a space or newline if needed, but for now just inline nodes
-          // Actually, usually quotes contain paragraphs.
-          // Simplifying to treat each line as text in the quote for now.
           i++;
         }
         root.children!.push(quoteNode);
         continue;
       }
 
-      // Paragraph
       root.children!.push({
         type: NodeType.Paragraph,
         children: this.parseInline(line),
@@ -257,15 +218,10 @@ export class MarkdownParser {
     let currentText = text;
 
     while (currentText.length > 0) {
-      // Image: ![alt](url)
       const imageMatch = currentText.match(/!\[(.*?)\]\((.*?)\)/);
-      // Link: [text](url)
       const linkMatch = currentText.match(/\[(.*?)\]\((.*?)\)/);
-      // Bold: **text**
       const boldMatch = currentText.match(/\*\*(.*?)\*\*/);
-      // Italic: *text*
       const italicMatch = currentText.match(/\*(.*?)\*/);
-      // Code: `text`
       const codeMatch = currentText.match(/`(.*?)`/);
 
       const matches = [
@@ -287,12 +243,10 @@ export class MarkdownParser {
       const matchIndex = firstMatch.index!;
       const matchLength = firstMatch.match![0].length;
 
-      // Add text before match
       if (matchIndex > 0) {
         nodes.push({ type: NodeType.Text, content: currentText.slice(0, matchIndex) });
       }
 
-      // Add match
       if (firstMatch.type === NodeType.Image) {
         nodes.push({
           type: NodeType.Image,

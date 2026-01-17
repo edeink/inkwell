@@ -5,7 +5,7 @@ import { Input } from '../input';
 
 // Mock core 依赖，避免渲染相关实现影响当前测试
 vi.mock('@/core/base', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/core/base')>();
+  const actual = (await importOriginal()) as any;
   class MockWidget {
     props: any;
     state: any;

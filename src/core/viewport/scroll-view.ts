@@ -3,7 +3,7 @@ import { expose } from '../decorators';
 import { ScrollBar, type ScrollBarProps } from './scroll-bar';
 import { Viewport } from './viewport';
 
-import type { Size } from '../base';
+import type { BoxConstraints, BuildContext, Size } from '../base';
 import type { ViewportProps } from './viewport';
 import type { InkwellEvent } from '@/core/events/types';
 
@@ -302,7 +302,7 @@ export class ScrollView extends Viewport {
   /**
    * 重写 paint 方法以支持 overflow 裁剪
    */
-  paint(context: import('../base').BuildContext): void {
+  paint(context: BuildContext): void {
     // 1. Apply Self Transform (Position in Parent)
     const steps = this.getSelfTransformSteps();
     const local = composeSteps(steps);
@@ -459,9 +459,7 @@ export class ScrollView extends Viewport {
   }
 
   // 必须重写此方法以允许子节点超出视口
-  protected getConstraintsForChild(
-    constraints: import('../base').BoxConstraints,
-  ): import('../base').BoxConstraints {
+  protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
     const bounceH = this.data.enableBounceHorizontal;
     const bounceV = this.data.enableBounceVertical;
 
@@ -497,10 +495,7 @@ export class ScrollView extends Viewport {
   }
 
   // 这里的 performLayout 实际上会接收到基于 getConstraintsForChild 计算出的子节点尺寸
-  protected override performLayout(
-    constraints: import('../base').BoxConstraints,
-    childrenSizes: Size[],
-  ): Size {
+  protected override performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
     const width =
       constraints.maxWidth !== Infinity
         ? constraints.maxWidth

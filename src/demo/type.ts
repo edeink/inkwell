@@ -10,5 +10,5 @@ export enum DemoKey {
   Mindmap = 'mindmap',
   Spreadsheet = 'spreadsheet',
   EditableText = 'editable-text',
-  MarkdownPreview = 'markdown-preview',
+  Wiki = 'wiki',
 }

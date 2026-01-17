@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Input } from '../input';
 
+import { Widget } from '@/core/base';
+import { StatefulWidget } from '@/core/state/stateful';
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
 vi.mock('@/core', async () => {
@@ -11,8 +13,8 @@ vi.mock('@/core', async () => {
     Stack: (props: any) => ({ type: 'Stack', props }),
     Text: (props: any) => ({ type: 'Text', props }),
     ScrollView: (props: any) => ({ type: 'ScrollView', props }),
-    StatefulWidget: (await import('@/core/state/stateful')).StatefulWidget,
-    Widget: (await import('@/core/base')).Widget,
+    StatefulWidget,
+    Widget,
   };
 });
 

@@ -1,7 +1,7 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Themes, type ThemePalette } from '../theme';
+import { getCurrentThemeMode, subscribeTheme, Themes, type ThemePalette } from '../theme';
 
 import { Center, Container, StatelessWidget, Text, type Widget } from '@/core';
 
@@ -81,7 +81,6 @@ describe('Theme Switching Integration', () => {
 
   it('should detect theme change from light to dark', async () => {
     const listener = vi.fn();
-    const { subscribeTheme } = await import('../theme');
     const unsubscribe = subscribeTheme(listener);
 
     // Change theme
@@ -100,7 +99,6 @@ describe('Theme Switching Integration', () => {
 
   it('should provide correct initial theme', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
-    const { getCurrentThemeMode } = await import('../theme');
     expect(getCurrentThemeMode()).toBe('dark');
   });
 });

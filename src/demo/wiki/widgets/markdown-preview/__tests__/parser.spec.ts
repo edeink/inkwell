@@ -42,12 +42,11 @@ describe('MarkdownParser', () => {
     const text = 'Hello **Bold** and *Italic*';
     const ast = parser.parse(text);
 
-    // Paragraph -> Inline Nodes
     const paragraph = ast.children![0];
     expect(paragraph.type).toBe(NodeType.Paragraph);
 
     const inlineNodes = paragraph.children!;
-    expect(inlineNodes).toHaveLength(4); // "Hello ", "Bold", " and ", "Italic"
+    expect(inlineNodes).toHaveLength(4);
 
     expect(inlineNodes[0].content).toBe('Hello ');
     expect(inlineNodes[1].type).toBe(NodeType.Bold);
@@ -103,7 +102,7 @@ describe('MarkdownParser', () => {
 
     const table = ast.children![0];
     expect(table.type).toBe(NodeType.Table);
-    expect(table.children).toHaveLength(2); // Header row + 1 body row (separator row is skipped)
+    expect(table.children).toHaveLength(2);
     expect(table.children![0].type).toBe(NodeType.TableRow);
     expect(table.children![0].children![0].isHeader).toBe(true);
     expect(table.children![1].children![0].isHeader).toBe(false);
