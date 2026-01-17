@@ -37,7 +37,11 @@ export const orderedListRenderer: BlockRenderer = {
                 />
               </Container>
               <Expanded flex={{ flex: 1 }}>
-                <InlineWrap theme={ctx.theme} children={child.children} />
+                <InlineWrap
+                  theme={ctx.theme}
+                  children={child.children}
+                  keyPrefix={`${key ?? 'ol'}-li-${i}`}
+                />
               </Expanded>
             </Row>
           ))}

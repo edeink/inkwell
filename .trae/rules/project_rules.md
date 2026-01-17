@@ -24,6 +24,12 @@ High-perf canvas UI framework. Stack: Vite, Less, Vitest, Docusaurus.
 - **Perf**: Zero alloc in `build`/`paint`.
 - **Ref**: `CustomComponentType` enum only.
 
+### Events
+- **原则**：事件系统中常见字符串（事件类型、阶段、标记、后缀等）统一集中为常量再引用。
+- **范围**：`src/core/events`、`src/utils/compiler/jsx-compiler.ts`。
+- **来源**：`src/core/events/constants.ts`。
+- **说明**：该约定以可维护性/一致性为主；字符串比较性能以基准输出为参考，不做强保证。
+
 ## 3. Performance
 ### Test
 - **Limit**: **< 1s**/case.

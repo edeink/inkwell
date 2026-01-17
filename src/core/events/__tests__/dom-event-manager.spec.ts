@@ -141,4 +141,26 @@ describe('DOM 事件管理器', () => {
     const handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
     expect(handlers).toHaveLength(0);
   });
+
+  it('销毁组件时应清理事件，避免 key 复用后残留', () => {
+    const handler = vi.fn();
+    const widget = new TestWidget({ key: 'w1' });
+    (widget as any)._runtime = mockRuntime;
+
+    DOMEventManager.bindEvents(widget, {
+      onClick: handler,
+    });
+
+    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(1);
+
+    widget.dispose();
+
+    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(0);
+
+    const reusedKeyWidget = new TestWidget({ key: 'w1' });
+    (reusedKeyWidget as any)._runtime = mockRuntime;
+    DOMEventManager.bindEvents(reusedKeyWidget, {});
+
+    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(0);
+  });
 });

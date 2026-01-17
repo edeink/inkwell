@@ -32,7 +32,11 @@ export const unorderedListRenderer: BlockRenderer = {
                 <Container width={6} height={6} color={ctx.theme.text.primary} borderRadius={3} />
               </Padding>
               <Expanded flex={{ flex: 1 }}>
-                <InlineWrap theme={ctx.theme} children={child.children} />
+                <InlineWrap
+                  theme={ctx.theme}
+                  children={child.children}
+                  keyPrefix={`${key ?? 'ul'}-li-${i}`}
+                />
               </Expanded>
             </Row>
           ))}

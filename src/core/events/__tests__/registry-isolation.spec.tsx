@@ -20,10 +20,9 @@ function buildTreeWithRuntime(rt: any) {
       </Container>
     </Container>
   );
-  EventRegistry.setCurrentRuntime(rt);
   const data = compileElement(el);
-  EventRegistry.setCurrentRuntime(null);
   const root = WidgetRegistry.createWidget(data)!;
+  root.runtime = rt;
   root.createElement(data);
   root.layout(createBoxConstraints());
   const inner = root.children[0];
@@ -70,11 +69,16 @@ describe('事件处理器按 canvas 实例隔离', () => {
   it('单个实例下 handlers 正常触发', () => {
     const rtA = createRuntimeTag('A');
     const { root, leaf } = buildTreeWithRuntime(rtA);
-    EventRegistry.setCurrentRuntime(rtA);
     let calls = 0;
-    EventRegistry.register(String(leaf.key), 'click', () => {
-      calls++;
-    });
+    EventRegistry.register(
+      String(leaf.key),
+      'click',
+      () => {
+        calls++;
+      },
+      { capture: false },
+      rtA,
+    );
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
     expect(calls).toBe(1);
@@ -92,5 +96,37 @@ describe('事件处理器按 canvas 实例隔离', () => {
     const listB = EventRegistry.getHandlers(key, type, rtB);
     expect(listA.length).toBe(0);
     expect(listB.length).toBe(1);
+  });
+
+  it('派发时优先使用 root.runtime 选择 handlers', () => {
+    const rtA = createRuntimeTag('A');
+    const rtB = createRuntimeTag('B');
+    const { root, leaf } = buildTreeWithRuntime(rtA);
+    root.runtime = rtA;
+
+    const calls: string[] = [];
+    EventRegistry.register(
+      String(leaf.key),
+      'click',
+      () => {
+        calls.push('A');
+      },
+      { capture: false },
+      rtA,
+    );
+    EventRegistry.register(
+      String(leaf.key),
+      'click',
+      () => {
+        calls.push('B');
+      },
+      { capture: false },
+      rtB,
+    );
+
+    const pos = leaf.getAbsolutePosition();
+    dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
+
+    expect(calls).toEqual(['A']);
   });
 });

@@ -21,22 +21,25 @@ import type Runtime from '@/runtime';
 class EventRegistryImpl {
   private global: Map<string, Map<EventType, HandlerEntry[]>> = new Map();
   private byRuntime: WeakMap<Runtime, Map<string, Map<EventType, HandlerEntry[]>>> = new WeakMap();
-  private currentRuntime: Runtime | null = null;
 
   setCurrentRuntime(rt: Runtime | null): void {
-    this.currentRuntime = rt;
+    void rt;
+  }
+
+  private getRuntimeStore(rt: Runtime): Map<string, Map<EventType, HandlerEntry[]>> {
+    let store = this.byRuntime.get(rt);
+    if (!store) {
+      store = new Map<string, Map<EventType, HandlerEntry[]>>();
+      this.byRuntime.set(rt, store);
+    }
+    return store;
   }
 
   private getStore(rt?: Runtime | null): Map<string, Map<EventType, HandlerEntry[]>> {
-    if (rt) {
-      let store = this.byRuntime.get(rt);
-      if (!store) {
-        store = new Map<string, Map<EventType, HandlerEntry[]>>();
-        this.byRuntime.set(rt, store);
-      }
-      return store;
+    if (rt == null) {
+      return this.global;
     }
-    return this.global;
+    return this.getRuntimeStore(rt);
   }
 
   register(
@@ -46,7 +49,7 @@ class EventRegistryImpl {
     opts?: { capture?: boolean },
     rt?: Runtime | null,
   ): void {
-    const store = this.getStore(rt ?? this.currentRuntime);
+    const store = this.getStore(rt);
     const byType = store.get(key) ?? new Map<EventType, HandlerEntry[]>();
     const list = byType.get(type) ?? [];
     const cap = !!opts?.capture;
@@ -57,44 +60,19 @@ class EventRegistryImpl {
   }
 
   getHandlers(key: string, type: EventType, rt?: Runtime | null): HandlerEntry[] {
-    const targetRuntime = rt ?? this.currentRuntime;
-    const store = this.getStore(targetRuntime);
+    const store = this.getStore(rt);
     const byType = store.get(key);
-    const local = byType?.get(type) ?? [];
-
-    // 如果指定了运行时，还需要合并全局注册的处理器（如 JSX 编译产生的）
-    if (targetRuntime) {
-      const globalByType = this.global.get(key);
-      const globalHandlers = globalByType?.get(type) ?? [];
-      // 避免重复（虽然目前的设计 global 和 runtime store 是隔离的，但为了保险）
-      // 这里简单合并，优先执行 global (通常是 props)，然后是 runtime dynamic?
-      // 或者保持注册顺序？
-      // 目前实现：简单的数组合并，并去重
-      const merged = [...globalHandlers, ...local];
-      const unique: HandlerEntry[] = [];
-      const seen = new Set<EventHandler>();
-
-      for (const entry of merged) {
-        if (!seen.has(entry.handler)) {
-          seen.add(entry.handler);
-          unique.push(entry);
-        }
-      }
-      return unique;
-    }
-
-    return local;
+    return byType?.get(type) ?? [];
   }
 
   clearKey(key: string, rt?: Runtime | null): void {
-    const store = this.getStore(rt ?? this.currentRuntime);
+    const store = this.getStore(rt);
     store.delete(key);
   }
 
   clearAll(): void {
     this.global.clear();
     this.byRuntime = new WeakMap();
-    this.currentRuntime = null;
   }
 
   clearRuntime(rt: Runtime): void {

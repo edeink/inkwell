@@ -13,13 +13,20 @@
  * - 处理器返回 false 或调用 e.stopPropagation() 均会终止后续传播。
  * - 键盘事件以根节点为目标进行分发。
  */
+import {
+  CAPTURE_SUFFIX,
+  DISPATCH_PHASE_BUBBLE,
+  DISPATCH_PHASE_CAPTURE,
+  EventTypes,
+  isFunction,
+  isKeyboardEventType,
+  type DispatchPhase,
+} from './constants';
 import { EventRegistry } from './registry';
 import { EventPhase, type EventType, type InkwellEvent } from './types';
 
 import type { Widget } from '@/core/base';
 import type Runtime from '@/runtime';
-
-let currentRuntime: Runtime | null = null;
 
 export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
   if (!root) {
@@ -35,62 +42,62 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
  * - 采用最小映射策略：通用规则为 `on${PascalCase(type)}` 与 `on${PascalCase(type)}Capture`；
  *   同时为双击事件兼容 `onDblClick*` 与 `onDoubleClick*` 两种命名。
  */
-function resolveMethodNames(type: EventType, phase: 'capture' | 'bubble'): string[] {
-  const capSuffix = phase === 'capture' ? 'Capture' : '';
+function resolveMethodNames(type: EventType, phase: DispatchPhase): string[] {
+  const capSuffix = phase === DISPATCH_PHASE_CAPTURE ? CAPTURE_SUFFIX : '';
   switch (type) {
-    case 'click':
+    case EventTypes.Click:
       return [`onClick${capSuffix}`];
-    case 'mousedown':
+    case EventTypes.MouseDown:
       return [`onMouseDown${capSuffix}`, `onPointerDown${capSuffix}`];
-    case 'mouseup':
+    case EventTypes.MouseUp:
       return [`onMouseUp${capSuffix}`, `onPointerUp${capSuffix}`];
-    case 'mousemove':
+    case EventTypes.MouseMove:
       return [`onMouseMove${capSuffix}`, `onPointerMove${capSuffix}`];
-    case 'mouseover':
+    case EventTypes.MouseOver:
       return [`onMouseOver${capSuffix}`];
-    case 'mouseout':
+    case EventTypes.MouseOut:
       return [`onMouseOut${capSuffix}`];
-    case 'wheel':
+    case EventTypes.Wheel:
       return [`onWheel${capSuffix}`];
-    case 'dblclick':
+    case EventTypes.DblClick:
       return [`onDblClick${capSuffix}`, `onDoubleClick${capSuffix}`];
-    case 'contextmenu':
+    case EventTypes.ContextMenu:
       return [`onContextMenu${capSuffix}`];
-    case 'pointerdown':
+    case EventTypes.PointerDown:
       return [`onPointerDown${capSuffix}`];
-    case 'pointerup':
+    case EventTypes.PointerUp:
       return [`onPointerUp${capSuffix}`];
-    case 'pointermove':
+    case EventTypes.PointerMove:
       return [`onPointerMove${capSuffix}`];
-    case 'pointerover':
+    case EventTypes.PointerOver:
       return [`onPointerOver${capSuffix}`];
-    case 'pointerout':
+    case EventTypes.PointerOut:
       return [`onPointerOut${capSuffix}`];
-    case 'pointerenter':
+    case EventTypes.PointerEnter:
       return [`onPointerEnter${capSuffix}`];
-    case 'pointerleave':
+    case EventTypes.PointerLeave:
       return [`onPointerLeave${capSuffix}`];
-    case 'mouseenter':
+    case EventTypes.MouseEnter:
       return [`onMouseEnter${capSuffix}`];
-    case 'mouseleave':
+    case EventTypes.MouseLeave:
       return [`onMouseLeave${capSuffix}`];
-    case 'focus':
+    case EventTypes.Focus:
       return [`onFocus${capSuffix}`];
-    case 'blur':
+    case EventTypes.Blur:
       return [`onBlur${capSuffix}`];
-    case 'touchstart':
+    case EventTypes.TouchStart:
       return [`onTouchStart${capSuffix}`, `onPointerDown${capSuffix}`, `onMouseDown${capSuffix}`];
-    case 'touchmove':
+    case EventTypes.TouchMove:
       return [`onTouchMove${capSuffix}`, `onPointerMove${capSuffix}`, `onMouseMove${capSuffix}`];
-    case 'touchend':
+    case EventTypes.TouchEnd:
       return [`onTouchEnd${capSuffix}`, `onPointerUp${capSuffix}`, `onMouseUp${capSuffix}`];
-    case 'touchcancel':
+    case EventTypes.TouchCancel:
       return [`onTouchCancel${capSuffix}`, `onPointerUp${capSuffix}`, `onMouseUp${capSuffix}`];
-    case 'keydown':
+    case EventTypes.KeyDown:
       return [`onKeyDown${capSuffix}`];
-    case 'keyup':
+    case EventTypes.KeyUp:
       return [`onKeyUp${capSuffix}`];
-    case 'keypress':
+    case EventTypes.KeyPress:
       return [`onKeyPress${capSuffix}`];
     default:
       return [`on${type}${capSuffix}`];
@@ -139,7 +146,7 @@ function createEvent(
     shiftKey: ne?.shiftKey,
     stopPropagation() {
       stopped = true;
-      if (native && typeof native.preventDefault === 'function') {
+      if (native && isFunction((native as { preventDefault?: unknown }).preventDefault)) {
         native.preventDefault();
       }
     },
@@ -153,7 +160,8 @@ function invokeHandlers(
   node: Widget,
   type: EventType,
   event: InkwellEvent,
-  phase: 'capture' | 'bubble',
+  phase: DispatchPhase,
+  runtime: Runtime | null,
 ): boolean {
   // 1) 类方法优先调用：按解析出的候选方法顺序调用
   const methods = resolveMethodNames(type, phase);
@@ -161,8 +169,8 @@ function invokeHandlers(
     const fn = (node as unknown as Record<string, unknown>)[name] as
       | ((e: InkwellEvent) => boolean | void)
       | undefined;
-    if (typeof fn === 'function') {
-      const ret = fn.call(node, event);
+    if (isFunction(fn)) {
+      const ret = (fn as (e: InkwellEvent) => boolean | void).call(node, event);
       if (event.propagationStopped === true) {
         return false;
       }
@@ -173,9 +181,11 @@ function invokeHandlers(
   }
 
   // 2) JSX 属性注册的处理器：保持现有注册表行为与顺序
-  const list = EventRegistry.getHandlers(node.key, type, currentRuntime);
+  const list = EventRegistry.getHandlers(String(node.key), type, runtime);
   const ordered =
-    phase === 'capture' ? list.filter((h) => h.capture) : list.filter((h) => !h.capture);
+    phase === DISPATCH_PHASE_CAPTURE
+      ? list.filter((h) => h.capture)
+      : list.filter((h) => !h.capture);
   for (const it of ordered) {
     const ret = it.handler(event);
     if (event.propagationStopped === true) {
@@ -193,12 +203,10 @@ export function dispatchAt(
   type: EventType,
   native: MouseEvent | WheelEvent | PointerEvent | TouchEvent | KeyboardEvent,
 ): void {
-  currentRuntime = runtime;
   const renderer = runtime.getRenderer();
   const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
   const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
   if (!canvas) {
-    currentRuntime = null;
     return;
   }
   const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
@@ -219,11 +227,10 @@ export function dispatchAt(
   const x = clientX != null ? clientX - rect.left : 0;
   const y = clientY != null ? clientY - rect.top : 0;
   const root = runtime.getRootWidget?.() ?? null;
-  const isKeyboard = type === 'keydown' || type === 'keyup' || type === 'keypress';
-  const target = isKeyboard ? root : hitTest(root, x, y);
+  const target = isKeyboardEventType(type) ? root : hitTest(root, x, y);
 
   // 处理鼠标光标样式
-  if ((type === 'mousemove' || type === 'pointermove') && canvas) {
+  if ((type === EventTypes.MouseMove || type === EventTypes.PointerMove) && canvas) {
     let cursor = 'default';
     let cur: Widget | null = target;
     while (cur) {
@@ -246,12 +253,10 @@ export function dispatchAt(
   }
 
   if (!target || !root) {
-    currentRuntime = null;
     return;
   }
 
-  dispatchToTree(root, target, type, x, y, native);
-  currentRuntime = null;
+  dispatchToTreeInternal(root, target, type, x, y, native, runtime);
 }
 
 const runtimeHoverState = new WeakMap<Runtime, Widget | null>();
@@ -277,12 +282,12 @@ function handleHoverEvents(
   // pointerout 会冒泡，而 pointerleave 不冒泡
   if (lastTarget) {
     // pointerout 在上一个目标触发并冒泡
-    dispatchToTree(root, lastTarget, 'pointerout', x, y, native);
+    dispatchToTreeInternal(root, lastTarget, 'pointerout', x, y, native, runtime);
 
     // pointerleave 在从上一个目标到 LCA（不包含）的路径上触发
     let curr: Widget | null = lastTarget;
     while (curr && curr !== lca) {
-      dispatchDirect(curr, 'pointerleave', x, y, native);
+      dispatchDirect(curr, 'pointerleave', x, y, native, runtime);
       curr = curr.parent;
     }
   }
@@ -291,7 +296,7 @@ function handleHoverEvents(
   // pointerover 会冒泡，而 pointerenter 不冒泡
   if (target) {
     // pointerover 在目标触发并冒泡
-    dispatchToTree(root, target, 'pointerover', x, y, native);
+    dispatchToTreeInternal(root, target, 'pointerover', x, y, native, runtime);
 
     // pointerenter 在从 LCA（不包含）到目标的路径上触发
     const path = buildPath(target); // [root, ..., target]
@@ -300,7 +305,7 @@ function handleHoverEvents(
       startIndex = path.indexOf(lca) + 1;
     }
     for (let i = startIndex; i < path.length; i++) {
-      dispatchDirect(path[i], 'pointerenter', x, y, native);
+      dispatchDirect(path[i], 'pointerenter', x, y, native, runtime);
     }
   }
 }
@@ -328,12 +333,13 @@ function dispatchDirect(
   x: number,
   y: number,
   native: MouseEvent | WheelEvent | PointerEvent | TouchEvent | KeyboardEvent,
+  runtime: Runtime | null,
 ) {
   // 直接分发不冒泡的事件 (enter/leave)
   // 我们同时触发 capture 和 bubble 阶段的处理器，以支持 onPointerEnter 和 onPointerEnterCapture
   const ev = createEvent(type, node, node, EventPhase.Target, x, y, native);
-  invokeHandlers(node, type, ev, 'capture');
-  invokeHandlers(node, type, ev, 'bubble');
+  invokeHandlers(node, type, ev, DISPATCH_PHASE_CAPTURE, runtime);
+  invokeHandlers(node, type, ev, DISPATCH_PHASE_BUBBLE, runtime);
 }
 
 export function dispatchToTree(
@@ -344,32 +350,37 @@ export function dispatchToTree(
   y: number,
   native?: Event,
 ): void {
-  const prevRuntime = currentRuntime;
-  try {
-    const rt = root.runtime ?? null;
-    currentRuntime = rt;
-  } catch {
-    currentRuntime = null;
-  }
+  dispatchToTreeInternal(root, target, type, x, y, native, root.runtime ?? null);
+}
+
+function dispatchToTreeInternal(
+  root: Widget,
+  target: Widget,
+  type: EventType,
+  x: number,
+  y: number,
+  native: Event | undefined,
+  runtime: Runtime | null,
+): void {
   const path = buildPath(target);
   const ancestors = path.slice(0, Math.max(0, path.length - 1));
   for (const node of ancestors) {
     const ev = createEvent(type, target, node, EventPhase.Capture, x, y, native);
-    const ok = invokeHandlers(node, type, ev, 'capture');
+    const ok = invokeHandlers(node, type, ev, DISPATCH_PHASE_CAPTURE, runtime);
     if (!ok) {
       return;
     }
   }
   {
     const evCap = createEvent(type, target, target, EventPhase.Target, x, y, native);
-    const okCap = invokeHandlers(target, type, evCap, 'capture');
+    const okCap = invokeHandlers(target, type, evCap, DISPATCH_PHASE_CAPTURE, runtime);
     if (!okCap) {
       return;
     }
   }
   {
     const evTar = createEvent(type, target, target, EventPhase.Target, x, y, native);
-    const okTar = invokeHandlers(target, type, evTar, 'bubble');
+    const okTar = invokeHandlers(target, type, evTar, DISPATCH_PHASE_BUBBLE, runtime);
     if (!okTar) {
       return;
     }
@@ -377,10 +388,9 @@ export function dispatchToTree(
   for (let i = ancestors.length - 1; i >= 0; i--) {
     const node = ancestors[i];
     const ev = createEvent(type, target, node, EventPhase.Bubble, x, y, native);
-    const ok = invokeHandlers(node, type, ev, 'bubble');
+    const ok = invokeHandlers(node, type, ev, DISPATCH_PHASE_BUBBLE, runtime);
     if (!ok) {
       return;
     }
   }
-  currentRuntime = prevRuntime;
 }

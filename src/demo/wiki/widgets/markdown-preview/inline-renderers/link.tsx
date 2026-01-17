@@ -38,6 +38,14 @@ export const linkInlineRenderer: InlineRenderer = {
     const key = ensureKey(ctx.widgetKey);
     const text = getLinkText(ctx.node.children?.[0]?.content, ctx.node.href);
     const href = ctx.node.href;
+    let down: { x: number; y: number; t: number } | null = null;
+    let ignoreClick = false;
+
+    const openLink = () => {
+      if (href) {
+        window.open(href, '_blank');
+      }
+    };
     return (
       <Text
         key={key}
@@ -46,10 +54,32 @@ export const linkInlineRenderer: InlineRenderer = {
         lineHeight={24}
         color={ctx.theme.primary}
         cursor="pointer"
-        onClick={() => {
-          if (href) {
-            window.open(href, '_blank');
+        pointerEvent="auto"
+        onMouseDown={(e) => {
+          ignoreClick = false;
+          down = { x: e.x, y: e.y, t: Date.now() };
+        }}
+        onMouseUp={(e) => {
+          if (!down) {
+            return;
           }
+          const dx = e.x - down.x;
+          const dy = e.y - down.y;
+          const dt = Date.now() - down.t;
+          down = null;
+
+          const dist2 = dx * dx + dy * dy;
+          if (dist2 <= 9 && dt <= 600) {
+            ignoreClick = true;
+            openLink();
+          }
+        }}
+        onClick={() => {
+          if (ignoreClick) {
+            ignoreClick = false;
+            return;
+          }
+          openLink();
         }}
       />
     );

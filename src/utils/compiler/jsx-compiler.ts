@@ -2,6 +2,14 @@ import type { JSXElement } from './jsx-runtime';
 import type { ComponentData } from '@/runtime';
 
 import { Widget } from '@/core/base';
+import {
+  CAPTURE_KEY_SUFFIX,
+  CAPTURE_SUFFIX,
+  EVENT_HANDLER_PROP_PREFIX,
+  EVENT_PROP_EVENTS,
+  EVENT_TYPE_FROM_BASE,
+  TYPEOF_FUNCTION,
+} from '@/core/events/constants';
 import { WidgetRegistry, widgetRegistry } from '@/core/registry';
 import { ComponentType, type EventHandler, type EventType, type WidgetProps } from '@/core/type';
 
@@ -29,7 +37,7 @@ function isValidType(t: string): boolean {
 }
 
 function autoRegisterIfNeeded(type: unknown, typeName: string): void {
-  const isFn = typeof type === 'function';
+  const isFn = typeof type === TYPEOF_FUNCTION;
   if (!isFn) {
     return;
   }
@@ -66,36 +74,9 @@ function toArrayChildren(children: unknown): AnyElement[] {
   return out;
 }
 
-const EVENT_TYPE_MAP: Record<string, EventType> = {
-  click: 'click',
-  mousedown: 'mousedown',
-  mouseup: 'mouseup',
-  mousemove: 'mousemove',
-  mouseover: 'mouseover',
-  mouseout: 'mouseout',
-  wheel: 'wheel',
-  dblclick: 'dblclick',
-  doubleclick: 'dblclick',
-  contextmenu: 'contextmenu',
-  pointerdown: 'pointerdown',
-  pointerup: 'pointerup',
-  pointermove: 'pointermove',
-  pointerover: 'pointerover',
-  pointerout: 'pointerout',
-  pointerenter: 'pointerenter',
-  pointerleave: 'pointerleave',
-  touchstart: 'touchstart',
-  touchmove: 'touchmove',
-  touchend: 'touchend',
-  touchcancel: 'touchcancel',
-  keydown: 'keydown',
-  keyup: 'keyup',
-  keypress: 'keypress',
-};
-
 function toEventType(base: string): EventType | null {
   const lower = base.toLowerCase();
-  return EVENT_TYPE_MAP[lower] ?? null;
+  return EVENT_TYPE_FROM_BASE[lower] ?? null;
 }
 
 // TODO 此方法应该提前到编译阶段，而不是运行时
@@ -117,7 +98,7 @@ export function compileElement(element: AnyElement): ComponentData {
   const { type, props, key } = anyEl;
 
   // 支持函数式组件 (Functional Component)
-  if (typeof type === 'function') {
+  if (typeof type === TYPEOF_FUNCTION) {
     // 检查是否是类组件
     const proto = (type as { prototype?: { render?: unknown } }).prototype;
     const isWidget = !!proto && Object.prototype.isPrototypeOf.call(Widget.prototype, proto);
@@ -172,15 +153,15 @@ export function compileElement(element: AnyElement): ComponentData {
     if (v === undefined) {
       continue;
     }
-    if (typeof v === 'function') {
+    if (typeof v === TYPEOF_FUNCTION) {
       if (!isComposite) {
         // 快速检查是否以 on 开头，避免不必要的正则
-        if (k.startsWith('on') && k.length > 2) {
-          const cap = k.endsWith('Capture');
-          const base = k.substring(2, cap ? k.length - 7 : k.length);
+        if (k.startsWith(EVENT_HANDLER_PROP_PREFIX) && k.length > 2) {
+          const cap = k.endsWith(CAPTURE_SUFFIX);
+          const base = k.substring(2, cap ? k.length - CAPTURE_SUFFIX.length : k.length);
           const type = toEventType(base);
           if (type) {
-            const eventKey = type + (cap ? '_capture' : '');
+            const eventKey = type + (cap ? CAPTURE_KEY_SUFFIX : '');
             if (!events) {
               events = {};
             }
@@ -201,10 +182,7 @@ export function compileElement(element: AnyElement): ComponentData {
   }
 
   if (hasEvents && events) {
-    data['__events'] = events as unknown;
-  } else if (!isComposite) {
-    // 标记无事件，以便 DOMEventManager 快速跳过
-    data['__noEvents'] = true;
+    data[EVENT_PROP_EVENTS] = events as unknown;
   }
 
   const children = toArrayChildren(p.children);

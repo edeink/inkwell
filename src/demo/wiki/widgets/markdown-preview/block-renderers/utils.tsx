@@ -10,10 +10,11 @@
  *
  * 说明：
  * - 本文件的实现目标是“演示 + 可测 + 稳定”，不追求完整语法高亮与 Markdown 规范覆盖。
-/** @jsxImportSource @/utils/compiler */
+ */
 import { InlineNodeRenderer } from '../inline-renderers';
 import { NodeType, type MarkdownNode } from '../parser';
 
+import type { PointerEvents } from '@/core/type';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Column, Container, CrossAxisAlignment, Text, Wrap } from '@/core';
@@ -149,14 +150,18 @@ function tokenize(line: string, _language: string, theme: ThemePalette) {
 export function InlineWrap({
   children,
   theme,
+  keyPrefix,
+  pointerEvent = 'auto',
 }: {
   children?: MarkdownNode[];
   theme: ThemePalette;
+  keyPrefix?: string;
+  pointerEvent?: PointerEvents;
 }) {
   return (
-    <Wrap spacing={0} runSpacing={4}>
+    <Wrap spacing={0} runSpacing={4} pointerEvent={pointerEvent}>
       {children?.map((child, i) => (
-        <InlineNodeRenderer key={String(i)} node={child} theme={theme} />
+        <InlineNodeRenderer key={`${keyPrefix ?? 'inline'}-${i}`} node={child} theme={theme} />
       ))}
     </Wrap>
   );

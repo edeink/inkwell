@@ -13,6 +13,7 @@
  * 使用注意事项：
  * - 为确保可聚焦以接收键盘事件，Canvas 在绑定时会设置 tabIndex=0。
  */
+import { ALL_EVENT_TYPES, EventTypes } from './constants';
 import { dispatchAt } from './dispatcher';
 import { isEditableElement } from './helper';
 
@@ -29,38 +30,10 @@ type ListenerMap = Map<
   }
 >;
 
-const allTypes: EventType[] = [
-  'click',
-  'mousedown',
-  'mouseup',
-  'mousemove',
-  'mouseover',
-  'mouseout',
-  'wheel',
-  'dblclick',
-  'contextmenu',
-  'pointerdown',
-  'pointerup',
-  'pointermove',
-  'pointerover',
-  'pointerout',
-  'pointerenter',
-  'pointerleave',
-  'mouseenter',
-  'mouseleave',
-  'focus',
-  'blur',
-  'touchstart',
-  'touchmove',
-  'touchend',
-  'touchcancel',
-  'keydown',
-  'keyup',
-  'keypress',
-];
+const allTypes: EventType[] = [...ALL_EVENT_TYPES];
 
 function isKeyboard(type: EventType): boolean {
-  return type === 'keydown' || type === 'keyup' || type === 'keypress';
+  return type === EventTypes.KeyDown || type === EventTypes.KeyUp || type === EventTypes.KeyPress;
 }
 
 const delegatedTypes: EventType[] = allTypes.filter((t) => !isKeyboard(t));
@@ -84,7 +57,11 @@ class EventManagerImpl {
         const native = e as MouseEvent | WheelEvent | PointerEvent | TouchEvent;
         // 自动聚焦处理：当在 Canvas 上发生交互时，尝试获取焦点以接收键盘事件
         // 但如果当前 activeElement 是 input/textarea（例如正在编辑文本），则不要抢占焦点
-        if (type === 'mousedown' || type === 'pointerdown' || type === 'touchstart') {
+        if (
+          type === EventTypes.MouseDown ||
+          type === EventTypes.PointerDown ||
+          type === EventTypes.TouchStart
+        ) {
           const target = native.target as HTMLElement | null;
           const isTargetInteractive = isEditableElement(target);
 
@@ -128,7 +105,11 @@ class EventManagerImpl {
           }
         }
 
-        if (type === 'mousemove' || type === 'pointermove' || type === 'touchmove') {
+        if (
+          type === EventTypes.MouseMove ||
+          type === EventTypes.PointerMove ||
+          type === EventTypes.TouchMove
+        ) {
           this.latestMoveEvent = { type, native: native as MouseEvent | PointerEvent | TouchEvent };
           if (this.rafId == null) {
             this.rafId = window.requestAnimationFrame(() => {

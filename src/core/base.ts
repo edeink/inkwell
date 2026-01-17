@@ -1,4 +1,5 @@
 import { DOMEventManager } from './events/dom-event-manager';
+import { EventRegistry } from './events/registry';
 import {
   applySteps,
   composeSteps,
@@ -512,6 +513,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 当组件被移除时调用，用于清理副作用（如 DOM 元素、定时器等）
    */
   dispose(): void {
+    const rt = this.runtime ?? null;
+    EventRegistry.clearKey(String(this.key), rt);
     this._disposed = true;
 
     // 清理引用，防止内存泄漏
@@ -673,9 +676,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
           reuse.parent = this;
           reuse.depth = this.depth + 1;
           nextChildren.push(reuse);
-          if (!childData['__noEvents']) {
-            DOMEventManager.bindEvents(reuse, childData);
-          }
+          DOMEventManager.bindEvents(reuse, childData);
         } else {
           const childWidget = this.createChildWidget(childData);
           if (childWidget) {
@@ -683,9 +684,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
             childWidget.depth = this.depth + 1;
             childWidget.createElement(childData);
             nextChildren.push(childWidget);
-            if (!childData['__noEvents']) {
-              DOMEventManager.bindEvents(childWidget, childData);
-            }
+            DOMEventManager.bindEvents(childWidget, childData);
           } else {
             console.warn(
               `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,

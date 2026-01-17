@@ -36,6 +36,31 @@ afterEach(() => {
 });
 
 describe('事件系统（JSX）', () => {
+  it('复用同 key 且新节点标记无事件时应清理旧事件', () => {
+    const handler = () => {};
+    const el1 = (
+      <Container key="root" width={200} height={200}>
+        <Text key="leaf" text="链接" onClick={handler} />
+      </Container>
+    );
+    const data1 = compileElement(el1);
+    const root = WidgetRegistry.createWidget(data1)!;
+    root.createElement(data1);
+    root.layout(createBoxConstraints());
+
+    expect(EventRegistry.getHandlers('leaf', 'click')).toHaveLength(1);
+
+    const el2 = (
+      <Container key="root" width={200} height={200}>
+        <Text key="leaf" text="普通文本" />
+      </Container>
+    );
+    const data2 = compileElement(el2);
+    root.createElement(data2);
+
+    expect(EventRegistry.getHandlers('leaf', 'click')).toHaveLength(0);
+  });
+
   it('基本点击事件冒泡：子→父顺序', () => {
     // 准备：仅注册冒泡阶段处理函数
     const calls: string[] = [];

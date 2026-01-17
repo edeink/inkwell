@@ -5,4 +5,5 @@
 export { dispatchAt, dispatchToTree, hitTest } from './dispatcher';
 export { EventManager } from './manager';
 export { EventRegistry } from './registry';
+export * from './constants';
 export * from './types';
