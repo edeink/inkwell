@@ -1,8 +1,16 @@
 /** @jsxImportSource @/utils/compiler */
+import {
+  buildNavNodesFromDocs,
+  buildNavNodesFromSidebarItems,
+  collectToc,
+  createUnifiedWikiNavPanelStyle,
+  sumOffsetYUntil,
+  type MarkdownTocItem,
+} from '../../helpers/wiki-app';
 import { parseMarkdownFrontMatter, type SidebarItem } from '../../helpers/wiki-doc';
 import { FStateWidget } from '../fstate-widget';
 import { MarkdownPreview } from '../markdown-preview';
-import { MarkdownParser, NodeType, type MarkdownNode } from '../markdown-preview/parser';
+import { MarkdownParser, type MarkdownNode } from '../markdown-preview/parser';
 import { type WikiDoc, type WikiDocMeta } from '../types';
 import { WikiNavPanel, type WikiNavNode } from '../wiki-nav-panel';
 
@@ -41,12 +49,6 @@ type State = {
   docVersion: number;
 };
 
-type MarkdownTocItem = {
-  key: string;
-  text: string;
-  level: number;
-};
-
 const SIDEBAR_DEFAULT_WIDTH = 285;
 const SIDEBAR_MIN_WIDTH = 240;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -54,144 +56,6 @@ const TOC_WIDTH = 285;
 const DIVIDER_WIDTH = 16;
 
 const parser = new MarkdownParser();
-
-function collectToc(ast: MarkdownNode, keyPrefix: string): MarkdownTocItem[] {
-  const out: MarkdownTocItem[] = [];
-  let idx = 0;
-  for (const node of ast.children ?? []) {
-    if (node.type !== NodeType.Header) {
-      continue;
-    }
-    const level = node.level ?? 1;
-    const text = node.children?.map((c) => c.content || '').join('') || '';
-    out.push({ key: `${keyPrefix}-${idx++}`, text, level });
-  }
-  return out;
-}
-
-function toTitleFromPath(path: string): string {
-  const base = path.split('/').pop() || path;
-  return base.replace(/\.md$/i, '');
-}
-
-function buildNavNodesFromSidebarItems(
-  sidebarItems: SidebarItem[],
-  docs: WikiDocMeta[],
-): WikiNavNode[] {
-  const docTitleById = new Map<string, string>();
-  for (const d of docs) {
-    docTitleById.set(d.key, d.title);
-  }
-
-  const makeDirKey = (parentKey: string, label: string) => `dir:${parentKey}/${label}`;
-
-  const walk = (items: SidebarItem[], parentKey: string, depth: number): WikiNavNode[] => {
-    const out: WikiNavNode[] = [];
-    for (const item of items) {
-      if (typeof item === 'string') {
-        const title = docTitleById.get(item) || toTitleFromPath(item);
-        out.push({ key: item, text: title, indentLevel: depth });
-        continue;
-      }
-      if (item.type === 'doc') {
-        const title = item.label || docTitleById.get(item.id) || toTitleFromPath(item.id);
-        out.push({ key: item.id, text: title, indentLevel: depth });
-        continue;
-      }
-      if (item.type === 'category') {
-        const dirKey = makeDirKey(parentKey, item.label);
-        out.push({
-          key: dirKey,
-          text: item.label,
-          indentLevel: depth,
-          defaultExpanded: item.collapsed !== true,
-          children: walk(item.items, dirKey, depth + 1),
-        });
-        continue;
-      }
-    }
-    return out;
-  };
-
-  return walk(sidebarItems, 'root', 0);
-}
-
-function buildNavNodesFromDocs(docs: WikiDocMeta[]): WikiNavNode[] {
-  const root: WikiNavNode = { key: 'root', text: 'root', indentLevel: -1, children: [] };
-  const dirMap = new Map<string, WikiNavNode>();
-  dirMap.set('root', root);
-
-  const ensureDir = (pathKey: string, title: string, depth: number): WikiNavNode => {
-    const exist = dirMap.get(pathKey);
-    if (exist && exist.children) {
-      return exist;
-    }
-    const node: WikiNavNode = { key: pathKey, text: title, indentLevel: depth, children: [] };
-    dirMap.set(pathKey, node);
-    return node;
-  };
-
-  const sorted = docs.slice().sort((a, b) => a.path.localeCompare(b.path));
-  for (const doc of sorted) {
-    const segs = doc.path.split('/').filter(Boolean);
-    let parentKey = 'root';
-    let depth = 0;
-    for (let i = 0; i < segs.length; i++) {
-      const seg = segs[i];
-      const isFile = i === segs.length - 1;
-      if (isFile) {
-        const parent = dirMap.get(parentKey);
-        if (parent?.children) {
-          parent.children.push({
-            key: doc.key,
-            text: doc.title || toTitleFromPath(doc.path),
-            indentLevel: depth,
-          });
-        }
-      } else {
-        const dirKey = `${parentKey}/${seg}`;
-        const parent = dirMap.get(parentKey);
-        const cur = ensureDir(dirKey, seg, depth);
-        if (parent?.children) {
-          if (!parent.children.some((c) => c.key === dirKey && c.children)) {
-            parent.children.push(cur);
-          }
-        }
-        parentKey = dirKey;
-        depth++;
-      }
-    }
-  }
-
-  const sortChildren = (nodes: WikiNavNode[]) => {
-    nodes.sort((a, b) => {
-      const aIsDir = !!a.children?.length;
-      const bIsDir = !!b.children?.length;
-      if (aIsDir !== bIsDir) {
-        return aIsDir ? -1 : 1;
-      }
-      return a.text.localeCompare(b.text);
-    });
-    for (const n of nodes) {
-      if (n.children?.length) {
-        sortChildren(n.children);
-      }
-    }
-  };
-
-  sortChildren(root.children!);
-  return root.children!;
-}
-
-function sumOffsetYUntil(widget: Widget, stopAt: Widget): number {
-  let cur: Widget | null = widget;
-  let y = 0;
-  while (cur && cur !== stopAt) {
-    y += cur.renderObject.offset.dy || 0;
-    cur = cur.parent as Widget | null;
-  }
-  return y;
-}
 
 export class WikiApp extends FStateWidget<WikiAppProps, State> {
   private scrollView: ScrollViewHandle | null = null;
@@ -454,6 +318,8 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     const { selectedKey } = this.state;
     const sidebarWidth = this.state.sidebarWidth;
     const contentW = Math.max(0, width - sidebarWidth - DIVIDER_WIDTH - TOC_WIDTH);
+    const navStyleBase = createUnifiedWikiNavPanelStyle(theme);
+    const sidebarStyle = navStyleBase;
 
     const doc = docs.find((d) => d.key === selectedKey) || docs[0] || null;
     if (doc) {
@@ -497,25 +363,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
               nodes={sidebarNodes}
               activeKey={selectedKey || ''}
               onSelect={this.handleSelect}
-              padding={12}
-              scrollBarWidth={6}
-              scrollBarColor={theme.text.secondary}
-              basePaddingLeft={8}
-              basePaddingRight={8}
-              indentWidth={12}
-              leafIndentOffset={16}
-              getRowStyle={(_node, { active, isDir }) => {
-                if (isDir) {
-                  return {
-                    backgroundColor: theme.background.surface,
-                    textColor: theme.text.primary,
-                  };
-                }
-                return {
-                  backgroundColor: active ? theme.state.hover : theme.background.surface,
-                  textColor: active ? theme.text.primary : theme.text.secondary,
-                };
-              }}
+              style={sidebarStyle}
               resize={{
                 dividerWidth: DIVIDER_WIDTH,
                 minWidth: SIDEBAR_MIN_WIDTH,
@@ -580,17 +428,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
               activeKey={this.state.activeTocKey}
               onSelect={this.scrollToAnchor}
               scrollRef={this.setTocScrollViewRef}
-              padding={12}
-              scrollBarWidth={4}
-              scrollBarColor={theme.text.secondary}
-              basePaddingLeft={8}
-              basePaddingRight={8}
-              indentWidth={12}
-              leafIndentOffset={0}
-              activeRowColor={theme.state.selected}
-              inactiveRowColor="transparent"
-              activeTextColor={theme.text.primary}
-              inactiveTextColor={theme.text.secondary}
+              style={navStyleBase}
               leadingDividerWidth={1}
               leadingDividerColor={theme.border.base}
             />

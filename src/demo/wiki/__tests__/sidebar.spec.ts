@@ -16,7 +16,15 @@ describe('Wiki Demo sidebar 配置', () => {
   it('应从 sidebar 配置解析出文档 id 列表', () => {
     const modules = import.meta.glob('../raw/**/*.markdown', { query: '?raw', import: 'default' });
     const ids = flattenSidebarToDocIds((sidebars as any).docs, modules);
-    expect(ids).toEqual(['intro', 'guide/getting-started', 'guide/layout', 'sample', 'sum-2025']);
+    expect(ids).toEqual([
+      'intro',
+      'guide/getting-started',
+      'guide/layout',
+      'sample',
+      'sum-2025',
+      'test01',
+      'test02',
+    ]);
   });
 
   it('应能按需加载指定文档内容', async () => {
@@ -80,7 +88,12 @@ describe('Wiki Demo front matter 与 link 参数', () => {
     window.history.replaceState(null, '', '/?tab=wiki&link=thought_in_2024');
     let rendered: any = null;
     const runtime = { render: (el: any) => (rendered = el) } as any;
-    runApp(runtime, 800, 600, Themes.light);
+    const rawModules = import.meta.glob('../raw/**/*.markdown', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    });
+    runApp(runtime, 800, 600, Themes.light, { rawModules });
     expect(rendered?.props?.initialSelectedKey).toBe('sum-2025');
   });
 });

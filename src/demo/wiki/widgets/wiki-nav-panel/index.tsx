@@ -24,6 +24,25 @@ export type WikiNavNode = {
   defaultExpanded?: boolean;
 };
 
+export type WikiNavPanelStyle = {
+  scrollBarWidth: number;
+  scrollBarColor: string;
+  padding: number;
+  containerColor: string;
+  borderRadius: number;
+  rowHeight: number;
+  rowGap: number;
+  rowRadius: number;
+  basePaddingLeft: number;
+  basePaddingRight: number;
+  indentWidth: number;
+  leafIndentOffset: number;
+  activeRowColor: string;
+  inactiveRowColor: string;
+  activeTextColor: string;
+  inactiveTextColor: string;
+};
+
 type State = {
   expanded: Set<string>;
 };
@@ -38,6 +57,11 @@ export type WikiNavPanelProps = {
   headerRight?: unknown;
   activeKey?: string;
   onSelect?: (key: string) => void;
+  /**
+   * 样式聚合配置：用于减少调用处大量 props。
+   * 优先级：显式 props > style > 组件默认值。
+   */
+  style?: Partial<WikiNavPanelStyle>;
   scrollRef?: WidgetProps['ref'];
   scrollBarWidth?: number;
   scrollBarColor?: string;
@@ -233,6 +257,7 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       headerRight,
       activeKey,
       onSelect,
+      style: panelStyle,
       scrollRef,
       scrollBarWidth,
       scrollBarColor,
@@ -258,14 +283,14 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       resize,
     } = this.props;
 
-    const contentPadding = padding ?? 12;
-    const listRowHeight = rowHeight ?? 28;
-    const listRowGap = rowGap ?? 6;
-    const listRowRadius = rowRadius ?? 6;
-    const leftPadBase = basePaddingLeft ?? 8;
-    const rightPadBase = basePaddingRight ?? 8;
-    const indentW = indentWidth ?? 12;
-    const leafExtra = leafIndentOffset ?? 0;
+    const contentPadding = padding ?? panelStyle?.padding ?? 12;
+    const listRowHeight = rowHeight ?? panelStyle?.rowHeight ?? 28;
+    const listRowGap = rowGap ?? panelStyle?.rowGap ?? 6;
+    const listRowRadius = rowRadius ?? panelStyle?.rowRadius ?? 6;
+    const leftPadBase = basePaddingLeft ?? panelStyle?.basePaddingLeft ?? 8;
+    const rightPadBase = basePaddingRight ?? panelStyle?.basePaddingRight ?? 8;
+    const indentW = indentWidth ?? panelStyle?.indentWidth ?? 12;
+    const leafExtra = leafIndentOffset ?? panelStyle?.leafIndentOffset ?? 0;
 
     const header =
       title || headerRight ? (
@@ -285,6 +310,7 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       );
 
     const flat = flattenNodes(this.props as unknown as WikiNavPanelProps, this.state.expanded);
+    const showDirMark = flat.some((f) => f.isDir && f.isToggleableDir);
 
     const shouldSelect =
       isNodeSelectable ??
@@ -310,28 +336,38 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
         <Expanded flex={{ flex: 1 }}>
           <ScrollView
             ref={scrollRef}
-            scrollBarWidth={scrollBarWidth ?? 6}
-            scrollBarColor={scrollBarColor ?? theme.text.secondary}
+            scrollBarWidth={scrollBarWidth ?? panelStyle?.scrollBarWidth ?? 6}
+            scrollBarColor={scrollBarColor ?? panelStyle?.scrollBarColor ?? theme.text.secondary}
           >
             <Column mainAxisSize={MainAxisSize.Min} spacing={listRowGap}>
               {flat.map((f) => {
                 const active = !!activeKey && f.node.key === activeKey;
-                const style = getRowStyle
+                const rowStyle = getRowStyle
                   ? getRowStyle(f.node, { active, isDir: f.isDir, depth: f.depth })
                   : {
                       backgroundColor: active
-                        ? (activeRowColor ?? theme.state.selected)
-                        : (inactiveRowColor ?? 'transparent'),
+                        ? (activeRowColor ?? panelStyle?.activeRowColor ?? theme.state.selected)
+                        : (inactiveRowColor ?? panelStyle?.inactiveRowColor ?? 'transparent'),
                       textColor: active
-                        ? (activeTextColor ?? theme.text.primary)
-                        : (inactiveTextColor ?? theme.text.secondary),
+                        ? (activeTextColor ?? panelStyle?.activeTextColor ?? theme.text.primary)
+                        : (inactiveTextColor ??
+                          panelStyle?.inactiveTextColor ??
+                          theme.text.secondary),
                     };
 
                 const padLeft =
-                  leftPadBase + Math.max(0, f.indentLevel) * indentW + (f.isDir ? 0 : leafExtra);
+                  leftPadBase +
+                  Math.max(0, f.indentLevel) * indentW +
+                  (showDirMark && !f.isDir ? leafExtra : 0);
                 const padRight = rightPadBase;
 
-                const dirMark = f.isDir && f.isToggleableDir ? (f.isOpen ? '▾ ' : '▸ ') : '';
+                const dirMark = showDirMark
+                  ? f.isDir && f.isToggleableDir
+                    ? f.isOpen
+                      ? '▾ '
+                      : '▸ '
+                    : '  '
+                  : '';
                 const text = `${dirMark}${f.node.text}`;
 
                 const onClick = () => {
@@ -351,7 +387,7 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
                     height={listRowHeight}
                     padding={{ left: padLeft, right: padRight }}
                     borderRadius={listRowRadius}
-                    color={style.backgroundColor}
+                    color={rowStyle.backgroundColor}
                     cursor="pointer"
                     onClick={onClick}
                   >
@@ -361,7 +397,7 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
                       mainAxisAlignment={MainAxisAlignment.Start}
                       crossAxisAlignment={CrossAxisAlignment.Center}
                     >
-                      <Text text={text} fontSize={14} color={style.textColor} />
+                      <Text text={text} fontSize={14} color={rowStyle.textColor} />
                     </Row>
                   </Container>
                 );
@@ -423,8 +459,8 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       <Container
         width={width}
         height={height}
-        color={containerColor ?? theme.background.surface}
-        borderRadius={borderRadius}
+        color={containerColor ?? panelStyle?.containerColor ?? theme.background.surface}
+        borderRadius={borderRadius ?? panelStyle?.borderRadius}
         border={border}
       >
         {content}

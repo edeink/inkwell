@@ -86,6 +86,7 @@ export function parseMarkdownFrontMatter(content: string): {
 }
 
 function modulePathToDocId(modulePath: string): string {
+  // 将不同打包器/运行时给出的模块路径统一映射为 docId（基于 raw/ 下的相对路径，去掉扩展名）
   const normalized = modulePath.replace(/\\/g, '/');
   const marker = '/raw/';
   const idx = normalized.lastIndexOf(marker);
@@ -193,6 +194,7 @@ export function flattenSidebarToDocMetas(
 type MarkdownImporter = () => Promise<unknown>;
 
 async function maybeFetchMarkdown(value: string): Promise<string> {
+  // 某些构建配置会让 “?raw” 的导入结果退化为 URL 字符串，这里做一次轻量兜底：能 fetch 则拉取文本
   const trimmed = value.trimStart();
   const looksLikeMarkdown = trimmed.startsWith('#') || trimmed.includes('\n');
   if (looksLikeMarkdown) {

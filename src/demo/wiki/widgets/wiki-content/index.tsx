@@ -1,4 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
+import { createUnifiedWikiNavPanelStyle } from '../../helpers/wiki-app';
 import { FStateWidget } from '../fstate-widget';
 import { MarkdownPreview } from '../markdown-preview';
 import { MarkdownParser, NodeType, type MarkdownNode } from '../markdown-preview/parser';
@@ -297,6 +298,13 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
 
     const { ast, toc, tocKeyPrefix } = this.getParsedDoc(doc);
     this.latestToc = toc;
+    const navStyleBase = createUnifiedWikiNavPanelStyle(theme);
+    const tocPanelStyle = {
+      ...navStyleBase,
+      scrollBarWidth: 4,
+      containerColor: theme.background.container,
+      borderRadius: 8,
+    };
 
     const showToc = toc.length > 0 && innerWidth >= 720;
     const leftFlex = 7;
@@ -351,19 +359,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
         activeKey={this.state.activeTocKey}
         onSelect={this.scrollToAnchor}
         scrollRef={this.setTocScrollViewRef}
-        padding={12}
-        scrollBarWidth={4}
-        scrollBarColor={theme.text.secondary}
-        basePaddingLeft={8}
-        basePaddingRight={8}
-        indentWidth={12}
-        leafIndentOffset={0}
-        activeRowColor={theme.state.selected}
-        inactiveRowColor="transparent"
-        activeTextColor={theme.text.primary}
-        inactiveTextColor={theme.text.secondary}
-        containerColor={theme.background.container}
-        borderRadius={8}
+        style={tocPanelStyle}
         border={{ width: 1, color: theme.border.base }}
       />
     );
@@ -397,19 +393,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
           this.setState({ tocOpen: false });
         }}
         scrollRef={this.setTocScrollViewRef}
-        padding={12}
-        scrollBarWidth={4}
-        scrollBarColor={theme.text.secondary}
-        basePaddingLeft={8}
-        basePaddingRight={8}
-        indentWidth={12}
-        leafIndentOffset={0}
-        activeRowColor={theme.state.selected}
-        inactiveRowColor="transparent"
-        activeTextColor={theme.text.primary}
-        inactiveTextColor={theme.text.secondary}
-        containerColor={theme.background.container}
-        borderRadius={8}
+        style={tocPanelStyle}
         border={{ width: 1, color: theme.border.base }}
       />
     );
