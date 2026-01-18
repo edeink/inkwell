@@ -1,16 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
 import {
-  createWikiDocLoader,
   flattenSidebarToDocMetas,
   parseMarkdownFrontMatter,
   type SidebarItem,
 } from './helpers/wiki-doc';
-import gettingStarted from './raw/guide/getting-started.markdown?raw';
-import layout from './raw/guide/layout.markdown?raw';
-import intro from './raw/intro.markdown?raw';
-import sample from './raw/sample.markdown?raw';
 import sidebars from './raw/sidebar';
-import sum2025 from './raw/sum-2025.markdown?raw';
 import { WikiApp } from './widgets/wiki-app';
 
 import type { WikiDoc } from './widgets/types';
@@ -20,32 +14,39 @@ import { Themes, type ThemePalette } from '@/styles/theme';
 
 type WikiSidebarRoot = { docs: SidebarItem[] };
 
-const rawMarkdownModules: Record<string, () => Promise<unknown>> = {
-  './raw/intro.markdown': async () => intro,
-  './raw/guide/getting-started.markdown': async () => gettingStarted,
-  './raw/guide/layout.markdown': async () => layout,
-  './raw/sample.markdown': async () => sample,
-  './raw/sum-2025.markdown': async () => sum2025,
+type WebpackContextModule = {
+  keys: () => string[];
+  (id: string): unknown;
 };
 
-const rawMarkdownByDocKey: Record<string, string> = {
-  intro,
-  'guide/getting-started': gettingStarted,
-  'guide/layout': layout,
-  sample,
-  'sum-2025': sum2025,
+type WebpackRequire = {
+  context: (path: string, recursive: boolean, regExp: RegExp) => WebpackContextModule;
 };
 
-const docLinkByKey: Record<string, string> = Object.fromEntries(
-  Object.entries(rawMarkdownByDocKey).map(([docKey, raw]) => {
-    const parsed = parseMarkdownFrontMatter(raw);
-    return [docKey, parsed.frontMatter.link || docKey];
-  }),
-);
+declare const require: WebpackRequire;
 
-const docKeyByLink: Record<string, string> = Object.fromEntries(
-  Object.entries(docLinkByKey).map(([docKey, link]) => [link, docKey]),
-);
+function unwrapMarkdownModule(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value && typeof value === 'object' && 'default' in value) {
+    const d = (value as { default?: unknown }).default;
+    if (typeof d === 'string') {
+      return d;
+    }
+  }
+  return '';
+}
+
+function moduleKeyToDocId(modulePath: string): string {
+  const normalized = modulePath.replace(/\\/g, '/');
+  const marker = '/raw/';
+  const idx = normalized.lastIndexOf(marker);
+  const afterRaw =
+    idx >= 0 ? normalized.slice(idx + marker.length) : normalized.replace(/^(\.\/|\.\.\/)+/, '');
+  const cleaned = afterRaw.replace(/^raw\//, '');
+  return cleaned.replace(/\.(md|markdown)$/i, '');
+}
 
 const sidebarItems = (sidebars as WikiSidebarRoot).docs;
 const docs: WikiDoc[] = flattenSidebarToDocMetas(sidebarItems).map((m) => ({
@@ -55,7 +56,39 @@ const docs: WikiDoc[] = flattenSidebarToDocMetas(sidebarItems).map((m) => ({
   content: '',
 }));
 
-const loadDoc = createWikiDocLoader(rawMarkdownModules);
+let webpackRawByDocKey: Record<string, string> | null = null;
+try {
+  const ctx = require.context('./raw', true, /\.markdown$/);
+  const map: Record<string, string> = {};
+  for (const key of ctx.keys()) {
+    const docKey = moduleKeyToDocId(key);
+    map[docKey] = unwrapMarkdownModule(ctx(key));
+  }
+  webpackRawByDocKey = map;
+} catch {
+  webpackRawByDocKey = null;
+}
+
+const docLinkByKey: Record<string, string> = (() => {
+  if (webpackRawByDocKey) {
+    return Object.fromEntries(
+      Object.entries(webpackRawByDocKey).map(([docKey, raw]) => {
+        const parsed = parseMarkdownFrontMatter(raw);
+        return [docKey, parsed.frontMatter.link || docKey];
+      }),
+    );
+  }
+  return {};
+})();
+
+const docKeyByLink: Record<string, string> = Object.fromEntries(
+  Object.entries(docLinkByKey).map(([docKey, link]) => [link, docKey]),
+);
+
+const loadDoc: (docId: string) => Promise<{ content: string }> = async (docId: string) => {
+  const raw = webpackRawByDocKey?.[docId] ?? '';
+  return { content: String(raw) };
+};
 
 export function runApp(runtime: Runtime, width: number, height: number, theme: ThemePalette) {
   const initialSelectedKey = (() => {
@@ -64,7 +97,7 @@ export function runApp(runtime: Runtime, width: number, height: number, theme: T
     }
     const params = new URLSearchParams(window.location.search);
     const link = params.get('link') || '';
-    return docKeyByLink[link] || '';
+    return docKeyByLink[link] || link || '';
   })();
 
   runtime.render(

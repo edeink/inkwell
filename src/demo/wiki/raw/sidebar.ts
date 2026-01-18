@@ -13,10 +13,19 @@ const sidebars = {
     {
       type: 'category',
       label: '示例',
-      collapsed: true,
+      collapsed: false,
       items: [
         { type: 'doc', id: 'sample', label: 'Markdown 语法覆盖示例' },
         { type: 'doc', id: 'sum-2025', label: '2025 总结' },
+      ],
+    },
+    {
+      type: 'category',
+      label: '示例 01',
+      collapsed: false,
+      items: [
+        { type: 'doc', id: 'test01', label: 'Wiki 示例 01' },
+        { type: 'doc', id: 'test02', label: 'Wiki 示例 02' },
       ],
     },
   ],
