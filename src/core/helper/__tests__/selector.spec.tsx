@@ -100,6 +100,21 @@ describe('Widget 选择器', () => {
     expect(n2?.type).toBe('NodeStub');
   });
 
+  it('findByKey 支持包含 / 的 key', () => {
+    const el = (
+      <Container key="root" width={200} height={100}>
+        <NodeStub key="a/b" title="C" />
+      </Container>
+    );
+    const json = compileElement(el);
+    const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(json);
+    root.layout({ minWidth: 0, minHeight: 0, maxWidth: 400, maxHeight: 300 });
+
+    const node = findWidget(root, '#a/b') as Widget | null;
+    expect(node?.key).toBe('a/b');
+  });
+
   it('getActiveNode 正常工作', () => {
     const root = buildTree();
     const act = findWidget(root, ':active') as Widget | null;

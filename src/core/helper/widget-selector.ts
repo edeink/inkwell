@@ -86,7 +86,7 @@ function parseSelector(selector: string): SelectorStep[] {
         rest = rest.slice(tagMatch[0].length);
       }
       // id/class/attr/pseudo sequence
-      const re = /(#[\w-]+)|(\.[\w-]+)|(\[[^\]]+\])|(:[\w-]+)/g;
+      const re = /(#[\w/-]+)|(\.[\w-]+)|(\[[^\]]+\])|(:[\w-]+)/g;
       let m: RegExpExecArray | null;
       while ((m = re.exec(rest)) !== null) {
         const [tok] = m;

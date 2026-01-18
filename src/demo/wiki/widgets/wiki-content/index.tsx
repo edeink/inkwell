@@ -2,11 +2,11 @@
 import { FStateWidget } from '../fstate-widget';
 import { MarkdownPreview } from '../markdown-preview';
 import { MarkdownParser, NodeType, type MarkdownNode } from '../markdown-preview/parser';
+import { WikiNavPanel, type WikiNavNode } from '../wiki-nav-panel';
 
 import type { WikiContentProps } from '../types';
 
 import {
-  Column,
   Container,
   Expanded,
   Padding,
@@ -68,6 +68,7 @@ function sumOffsetYUntil(widget: Widget, stopAt: Widget): number {
 
 export class WikiContent extends FStateWidget<WikiContentProps, State> {
   private scrollView: ScrollViewHandle | null = null;
+  private scrollViewWidget: Widget | null = null;
   private tocScrollView: ScrollViewHandle | null = null;
   private contentRoot: Widget | null = null;
   private latestToc: MarkdownTocItem[] = [];
@@ -80,6 +81,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
   private tocOffsetKeys: string[] = [];
   private tocOffsetYs: number[] = [];
   private pendingScrollReset = false;
+  private currentScrollY = 0;
 
   protected getInitialState(): State {
     const key = this.props.doc?.key ?? '';
@@ -100,6 +102,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
 
   private setScrollViewRef = (r: unknown) => {
     this.scrollView = createExposedHandle<ScrollViewHandle>(r);
+    this.scrollViewWidget = r as Widget;
     if (this.scrollView && this.pendingScrollReset) {
       this.pendingScrollReset = false;
       this.scrollView.scrollTo(0, 0);
@@ -151,12 +154,24 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
         continue;
       }
       keys.push(item.key);
-      ys.push(sumOffsetYUntil(anchor, root));
+      ys.push(this.getAnchorScrollY(anchor));
     }
 
     this.tocOffsetCacheKey = cacheKey;
     this.tocOffsetKeys = keys;
     this.tocOffsetYs = ys;
+  }
+
+  private getAnchorScrollY(anchor: Widget): number {
+    const svWidget = this.scrollViewWidget;
+    const contentRoot = this.contentRoot;
+    if (svWidget) {
+      return sumOffsetYUntil(anchor, svWidget) + this.currentScrollY;
+    }
+    if (contentRoot) {
+      return sumOffsetYUntil(anchor, contentRoot);
+    }
+    return 0;
   }
 
   private scrollToAnchor = (anchorKey: string) => {
@@ -173,16 +188,18 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
       if (!anchor) {
         return;
       }
-      y = sumOffsetYUntil(anchor, root);
+      y = this.getAnchorScrollY(anchor);
     }
     const nextY = Math.max(0, y);
     sv.scrollTo(0, nextY);
+    this.currentScrollY = nextY;
     const nextActiveKey = this.getActiveTocKey(nextY) || anchorKey;
     this.setState({ scrollY: nextY, activeTocKey: nextActiveKey });
     this.scrollTocToActive(nextActiveKey);
   };
 
   private handleScroll = (_scrollX: number, scrollY: number) => {
+    this.currentScrollY = scrollY;
     const nextActiveKey = this.getActiveTocKey(scrollY);
     if (nextActiveKey !== this.state.activeTocKey) {
       this.setState({ activeTocKey: nextActiveKey });
@@ -226,7 +243,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
       if (!anchor) {
         continue;
       }
-      const y = sumOffsetYUntil(anchor, root);
+      const y = this.getAnchorScrollY(anchor);
       if (y <= targetY) {
         activeKey = item.key;
       } else {
@@ -318,60 +335,37 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
       </ScrollView>
     );
 
+    const tocNodes: WikiNavNode[] = toc.map((item) => ({
+      key: item.key,
+      text: item.text,
+      indentLevel: Math.max(0, item.level - 1),
+    }));
+
     const tocPanel = (
-      <Container
+      <WikiNavPanel
         height={innerHeight || undefined}
-        color={theme.background.container}
+        theme={theme}
+        nodes={tocNodes}
+        title="目录"
+        titleGap={8}
+        activeKey={this.state.activeTocKey}
+        onSelect={this.scrollToAnchor}
+        scrollRef={this.setTocScrollViewRef}
+        padding={12}
+        scrollBarWidth={4}
+        scrollBarColor={theme.text.secondary}
+        basePaddingLeft={8}
+        basePaddingRight={8}
+        indentWidth={12}
+        leafIndentOffset={0}
+        activeRowColor={theme.state.selected}
+        inactiveRowColor="transparent"
+        activeTextColor={theme.text.primary}
+        inactiveTextColor={theme.text.secondary}
+        containerColor={theme.background.container}
         borderRadius={8}
         border={{ width: 1, color: theme.border.base }}
-      >
-        <Padding padding={12}>
-          <Column
-            mainAxisSize={MainAxisSize.Max}
-            spacing={8}
-            crossAxisAlignment={CrossAxisAlignment.Stretch}
-          >
-            <Text text="目录" fontSize={14} fontWeight="bold" color={theme.text.primary} />
-            <Expanded flex={{ flex: 1 }}>
-              <ScrollView
-                ref={this.setTocScrollViewRef}
-                scrollBarWidth={4}
-                scrollBarColor={theme.text.secondary}
-              >
-                <Column mainAxisSize={MainAxisSize.Min} spacing={6}>
-                  {toc.map((item) => (
-                    <Padding key={item.key} padding={{ left: Math.max(0, (item.level - 1) * 12) }}>
-                      <Container
-                        height={24}
-                        padding={{ left: 8, right: 8 }}
-                        borderRadius={6}
-                        color={
-                          item.key === this.state.activeTocKey
-                            ? theme.state.selected
-                            : 'transparent'
-                        }
-                        cursor="pointer"
-                        onClick={() => this.scrollToAnchor(item.key)}
-                        alignment="center"
-                      >
-                        <Text
-                          text={item.text}
-                          fontSize={14}
-                          color={
-                            item.key === this.state.activeTocKey
-                              ? theme.text.primary
-                              : theme.text.secondary
-                          }
-                        />
-                      </Container>
-                    </Padding>
-                  ))}
-                </Column>
-              </ScrollView>
-            </Expanded>
-          </Column>
-        </Padding>
-      </Container>
+      />
     );
 
     const showOverlayTocButton = toc.length > 0 && !showToc;
@@ -379,76 +373,45 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
     const overlayHeight = Math.min(360, innerHeight);
 
     const overlayTocPanel = (
-      <Container
+      <WikiNavPanel
         width={overlayWidth}
         height={overlayHeight}
-        color={theme.background.container}
+        theme={theme}
+        nodes={tocNodes}
+        title="目录"
+        titleGap={8}
+        activeKey={this.state.activeTocKey}
+        headerRight={
+          <Container
+            padding={{ left: 8, right: 8, top: 2, bottom: 2 }}
+            borderRadius={6}
+            color={theme.background.base}
+            cursor="pointer"
+            onClick={() => this.setState({ tocOpen: false })}
+          >
+            <Text text="关闭" fontSize={14} color={theme.text.secondary} />
+          </Container>
+        }
+        onSelect={(key) => {
+          this.scrollToAnchor(key);
+          this.setState({ tocOpen: false });
+        }}
+        scrollRef={this.setTocScrollViewRef}
+        padding={12}
+        scrollBarWidth={4}
+        scrollBarColor={theme.text.secondary}
+        basePaddingLeft={8}
+        basePaddingRight={8}
+        indentWidth={12}
+        leafIndentOffset={0}
+        activeRowColor={theme.state.selected}
+        inactiveRowColor="transparent"
+        activeTextColor={theme.text.primary}
+        inactiveTextColor={theme.text.secondary}
+        containerColor={theme.background.container}
         borderRadius={8}
         border={{ width: 1, color: theme.border.base }}
-      >
-        <Padding padding={12}>
-          <Column
-            mainAxisSize={MainAxisSize.Max}
-            spacing={8}
-            crossAxisAlignment={CrossAxisAlignment.Stretch}
-          >
-            <Row mainAxisSize={MainAxisSize.Max}>
-              <Expanded flex={{ flex: 1 }}>
-                <Text text="目录" fontSize={14} fontWeight="bold" color={theme.text.primary} />
-              </Expanded>
-              <Container
-                padding={{ left: 8, right: 8, top: 2, bottom: 2 }}
-                borderRadius={6}
-                color={theme.background.base}
-                cursor="pointer"
-                onClick={() => this.setState({ tocOpen: false })}
-              >
-                <Text text="关闭" fontSize={14} color={theme.text.secondary} />
-              </Container>
-            </Row>
-            <Expanded flex={{ flex: 1 }}>
-              <ScrollView
-                ref={this.setTocScrollViewRef}
-                scrollBarWidth={4}
-                scrollBarColor={theme.text.secondary}
-              >
-                <Column mainAxisSize={MainAxisSize.Min} spacing={6}>
-                  {toc.map((item) => (
-                    <Padding key={item.key} padding={{ left: Math.max(0, (item.level - 1) * 12) }}>
-                      <Container
-                        height={24}
-                        padding={{ left: 8, right: 8 }}
-                        borderRadius={6}
-                        color={
-                          item.key === this.state.activeTocKey
-                            ? theme.state.selected
-                            : 'transparent'
-                        }
-                        cursor="pointer"
-                        onClick={() => {
-                          this.scrollToAnchor(item.key);
-                          this.setState({ tocOpen: false });
-                        }}
-                        alignment="center"
-                      >
-                        <Text
-                          text={item.text}
-                          fontSize={14}
-                          color={
-                            item.key === this.state.activeTocKey
-                              ? theme.text.primary
-                              : theme.text.secondary
-                          }
-                        />
-                      </Container>
-                    </Padding>
-                  ))}
-                </Column>
-              </ScrollView>
-            </Expanded>
-          </Column>
-        </Padding>
-      </Container>
+      />
     );
 
     const twoColumn = (
