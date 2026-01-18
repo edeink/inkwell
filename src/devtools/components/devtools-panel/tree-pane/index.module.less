@@ -1,0 +1,138 @@
+.treeToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.treeToolbarSearch {
+  flex: 1;
+  min-width: 0;
+}
+
+.treeToolbarActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.compactTree {
+  height: calc(100% - 40px - 30px);
+  border-radius: 0;
+
+  :global {
+    .ant-tree-node-content-wrapper {
+      min-height: 24px;
+      line-height: 24px;
+      font-size: 12px;
+      padding: 0 4px;
+    }
+
+    .ant-tree-treenode {
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    .ant-tree-indent-unit {
+      width: 16px;
+    }
+
+    .ant-tree-switcher {
+      width: 16px;
+      line-height: 24px;
+
+      .ant-tree-switcher-icon {
+        font-size: 10px;
+      }
+    }
+
+    .ant-tree-title {
+      font-size: 12px;
+    }
+  }
+}
+
+.breadcrumbsContainer {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--ink-demo-border-secondary);
+  background-color: var(--ink-demo-bg-surface);
+  width: 100%;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.navBtn {
+  width: 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-demo-text-secondary);
+  transition: all 0.2s ease-out;
+  flex-shrink: 0;
+}
+
+.navBtn:hover:not(.disabled) {
+  background-color: var(--ink-demo-header-bg);
+  color: var(--ink-demo-primary, #1890ff);
+}
+
+.disabled {
+  cursor: default;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.scrollArea {
+  flex: 1;
+  height: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  padding: 0 4px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.crumbItem {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--ink-demo-text-secondary);
+  font-size: 12px;
+  transition: all 0.2s ease-out;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.crumbItem:hover {
+  background-color: var(--ink-demo-header-bg);
+  color: var(--ink-demo-primary, #1890ff);
+}
+
+.crumbItemActive {
+  background-color: color-mix(in srgb, var(--ink-demo-primary, #1890ff), transparent 90%);
+  color: var(--ink-demo-primary, #1890ff);
+  font-weight: 500;
+}
+
+.separator {
+  margin: 0 2px;
+  color: var(--ink-demo-text-secondary);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}

@@ -79,18 +79,40 @@ export default class Overlay {
       }
       this.rafId = null;
     }
-    if (this.reactRoot) {
+    const root = this.reactRoot;
+    const el = this.rootEl;
+    this.reactRoot = null;
+    this.rootEl = null;
+    if (root) {
+      let defer: (cb: () => void) => void;
+      if (typeof queueMicrotask === 'function') {
+        defer = queueMicrotask;
+      } else {
+        defer = (cb) => {
+          void Promise.resolve().then(cb);
+        };
+      }
+      defer(() => {
+        try {
+          root.unmount();
+        } catch {
+          void 0;
+        }
+        if (el) {
+          try {
+            el.remove();
+          } catch {
+            void 0;
+          }
+        }
+      });
+    } else if (el) {
       try {
-        this.reactRoot.unmount();
+        el.remove();
       } catch {
         void 0;
       }
     }
-    this.reactRoot = null;
-    if (this.rootEl && this.rootEl.parentElement) {
-      this.rootEl.parentElement.removeChild(this.rootEl);
-    }
-    this.rootEl = null;
     this.active = false;
     this.stopAutoUpdate();
   }

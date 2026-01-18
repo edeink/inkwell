@@ -1,4 +1,4 @@
-import { EyeInvisibleOutlined, LockOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, InfoCircleOutlined, LockOutlined } from '@ant-design/icons';
 import { Button, ColorPicker, Input, InputNumber, Popover, Select, Space, Tooltip } from 'antd';
 import { useEffect, useState, type ReactNode } from 'react';
 
@@ -80,7 +80,21 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
   }
 
   if (!widget) {
-    return <div className={styles.emptyHint}>未选择节点</div>;
+    return (
+      <div className={styles.propsEditor}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>
+            <InfoCircleOutlined />
+          </div>
+          <div className={styles.emptyTitle}>未选择节点</div>
+          <div className={styles.emptyDesc}>在左侧 Tree 中选择节点后，这里会展示可编辑属性。</div>
+          <div className={styles.emptySteps}>
+            <div className={styles.emptyStep}>点击左侧 Tree 节点进行选中</div>
+            <div className={styles.emptyStep}>或开启顶部拾取，在画布上点击目标节点</div>
+          </div>
+        </div>
+      </div>
+    );
   }
   const allEntries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
   const hiddenEntries = allEntries.filter(([k]) => isHiddenKey(k));

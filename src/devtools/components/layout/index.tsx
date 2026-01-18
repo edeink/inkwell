@@ -1,11 +1,20 @@
-import { Button, Space, Tooltip } from 'antd';
 import classnames from 'classnames';
-import React, { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from 'react';
 
 import { clamp } from '../../helper/math';
 import globalStyles from '../../index.module.less';
 
+import { LayoutContentGrid } from './content-grid';
+import { LayoutHeader } from './header';
 import styles from './index.module.less';
+import { LayoutResizeHandle } from './resize-handle';
 
 /**
  * Dock 位置枚举
@@ -40,10 +49,10 @@ export function LayoutPanel({
   onVisibleChange,
 }: {
   visible: boolean;
-  headerLeft?: React.ReactNode;
-  headerRightExtra?: (requestClose: () => void) => React.ReactNode;
-  renderTree: (info: LayoutInfo) => React.ReactNode;
-  renderProps: (info: LayoutInfo) => React.ReactNode;
+  headerLeft?: ReactNode;
+  headerRightExtra?: (requestClose: () => void) => ReactNode;
+  renderTree: (info: LayoutInfo) => ReactNode;
+  renderProps: (info: LayoutInfo) => ReactNode;
   onVisibleChange?: (next: boolean) => void;
 }) {
   const storageKey = 'INKWELL_DEVTOOLS_LAYOUT';
@@ -112,13 +121,13 @@ export function LayoutPanel({
     }
   }, [treeWidth, treeHeight]);
 
-  function onResizeMouseDown(e: React.MouseEvent) {
+  function onResizeMouseDown(e: ReactMouseEvent) {
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
     const startW = width;
     const startH = height;
-    function onMove(ev: MouseEvent) {
+    function onMove(ev: globalThis.MouseEvent) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       if (dock === 'right') {
@@ -142,13 +151,13 @@ export function LayoutPanel({
     document.addEventListener('mouseup', onUp);
   }
 
-  function onSplitMouseDown(e: React.MouseEvent) {
+  function onSplitMouseDown(e: ReactMouseEvent) {
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
     const startW = treeWidth;
     const startH = treeHeight;
-    function onMove(ev: MouseEvent) {
+    function onMove(ev: globalThis.MouseEvent) {
       if (isNarrow) {
         const dy = ev.clientY - startY;
         const maxH = Math.max(
@@ -187,10 +196,9 @@ export function LayoutPanel({
     },
   );
   const handleClass = classnames(styles.resizeHandle, styles[`handle-${dock}`]);
-  const gridClass = classnames(styles.layoutContentGrid);
 
   const info: LayoutInfo = { dock, width, height, treeWidth, treeHeight, isNarrow };
-  const panelStyle: React.CSSProperties & Record<string, string | number | undefined> = (() => {
+  const panelStyle: CSSProperties & Record<string, string | number | undefined> = (() => {
     if (dock === 'top' || dock === 'bottom') {
       return {
         height,
@@ -221,116 +229,26 @@ export function LayoutPanel({
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
-      {/* 拖拽手柄 */}
-      <div className={styles.layoutHeader}>
-        <div className={styles.left}>{headerLeft}</div>
-        <div className={styles.right}>
-          <Space.Compact>
-            <Tooltip title="靠左" placement="bottom">
-              <Button
-                type="text"
-                className={dock === 'left' ? styles.btnTextPrimary : styles.btnText}
-                aria-label="dock-left"
-                aria-pressed={dock === 'left'}
-                icon={<DockIcon side="left" active={dock === 'left'} />}
-                onClick={() => {
-                  if (dock !== 'left') {
-                    setDock('left');
-                  }
-                }}
-              />
-            </Tooltip>
-            <Tooltip title="靠右" placement="bottom">
-              <Button
-                type="text"
-                className={dock === 'right' ? styles.btnTextPrimary : styles.btnText}
-                aria-label="dock-right"
-                aria-pressed={dock === 'right'}
-                icon={<DockIcon side="right" active={dock === 'right'} />}
-                onClick={() => {
-                  if (dock !== 'right') {
-                    setDock('right');
-                  }
-                }}
-              />
-            </Tooltip>
-            <Tooltip title="靠上" placement="bottom">
-              <Button
-                type="text"
-                className={dock === 'top' ? styles.btnTextPrimary : styles.btnText}
-                aria-label="dock-top"
-                aria-pressed={dock === 'top'}
-                icon={<DockIcon side="top" active={dock === 'top'} />}
-                onClick={() => {
-                  if (dock !== 'top') {
-                    setDock('top');
-                  }
-                }}
-              />
-            </Tooltip>
-            <Tooltip title="靠下" placement="bottom">
-              <Button
-                type="text"
-                className={dock === 'bottom' ? styles.btnTextPrimary : styles.btnText}
-                aria-label="dock-bottom"
-                aria-pressed={dock === 'bottom'}
-                icon={<DockIcon side="bottom" active={dock === 'bottom'} />}
-                onClick={() => {
-                  if (dock !== 'bottom') {
-                    setDock('bottom');
-                  }
-                }}
-              />
-            </Tooltip>
-          </Space.Compact>
-          {headerRightExtra?.(() => {
-            onVisibleChange?.(false);
-          })}
-        </div>
-      </div>
-      <div className={gridClass}>
-        <div className={styles.treePane}>{renderTree(info)}</div>
-        <div
-          className={styles.splitHandle}
-          onMouseDown={(e) => {
-            try {
-              e.stopPropagation();
-            } catch {
-              void 0;
-            }
-            onSplitMouseDown(e as unknown as React.MouseEvent);
-          }}
-        />
-        <div className={styles.propsPane}>
-          <div className={styles.propsPaneBody}>{renderProps(info)}</div>
-        </div>
-      </div>
-      <div
-        onMouseDown={(e) => {
-          try {
-            e.stopPropagation();
-          } catch {
-            void 0;
-          }
-          onResizeMouseDown(e as unknown as React.MouseEvent);
-        }}
+      <LayoutHeader
+        dock={dock}
+        headerLeft={headerLeft}
+        headerRightExtra={headerRightExtra}
+        onDockChange={setDock}
+        onRequestClose={() => onVisibleChange?.(false)}
+      />
+      <LayoutContentGrid
+        info={info}
+        renderTree={renderTree}
+        renderProps={renderProps}
+        onSplitMouseDown={onSplitMouseDown}
+      />
+      <LayoutResizeHandle
         className={handleClass}
-        style={{ cursor }}
+        cursor={cursor}
+        onResizeMouseDown={onResizeMouseDown}
       />
     </div>
   );
 }
 
 export default LayoutPanel;
-function DockIcon({ side, active }: { side: Dock; active?: boolean }) {
-  // 使用 currentColor 继承父按钮颜色
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={styles.dockIconSvg}>
-      <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="currentColor" />
-      {side === 'left' && <rect x="2" y="2" width="4" height="12" rx="2" fill="currentColor" />}
-      {side === 'right' && <rect x="10" y="2" width="4" height="12" rx="2" fill="currentColor" />}
-      {side === 'top' && <rect x="2" y="2" width="12" height="4" rx="2" fill="currentColor" />}
-      {side === 'bottom' && <rect x="2" y="10" width="12" height="4" rx="2" fill="currentColor" />}
-    </svg>
-  );
-}

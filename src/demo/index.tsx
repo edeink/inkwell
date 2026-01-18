@@ -128,7 +128,7 @@ export default function UnifiedDemo() {
           className={styles.tabs}
           activeKey={activeKey}
           onChange={handleTabChange}
-          destroyInactiveTabPane
+          destroyOnHidden
           items={demos.map((demo) => ({
             key: demo.key,
             label: demo.label,
