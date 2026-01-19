@@ -1,4 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
+import { easeSharp } from '../../../swiper/widgets/swiper/easing';
 import {
   buildNavNodesFromDocs,
   buildNavNodesFromSidebarItems,
@@ -57,6 +58,23 @@ const DIVIDER_WIDTH = 16;
 
 const parser = new MarkdownParser();
 
+/**
+ * 锚点跳转动画配置
+ * - debounceMs: 合并快速连续点击
+ * - minDurationMs/maxDurationMs: 动画时长范围
+ */
+type AnchorScrollConfig = {
+  debounceMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+};
+
+const ANCHOR_SCROLL_CONFIG: AnchorScrollConfig = {
+  debounceMs: 50,
+  minDurationMs: 180,
+  maxDurationMs: 480,
+};
+
 export class WikiApp extends FStateWidget<WikiAppProps, State> {
   private scrollView: ScrollViewHandle | null = null;
   private scrollViewWidget: Widget | null = null;
@@ -74,6 +92,9 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
   private tocOffsetYs: number[] = [];
   private pendingScrollReset = false;
   private currentScrollY = 0;
+  private anchorScrollDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private anchorScrollAnimationFrame: number | null = null;
+  private anchorScrollSeq = 0;
 
   protected getInitialState(props: WikiAppProps): State {
     const first = props.docs[0]?.key || '';
@@ -224,11 +245,12 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     }
     const root = this.contentRoot;
     const runtimeRoot = this.runtime?.getRootWidget?.() as Widget | null;
-    if (!root || !runtimeRoot) {
+    const rootWidth = root?.renderObject?.size?.width ?? 0;
+    if (!root || !runtimeRoot || !Number.isFinite(rootWidth) || rootWidth <= 0) {
       return '';
     }
 
-    this.ensureTocOffsets(`${this.state.selectedKey}-${root.renderObject.size.width}`);
+    this.ensureTocOffsets(`${this.state.selectedKey}-${rootWidth}`);
     if (this.tocOffsetYs.length) {
       const targetY = Math.max(0, scrollY + 12);
       let lo = 0;
@@ -280,6 +302,95 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     sv.scrollTo(0, target);
   }
 
+  private cancelAnchorScroll() {
+    if (this.anchorScrollDebounceTimer) {
+      clearTimeout(this.anchorScrollDebounceTimer);
+      this.anchorScrollDebounceTimer = null;
+    }
+    if (this.anchorScrollAnimationFrame) {
+      cancelAnimationFrame(this.anchorScrollAnimationFrame);
+      this.anchorScrollAnimationFrame = null;
+    }
+    this.anchorScrollSeq++;
+  }
+
+  private getMaxScrollY(): number {
+    type ScrollViewSizeInfo = {
+      renderObject?: { size?: { height?: number } };
+      _contentSize?: { height?: number };
+    };
+    const svWidget = this.scrollViewWidget as unknown as ScrollViewSizeInfo | null;
+    const viewportH = svWidget?.renderObject?.size?.height ?? 0;
+    const contentH = svWidget?._contentSize?.height ?? 0;
+    if (
+      !Number.isFinite(viewportH) ||
+      !Number.isFinite(contentH) ||
+      viewportH <= 0 ||
+      contentH <= 0
+    ) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return Math.max(0, contentH - viewportH);
+  }
+
+  private computeAnchorTargetY(rawY: number): number {
+    const maxScrollY = this.getMaxScrollY();
+    const y = Math.max(0, rawY);
+    return Math.min(y, maxScrollY);
+  }
+
+  private startAnchorScroll(anchorKey: string, targetY: number, seq: number) {
+    const sv = this.scrollView;
+    if (!sv || seq !== this.anchorScrollSeq) {
+      return;
+    }
+
+    const from = Number.isFinite(this.currentScrollY) ? this.currentScrollY : 0;
+    const to = this.computeAnchorTargetY(targetY);
+    const distance = Math.abs(to - from);
+    const durationMs = Math.max(
+      ANCHOR_SCROLL_CONFIG.minDurationMs,
+      Math.min(ANCHOR_SCROLL_CONFIG.maxDurationMs, distance * 0.6),
+    );
+
+    if (distance < 0.5 || durationMs <= 0) {
+      sv.scrollTo(0, to);
+      this.currentScrollY = to;
+      const nextActiveKey = this.getActiveTocKey(to) || anchorKey;
+      this.setState({ scrollY: to, activeTocKey: nextActiveKey });
+      this.scrollTocToActive(nextActiveKey);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const tick = () => {
+      if (seq !== this.anchorScrollSeq) {
+        return;
+      }
+      const t = (Date.now() - startedAt) / durationMs;
+      if (t >= 1) {
+        sv.scrollTo(0, to);
+        this.currentScrollY = to;
+        const nextActiveKey = this.getActiveTocKey(to) || anchorKey;
+        this.setState({ scrollY: to, activeTocKey: nextActiveKey });
+        this.scrollTocToActive(nextActiveKey);
+        this.anchorScrollAnimationFrame = null;
+        return;
+      }
+      const p = easeSharp(Math.max(0, Math.min(1, t)));
+      const y = from + (to - from) * p;
+      sv.scrollTo(0, y);
+      this.currentScrollY = y;
+      this.anchorScrollAnimationFrame = requestAnimationFrame(tick);
+    };
+
+    if (this.anchorScrollAnimationFrame) {
+      cancelAnimationFrame(this.anchorScrollAnimationFrame);
+      this.anchorScrollAnimationFrame = null;
+    }
+    this.anchorScrollAnimationFrame = requestAnimationFrame(tick);
+  }
+
   private scrollToAnchor = (anchorKey: string) => {
     const root = this.contentRoot;
     const sv = this.scrollView;
@@ -287,6 +398,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     if (!root || !sv || !runtimeRoot) {
       return;
     }
+    this.cancelAnchorScroll();
     const idx = this.tocOffsetKeys.indexOf(anchorKey);
     let y = idx >= 0 ? this.tocOffsetYs[idx] : -1;
     if (y < 0) {
@@ -296,12 +408,11 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       }
       y = this.getAnchorScrollY(anchor);
     }
-    const nextY = Math.max(0, y);
-    sv.scrollTo(0, nextY);
-    this.currentScrollY = nextY;
-    const nextActiveKey = this.getActiveTocKey(nextY) || anchorKey;
-    this.setState({ scrollY: nextY, activeTocKey: nextActiveKey });
-    this.scrollTocToActive(nextActiveKey);
+    const seq = this.anchorScrollSeq;
+    this.anchorScrollDebounceTimer = setTimeout(() => {
+      this.anchorScrollDebounceTimer = null;
+      this.startAnchorScroll(anchorKey, y, seq);
+    }, ANCHOR_SCROLL_CONFIG.debounceMs);
   };
 
   private handleContentScroll = (_scrollX: number, scrollY: number) => {

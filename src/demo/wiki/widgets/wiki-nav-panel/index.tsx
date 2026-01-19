@@ -63,32 +63,7 @@ export type WikiNavPanelProps = {
    */
   style?: Partial<WikiNavPanelStyle>;
   scrollRef?: WidgetProps['ref'];
-  scrollBarWidth?: number;
-  scrollBarColor?: string;
-  padding?: number;
-  containerColor?: string;
-  borderRadius?: number;
   border?: { width: number; color: string };
-  rowHeight?: number;
-  rowGap?: number;
-  rowRadius?: number;
-  basePaddingLeft?: number;
-  basePaddingRight?: number;
-  indentWidth?: number;
-  leafIndentOffset?: number;
-  activeRowColor?: string;
-  inactiveRowColor?: string;
-  activeTextColor?: string;
-  inactiveTextColor?: string;
-  getRowStyle?: (
-    node: WikiNavNode,
-    opts: { active: boolean; isDir: boolean; depth: number },
-  ) => {
-    backgroundColor: string;
-    textColor: string;
-  };
-  isNodeExpandable?: (node: WikiNavNode, depth: number) => boolean;
-  isNodeSelectable?: (node: WikiNavNode, depth: number) => boolean;
   leadingDividerWidth?: number;
   leadingDividerColor?: string;
   resize?: {
@@ -97,7 +72,6 @@ export type WikiNavPanelProps = {
     maxWidth?: number;
     onResize: (width: number) => void;
   };
-  initialExpandedKeys?: Iterable<string>;
 } & WidgetProps;
 
 type FlatNode = {
@@ -109,17 +83,11 @@ type FlatNode = {
   isOpen: boolean;
 };
 
-function collectInitialExpandedKeys(props: WikiNavPanelProps): Set<string> {
+function collectInitialExpandedKeys(nodes: WikiNavNode[]): Set<string> {
   const out = new Set<string>();
-  if (props.initialExpandedKeys) {
-    for (const k of props.initialExpandedKeys) {
-      out.add(k);
-    }
-  }
-  const isExpandable = props.isNodeExpandable ?? ((node: WikiNavNode) => !!node.children?.length);
   const walk = (nodes: WikiNavNode[], depth: number) => {
     for (const n of nodes) {
-      if (n.children?.length && n.defaultExpanded && isExpandable(n, depth)) {
+      if (n.children?.length && n.defaultExpanded) {
         out.add(n.key);
       }
       if (n.children?.length) {
@@ -127,18 +95,17 @@ function collectInitialExpandedKeys(props: WikiNavPanelProps): Set<string> {
       }
     }
   };
-  walk(props.nodes, 0);
+  walk(nodes, 0);
   return out;
 }
 
-function flattenNodes(props: WikiNavPanelProps, expanded: Set<string>): FlatNode[] {
+function flattenNodes(nodes: WikiNavNode[], expanded: Set<string>): FlatNode[] {
   const out: FlatNode[] = [];
-  const isExpandable = props.isNodeExpandable ?? ((node: WikiNavNode) => !!node.children?.length);
 
   const walk = (nodes: WikiNavNode[], depth: number) => {
     for (const n of nodes) {
       const isDir = !!n.children?.length;
-      const isToggleableDir = isDir && isExpandable(n, depth);
+      const isToggleableDir = isDir;
       const isOpen = isToggleableDir ? expanded.has(n.key) : true;
       const indentLevel = typeof n.indentLevel === 'number' ? n.indentLevel : depth;
       out.push({ node: n, depth, indentLevel, isDir, isToggleableDir, isOpen });
@@ -148,7 +115,7 @@ function flattenNodes(props: WikiNavPanelProps, expanded: Set<string>): FlatNode
     }
   };
 
-  walk(props.nodes, 0);
+  walk(nodes, 0);
   return out;
 }
 
@@ -162,7 +129,7 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
   private windowUpHandler: ((ev: PointerEvent) => void) | null = null;
 
   protected getInitialState(props: WikiNavPanelProps): State {
-    return { expanded: collectInitialExpandedKeys(props) };
+    return { expanded: collectInitialExpandedKeys(props.nodes) };
   }
 
   private toggleDir(key: string) {
@@ -259,38 +226,20 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       onSelect,
       style: panelStyle,
       scrollRef,
-      scrollBarWidth,
-      scrollBarColor,
-      padding,
-      containerColor,
-      borderRadius,
       border,
-      rowHeight,
-      rowGap,
-      rowRadius,
-      basePaddingLeft,
-      basePaddingRight,
-      indentWidth,
-      leafIndentOffset,
-      activeRowColor,
-      inactiveRowColor,
-      activeTextColor,
-      inactiveTextColor,
-      getRowStyle,
-      isNodeSelectable,
       leadingDividerWidth,
       leadingDividerColor,
       resize,
     } = this.props;
 
-    const contentPadding = padding ?? panelStyle?.padding ?? 12;
-    const listRowHeight = rowHeight ?? panelStyle?.rowHeight ?? 28;
-    const listRowGap = rowGap ?? panelStyle?.rowGap ?? 6;
-    const listRowRadius = rowRadius ?? panelStyle?.rowRadius ?? 6;
-    const leftPadBase = basePaddingLeft ?? panelStyle?.basePaddingLeft ?? 8;
-    const rightPadBase = basePaddingRight ?? panelStyle?.basePaddingRight ?? 8;
-    const indentW = indentWidth ?? panelStyle?.indentWidth ?? 12;
-    const leafExtra = leafIndentOffset ?? panelStyle?.leafIndentOffset ?? 0;
+    const contentPadding = panelStyle?.padding ?? 12;
+    const listRowHeight = panelStyle?.rowHeight ?? 28;
+    const listRowGap = panelStyle?.rowGap ?? 6;
+    const listRowRadius = panelStyle?.rowRadius ?? 6;
+    const leftPadBase = panelStyle?.basePaddingLeft ?? 8;
+    const rightPadBase = panelStyle?.basePaddingRight ?? 8;
+    const indentW = panelStyle?.indentWidth ?? 12;
+    const leafExtra = panelStyle?.leafIndentOffset ?? 0;
 
     const header =
       title || headerRight ? (
@@ -309,15 +258,8 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
         <Container />
       );
 
-    const flat = flattenNodes(this.props as unknown as WikiNavPanelProps, this.state.expanded);
+    const flat = flattenNodes(this.props.nodes, this.state.expanded);
     const showDirMark = flat.some((f) => f.isDir && f.isToggleableDir);
-
-    const shouldSelect =
-      isNodeSelectable ??
-      ((node: WikiNavNode, _depth: number) => {
-        const isDir = !!node.children?.length;
-        return !isDir;
-      });
 
     const leadingW = leadingDividerWidth ?? 0;
     const resizeHandleW = resize ? (resize.dividerWidth ?? 16) : 0;
@@ -336,24 +278,20 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
         <Expanded flex={{ flex: 1 }}>
           <ScrollView
             ref={scrollRef}
-            scrollBarWidth={scrollBarWidth ?? panelStyle?.scrollBarWidth ?? 6}
-            scrollBarColor={scrollBarColor ?? panelStyle?.scrollBarColor ?? theme.text.secondary}
+            scrollBarWidth={panelStyle?.scrollBarWidth ?? 6}
+            scrollBarColor={panelStyle?.scrollBarColor ?? theme.text.secondary}
           >
             <Column mainAxisSize={MainAxisSize.Min} spacing={listRowGap}>
               {flat.map((f) => {
                 const active = !!activeKey && f.node.key === activeKey;
-                const rowStyle = getRowStyle
-                  ? getRowStyle(f.node, { active, isDir: f.isDir, depth: f.depth })
-                  : {
-                      backgroundColor: active
-                        ? (activeRowColor ?? panelStyle?.activeRowColor ?? theme.state.selected)
-                        : (inactiveRowColor ?? panelStyle?.inactiveRowColor ?? 'transparent'),
-                      textColor: active
-                        ? (activeTextColor ?? panelStyle?.activeTextColor ?? theme.text.primary)
-                        : (inactiveTextColor ??
-                          panelStyle?.inactiveTextColor ??
-                          theme.text.secondary),
-                    };
+                const rowStyle = {
+                  backgroundColor: active
+                    ? (panelStyle?.activeRowColor ?? theme.state.selected)
+                    : (panelStyle?.inactiveRowColor ?? 'transparent'),
+                  textColor: active
+                    ? (panelStyle?.activeTextColor ?? theme.text.primary)
+                    : (panelStyle?.inactiveTextColor ?? theme.text.secondary),
+                };
 
                 const padLeft =
                   leftPadBase +
@@ -361,13 +299,14 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
                   (showDirMark && !f.isDir ? leafExtra : 0);
                 const padRight = rightPadBase;
 
-                const dirMark = showDirMark
-                  ? f.isDir && f.isToggleableDir
-                    ? f.isOpen
-                      ? '▾ '
-                      : '▸ '
-                    : '  '
-                  : '';
+                let dirMark = '';
+                if (showDirMark) {
+                  if (f.isDir && f.isToggleableDir) {
+                    dirMark = f.isOpen ? '▾ ' : '▸ ';
+                  } else {
+                    dirMark = '  ';
+                  }
+                }
                 const text = `${dirMark}${f.node.text}`;
 
                 const onClick = () => {
@@ -375,14 +314,13 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
                     this.toggleDir(f.node.key);
                     return;
                   }
-                  if (onSelect && shouldSelect(f.node, f.depth)) {
+                  if (onSelect && !f.isDir) {
                     onSelect(f.node.key);
                   }
                 };
 
                 return (
                   <Container
-                    key={f.node.key}
                     width={rowWidth}
                     height={listRowHeight}
                     padding={{ left: padLeft, right: padRight }}
@@ -459,8 +397,8 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
       <Container
         width={width}
         height={height}
-        color={containerColor ?? panelStyle?.containerColor ?? theme.background.surface}
-        borderRadius={borderRadius ?? panelStyle?.borderRadius}
+        color={panelStyle?.containerColor ?? theme.background.surface}
+        borderRadius={panelStyle?.borderRadius}
         border={border}
       >
         {content}
