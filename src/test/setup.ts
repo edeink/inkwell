@@ -41,6 +41,7 @@ if (!(HTMLCanvasElement.prototype as unknown as PatchedCanvasElement)._inkwellCt
         bezierCurveTo: vi.fn(),
         arc: vi.fn(),
         arcTo: vi.fn(),
+        rect: vi.fn(),
         fill: vi.fn(),
         stroke: vi.fn(),
         clip: vi.fn(),

@@ -751,6 +751,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (pool && pool.length > 0) {
       const w = pool.pop()!;
       w.init(childData);
+      const reused = w as unknown as Widget<WidgetProps>;
+      const resetData: WidgetProps = { type: childData.type, key: childData.key };
+      const resetProps: WidgetCompactProps<WidgetProps> = { ...resetData, children: [] };
+      reused.data = resetData;
+      reused.props = resetProps;
       return w;
     }
     return WidgetRegistry.createWidget(childData);

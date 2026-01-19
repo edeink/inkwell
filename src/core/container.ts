@@ -11,6 +11,16 @@ function areEdgeInsetsEqual(a: EdgeInsets, b: EdgeInsets): boolean {
   return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
 }
 
+function areOptionalEdgeInsetsEqual(a: EdgeInsets | undefined, b: EdgeInsets | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+  return areEdgeInsetsEqual(a, b);
+}
+
 export interface ContainerProps extends WidgetProps {
   width?: number;
   height?: number;
@@ -49,6 +59,11 @@ export class Container extends Widget<ContainerProps> {
     this.initContainerProperties(data);
   }
 
+  protected override init(data: ContainerProps) {
+    super.init(data);
+    this.initContainerProperties(data);
+  }
+
   private initContainerProperties(data: ContainerProps): void {
     this.width = data.width;
     this.height = data.height;
@@ -56,8 +71,8 @@ export class Container extends Widget<ContainerProps> {
     this.maxWidth = data.maxWidth;
     this.minHeight = data.minHeight;
     this.maxHeight = data.maxHeight;
-    this.padding = resolveEdgeInsets(data.padding);
-    this.margin = resolveEdgeInsets(data.margin);
+    this.padding = data.padding === undefined ? undefined : resolveEdgeInsets(data.padding);
+    this.margin = data.margin === undefined ? undefined : resolveEdgeInsets(data.margin);
     this.color = data.color;
     this.border = data.border;
     this.borderRadius = this.normalizeBorderRadius(data.borderRadius);
@@ -118,12 +133,15 @@ export class Container extends Widget<ContainerProps> {
 
     // 注意：这里需要处理 undefined 的情况，所以比较 newProps.padding !== oldProps.padding
     if (newProps.padding !== oldProps.padding) {
-      newPadding = resolveEdgeInsets(newProps.padding);
+      newPadding = newProps.padding === undefined ? undefined : resolveEdgeInsets(newProps.padding);
     }
 
     if (newProps.margin !== oldProps.margin) {
-      newMargin = resolveEdgeInsets(newProps.margin);
+      newMargin = newProps.margin === undefined ? undefined : resolveEdgeInsets(newProps.margin);
     }
+
+    const paddingLayoutChanged = !areOptionalEdgeInsetsEqual(this.padding, newPadding);
+    const marginLayoutChanged = !areOptionalEdgeInsetsEqual(this.margin, newMargin);
 
     // 比较逻辑：
     const layoutChanged =
@@ -134,9 +152,8 @@ export class Container extends Widget<ContainerProps> {
       oldProps.minHeight !== newProps.minHeight ||
       oldProps.maxHeight !== newProps.maxHeight ||
       oldProps.alignment !== newProps.alignment ||
-      // 优化 padding/margin 比较
-      (newPadding !== this.padding && !areEdgeInsetsEqual(this.padding!, newPadding!)) ||
-      (newMargin !== this.margin && !areEdgeInsetsEqual(this.margin!, newMargin!));
+      paddingLayoutChanged ||
+      marginLayoutChanged;
 
     // 更新内部属性
     this.width = newProps.width;
