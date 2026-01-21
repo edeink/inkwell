@@ -19,44 +19,83 @@ import type { BlockRenderer } from './types';
 
 import { Column, Container, CrossAxisAlignment, Expanded, Padding, Row, Text } from '@/core';
 
+function isInlineNodeType(type: NodeType) {
+  return (
+    type === NodeType.Text ||
+    type === NodeType.Bold ||
+    type === NodeType.Italic ||
+    type === NodeType.Link ||
+    type === NodeType.Image ||
+    type === NodeType.CodeBlock
+  );
+}
+
 export const orderedListRenderer: BlockRenderer = {
   match: (ctx) => ctx.node.type === NodeType.OrderedList,
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
+    const depth = ctx.depth;
+    const indentUnit = ctx.style.orderedList.numberWidth + ctx.style.orderedList.rowSpacing;
     return (
-      <Padding key={key} padding={{ bottom: ctx.style.orderedList.marginBottom }}>
+      <Padding
+        key={key}
+        padding={{ left: indentUnit * depth, bottom: ctx.style.orderedList.marginBottom }}
+      >
         <Column
           crossAxisAlignment={CrossAxisAlignment.Start}
           spacing={ctx.style.orderedList.columnSpacing}
         >
-          {ctx.node.children?.map((child, i) => (
-            <Row
-              key={String(i)}
-              crossAxisAlignment={CrossAxisAlignment.Start}
-              spacing={ctx.style.orderedList.rowSpacing}
-            >
-              <Container
-                width={ctx.style.orderedList.numberWidth}
-                padding={{ top: ctx.style.orderedList.numberPaddingTop }}
+          {ctx.node.children?.map((child, i) => {
+            const rawChildren = child.children ?? [];
+            const inlineChildren = rawChildren.filter((n) => isInlineNodeType(n.type));
+            const nestedBlocks = rawChildren.filter(
+              (n) =>
+                n.type === NodeType.List ||
+                n.type === NodeType.OrderedList ||
+                n.type === NodeType.TaskList,
+            );
+
+            return (
+              <Column
+                key={String(i)}
+                crossAxisAlignment={CrossAxisAlignment.Start}
+                spacing={ctx.style.orderedList.columnSpacing}
               >
-                <Text
-                  text={`${i + 1}.`}
-                  fontSize={ctx.style.orderedList.numberFontSize}
-                  lineHeight={ctx.style.orderedList.numberLineHeight}
-                  color={ctx.theme.text.primary}
-                />
-              </Container>
-              <Expanded flex={{ flex: 1 }}>
-                <InlineWrap
-                  theme={ctx.theme}
-                  style={ctx.style}
-                  inlineRenderers={ctx.inlineRenderers}
-                  children={child.children}
-                  keyPrefix={`${key ?? 'ol'}-li-${i}`}
-                />
-              </Expanded>
-            </Row>
-          ))}
+                <Row
+                  crossAxisAlignment={CrossAxisAlignment.Start}
+                  spacing={ctx.style.orderedList.rowSpacing}
+                >
+                  <Container
+                    width={ctx.style.orderedList.numberWidth}
+                    padding={{ top: ctx.style.orderedList.numberPaddingTop }}
+                  >
+                    <Text
+                      text={`${i + 1}.`}
+                      fontSize={ctx.style.orderedList.numberFontSize}
+                      lineHeight={ctx.style.orderedList.numberLineHeight}
+                      color={ctx.theme.text.primary}
+                    />
+                  </Container>
+                  <Expanded flex={{ flex: 1 }}>
+                    <InlineWrap
+                      theme={ctx.theme}
+                      style={ctx.style}
+                      inlineRenderers={ctx.inlineRenderers}
+                      children={inlineChildren}
+                      keyPrefix={`${key ?? 'ol'}-li-${i}`}
+                    />
+                  </Expanded>
+                </Row>
+                {nestedBlocks.map((n, j) =>
+                  ctx.renderBlock({
+                    node: n,
+                    depth: depth + 1,
+                    widgetKey: `${key ?? 'ol'}-li-${i}-b-${j}`,
+                  }),
+                )}
+              </Column>
+            );
+          })}
         </Column>
       </Padding>
     );

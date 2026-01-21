@@ -59,6 +59,22 @@ describe('MarkdownParser', () => {
     expect(ast.children![0].children![0].type).toBe(NodeType.ListItem);
   });
 
+  it('应该正确解析嵌套列表', () => {
+    const text = ['- A', '  - B', '  - C', '- D'].join('\n');
+    const ast = parser.parse(text);
+
+    expect(ast.children).toHaveLength(1);
+    const rootList = ast.children![0];
+    expect(rootList.type).toBe(NodeType.List);
+    expect(rootList.children).toHaveLength(2);
+
+    const firstItem = rootList.children![0];
+    expect(firstItem.type).toBe(NodeType.ListItem);
+    const nested = (firstItem.children ?? []).find((n) => n.type === NodeType.List);
+    expect(nested).toBeTruthy();
+    expect(nested!.children).toHaveLength(2);
+  });
+
   it('应该正确解析行内样式', () => {
     const text = 'Hello **Bold** and *Italic*';
     const ast = parser.parse(text);

@@ -9,6 +9,13 @@ import { type MarkdownNode } from '../parser';
 
 import { type ThemePalette } from '@/styles/theme';
 
+export type RenderBlockFn = (params: {
+  node: MarkdownNode;
+  depth: number;
+  widgetKey?: string | number | null;
+  anchorKey?: string;
+}) => unknown;
+
 export type MarkdownRenderStyle = {
   inlineWrap: {
     spacing: number;
@@ -212,6 +219,8 @@ export type BlockRenderContext = {
   style: MarkdownRenderStyle;
   inlineRenderers?: InlineRenderer[];
   anchorKey?: string;
+  depth: number;
+  renderBlock: RenderBlockFn;
   widgetKey?: string | number | null;
 };
 

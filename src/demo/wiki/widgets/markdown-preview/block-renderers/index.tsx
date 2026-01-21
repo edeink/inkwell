@@ -36,18 +36,46 @@ export function BlockNodeRenderer(props: {
   style?: BlockRenderContext['style'];
   inlineRenderers?: InlineRenderer[];
   anchorKey?: string;
+  depth?: number;
   blockRenderers?: BlockRenderer[];
   key?: string | number | null;
 }) {
-  const { node, theme, style, inlineRenderers, anchorKey, blockRenderers, key: widgetKey } = props;
+  const {
+    node,
+    theme,
+    style,
+    inlineRenderers,
+    anchorKey,
+    depth,
+    blockRenderers,
+    key: widgetKey,
+  } = props;
+  const chain = createRendererChain(blockRenderers, defaultBlockRenderers);
+
+  const renderBlock: BlockRenderContext['renderBlock'] = (params) => {
+    const nestedCtx: BlockRenderContext = {
+      node: params.node,
+      theme,
+      style: style ?? defaultMarkdownRenderStyle,
+      inlineRenderers,
+      anchorKey: params.anchorKey,
+      depth: params.depth,
+      renderBlock,
+      widgetKey: params.widgetKey,
+    };
+    return renderWithChain(nestedCtx, chain) ?? <Container />;
+  };
+
   const ctx: BlockRenderContext = {
     node,
     theme,
     style: style ?? defaultMarkdownRenderStyle,
     inlineRenderers,
     anchorKey,
+    depth: depth ?? 0,
+    renderBlock,
     widgetKey,
   };
-  const chain = createRendererChain(blockRenderers, defaultBlockRenderers);
+
   return renderWithChain(ctx, chain) ?? <Container />;
 }

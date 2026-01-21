@@ -50,6 +50,128 @@ export interface MarkdownNode {
 }
 
 export class MarkdownParser {
+  private getIndent(line: string) {
+    const m = line.match(/^(\s*)/);
+    return m ? m[1].length : 0;
+  }
+
+  private matchTaskListLine(line: string) {
+    const m = line.match(/^(\s*)-\s+\[([ x])\]\s+(.+)$/);
+    if (!m) {
+      return null;
+    }
+    return { indent: m[1].length, checked: m[2] === 'x', text: m[3] };
+  }
+
+  private matchUnorderedListLine(line: string) {
+    const m = line.match(/^(\s*)(\*|-)\s+(.+)$/);
+    if (!m) {
+      return null;
+    }
+    return { indent: m[1].length, text: m[3] };
+  }
+
+  private matchOrderedListLine(line: string) {
+    const m = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+    if (!m) {
+      return null;
+    }
+    return { indent: m[1].length, text: m[3] };
+  }
+
+  private parseListBlock(
+    lines: string[],
+    startIndex: number,
+  ): { node: MarkdownNode; nextIndex: number } {
+    const firstLine = lines[startIndex] ?? '';
+    const task = this.matchTaskListLine(firstLine);
+    const ordered = task ? null : this.matchOrderedListLine(firstLine);
+    const unordered = task || ordered ? null : this.matchUnorderedListLine(firstLine);
+
+    if (!task && !ordered && !unordered) {
+      return {
+        node: { type: NodeType.Paragraph, children: this.parseInline(firstLine) },
+        nextIndex: startIndex + 1,
+      };
+    }
+
+    const baseIndent = (task || ordered || unordered)!.indent;
+    const listType = task ? NodeType.TaskList : ordered ? NodeType.OrderedList : NodeType.List;
+    const listNode: MarkdownNode = { type: listType, children: [] };
+
+    let i = startIndex;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line || line.trim() === '') {
+        break;
+      }
+
+      let itemText: string | undefined;
+      let itemChecked: boolean | undefined;
+
+      if (task) {
+        const m = this.matchTaskListLine(line);
+        if (!m || m.indent !== baseIndent) {
+          break;
+        }
+        itemText = m.text;
+        itemChecked = m.checked;
+      } else if (ordered) {
+        const m = this.matchOrderedListLine(line);
+        if (!m || m.indent !== baseIndent) {
+          break;
+        }
+        itemText = m.text;
+      } else {
+        const m = this.matchUnorderedListLine(line);
+        if (!m || m.indent !== baseIndent) {
+          break;
+        }
+        itemText = m.text;
+      }
+
+      const itemNode: MarkdownNode = task
+        ? {
+            type: NodeType.TaskListItem,
+            checked: itemChecked,
+            children: this.parseInline(itemText || ''),
+          }
+        : {
+            type: NodeType.ListItem,
+            children: this.parseInline(itemText || ''),
+          };
+
+      i++;
+
+      while (i < lines.length) {
+        const nextLine = lines[i];
+        if (!nextLine || nextLine.trim() === '') {
+          break;
+        }
+        const nextIndent = this.getIndent(nextLine);
+        if (nextIndent <= baseIndent) {
+          break;
+        }
+
+        const isNestedList =
+          this.matchTaskListLine(nextLine) ||
+          this.matchOrderedListLine(nextLine) ||
+          this.matchUnorderedListLine(nextLine);
+        if (!isNestedList) {
+          break;
+        }
+
+        const nested = this.parseListBlock(lines, i);
+        itemNode.children = [...(itemNode.children ?? []), nested.node];
+        i = nested.nextIndex;
+      }
+
+      listNode.children!.push(itemNode);
+    }
+
+    return { node: listNode, nextIndex: i };
+  }
+
   parse(text: string): MarkdownNode {
     const lines = text.split(/\r?\n/);
     const root: MarkdownNode = { type: NodeType.Root, children: [] };
@@ -150,60 +272,14 @@ export class MarkdownParser {
         continue;
       }
 
-      if (trimmedLine.match(/^-\s+\[([ x])\]\s+(.+)$/)) {
-        const listNode: MarkdownNode = { type: NodeType.TaskList, children: [] };
-
-        while (i < lines.length) {
-          const match = lines[i].trim().match(/^-\s+\[([ x])\]\s+(.+)$/);
-          if (!match) {
-            break;
-          }
-
-          listNode.children!.push({
-            type: NodeType.TaskListItem,
-            checked: match[1] === 'x',
-            children: this.parseInline(match[2]),
-          });
-          i++;
-        }
-        root.children!.push(listNode);
-        continue;
-      }
-
-      if (trimmedLine.match(/^(\*|-)\s+(.+)$/)) {
-        const listNode: MarkdownNode = { type: NodeType.List, children: [] };
-
-        while (i < lines.length) {
-          const listMatch = lines[i].match(/^(\s*)(\*|-)\s+(.+)$/);
-          if (!listMatch) {
-            break;
-          }
-          listNode.children!.push({
-            type: NodeType.ListItem,
-            children: this.parseInline(listMatch[3]),
-          });
-          i++;
-        }
-        root.children!.push(listNode);
-        continue;
-      }
-
-      if (trimmedLine.match(/^(\d+)\.\s+(.+)$/)) {
-        const listNode: MarkdownNode = { type: NodeType.OrderedList, children: [] };
-
-        while (i < lines.length) {
-          const listMatch = lines[i].match(/^(\s*)(\d+)\.\s+(.+)$/);
-          if (!listMatch) {
-            break;
-          }
-
-          listNode.children!.push({
-            type: NodeType.ListItem,
-            children: this.parseInline(listMatch[3]),
-          });
-          i++;
-        }
-        root.children!.push(listNode);
+      const isListLine =
+        this.matchTaskListLine(line) ||
+        this.matchOrderedListLine(line) ||
+        this.matchUnorderedListLine(line);
+      if (isListLine) {
+        const parsed = this.parseListBlock(lines, i);
+        root.children!.push(parsed.node);
+        i = parsed.nextIndex;
         continue;
       }
 
