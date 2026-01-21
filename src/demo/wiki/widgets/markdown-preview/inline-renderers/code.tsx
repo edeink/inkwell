@@ -27,12 +27,19 @@ export const codeInlineRenderer: InlineRenderer = {
     const key = ensureKey(ctx.widgetKey);
     return (
       <Container key={key} color={ctx.theme.state.hover}>
-        <Padding padding={{ left: 4, right: 4, top: 2, bottom: 2 }}>
+        <Padding
+          padding={{
+            left: ctx.style.inlineCode.paddingLeft,
+            right: ctx.style.inlineCode.paddingRight,
+            top: ctx.style.inlineCode.paddingTop,
+            bottom: ctx.style.inlineCode.paddingBottom,
+          }}
+        >
           <Text
             text={ctx.node.content || ''}
-            fontSize={14}
-            lineHeight={20}
-            fontFamily="Monaco, Consolas, monospace"
+            fontSize={ctx.style.inlineCode.fontSize}
+            lineHeight={ctx.style.inlineCode.lineHeight}
+            fontFamily={ctx.style.inlineCode.fontFamily}
             color={ctx.theme.text.primary}
           />
         </Padding>

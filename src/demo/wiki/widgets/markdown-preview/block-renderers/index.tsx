@@ -18,12 +18,13 @@
  * <BlockNodeRenderer node={node} theme={theme} anchorKey="md-h-0" />
  * ```
  */
+import { type InlineRenderer } from '../inline-renderers/types';
 import { createRendererChain, renderWithChain } from '../renderer-registry';
 
 import { defaultBlockRenderers } from './default-registry';
+import { defaultMarkdownRenderStyle, type BlockRenderContext, type BlockRenderer } from './types';
 
 import type { MarkdownNode } from '../parser';
-import type { BlockRenderContext, BlockRenderer } from './types';
 
 import { Container } from '@/core';
 
@@ -32,12 +33,21 @@ export type { BlockRenderContext, BlockRenderer };
 export function BlockNodeRenderer(props: {
   node: MarkdownNode;
   theme: BlockRenderContext['theme'];
+  style?: BlockRenderContext['style'];
+  inlineRenderers?: InlineRenderer[];
   anchorKey?: string;
   blockRenderers?: BlockRenderer[];
   key?: string | number | null;
 }) {
-  const { node, theme, anchorKey, blockRenderers, key: widgetKey } = props;
-  const ctx: BlockRenderContext = { node, theme, anchorKey, widgetKey };
+  const { node, theme, style, inlineRenderers, anchorKey, blockRenderers, key: widgetKey } = props;
+  const ctx: BlockRenderContext = {
+    node,
+    theme,
+    style: style ?? defaultMarkdownRenderStyle,
+    inlineRenderers,
+    anchorKey,
+    widgetKey,
+  };
   const chain = createRendererChain(blockRenderers, defaultBlockRenderers);
   return renderWithChain(ctx, chain) ?? <Container />;
 }

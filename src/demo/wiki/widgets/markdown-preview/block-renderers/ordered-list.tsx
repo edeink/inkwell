@@ -24,21 +24,33 @@ export const orderedListRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ bottom: 12 }}>
-        <Column crossAxisAlignment={CrossAxisAlignment.Start} spacing={6}>
+      <Padding key={key} padding={{ bottom: ctx.style.orderedList.marginBottom }}>
+        <Column
+          crossAxisAlignment={CrossAxisAlignment.Start}
+          spacing={ctx.style.orderedList.columnSpacing}
+        >
           {ctx.node.children?.map((child, i) => (
-            <Row key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={10}>
-              <Container width={22} padding={{ top: 2 }}>
+            <Row
+              key={String(i)}
+              crossAxisAlignment={CrossAxisAlignment.Start}
+              spacing={ctx.style.orderedList.rowSpacing}
+            >
+              <Container
+                width={ctx.style.orderedList.numberWidth}
+                padding={{ top: ctx.style.orderedList.numberPaddingTop }}
+              >
                 <Text
                   text={`${i + 1}.`}
-                  fontSize={14}
-                  lineHeight={24}
+                  fontSize={ctx.style.orderedList.numberFontSize}
+                  lineHeight={ctx.style.orderedList.numberLineHeight}
                   color={ctx.theme.text.primary}
                 />
               </Container>
               <Expanded flex={{ flex: 1 }}>
                 <InlineWrap
                   theme={ctx.theme}
+                  style={ctx.style}
+                  inlineRenderers={ctx.inlineRenderers}
                   children={child.children}
                   keyPrefix={`${key ?? 'ol'}-li-${i}`}
                 />

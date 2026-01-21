@@ -20,11 +20,14 @@
  */
 import { parseMarkdownFrontMatter } from '../../helpers/wiki-doc';
 
+import { defaultMarkdownRenderStyle, type MarkdownRenderStyle } from './block-renderers/types';
 import { hasFrontMatter } from './front-matter/has-front-matter.ts';
 import { FrontMatter } from './front-matter/index.tsx';
 import { MarkdownBody } from './markdown-body.tsx';
 import { MarkdownParser, type MarkdownNode } from './parser';
 
+import type { BlockRenderer } from './block-renderers';
+import type { InlineRenderer } from './inline-renderers/types';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Column, StatelessWidget, type WidgetProps } from '@/core';
@@ -35,16 +38,28 @@ export type MarkdownPreviewProps = {
   theme: ThemePalette;
   ast?: MarkdownNode;
   headerKeyPrefix?: string;
+  style?: MarkdownRenderStyle;
+  inlineRenderers?: InlineRenderer[];
+  blockRenderers?: BlockRenderer[];
 } & WidgetProps;
 
 const parser = new MarkdownParser();
 
 export { BlockNodeRenderer } from './block-renderers';
+export { defaultMarkdownRenderStyle, type MarkdownRenderStyle } from './block-renderers/types';
 export { MarkdownParser, NodeType, type MarkdownNode } from './parser';
 
 export class MarkdownPreview extends StatelessWidget<MarkdownPreviewProps> {
   protected render() {
-    const { content, theme, ast: astProp, headerKeyPrefix } = this.props;
+    const {
+      content,
+      theme,
+      ast: astProp,
+      headerKeyPrefix,
+      style,
+      inlineRenderers,
+      blockRenderers,
+    } = this.props;
     const { frontMatter, body } = parseMarkdownFrontMatter(content);
     const ast = astProp ?? parser.parse(body);
 
@@ -58,7 +73,14 @@ export class MarkdownPreview extends StatelessWidget<MarkdownPreviewProps> {
         mainAxisSize={MainAxisSize.Min}
       >
         {showFrontMatter ? <FrontMatter frontMatter={frontMatter} theme={theme} /> : null}
-        <MarkdownBody ast={ast} theme={theme} headerKeyPrefix={effectiveHeaderKeyPrefix} />
+        <MarkdownBody
+          ast={ast}
+          theme={theme}
+          headerKeyPrefix={effectiveHeaderKeyPrefix}
+          style={style ?? defaultMarkdownRenderStyle}
+          inlineRenderers={inlineRenderers}
+          blockRenderers={blockRenderers}
+        />
       </Column>
     );
   }

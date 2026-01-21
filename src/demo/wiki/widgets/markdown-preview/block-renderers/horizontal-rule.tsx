@@ -23,8 +23,14 @@ export const horizontalRuleRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ top: 12, bottom: 12 }}>
-        <Container height={1} color={ctx.theme.component.gridLine} />
+      <Padding
+        key={key}
+        padding={{
+          top: ctx.style.horizontalRule.paddingTop,
+          bottom: ctx.style.horizontalRule.paddingBottom,
+        }}
+      >
+        <Container height={ctx.style.horizontalRule.height} color={ctx.theme.component.gridLine} />
       </Padding>
     );
   },

@@ -9,6 +9,7 @@
  * - `match` 只做类型/形态判断，不做重计算。
  * - `render` 只渲染当前节点，不处理兄弟节点与布局（由上层容器负责）。
  */
+import { type MarkdownRenderStyle } from '../block-renderers/types';
 import { type MarkdownNode } from '../parser';
 
 import { type ThemePalette } from '@/styles/theme';
@@ -16,6 +17,7 @@ import { type ThemePalette } from '@/styles/theme';
 export type InlineRenderContext = {
   node: MarkdownNode;
   theme: ThemePalette;
+  style: MarkdownRenderStyle;
   widgetKey?: string | number | null;
 };
 

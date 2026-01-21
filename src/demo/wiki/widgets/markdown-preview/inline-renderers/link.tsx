@@ -50,8 +50,8 @@ export const linkInlineRenderer: InlineRenderer = {
       <Text
         key={key}
         text={text}
-        fontSize={14}
-        lineHeight={24}
+        fontSize={ctx.style.text.fontSize}
+        lineHeight={ctx.style.text.lineHeight}
         color={ctx.theme.primary}
         cursor="pointer"
         pointerEvent="auto"

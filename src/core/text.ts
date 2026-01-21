@@ -56,7 +56,7 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical;
 } = {
   fontSize: 14,
-  fontFamily: 'Arial, sans-serif',
+  fontFamily: 'Noto Sans SC, Noto Sans, -apple-system, BlinkMacSystemFont, Arial, sans-serif',
   fontWeight: 'normal',
   color: '#000000',
   textBaseline: TextBaseline.Alphabetic,

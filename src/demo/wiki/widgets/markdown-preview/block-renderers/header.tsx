@@ -20,7 +20,8 @@ import { ensureKey, plainText } from './utils';
 
 import type { BlockRenderer } from './types';
 
-import { Padding, Text } from '@/core';
+import { Container, Padding, Row, Text } from '@/core';
+import { CrossAxisAlignment } from '@/core/flex/type';
 
 export const headerRenderer: BlockRenderer = {
   match: (ctx) => ctx.node.type === NodeType.Header,
@@ -28,15 +29,45 @@ export const headerRenderer: BlockRenderer = {
     const key = ensureKey(ctx.anchorKey ?? ctx.widgetKey);
     const level = ctx.node.level || 1;
     const text = plainText(ctx.node.children);
+    const idx = Math.min(Math.max(level, 1), 6) - 1;
+    const fontSize = ctx.style.header.fontSize[idx] ?? ctx.style.text.fontSize;
+    const lineHeight = ctx.style.header.lineHeight[idx] ?? ctx.style.text.lineHeight;
+    const accent = ctx.style.header.accentBar;
+    const showAccent = !!accent && accent.levels.includes(level);
+    const accentColor = accent?.color ?? ctx.theme.primary;
+    const accentHeight = accent?.height ?? Math.max(0, lineHeight - 6);
     return (
-      <Padding key={key} padding={{ top: 10, bottom: 10 }}>
-        <Text
-          text={text}
-          fontSize={32 - level * 4}
-          lineHeight={40 - level * 4}
-          fontWeight="bold"
-          color={ctx.theme.text.primary}
-        />
+      <Padding
+        key={key}
+        padding={{ top: ctx.style.header.paddingTop, bottom: ctx.style.header.paddingBottom }}
+      >
+        {showAccent ? (
+          <Row crossAxisAlignment={CrossAxisAlignment.Start} spacing={accent.gap}>
+            <Padding padding={{ top: Math.max(0, Math.floor((lineHeight - accentHeight) / 2)) }}>
+              <Container
+                width={accent.width}
+                height={accentHeight}
+                color={accentColor}
+                borderRadius={accent.radius}
+              />
+            </Padding>
+            <Text
+              text={text}
+              fontSize={fontSize}
+              lineHeight={lineHeight}
+              fontWeight="bold"
+              color={ctx.theme.text.primary}
+            />
+          </Row>
+        ) : (
+          <Text
+            text={text}
+            fontSize={fontSize}
+            lineHeight={lineHeight}
+            fontWeight="bold"
+            color={ctx.theme.text.primary}
+          />
+        )}
       </Padding>
     );
   },

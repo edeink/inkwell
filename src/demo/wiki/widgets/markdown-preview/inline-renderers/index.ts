@@ -17,6 +17,7 @@
  * InlineNodeRenderer({ node, theme, inlineRenderers: [myRenderer] })
  * ```
  */
+import { defaultMarkdownRenderStyle } from '../block-renderers/types';
 import { createRendererChain, renderWithChain } from '../renderer-registry';
 
 import { defaultInlineRenderers } from './default-registry';
@@ -29,11 +30,17 @@ export type { InlineRenderContext, InlineRenderer };
 export function InlineNodeRenderer(props: {
   node: MarkdownNode;
   theme: InlineRenderContext['theme'];
+  style?: InlineRenderContext['style'];
   inlineRenderers?: InlineRenderer[];
   key?: string | number | null;
 }) {
-  const { node, theme, inlineRenderers, key: widgetKey } = props;
-  const ctx: InlineRenderContext = { node, theme, widgetKey };
+  const { node, theme, style, inlineRenderers, key: widgetKey } = props;
+  const ctx: InlineRenderContext = {
+    node,
+    theme,
+    style: style ?? defaultMarkdownRenderStyle,
+    widgetKey,
+  };
   const chain = createRendererChain(inlineRenderers, defaultInlineRenderers);
   return renderWithChain(ctx, chain);
 }

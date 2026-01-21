@@ -25,8 +25,8 @@ export const boldInlineRenderer: InlineRenderer = {
       <Text
         key={key}
         text={ctx.node.content || ''}
-        fontSize={14}
-        lineHeight={24}
+        fontSize={ctx.style.text.fontSize}
+        lineHeight={ctx.style.text.lineHeight}
         fontWeight="bold"
         color={ctx.theme.text.primary}
       />

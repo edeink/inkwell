@@ -25,8 +25,8 @@ export const italicInlineRenderer: InlineRenderer = {
       <Text
         key={key}
         text={ctx.node.content || ''}
-        fontSize={14}
-        lineHeight={24}
+        fontSize={ctx.style.text.fontSize}
+        lineHeight={ctx.style.text.lineHeight}
         fontStyle="italic"
         color={ctx.theme.text.primary}
       />

@@ -24,16 +24,30 @@ export const unorderedListRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ bottom: 12 }}>
-        <Column crossAxisAlignment={CrossAxisAlignment.Start} spacing={6}>
+      <Padding key={key} padding={{ bottom: ctx.style.list.marginBottom }}>
+        <Column
+          crossAxisAlignment={CrossAxisAlignment.Start}
+          spacing={ctx.style.list.columnSpacing}
+        >
           {ctx.node.children?.map((child, i) => (
-            <Row key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={10}>
-              <Padding padding={{ top: 10 }}>
-                <Container width={6} height={6} color={ctx.theme.text.primary} borderRadius={3} />
+            <Row
+              key={String(i)}
+              crossAxisAlignment={CrossAxisAlignment.Start}
+              spacing={ctx.style.list.rowSpacing}
+            >
+              <Padding padding={{ top: ctx.style.list.markerPaddingTop }}>
+                <Container
+                  width={ctx.style.list.markerSize}
+                  height={ctx.style.list.markerSize}
+                  color={ctx.theme.text.primary}
+                  borderRadius={ctx.style.list.markerRadius}
+                />
               </Padding>
               <Expanded flex={{ flex: 1 }}>
                 <InlineWrap
                   theme={ctx.theme}
+                  style={ctx.style}
+                  inlineRenderers={ctx.inlineRenderers}
                   children={child.children}
                   keyPrefix={`${key ?? 'ul'}-li-${i}`}
                 />

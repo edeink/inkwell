@@ -29,13 +29,17 @@ export const imageInlineRenderer: InlineRenderer = {
     return (
       <Container
         key={key}
-        width={200}
-        height={150}
+        width={ctx.style.image.width}
+        height={ctx.style.image.height}
         color={ctx.theme.background.surface}
-        borderRadius={4}
+        borderRadius={ctx.style.image.borderRadius}
       >
-        <Padding padding={10}>
-          <Text text={`[Image: ${alt}]`} fontSize={14} color={ctx.theme.text.secondary} />
+        <Padding padding={ctx.style.image.padding}>
+          <Text
+            text={`[Image: ${alt}]`}
+            fontSize={ctx.style.image.textFontSize}
+            color={ctx.theme.text.secondary}
+          />
         </Padding>
       </Container>
     );

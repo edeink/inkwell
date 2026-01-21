@@ -11,4 +11,5 @@ export enum DemoKey {
   Spreadsheet = 'spreadsheet',
   EditableText = 'editable-text',
   Wiki = 'wiki',
+  Resume = 'resume',
 }

@@ -22,8 +22,14 @@ export const paragraphRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ bottom: 12 }}>
-        <InlineWrap theme={ctx.theme} children={ctx.node.children} keyPrefix={`${key ?? 'p'}`} />
+      <Padding key={key} padding={{ bottom: ctx.style.paragraph.marginBottom }}>
+        <InlineWrap
+          theme={ctx.theme}
+          style={ctx.style}
+          inlineRenderers={ctx.inlineRenderers}
+          children={ctx.node.children}
+          keyPrefix={`${key ?? 'p'}`}
+        />
       </Padding>
     );
   },

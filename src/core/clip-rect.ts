@@ -10,7 +10,7 @@ import type {
 } from './base';
 
 export interface ClipRectProps extends WidgetProps {
-  // No extra props needed for basic clipping
+  borderRadius?: number;
 }
 
 /**
@@ -51,7 +51,36 @@ export class ClipRect extends Widget<ClipRectProps> {
     const { renderer } = context;
     const { width, height } = this.renderObject.size;
 
-    // 优先使用 renderer.clipRect
+    const radius = typeof this.props.borderRadius === 'number' ? this.props.borderRadius : 0;
+    if (radius > 0 && renderer.getRawInstance) {
+      const ctx = renderer.getRawInstance() as CanvasRenderingContext2D | null;
+      if (ctx) {
+        const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+        ctx.beginPath();
+        const hasRoundRect = 'roundRect' in ctx && typeof ctx.roundRect === 'function';
+        if (hasRoundRect) {
+          ctx.roundRect(0, 0, width, height, r);
+        } else {
+          const x = 0;
+          const y = 0;
+          const w = width;
+          const h = height;
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.arcTo(x + w, y, x + w, y + r, r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+          ctx.lineTo(x + r, y + h);
+          ctx.arcTo(x, y + h, x, y + h - r, r);
+          ctx.lineTo(x, y + r);
+          ctx.arcTo(x, y, x + r, y, r);
+          ctx.closePath();
+        }
+        ctx.clip();
+        return;
+      }
+    }
+
     renderer.clipRect(0, 0, width, height);
   }
 }

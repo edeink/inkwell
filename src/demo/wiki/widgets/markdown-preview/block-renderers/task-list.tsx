@@ -25,21 +25,36 @@ export const taskListRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ bottom: 12 }}>
-        <Column crossAxisAlignment={CrossAxisAlignment.Start} spacing={6}>
+      <Padding key={key} padding={{ bottom: ctx.style.taskList.marginBottom }}>
+        <Column
+          crossAxisAlignment={CrossAxisAlignment.Start}
+          spacing={ctx.style.taskList.columnSpacing}
+        >
           {ctx.node.children?.map((child, i) => (
-            <Row key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={10}>
-              <Padding padding={{ top: 6 }}>
+            <Row
+              key={String(i)}
+              crossAxisAlignment={CrossAxisAlignment.Start}
+              spacing={ctx.style.taskList.rowSpacing}
+            >
+              <Padding padding={{ top: ctx.style.taskList.checkboxPaddingTop }}>
                 <Container
-                  width={14}
-                  height={14}
-                  border={{ width: 1, color: ctx.theme.border.base }}
-                  borderRadius={2}
+                  width={ctx.style.taskList.checkboxSize}
+                  height={ctx.style.taskList.checkboxSize}
+                  border={{
+                    width: ctx.style.taskList.checkboxBorderWidth,
+                    color: ctx.theme.border.base,
+                  }}
+                  borderRadius={ctx.style.taskList.checkboxBorderRadius}
                   color={child.checked ? ctx.theme.primary : ctx.theme.background.base}
                 />
               </Padding>
               <Expanded flex={{ flex: 1 }}>
-                <InlineWrap theme={ctx.theme} children={child.children} />
+                <InlineWrap
+                  theme={ctx.theme}
+                  style={ctx.style}
+                  inlineRenderers={ctx.inlineRenderers}
+                  children={child.children}
+                />
               </Expanded>
             </Row>
           ))}

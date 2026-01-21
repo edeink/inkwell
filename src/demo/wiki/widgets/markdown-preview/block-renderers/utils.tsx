@@ -14,6 +14,8 @@
 import { InlineNodeRenderer } from '../inline-renderers';
 import { NodeType, type MarkdownNode } from '../parser';
 
+import type { MarkdownRenderStyle } from './types';
+import type { InlineRenderer } from '../inline-renderers/types';
 import type { PointerEvents } from '@/core/type';
 import type { ThemePalette } from '@/styles/theme';
 
@@ -61,10 +63,12 @@ export function CodeBlockHighlighter({
   code,
   language,
   theme,
+  style,
 }: {
   code: string;
   language: string;
   theme: ThemePalette;
+  style: MarkdownRenderStyle;
 }) {
   const lines = code.split('\n');
   if (lines.length > 0 && lines[lines.length - 1] === '') {
@@ -74,7 +78,13 @@ export function CodeBlockHighlighter({
   return (
     <Column crossAxisAlignment={CrossAxisAlignment.Start}>
       {lines.map((line, i) => (
-        <CodeLineRenderer key={String(i)} line={line} language={language} theme={theme} />
+        <CodeLineRenderer
+          key={String(i)}
+          line={line}
+          language={language}
+          theme={theme}
+          style={style}
+        />
       ))}
     </Column>
   );
@@ -84,15 +94,17 @@ function CodeLineRenderer({
   line,
   language,
   theme,
+  style,
   key,
 }: {
   line: string;
   language: string;
   theme: ThemePalette;
+  style: MarkdownRenderStyle;
   key?: string;
 }) {
   if (!line) {
-    return <Container height={20} />;
+    return <Container height={style.codeBlock.lineHeight} />;
   }
 
   const tokens = tokenize(line, language, theme);
@@ -103,9 +115,9 @@ function CodeLineRenderer({
         <Text
           key={`${key || 't'}-${idx}`}
           text={token.content}
-          fontSize={14}
-          lineHeight={20}
-          fontFamily="Monaco, Consolas, monospace"
+          fontSize={style.codeBlock.fontSize}
+          lineHeight={style.codeBlock.lineHeight}
+          fontFamily={style.codeBlock.fontFamily}
           color={token.color}
         />
       ))}
@@ -150,18 +162,32 @@ function tokenize(line: string, _language: string, theme: ThemePalette) {
 export function InlineWrap({
   children,
   theme,
+  style,
+  inlineRenderers,
   keyPrefix,
   pointerEvent = 'auto',
 }: {
   children?: MarkdownNode[];
   theme: ThemePalette;
+  style: MarkdownRenderStyle;
+  inlineRenderers?: InlineRenderer[];
   keyPrefix?: string;
   pointerEvent?: PointerEvents;
 }) {
   return (
-    <Wrap spacing={0} runSpacing={4} pointerEvent={pointerEvent}>
+    <Wrap
+      spacing={style.inlineWrap.spacing}
+      runSpacing={style.inlineWrap.runSpacing}
+      pointerEvent={pointerEvent}
+    >
       {children?.map((child, i) => (
-        <InlineNodeRenderer key={`${keyPrefix ?? 'inline'}-${i}`} node={child} theme={theme} />
+        <InlineNodeRenderer
+          key={`${keyPrefix ?? 'inline'}-${i}`}
+          node={child}
+          theme={theme}
+          style={style}
+          inlineRenderers={inlineRenderers}
+        />
       ))}
     </Wrap>
   );

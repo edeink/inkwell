@@ -2,6 +2,9 @@
 import { BlockNodeRenderer } from './block-renderers';
 import { NodeType, type MarkdownNode } from './parser';
 
+import type { BlockRenderer } from './block-renderers';
+import type { MarkdownRenderStyle } from './block-renderers/types';
+import type { InlineRenderer } from './inline-renderers/types';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Column, StatelessWidget, type WidgetProps } from '@/core';
@@ -11,11 +14,14 @@ export type MarkdownBodyProps = {
   ast: MarkdownNode;
   theme: ThemePalette;
   headerKeyPrefix: string;
+  style: MarkdownRenderStyle;
+  inlineRenderers?: InlineRenderer[];
+  blockRenderers?: BlockRenderer[];
 } & WidgetProps;
 
 export class MarkdownBody extends StatelessWidget<MarkdownBodyProps> {
   protected render() {
-    const { ast, theme, headerKeyPrefix } = this.props;
+    const { ast, theme, headerKeyPrefix, style, inlineRenderers, blockRenderers } = this.props;
     let headerIdx = 0;
     return (
       <Column
@@ -28,6 +34,9 @@ export class MarkdownBody extends StatelessWidget<MarkdownBodyProps> {
             key={String(index)}
             node={node}
             theme={theme}
+            style={style}
+            inlineRenderers={inlineRenderers}
+            blockRenderers={blockRenderers}
             anchorKey={
               node.type === NodeType.Header ? `${headerKeyPrefix}-${headerIdx++}` : undefined
             }

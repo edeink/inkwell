@@ -18,7 +18,7 @@
  */
 import { NodeType } from '../parser';
 
-import { ensureKey, plainText } from './utils';
+import { ensureKey, InlineWrap, plainText } from './utils';
 
 import type { BlockRenderer } from './types';
 
@@ -28,11 +28,18 @@ export const tableRenderer: BlockRenderer = {
   match: (ctx) => ctx.node.type === NodeType.Table,
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
-    const textFontSize = 14;
-    const textLineHeight = 24;
+    const textFontSize = ctx.style.table.textFontSize;
+    const textLineHeight = ctx.style.table.textLineHeight;
+    const cellStyle = {
+      ...ctx.style,
+      text: { fontSize: textFontSize, lineHeight: textLineHeight },
+    };
     return (
-      <Padding key={key} padding={{ bottom: 14 }}>
-        <Container borderRadius={8} border={{ width: 1, color: ctx.theme.component.gridLine }}>
+      <Padding key={key} padding={{ bottom: ctx.style.table.marginBottom }}>
+        <Container
+          borderRadius={ctx.style.table.borderRadius}
+          border={{ width: ctx.style.table.borderWidth, color: ctx.theme.component.gridLine }}
+        >
           <Column>
             {ctx.node.children?.map((row, i) => {
               const cells = row.children ?? [];
@@ -42,7 +49,14 @@ export const tableRenderer: BlockRenderer = {
                 const isLastCell = j === cells.length - 1;
                 const cellWidget = (
                   <Expanded key={`cell-${j}`} flex={{ flex: 1 }}>
-                    <Padding padding={{ left: 10, right: 10, top: 8, bottom: 8 }}>
+                    <Padding
+                      padding={{
+                        left: ctx.style.table.cellPaddingLeft,
+                        right: ctx.style.table.cellPaddingRight,
+                        top: ctx.style.table.cellPaddingTop,
+                        bottom: ctx.style.table.cellPaddingBottom,
+                      }}
+                    >
                       <Wrap spacing={0} runSpacing={4}>
                         {cell.isHeader ? (
                           <Text
@@ -53,15 +67,13 @@ export const tableRenderer: BlockRenderer = {
                             color={ctx.theme.text.primary}
                           />
                         ) : (
-                          cell.children?.map((c, k) => (
-                            <Text
-                              key={String(k)}
-                              text={plainText([c])}
-                              fontSize={textFontSize}
-                              lineHeight={textLineHeight}
-                              color={ctx.theme.text.primary}
-                            />
-                          ))
+                          <InlineWrap
+                            theme={ctx.theme}
+                            style={cellStyle}
+                            inlineRenderers={ctx.inlineRenderers}
+                            children={cell.children}
+                            keyPrefix={`${key ?? 'table'}-${i}-${j}`}
+                          />
                         )}
                       </Wrap>
                     </Padding>
@@ -72,7 +84,11 @@ export const tableRenderer: BlockRenderer = {
                 }
                 return [
                   cellWidget,
-                  <Container key={`divider-${j}`} width={1} color={ctx.theme.component.gridLine} />,
+                  <Container
+                    key={`divider-${j}`}
+                    width={ctx.style.table.dividerWidth}
+                    color={ctx.theme.component.gridLine}
+                  />,
                 ];
               });
               return (
@@ -89,7 +105,10 @@ export const tableRenderer: BlockRenderer = {
                   <Column>
                     <Row>{rowChildren}</Row>
                     {!isLastRow ? (
-                      <Container height={1} color={ctx.theme.component.gridLine} />
+                      <Container
+                        height={ctx.style.table.dividerWidth}
+                        color={ctx.theme.component.gridLine}
+                      />
                     ) : null}
                   </Column>
                 </Container>

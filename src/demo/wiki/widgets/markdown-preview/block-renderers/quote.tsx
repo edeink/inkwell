@@ -23,16 +23,28 @@ export const quoteRenderer: BlockRenderer = {
   render: (ctx) => {
     const key = ensureKey(ctx.widgetKey);
     return (
-      <Padding key={key} padding={{ bottom: 14 }}>
+      <Padding key={key} padding={{ bottom: ctx.style.quote.marginBottom }}>
         <Container
           color={ctx.theme.component.headerBg}
-          borderRadius={6}
-          border={{ width: 1, color: ctx.theme.border.secondary }}
+          borderRadius={ctx.style.quote.borderRadius}
+          border={{ width: ctx.style.quote.borderWidth, color: ctx.theme.border.secondary }}
         >
           <Row crossAxisAlignment={CrossAxisAlignment.Stretch}>
-            <Container width={4} color={ctx.theme.primary} />
-            <Padding padding={{ left: 12, top: 10, bottom: 10, right: 12 }}>
-              <InlineWrap theme={ctx.theme} children={ctx.node.children} />
+            <Container width={ctx.style.quote.barWidth} color={ctx.theme.primary} />
+            <Padding
+              padding={{
+                left: ctx.style.quote.paddingLeft,
+                top: ctx.style.quote.paddingTop,
+                bottom: ctx.style.quote.paddingBottom,
+                right: ctx.style.quote.paddingRight,
+              }}
+            >
+              <InlineWrap
+                theme={ctx.theme}
+                style={ctx.style}
+                inlineRenderers={ctx.inlineRenderers}
+                children={ctx.node.children}
+              />
             </Padding>
           </Row>
         </Container>

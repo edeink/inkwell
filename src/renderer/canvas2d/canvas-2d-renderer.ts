@@ -330,7 +330,9 @@ export class Canvas2DRenderer implements IRenderer {
 
     // 设置字体样式
     const fontSize = options.fontSize || 14;
-    const fontFamily = options.fontFamily || 'Arial, sans-serif';
+    const fontFamily =
+      options.fontFamily ||
+      'Noto Sans SC, Noto Sans, -apple-system, BlinkMacSystemFont, Arial, sans-serif';
     const fontWeight = options.fontWeight || 'normal';
     const fontStyle = options.fontStyle || 'normal';
     ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;

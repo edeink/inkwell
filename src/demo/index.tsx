@@ -6,6 +6,7 @@ import EditableText, { meta as EditableTextMeta } from './editable-text';
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
+import Resume, { meta as ResumeMeta } from './resume';
 import Spreadsheet, { meta as SpreadsheetMeta } from './spreadsheet';
 import Swiper, { meta as SwiperMeta } from './swiper';
 import { DemoKey, ThemeType } from './type';
@@ -110,6 +111,7 @@ export default function UnifiedDemo() {
       { Component: Mindmap, ...MindmapMeta },
       { Component: Spreadsheet, ...SpreadsheetMeta },
       { Component: Wiki, ...WikiMeta },
+      { Component: Resume, ...ResumeMeta },
     ],
     [],
   );

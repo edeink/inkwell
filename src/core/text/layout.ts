@@ -4,8 +4,8 @@ import type { BoxConstraints } from '../type';
 
 // 复制 DefaultStyle 的默认值，避免导出问题与循环依赖
 const DefaultTextStyle = {
-  fontSize: 12,
-  fontFamily: 'Arial, sans-serif',
+  fontSize: 14,
+  fontFamily: 'Noto Sans SC, Noto Sans, -apple-system, BlinkMacSystemFont, Arial, sans-serif',
   fontWeight: 'normal',
   lineHeight: undefined,
 };

@@ -32,15 +32,16 @@ export const codeBlockRenderer: BlockRenderer = {
       <Container
         key={key}
         color={ctx.theme.component.headerBg}
-        borderRadius={8}
-        border={{ width: 1, color: ctx.theme.border.secondary }}
-        margin={{ bottom: 14 }}
+        borderRadius={ctx.style.codeBlock.borderRadius}
+        border={{ width: ctx.style.codeBlock.borderWidth, color: ctx.theme.border.secondary }}
+        margin={{ bottom: ctx.style.codeBlock.marginBottom }}
       >
-        <Padding padding={12}>
+        <Padding padding={ctx.style.codeBlock.padding}>
           <CodeBlockHighlighter
             code={ctx.node.content || ''}
             language={ctx.node.language || ''}
             theme={ctx.theme}
+            style={ctx.style}
           />
         </Padding>
       </Container>

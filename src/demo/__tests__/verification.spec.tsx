@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { InteractiveCounterDemo } from '../interactive-counter/app';
 import { MindmapDemo } from '../mindmap/app';
+import { ResumeDemoApp } from '../resume/app';
 import { SpreadsheetDemoApp } from '../spreadsheet/app';
 import { SwiperDemoApp } from '../swiper/app';
 import { WidgetGalleryDemo } from '../widget-gallery/app';
@@ -64,5 +65,18 @@ describe('Demo Verification', () => {
     // If it has a render method (it inherits from StatefulWidget), we can check it, but state might need to be initialized.
     // MindmapDemo extends StatefulWidget, so it has a render method, but it usually returns the build result.
     // Let's just check instantiation for now.
+  });
+
+  it('ResumeDemoApp should render without crashing', () => {
+    const widget = new ResumeDemoApp({
+      width: 800,
+      height: 600,
+      theme: Themes.light,
+      type: 'ResumeDemoApp',
+    } as any);
+    expect(widget).toBeDefined();
+    expect(widget).toBeInstanceOf(Widget);
+    const result = widget.render();
+    expect(result).toBeDefined();
   });
 });
