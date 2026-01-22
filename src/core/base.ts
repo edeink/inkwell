@@ -642,6 +642,26 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         list.reverse();
       }
 
+      const seenNextKeys = new Map<unknown, number>();
+      const reportedNextKeys = new Set<unknown>();
+      for (let j = 0; j < i; j++) {
+        const k = (childrenData[j] as unknown as { key?: unknown }).key;
+        if (k == null) {
+          continue;
+        }
+        const firstIndex = seenNextKeys.get(k);
+        if (firstIndex != null && !reportedNextKeys.has(k)) {
+          reportedNextKeys.add(k);
+          console.error(
+            `[构建错误] 组件 ${this.type}(${String(this.key)}) 的同级子节点存在重复 key：${String(
+              k,
+            )}（索引 ${firstIndex} 与 ${j}）`,
+          );
+        } else if (firstIndex == null) {
+          seenNextKeys.set(k, j);
+        }
+      }
+
       // 仅处理剩余的新节点
       for (let j = i; j < childrenData.length; j++) {
         const childData = childrenData[j];
@@ -652,6 +672,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
         let reuse: Widget | null = null;
 
         if (k != null) {
+          const firstIndex = seenNextKeys.get(k);
+          if (firstIndex != null && !reportedNextKeys.has(k)) {
+            reportedNextKeys.add(k);
+            console.error(
+              `[构建错误] 组件 ${this.type}(${String(this.key)}) 的同级子节点存在重复 key：${String(
+                k,
+              )}（索引 ${firstIndex} 与 ${j}）`,
+            );
+          } else if (firstIndex == null) {
+            seenNextKeys.set(k, j);
+          }
           // @ts-ignore - Map supports any key type
           reuse = byKey.get(k) ?? null;
         } else {

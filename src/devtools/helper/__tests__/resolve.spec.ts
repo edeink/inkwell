@@ -4,7 +4,6 @@ import { resolveHitWidget } from '../resolve';
 
 import type { Widget } from '@/core/base';
 
-// Minimal mock to satisfy findWidget traversal and resolveHitWidget logic
 function createMockWidget(key: string, children: any[] = []): Widget {
   const w = {
     key,
@@ -20,29 +19,26 @@ function createMockWidget(key: string, children: any[] = []): Widget {
 }
 
 describe('resolveHitWidget', () => {
-  it('should return the hit node if it is found in the tree', () => {
+  it('命中节点在树中可达时应直接返回命中节点', () => {
     const child = createMockWidget('child');
     const root = createMockWidget('root', [child]);
 
-    // "Found in tree" means findWidget(root, '#child') returns it.
     const result = resolveHitWidget(root, child);
     expect(result).toBe(child);
   });
 
-  it('should return the parent if hit node is not found but parent is', () => {
+  it('命中节点不可达但父节点可达时应返回父节点', () => {
     const parent = createMockWidget('parent');
     const root = createMockWidget('root', [parent]);
 
-    // Hidden child (not in children list of parent, so findWidget won't find it)
     const hiddenChild = createMockWidget('hidden');
     hiddenChild.parent = parent;
-    // hiddenChild is NOT in parent.children
 
     const result = resolveHitWidget(root, hiddenChild);
     expect(result).toBe(parent);
   });
 
-  it('should bubble up multiple levels', () => {
+  it('应支持向上回溯多层父节点直到找到可达节点', () => {
     const valid = createMockWidget('valid');
     const root = createMockWidget('root', [valid]);
 
@@ -55,16 +51,15 @@ describe('resolveHitWidget', () => {
     expect(result).toBe(valid);
   });
 
-  it('should return original node if nothing found (fallback)', () => {
+  it('整条父链都不可达时应回退到原始命中节点', () => {
     const root = createMockWidget('root');
     const detached = createMockWidget('detached');
-    // detached has no parent or parent chain doesn't connect to root
 
     const result = resolveHitWidget(root, detached);
     expect(result).toBe(detached);
   });
 
-  it('should handle null inputs', () => {
+  it('应支持空输入', () => {
     const root = createMockWidget('root');
     expect(resolveHitWidget(root, null)).toBe(null);
   });

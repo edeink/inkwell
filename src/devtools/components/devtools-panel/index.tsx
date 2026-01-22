@@ -3,7 +3,7 @@ import { throttle } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Runtime from '../../../runtime';
-import { getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
+import { buildDevtoolsTree, getPathNodeKeys } from '../../helper/tree';
 import { useDevtoolsHotkeys } from '../../hooks/useDevtoolsHotkeys';
 import { useMouseInteraction } from '../../hooks/useMouseInteraction';
 import LayoutPanel from '../layout';
@@ -17,8 +17,6 @@ import { DevtoolsTreePane, type AntTreeHandle } from './tree-pane';
 
 import type { Widget } from '@/core/base';
 import type { DataNode } from 'antd/es/tree';
-
-import { findWidget } from '@/core/helper/widget-selector';
 
 const objIdByRef = new WeakMap<object, number>();
 let objIdSeq = 1;
@@ -77,6 +75,7 @@ export interface DevToolsProps {
 
 export function DevToolsPanel(props: DevToolsProps) {
   const [selected, setSelected] = useState<Widget | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const hoverRef = useRef<Widget | null>(null);
   const treeRef = useRef<AntTreeHandle | null>(null);
@@ -97,11 +96,11 @@ export function DevToolsPanel(props: DevToolsProps) {
     };
   }, []);
 
-  const tree = useMemo(() => {
+  const treeBuild = useMemo(() => {
     void version;
-    return toTree(runtime?.getRootWidget?.() ?? null);
+    return buildDevtoolsTree(runtime?.getRootWidget?.() ?? null);
   }, [runtime, version]);
-  const treeData = useMemo(() => toAntTreeData(tree) as DataNode[], [tree]);
+  const treeData = useMemo(() => treeBuild.treeData as DataNode[], [treeBuild]);
 
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [activeInspect, setActiveInspect] = useState<boolean>(false);
@@ -179,17 +178,29 @@ export function DevToolsPanel(props: DevToolsProps) {
     onPick: (current) => {
       setSelected(current);
       setVersion((v) => v + 1);
-      const path = getPathKeys(runtime?.getRootWidget?.() ?? null, current.key);
-      setExpandedKeys(new Set(path));
-      setActiveInspect(false);
-      requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-key="${current.key}"]`);
-        if (el) {
-          el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-        } else if (treeRef.current?.scrollTo) {
-          treeRef.current.scrollTo({ key: current.key, align: 'auto' });
+      let nodeKey = treeBuild.nodeKeyByWidget.get(current) ?? null;
+      if (!nodeKey) {
+        let p: Widget | null = current.parent;
+        while (p && !nodeKey) {
+          nodeKey = treeBuild.nodeKeyByWidget.get(p) ?? null;
+          p = p.parent;
         }
-      });
+      }
+      if (nodeKey) {
+        setSelectedNodeKey(nodeKey);
+        setExpandedKeys(new Set(getPathNodeKeys(treeBuild.parentByNodeKey, nodeKey)));
+      }
+      setActiveInspect(false);
+      if (nodeKey) {
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-key="${nodeKey}"]`);
+          if (el) {
+            el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+          } else if (treeRef.current?.scrollTo) {
+            treeRef.current.scrollTo({ key: nodeKey, align: 'auto' });
+          }
+        });
+      }
     },
   });
 
@@ -199,18 +210,18 @@ export function DevToolsPanel(props: DevToolsProps) {
       overlayRef.current?.highlight(null);
       return;
     }
-    const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
+    const w = treeBuild.widgetByNodeKey.get(k) ?? null;
     hoverRef.current = w;
-    overlayRef.current?.setActive(true);
+    overlayRef.current?.setActive(!!w);
     overlayRef.current?.highlight(w);
   };
 
   const handleSelectKey = (k: string) => {
-    const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
+    const w = treeBuild.widgetByNodeKey.get(k) ?? null;
     setSelected(w);
+    setSelectedNodeKey(w ? k : null);
     if (w) {
-      const path = getPathKeys(runtime?.getRootWidget?.() ?? null, k);
-      setExpandedKeys(new Set(path));
+      setExpandedKeys(new Set(getPathNodeKeys(treeBuild.parentByNodeKey, k)));
     }
   };
 
@@ -267,8 +278,10 @@ export function DevToolsPanel(props: DevToolsProps) {
             isMultiRuntime={isMultiRuntime}
             treeData={treeData}
             expandedKeys={Array.from(expandedKeys)}
-            selectedKey={selected?.key ?? null}
-            breadcrumbs={breadcrumbs.map((w) => ({ key: w.key, label: w.type }))}
+            selectedKey={selectedNodeKey}
+            breadcrumbs={breadcrumbs
+              .map((w) => ({ key: treeBuild.nodeKeyByWidget.get(w) ?? '', label: w.type }))
+              .filter((x) => x.key)}
             onExpandKeysChange={(keys) => setExpandedKeys(new Set(keys))}
             onSelectKey={handleSelectKey}
             onHoverKey={handleHoverKey}

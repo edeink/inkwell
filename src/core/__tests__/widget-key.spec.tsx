@@ -1,7 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { Container } from '@/core';
 import { Widget } from '@/core/base';
+import { WidgetRegistry } from '@/core/registry';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 // 测试用的具体 Widget 类，用于验证基类逻辑
 class TestWidget extends Widget {
@@ -54,5 +57,22 @@ describe('Widget Key 自动生成机制', () => {
     const trickyKey = 'TestWidget-9999';
     const w = new TestWidget(trickyKey);
     expect(w.key).toBe(trickyKey);
+  });
+
+  it('同一父节点下同级子节点 key 重复时应输出错误', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const el = (
+      <Container key="root" width={200} height={200}>
+        <Container key="dup" width={10} height={10} />
+        <Container key="dup" width={10} height={10} />
+      </Container>
+    );
+    const json = compileElement(el);
+    const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(json);
+
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

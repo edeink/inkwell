@@ -138,7 +138,7 @@ export function DevtoolsTreePane({
             onMouseEnter={() => onHoverKey(String(node.key))}
             onMouseLeave={() => onHoverKey(null)}
           >
-            {String(node.title)}
+            {node.title as unknown as string}
           </span>
         )}
         expandedKeys={expandedKeys}

@@ -1,78 +1,84 @@
 import type { Widget } from '../../core/base';
 import type { DataNode } from 'antd/es/tree';
 
-/**
- * DevTools 树节点类型
- * 字段说明：key - 唯一标识；type - 组件类型；props - 展示用数据；children - 子节点列表
- */
-export type DevTreeNode = {
-  key: string;
-  type: string;
-  props?: Record<string, unknown>;
-  children: DevTreeNode[];
+export type DevtoolsTreeBuild = {
+  treeData: DataNode[];
+  widgetByNodeKey: Map<string, Widget>;
+  parentByNodeKey: Map<string, string | null>;
+  nodeKeyByWidget: WeakMap<Widget, string>;
 };
 
-/**
- * Widget → DevTreeNode 转换
- * 功能：将运行时 Widget 结构转换为 DevTools 使用的轻量树节点
- * 参数：node - 根组件
- * 返回：DevTreeNode 或 null
- */
-export function toTree(node: Widget | null): DevTreeNode | null {
-  if (!node) {
-    return null;
+function getSiblingDuplicateKeys(children: Widget[]): unknown[] {
+  const seen = new Map<unknown, number>();
+  const dup = new Set<unknown>();
+  for (let i = 0; i < children.length; i++) {
+    const k = (children[i] as unknown as { key?: unknown }).key;
+    if (k == null) {
+      continue;
+    }
+    if (seen.has(k)) {
+      dup.add(k);
+    } else {
+      seen.set(k, i);
+    }
   }
+  return Array.from(dup);
+}
+
+export function buildDevtoolsTree(root: Widget | null): DevtoolsTreeBuild {
+  const widgetByNodeKey = new Map<string, Widget>();
+  const parentByNodeKey = new Map<string, string | null>();
+  const nodeKeyByWidget = new WeakMap<Widget, string>();
+
+  function wrap(widget: Widget, nodeKey: string, parentNodeKey: string | null): DataNode {
+    widgetByNodeKey.set(nodeKey, widget);
+    parentByNodeKey.set(nodeKey, parentNodeKey);
+    nodeKeyByWidget.set(widget, nodeKey);
+
+    const children = widget.children ?? [];
+    const dupKeys = getSiblingDuplicateKeys(children);
+    const errorNodes: DataNode[] =
+      dupKeys.length > 0
+        ? [
+            {
+              key: `${nodeKey}::error`,
+              title: `错误：${String(widget.type)} [${String(widget.key)}] 下同级 key 重复：${dupKeys
+                .map((k) => String(k))
+                .join(', ')}`,
+              disabled: true,
+              selectable: false,
+              isLeaf: true,
+            },
+          ]
+        : [];
+
+    const childNodes = children.map((c, index) => wrap(c, `${nodeKey}-${index}`, nodeKey));
+
+    return {
+      key: nodeKey,
+      title: `${String(widget.type)} [${String(widget.key)}]`,
+      children: errorNodes.concat(childNodes),
+    };
+  }
+
+  if (!root) {
+    return { treeData: [], widgetByNodeKey, parentByNodeKey, nodeKeyByWidget };
+  }
+
   return {
-    key: node.key,
-    type: node.type,
-    props: { ...node.data, children: undefined },
-    children: node.children.map((c) => toTree(c)!).filter(Boolean) as DevTreeNode[],
+    treeData: [wrap(root, '0', null)],
+    widgetByNodeKey,
+    parentByNodeKey,
+    nodeKeyByWidget,
   };
 }
 
-/**
- * DevTreeNode → Antd Tree 数据
- * 功能：将 DevTools 树节点转换为 Antd Tree 的 `DataNode[]`
- * 参数：node - 根节点
- * 返回：`DataNode[]`
- */
-export function toAntTreeData(node: DevTreeNode | null): DataNode[] {
-  if (!node) {
-    return [];
+export function getPathNodeKeys(parentByNodeKey: Map<string, string | null>, nodeKey: string) {
+  const out: string[] = [];
+  let cur: string | null = nodeKey;
+  while (cur) {
+    out.unshift(cur);
+    cur = parentByNodeKey.get(cur) ?? null;
   }
-  function wrap(n: DevTreeNode): DataNode {
-    return {
-      title: `${n.type} [${n.key}]`,
-      key: n.key,
-      children: (n.children || []).map((c) => wrap(c)),
-    };
-  }
-  return [wrap(node)];
-}
-
-/**
- * 获取从根到目标节点的路径 key 列表
- * 参数：root - 根组件；k - 目标 key
- * 返回：路径上的 key 列表
- */
-export function getPathKeys(root: Widget | null, k: string): string[] {
-  const path: string[] = [];
-  function dfs(node: Widget | null): boolean {
-    if (!node) {
-      return false;
-    }
-    path.push(node.key);
-    if (node.key === k) {
-      return true;
-    }
-    for (const c of node.children) {
-      if (dfs(c)) {
-        return true;
-      }
-    }
-    path.pop();
-    return false;
-  }
-  dfs(root);
-  return path;
+  return out;
 }

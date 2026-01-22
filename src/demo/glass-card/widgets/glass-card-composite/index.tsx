@@ -91,37 +91,58 @@ export class GlassCardComposite extends StatefulWidget<
     const width = typeof this.props.width === 'number' ? this.props.width : 520;
     const height = typeof this.props.height === 'number' ? this.props.height : 260;
     const windowRatio = typeof this.props.windowRatio === 'number' ? this.props.windowRatio : 0.32;
-    const resolvedWindow =
-      this.props.windowRect &&
-      typeof this.props.windowRect.x === 'number' &&
-      typeof this.props.windowRect.y === 'number' &&
-      typeof this.props.windowRect.width === 'number' &&
-      typeof this.props.windowRect.height === 'number'
-        ? {
-            x: clamp(this.props.windowRect.x, 0, width),
-            y: clamp(this.props.windowRect.y, 0, height),
-            width: clamp(this.props.windowRect.width, 16, width),
-            height: clamp(this.props.windowRect.height, 16, height),
-            radius: this.props.windowRect.radius,
-          }
-        : null;
+    let resolvedWindow: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      radius?: number;
+    } | null = null;
+    const wr = this.props.windowRect;
+    if (
+      wr &&
+      typeof wr.x === 'number' &&
+      typeof wr.y === 'number' &&
+      typeof wr.width === 'number' &&
+      typeof wr.height === 'number'
+    ) {
+      resolvedWindow = {
+        x: clamp(wr.x, 0, width),
+        y: clamp(wr.y, 0, height),
+        width: clamp(wr.width, 16, width),
+        height: clamp(wr.height, 16, height),
+        radius: wr.radius,
+      };
+    }
 
-    const { padding, windowX, windowY, windowW, windowH, windowR } = resolvedWindow
-      ? {
-          padding: Math.max(12, Math.min(20, Math.min(width, height) * 0.06)),
-          windowX: clamp(resolvedWindow.x, 0, Math.max(0, width - resolvedWindow.width)),
-          windowY: clamp(resolvedWindow.y, 0, Math.max(0, height - resolvedWindow.height)),
-          windowW: resolvedWindow.width,
-          windowH: resolvedWindow.height,
-          windowR: clamp(
-            typeof resolvedWindow.radius === 'number'
-              ? resolvedWindow.radius
-              : Math.min(Math.min(24, height * 0.12) * 0.7, 14),
-            0,
-            Math.min(resolvedWindow.width, resolvedWindow.height) / 2,
-          ),
-        }
-      : computeWindowRect(width, height, clamp(windowRatio, 0.2, 0.5));
+    let padding: number;
+    let windowX: number;
+    let windowY: number;
+    let windowW: number;
+    let windowH: number;
+    let windowR: number;
+    if (resolvedWindow) {
+      padding = Math.max(12, Math.min(20, Math.min(width, height) * 0.06));
+      windowX = clamp(resolvedWindow.x, 0, Math.max(0, width - resolvedWindow.width));
+      windowY = clamp(resolvedWindow.y, 0, Math.max(0, height - resolvedWindow.height));
+      windowW = resolvedWindow.width;
+      windowH = resolvedWindow.height;
+      windowR = clamp(
+        typeof resolvedWindow.radius === 'number'
+          ? resolvedWindow.radius
+          : Math.min(Math.min(24, height * 0.12) * 0.7, 14),
+        0,
+        Math.min(resolvedWindow.width, resolvedWindow.height) / 2,
+      );
+    } else {
+      const computed = computeWindowRect(width, height, clamp(windowRatio, 0.2, 0.5));
+      padding = computed.padding;
+      windowX = computed.windowX;
+      windowY = computed.windowY;
+      windowW = computed.windowW;
+      windowH = computed.windowH;
+      windowR = computed.windowR;
+    }
 
     const leftContentW = Math.max(0, windowX - padding * 2);
     const sampleRect = {

@@ -1,7 +1,5 @@
 import type { Widget } from '@/core/base';
 
-import { findWidget } from '@/core/helper/widget-selector';
-
 /**
  * 解析命中节点
  * 尝试从命中节点向上查找，直到找到一个在树中可以通过选择器定位到的节点。
@@ -11,18 +9,31 @@ export function resolveHitWidget(root: Widget, hitNode: Widget | null): Widget |
   if (!root || !hitNode) {
     return hitNode;
   }
+
+  const isReachableInTree = (target: Widget): boolean => {
+    if (target === root) {
+      return true;
+    }
+    let cur: Widget | null = target;
+    while (cur && cur !== root) {
+      const p = cur.parent as Widget | null;
+      if (!p) {
+        return false;
+      }
+      const children = (p.children ?? []) as Widget[];
+      if (!children.includes(cur)) {
+        return false;
+      }
+      cur = p;
+    }
+    return cur === root;
+  };
+
   let target: Widget | null = hitNode;
 
   while (target) {
-    try {
-      // 尝试用 key 查找
-      const found = findWidget(root, `#${target.key}`);
-      if (found) {
-        // 如果找到了，返回找到的实例（通常是同一个，或者是树中的代理）
-        return found as Widget;
-      }
-    } catch (e) {
-      // 忽略选择器错误
+    if (isReachableInTree(target)) {
+      return target;
     }
     target = target.parent as Widget | null;
   }
