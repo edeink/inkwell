@@ -3,6 +3,7 @@ import cn from 'classnames';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import EditableText, { meta as EditableTextMeta } from './editable-text';
+import GlassCard, { meta as GlassCardMeta } from './glass-card';
 import styles from './index.module.less';
 import InteractiveCounter, { meta as InteractiveCounterMeta } from './interactive-counter';
 import Mindmap, { meta as MindmapMeta } from './mindmap';
@@ -108,6 +109,7 @@ export default function UnifiedDemo() {
       { Component: EditableText, ...EditableTextMeta },
       { Component: WidgetGallery, ...WidgetGalleryMeta },
       { Component: Swiper, ...SwiperMeta },
+      { Component: GlassCard, ...GlassCardMeta },
       { Component: Mindmap, ...MindmapMeta },
       { Component: Spreadsheet, ...SpreadsheetMeta },
       { Component: Wiki, ...WikiMeta },

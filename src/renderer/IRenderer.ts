@@ -130,6 +130,8 @@ export interface IRenderer {
     fontWeight?: string | number;
     fontStyle?: 'normal' | 'italic' | 'oblique';
     color?: string;
+    strokeColor?: string;
+    strokeWidth?: number;
     textDecoration?: Array<'underline' | 'line-through'>;
     lineHeight?: number;
     textAlign?: 'left' | 'center' | 'right';

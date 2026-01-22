@@ -7,6 +7,7 @@ export enum DemoKey {
   InteractiveCounter = 'interactive-counter',
   WidgetGallery = 'widget-gallery',
   Swiper = 'swiper',
+  GlassCard = 'glass-card',
   Mindmap = 'mindmap',
   Spreadsheet = 'spreadsheet',
   EditableText = 'editable-text',

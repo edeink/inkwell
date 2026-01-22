@@ -315,6 +315,8 @@ export class Canvas2DRenderer implements IRenderer {
     fontWeight?: string | number;
     fontStyle?: 'normal' | 'italic' | 'oblique';
     color?: string;
+    strokeColor?: string;
+    strokeWidth?: number;
     textDecoration?: Array<'underline' | 'line-through'>;
     lineHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
@@ -339,6 +341,13 @@ export class Canvas2DRenderer implements IRenderer {
 
     // 设置文本颜色
     ctx.fillStyle = options.color || '#000000';
+    const strokeColor = options.strokeColor;
+    const strokeWidth = options.strokeWidth;
+    const hasStroke =
+      typeof strokeColor === 'string' &&
+      strokeColor.length > 0 &&
+      typeof strokeWidth === 'number' &&
+      strokeWidth > 0;
 
     // 设置文本对齐
     ctx.textAlign = options.textAlign || 'left';
@@ -386,12 +395,28 @@ export class Canvas2DRenderer implements IRenderer {
       let currentY = options.y;
 
       for (const line of options.lines) {
+        if (hasStroke && typeof (ctx as CanvasRenderingContext2D).strokeText === 'function') {
+          ctx.save();
+          ctx.strokeStyle = strokeColor as string;
+          ctx.lineWidth = strokeWidth as number;
+          (ctx as CanvasRenderingContext2D).lineJoin = 'round';
+          (ctx as CanvasRenderingContext2D).strokeText(line, options.x, currentY);
+          ctx.restore();
+        }
         ctx.fillText(line, options.x, currentY);
         drawDecorations(line, options.x, currentY);
         currentY += lineHeight;
       }
     } else {
       // 单行文本渲染
+      if (hasStroke && typeof (ctx as CanvasRenderingContext2D).strokeText === 'function') {
+        ctx.save();
+        ctx.strokeStyle = strokeColor as string;
+        ctx.lineWidth = strokeWidth as number;
+        (ctx as CanvasRenderingContext2D).lineJoin = 'round';
+        (ctx as CanvasRenderingContext2D).strokeText(options.text, options.x, options.y);
+        ctx.restore();
+      }
       ctx.fillText(options.text, options.x, options.y);
       drawDecorations(options.text, options.x, options.y);
     }

@@ -1,25 +1,88 @@
+/**
+ * 文本组件与排版实现。
+ *
+ * 主要职责：
+ * - 提供 `Text` 组件：在 Canvas2D 渲染器中完成文本的测量、布局与绘制。
+ * - 统一文本样式模型：通过 `TextProps` 描述字体、颜色、对齐方式与截断策略等。
+ * - 提供多行断行能力：在给定宽度约束下对文本进行折行，并支持省略号。
+ *
+ * 核心模块：
+ * - 样式与度量：`DefaultStyle`、`TextProps`、`TextLineMetrics`
+ * - 布局与断行：`Text.calculateTextMetrics` / `Text.calculateTextMetricsEstimate`
+ * - 绘制：`Text.paintSelf`（委托给 renderer.drawText）
+ *
+ * 对外接口：
+ * - `Text`：文本组件
+ * - `TextProps`：组件属性
+ * - `TextLineMetrics`：按行的布局结果
+ * - `TextAlign` / `TextAlignVertical` / `Overflow` / `TextBaseline`：文本相关枚举
+ *
+ * @example
+ * ```ts
+ * // JSX 场景（由工程内 JSX 编译器处理）
+ * const node = <Text text="你好，世界" fontSize={14} maxLines={2} overflow={Overflow.Ellipsis} />;
+ *
+ * // 直接实例化
+ * const widget = new Text({ text: '你好，世界', fontSize: 14 });
+ * ```
+ */
 import { Widget } from './base';
 
 import type { BoxConstraints, BuildContext, Size, WidgetProps } from './base';
 
+/**
+ * 文本的水平对齐方式。
+ *
+ * @example
+ * ```ts
+ * new Text({ text: 'Hello', textAlign: TextAlign.Center });
+ * ```
+ */
 export enum TextAlign {
   Left = 'left',
   Center = 'center',
   Right = 'right',
 }
 
+/**
+ * 文本在盒子内的垂直对齐方式。
+ *
+ * 注意：垂直对齐会影响文本绘制的起始基线位置（`paintSelf`）。
+ *
+ * @example
+ * ```ts
+ * new Text({ text: 'Hello', height: 48, textAlignVertical: TextAlignVertical.Center });
+ * ```
+ */
 export enum TextAlignVertical {
   Top = 'top',
   Center = 'center',
   Bottom = 'bottom',
 }
 
+/**
+ * 文本溢出处理策略。
+ *
+ * - `Clip`：直接裁切（由渲染器按容器裁剪策略处理）
+ * - `Ellipsis`：在最后一行末尾添加 `...`
+ * - `Fade`：渐隐（由渲染器实现，Text 侧仅透传）
+ *
+ * @example
+ * ```ts
+ * new Text({ text: '...', maxLines: 1, overflow: Overflow.Ellipsis });
+ * ```
+ */
 export enum Overflow {
   Clip = 'clip',
   Ellipsis = 'ellipsis',
   Fade = 'fade',
 }
 
+/**
+ * 文本基线类型。
+ *
+ * 当前 `Text` 默认使用 `Alphabetic` 作为绘制基线（见 `DefaultStyle.textBaseline`）。
+ */
 export enum TextBaseline {
   Top = 'top',
   Middle = 'middle',
@@ -27,22 +90,73 @@ export enum TextBaseline {
   Alphabetic = 'alphabetic',
 }
 
+/**
+ * 字体样式。
+ *
+ * @example
+ * ```ts
+ * new Text({ text: 'Italic', fontStyle: 'italic' });
+ * ```
+ */
 export type FontStyle = 'normal' | 'italic' | 'oblique';
+
+/**
+ * 文本装饰线类型。
+ *
+ * @example
+ * ```ts
+ * new Text({ text: 'Underline', textDecoration: 'underline' });
+ * new Text({ text: 'Mix', textDecoration: ['underline', 'line-through'] });
+ * ```
+ */
 export type TextDecoration = 'underline' | 'line-through';
 
+/**
+ * `Text` 组件属性。
+ *
+ * 说明：
+ * - 该组件是框架内的声明式 Widget；属性变化会触发重新布局/重绘。
+ * - 未显式传入的属性，通常会保持旧值（参见 `initTextProperties` 的兼容逻辑）。
+ *
+ * @example
+ * ```ts
+ * const widget = new Text({
+ *   text: '多行文本示例，支持省略号…',
+ *   fontSize: 14,
+ *   lineHeight: 20,
+ *   maxLines: 2,
+ *   overflow: Overflow.Ellipsis,
+ * });
+ * ```
+ */
 export interface TextProps extends WidgetProps {
+  /** 文本内容。 */
   text: string;
+  /** 字号（px）。 */
   fontSize?: number;
+  /** 字体族，CSS font-family 语义。 */
   fontFamily?: string;
+  /** 字重，CSS font-weight 语义。 */
   fontWeight?: string | number;
+  /** 字体样式。 */
   fontStyle?: FontStyle;
+  /** 文本颜色（CSS 颜色字符串）。 */
   color?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
+  /** 文本装饰线。 */
   textDecoration?: TextDecoration | TextDecoration[] | 'none';
+  /** 组件高度（用于布局约束）。 */
   height?: number;
+  /** 行高（px）。未设置时回退到 `height` 或 `fontSize`。 */
   lineHeight?: number;
+  /** 水平对齐方式。 */
   textAlign?: TextAlign;
+  /** 垂直对齐方式。 */
   textAlignVertical?: TextAlignVertical;
+  /** 最大显示行数。 */
   maxLines?: number;
+  /** 溢出策略。 */
   overflow?: Overflow;
 }
 
@@ -64,18 +178,57 @@ const DefaultStyle: {
   textAlignVertical: TextAlignVertical.Center,
 };
 
+/**
+ * 单行文本的测量与排版结果。
+ *
+ * 注意：
+ * - `x/y` 是相对于组件自身坐标系的左上角定位；
+ * - `baseline` 用于渲染器按基线绘制；
+ * - `startIndex/endIndex` 用于文本定位（例如可编辑文本的坐标映射）。
+ */
 export interface TextLineMetrics {
+  /** 该行文本内容。 */
   text: string;
+  /** 该行文本绘制起点 X（左上角）。 */
   x: number;
+  /** 该行文本绘制起点 Y（左上角）。 */
   y: number;
+  /** 该行文本宽度。 */
   width: number;
+  /** 该行文本高度（行高）。 */
   height: number;
+  /** 该行文本基线 Y（用于按基线绘制）。 */
   baseline: number;
+  /** 该行在原始字符串中的起始索引（UTF-16 索引）。 */
   startIndex: number;
+  /** 该行在原始字符串中的结束索引（UTF-16 索引，不含 end）。 */
   endIndex: number;
+  /** 字符间距（当前固定为 0，保留扩展位）。 */
   letterSpacing: number;
 }
 
+/**
+ * Canvas2D 文本组件。
+ *
+ * 功能概览：
+ * - 布局：在 `performLayout` 中根据约束计算文本尺寸与分行信息
+ * - 绘制：在 `paintSelf` 中将行信息透传给 renderer.drawText
+ * - 断行：`calculateTextMetrics` 在多行场景下使用“全局最优”的折行策略
+ *
+ * 性能注意：
+ * - 通过 `getLayoutHash` + `lastLayoutConstraints` 做简单缓存，避免重复测量
+ * - 断行算法对每个段落使用 O(n²) 动态规划；文本通常较短可接受
+ *
+ * @example
+ * ```ts
+ * new Text({
+ *   text: '这是一段较长的文本，用于展示多行断行与标点处理。',
+ *   fontSize: 14,
+ *   maxLines: 3,
+ *   overflow: Overflow.Ellipsis,
+ * });
+ * ```
+ */
 export class Text extends Widget<TextProps> {
   text: string = '';
   fontSize: number = DefaultStyle.fontSize;
@@ -83,6 +236,8 @@ export class Text extends Widget<TextProps> {
   fontWeight: string | number = DefaultStyle.fontWeight;
   fontStyle: FontStyle = 'normal';
   color: string = DefaultStyle.color;
+  strokeColor?: string;
+  strokeWidth?: number;
   textDecoration: TextDecoration[] = [];
   height?: number;
   lineHeight?: number;
@@ -91,6 +246,13 @@ export class Text extends Widget<TextProps> {
   maxLines?: number;
   overflow?: Overflow;
 
+  /**
+   * 用于测量的离屏 Canvas 上下文。
+   *
+   * 说明：
+   * - 在浏览器环境中创建一份共享的测量上下文，避免频繁创建对象
+   * - 在 SSR/无 DOM 环境下为 null，并会退化到估算策略
+   */
   private static measureCanvas: HTMLCanvasElement | null =
     typeof document === 'undefined' ? null : document.createElement('canvas');
   private static measureCtx: CanvasRenderingContext2D | null =
@@ -112,6 +274,22 @@ export class Text extends Widget<TextProps> {
     descent: number;
   } = { width: 0, height: 0, lines: [], lineWidths: [], lineIndices: [], ascent: 0, descent: 0 };
 
+  /**
+   * 获取按行拆分后的布局结果。
+   *
+   * 说明：
+   * - 该 getter 会基于 `textMetrics` 计算每一行的 `x/y/baseline` 等信息；
+   * - 主要用于绘制与文本坐标映射（例如可编辑文本选择区域的计算）。
+   *
+   * @returns 按行的布局结果列表
+   *
+   * @example
+   * ```ts
+   * const widget = new Text({ text: 'Hello\\nWorld' });
+   * // layout 后可读取 widget.lines
+   * const lines = widget.lines;
+   * ```
+   */
   get lines(): TextLineMetrics[] {
     const {
       lines,
@@ -181,6 +359,12 @@ export class Text extends Widget<TextProps> {
     this.initTextProperties(data);
   }
 
+  /**
+   * 规范化 `textDecoration` 的输入，统一为数组形式。
+   *
+   * @param val 可能为字符串、数组或 'none'
+   * @returns 归一化后的装饰线数组
+   */
   private normalizeTextDecoration(val: TextProps['textDecoration']): TextDecoration[] {
     if (!val || val === 'none') {
       return [];
@@ -199,9 +383,8 @@ export class Text extends Widget<TextProps> {
     let needsPaint = false;
 
     if (data.text === undefined && this.text !== '') {
-      // 只有在明确需要重置时才警告，这里保持原有逻辑，如果不传且当前为空才警告？
-      // 原逻辑：if (!data.text && data.text !== '') ...
-      // 这里简化判断，主要关注变化
+      // 兼容逻辑：历史实现允许不传某些属性而“保持旧值”。
+      // 该行为不完全符合严格的声明式语义，但当前为兼容既有调用方式暂不改动。
     }
 
     // Text content
@@ -217,8 +400,7 @@ export class Text extends Widget<TextProps> {
     }
 
     // FontSize
-    // 注意：原有逻辑是 data.fontSize ?? this.fontSize，这意味着如果不传，保持旧值。
-    // 这可能不符合声明式预期（移除属性应恢复默认），但为了兼容现有逻辑，我们保持一致。
+    // 注意：这里使用 data.fontSize ?? this.fontSize，意味着未传入时保持旧值。
     const newFontSize = (data.fontSize ?? this.fontSize) as number;
     if (this.fontSize !== newFontSize) {
       this.fontSize = newFontSize;
@@ -250,6 +432,18 @@ export class Text extends Widget<TextProps> {
     const newColor = (data.color ?? this.color) as string;
     if (this.color !== newColor) {
       this.color = newColor;
+      needsPaint = true;
+    }
+
+    const newStrokeColor = (data.strokeColor ?? this.strokeColor) as string | undefined;
+    if (this.strokeColor !== newStrokeColor) {
+      this.strokeColor = newStrokeColor;
+      needsPaint = true;
+    }
+
+    const newStrokeWidth = (data.strokeWidth ?? this.strokeWidth) as number | undefined;
+    if (this.strokeWidth !== newStrokeWidth) {
+      this.strokeWidth = newStrokeWidth;
       needsPaint = true;
     }
 
@@ -325,6 +519,16 @@ export class Text extends Widget<TextProps> {
   private lastLayoutConstraints: BoxConstraints | null = null;
   private lastLayoutHash: string = '';
 
+  /**
+   * 生成布局缓存 Key。
+   *
+   * 说明：
+   * - 该缓存用于避免同一帧/同一约束下重复测量；
+   * - 以字符串拼接实现，简单但足够稳定。
+   *
+   * @param constraints 当前布局约束
+   * @returns 用于比对的 hash 字符串
+   */
   private getLayoutHash(constraints: BoxConstraints): string {
     return (
       `${this.text}-${this.fontSize}-${this.fontFamily}-${this.fontWeight}-${this.fontStyle}-` +
@@ -334,6 +538,25 @@ export class Text extends Widget<TextProps> {
     );
   }
 
+  /**
+   * 计算文本度量信息（真实测量版本）。
+   *
+   * 输出：
+   * - `lines`：每一行的字符串内容
+   * - `lineWidths`：每行宽度（Canvas measureText）
+   * - `lineIndices`：每行对应的原始字符串索引范围（UTF-16）
+   *
+   * 算法说明（多行）：
+   * - 先按 `\\n` 分段，每段独立排版；
+   * - 对每个段落做“按 token”的断行动态规划：
+   *   - 英文/数字等连续串会合并为一个 token，避免错误拆分导致的误换行
+   *   - 代价函数：非最后一行使用 `slack²`（slack = maxWidth - lineWidth）
+   *   - 规则惩罚：尽可能避免标点出现在行首、避免英文/数字串中间断开等
+   * - 若 DP 无法给出有效路径，则回退到贪心折行
+   *
+   * @param constraints 布局约束（主要使用 maxWidth/maxLines）
+   * @returns void（结果写入 `this.textMetrics`）
+   */
   private calculateTextMetrics(constraints: BoxConstraints): void {
     const hash = this.getLayoutHash(constraints);
     if (this.lastLayoutConstraints && this.lastLayoutHash === hash) {
@@ -480,7 +703,16 @@ export class Text extends Widget<TextProps> {
     };
   }
 
-  // 当不存在 canvsa 2d 上下文时，计算文本指标（估计值）
+  /**
+   * 当不存在 Canvas2D 上下文时，计算文本指标（估计值版本）。
+   *
+   * 说明：
+   * - 该分支主要用于 SSR 或测试环境缺失 DOM 的场景；
+   * - 使用平均字符宽度估算换行与宽度，结果仅用于避免布局崩溃。
+   *
+   * @param constraints 布局约束
+   * @returns void（结果写入 `this.textMetrics`）
+   */
   private calculateTextMetricsEstimate(constraints: BoxConstraints): void {
     const fontSize = this.fontSize || DefaultStyle.fontSize;
     const rawLineHeight = this.lineHeight ?? this.height ?? fontSize;
@@ -589,6 +821,13 @@ export class Text extends Widget<TextProps> {
     };
   }
 
+  /**
+   * Text 不支持子组件布局约束。
+   *
+   * @param constraints 父级约束（忽略）
+   * @param childIndex 子索引（忽略）
+   * @returns 恒返回 0 大小的约束
+   */
   protected getConstraintsForChild(
     constraints: BoxConstraints,
     childIndex: number,
@@ -599,6 +838,16 @@ export class Text extends Widget<TextProps> {
     return { minWidth: 0, maxWidth: 0, minHeight: 0, maxHeight: 0 };
   }
 
+  /**
+   * 绘制文本自身（不含子组件）。
+   *
+   * 说明：
+   * - 基于 `textAlign`/`textAlignVertical` 计算绘制起点；
+   * - 将行信息透传给渲染器，由渲染器实现实际的文本绘制与装饰线。
+   *
+   * @param context 构建上下文（包含 renderer 等）
+   * @returns void
+   */
   protected paintSelf(context: BuildContext): void {
     const { renderer } = context;
     const { size } = this.renderObject;
@@ -631,6 +880,8 @@ export class Text extends Widget<TextProps> {
       fontWeight: this.fontWeight,
       fontStyle: this.fontStyle,
       color: this.color,
+      strokeColor: this.strokeColor,
+      strokeWidth: this.strokeWidth,
       textDecoration: this.textDecoration,
       lineHeight: lineHeightPx,
       textAlign: horiz,
