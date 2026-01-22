@@ -7,6 +7,7 @@ import { WidgetRegistry } from '@/core/registry';
 import { Themes } from '@/styles/theme';
 
 function createMock2dContext() {
+  // 该测试只关心调用行为与绘制路径，不依赖真实 Canvas 实现
   const addColorStop = vi.fn();
   const gradient = { addColorStop };
   return {
@@ -55,6 +56,7 @@ describe('FrostedGlassCard', () => {
   });
 
   it('应绘制：底图 + 磨砂层 + 清晰窗口覆盖', () => {
+    // 通过 drawImage 调用次数粗略验证分层绘制路径
     WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
 
     const ctx = createMock2dContext();
@@ -138,13 +140,100 @@ describe('FrostedGlassCard', () => {
     const key1 = layer1.key as string;
     const canvas1 = layer1.canvas;
 
-    (w as any).windowRatio = 0.44;
+    w.createElement({ ...(w.data as any), windowRatio: 0.44 } as any);
     (w as any).paintSelf({ renderer } as any);
 
     const layer2 = (w as any).baseLayer;
     expect(layer2).toBeTruthy();
     expect(layer2.canvas).toBe(canvas1);
     expect(layer2.key).not.toBe(key1);
+  });
+
+  it('约束不变时，绘制相关更新不应触发 updateStaticCaches', () => {
+    WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
+
+    const ctx = createMock2dContext();
+    const renderer = {
+      getResolution: () => 1,
+      getRawInstance: () => ctx,
+      drawRect: vi.fn(),
+    } as any;
+
+    const w = new FrostedGlassCard({
+      type: 'FrostedGlassCard',
+      width: 420,
+      height: 240,
+      theme: Themes.light,
+      blurPx: 12,
+      animate: false,
+    });
+    w.createElement(w.data as any);
+    const constraints = createBoxConstraints({ maxWidth: 800, maxHeight: 600 });
+    w.layout(constraints);
+    (w as any).paintSelf({ renderer } as any);
+
+    const updateStaticCachesSpy = vi.spyOn(w as any, 'updateStaticCaches');
+    (w as any)._needsLayout = false;
+    (w as any)._needsPaint = false;
+
+    w.createElement({ ...(w.data as any), blurPx: 18 } as any);
+
+    expect((w as any)._needsLayout).toBe(false);
+    expect((w as any)._needsPaint).toBe(true);
+
+    w.layout(constraints);
+    (w as any).paintSelf({ renderer } as any);
+
+    expect(updateStaticCachesSpy).not.toHaveBeenCalled();
+  });
+
+  it('约束变化时应触发 performLayout 并调用 updateStaticCaches', () => {
+    WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
+
+    const w = new FrostedGlassCard({
+      type: 'FrostedGlassCard',
+      width: 420,
+      height: 240,
+      theme: Themes.light,
+      animate: false,
+    });
+    w.createElement(w.data as any);
+    const constraints1 = createBoxConstraints({ maxWidth: 800, maxHeight: 600 });
+    w.layout(constraints1);
+
+    const updateStaticCachesSpy = vi.spyOn(w as any, 'updateStaticCaches');
+    (w as any)._needsLayout = false;
+
+    const constraints2 = createBoxConstraints({ maxWidth: 801, maxHeight: 600 });
+    w.layout(constraints2);
+
+    expect(updateStaticCachesSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('尺寸属性变化时应触发 markNeedsLayout，并在下一次 layout 调用 updateStaticCaches', () => {
+    WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
+
+    const w = new FrostedGlassCard({
+      type: 'FrostedGlassCard',
+      width: 420,
+      height: 240,
+      theme: Themes.light,
+      animate: false,
+    });
+    w.createElement(w.data as any);
+    const constraints = createBoxConstraints({ maxWidth: 800, maxHeight: 600 });
+    w.layout(constraints);
+
+    const updateStaticCachesSpy = vi.spyOn(w as any, 'updateStaticCaches');
+    (w as any)._needsLayout = false;
+
+    w.createElement({ ...(w.data as any), width: 421 } as any);
+
+    expect((w as any)._needsLayout).toBe(true);
+
+    w.layout(constraints);
+
+    expect(updateStaticCachesSpy).toHaveBeenCalled();
   });
 
   it('dispose 时应取消动画帧，避免泄漏', () => {

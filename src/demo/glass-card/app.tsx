@@ -28,15 +28,18 @@ interface GlassCardDemoAppProps extends WidgetProps {
 
 export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
   render(): Widget {
+    // demo 约定：由外部传入当前画布宽高与主题，内部只负责拼装 Widget 树
     const theme = this.props.theme ?? Themes.light;
     const width = this.props.width as number | undefined;
     const height = this.props.height as number | undefined;
 
+    // 控制整体内容宽度，避免在大屏幕下卡片过宽导致观感变差
     const maxContentW = Math.min(980, (width ?? 980) - 64);
     const cardW = Math.min(560, maxContentW);
 
     return (
       <ScrollView key="glass-card-demo-scroll" width={width} height={height}>
+        {/* 外层使用 ScrollView：便于在小屏幕下仍能完整查看示例 */}
         <Container minWidth={width} alignment="center" color={theme.background.base}>
           <Column
             key="glass-card-demo-root"
@@ -65,6 +68,7 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
               mainAxisSize={MainAxisSize.Min}
               crossAxisAlignment={CrossAxisAlignment.Start}
             >
+              {/* 示例 1：显式指定 windowRect，展示“清晰窗口”位置与尺寸可控 */}
               <Container
                 width={cardW}
                 height={Math.min(320, (height ?? 600) - 140)}
@@ -94,6 +98,7 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                 </Center>
               </Container>
 
+              {/* 示例 2：同样指定 windowRect，但窗口更宽，用于对比不同构图 */}
               <Container
                 width={cardW}
                 height={Math.min(320, (height ?? 600) - 140)}
@@ -113,9 +118,9 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                     windowRatio={0.32}
                     animate={true}
                     windowRect={{
-                      x: 200,
+                      x: 160,
                       y: 10,
-                      width: 310,
+                      width: 350,
                       height: 240,
                       radius: 18,
                     }}
@@ -139,5 +144,6 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
 }
 
 export function runApp(runtime: Runtime, width: number, height: number, theme?: ThemePalette) {
+  // React 宿主会在初始化/resize/theme 变更时调用此函数，统一重渲染 demo Widget 树
   runtime.render(<GlassCardDemoApp width={width} height={height} theme={theme} />);
 }

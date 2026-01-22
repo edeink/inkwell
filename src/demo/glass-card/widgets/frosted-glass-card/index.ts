@@ -2,8 +2,32 @@ import type { BoxConstraints, BuildContext, WidgetProps } from '@/core/base';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Widget } from '@/core/base';
+import { roundedRectPath } from '@/demo/glass-card/helpers/canvas';
+import {
+  averageRegionRGBA,
+  averageRegionRGBAFast,
+  parseHexColorToRGBA,
+  pickTextFillAndStroke,
+  type RGBA,
+} from '@/demo/glass-card/helpers/color-sampling';
+import {
+  paintClearWindow,
+  paintFrostedOverlay,
+  paintWindowFrame,
+  renderBaseLayer,
+} from '@/demo/glass-card/helpers/frosted-glass-card-paint';
 import { Themes } from '@/styles/theme';
 
+/**
+ * FrostedGlassCard：带“磨砂遮罩 + 清晰窗口”的玻璃卡片。
+ *
+ * 绘制分层：
+ * - baseLayer：缓存底图（背景/装饰/窗口底色），仅在布局/主题/背景图等变化时重建；
+ * - 画布上层：磨砂覆盖层、清晰窗口裁剪与描边。
+ *
+ * 该组件会在需要时对指定区域做一次采样，用于推荐文字填充/描边颜色。
+ * 为避免每帧反复读取像素，这里对采样结果做了缓存，并优先使用 1x1 缩放采样以降低开销。
+ */
 export interface FrostedGlassCardProps extends WidgetProps {
   /**
    * 期望的卡片宽度；若不传则按约束自适配。
@@ -66,119 +90,6 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-function averageRegionRGBA(
-  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): { r: number; g: number; b: number; a: number } | null {
-  const w = Math.max(0, Math.floor(width));
-  const h = Math.max(0, Math.floor(height));
-  if (w <= 0 || h <= 0) {
-    return null;
-  }
-  const readX = Math.max(0, Math.floor(x));
-  const readY = Math.max(0, Math.floor(y));
-  let img: ImageData;
-  try {
-    img = (ctx as CanvasRenderingContext2D).getImageData(readX, readY, w, h);
-  } catch {
-    return null;
-  }
-  const data = img.data;
-  if (!data || data.length < 4) {
-    return null;
-  }
-
-  const pixelCount = w * h;
-  const targetSamples = 1200;
-  const stride = Math.max(1, Math.floor(Math.sqrt(pixelCount / targetSamples)));
-  const step = stride * 4;
-
-  let sr = 0;
-  let sg = 0;
-  let sb = 0;
-  let sa = 0;
-  let n = 0;
-  for (let i = 0; i < data.length; i += step) {
-    const a = data[i + 3] / 255;
-    if (a <= 0) {
-      continue;
-    }
-    sr += data[i] * a;
-    sg += data[i + 1] * a;
-    sb += data[i + 2] * a;
-    sa += a;
-    n++;
-  }
-  if (n <= 0 || sa <= 0) {
-    return null;
-  }
-  return { r: sr / sa, g: sg / sa, b: sb / sa, a: sa / n };
-}
-
-function pickTextFillAndStroke(avg: { r: number; g: number; b: number; a: number } | null): {
-  fill: string;
-  stroke: string;
-} {
-  if (!avg) {
-    return { fill: '#ffffff', stroke: 'rgba(0,0,0,0.65)' };
-  }
-  const lum = (0.2126 * avg.r + 0.7152 * avg.g + 0.0722 * avg.b) / 255;
-  if (lum < 0.55) {
-    return { fill: '#ffffff', stroke: 'rgba(0,0,0,0.65)' };
-  }
-  return { fill: '#111111', stroke: 'rgba(255,255,255,0.7)' };
-}
-
-function toSeed(key: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) {
-    h ^= key.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function seeded01(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (Math.imul(1664525, s) + 1013904223) >>> 0;
-    return (s & 0xffffffff) / 0x100000000;
-  };
-}
-
-function roundedRectPath(
-  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  r: number,
-) {
-  const rr = Math.max(0, Math.min(r, Math.min(width, height) / 2));
-  const roundRect = (
-    ctx as unknown as {
-      roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
-    }
-  ).roundRect;
-  if (typeof roundRect === 'function') {
-    roundRect.call(ctx as never, x, y, width, height, rr);
-    return;
-  }
-  ctx.moveTo(x + rr, y);
-  ctx.lineTo(x + width - rr, y);
-  ctx.arcTo(x + width, y, x + width, y + rr, rr);
-  ctx.lineTo(x + width, y + height - rr);
-  ctx.arcTo(x + width, y + height, x + width - rr, y + height, rr);
-  ctx.lineTo(x + rr, y + height);
-  ctx.arcTo(x, y + height, x, y + height - rr, rr);
-  ctx.lineTo(x, y + rr);
-  ctx.arcTo(x, y, x + rr, y, rr);
-  ctx.closePath();
-}
-
 export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
   private cardW?: number;
   private cardH?: number;
@@ -197,6 +108,12 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
   private textSampleRect?: { x: number; y: number; width: number; height: number };
   private onSuggestedTextStyleChange?: (style: { fill: string; stroke: string }) => void;
   private lastSuggestedTextStyleKey: string = '';
+  /**
+   * 文本样式采样缓存：当布局/采样区域不变时，避免重复做像素读取。
+   * key 由 baseLayer.key + 采样像素区域共同组成。
+   */
+  private cachedSuggestedTextStyleSampleKey: string = '';
+  private cachedSuggestedTextStyle: { fill: string; stroke: string } | null = null;
   private backgroundImageSrc?: string;
 
   private bgImage: HTMLImageElement | null = null;
@@ -209,9 +126,28 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
   private timeMs: number = 0;
 
   private baseLayer: CachedLayer | null = null;
+  private cachedLayoutW: number = 0;
+  private cachedLayoutH: number = 0;
+  private cachedRadius: number = 0;
+  private cachedPadding: number = 0;
+  private cachedWindowX: number = 0;
+  private cachedWindowY: number = 0;
+  private cachedWindowW: number = 0;
+  private cachedWindowH: number = 0;
+  private cachedWindowR: number = 0;
+  private cachedHasWindowRect: boolean = false;
+  private cachedWindowRatio: number = 0.32;
+  private cachedWindowRectX: number = 0;
+  private cachedWindowRectY: number = 0;
+  private cachedWindowRectW: number = 0;
+  private cachedWindowRectH: number = 0;
+  private cachedWindowRectRadius: number | null = null;
 
+  /**
+   * 解析 props 并同步到实例字段。
+   * 约定：这个组件用字段缓存解析后的值，避免 paint/build 中反复做 clamp/分支判断。
+   */
   createElement(data: FrostedGlassCardProps): Widget<FrostedGlassCardProps> {
-    super.createElement(data);
     this.cardW = typeof data.width === 'number' ? data.width : undefined;
     this.cardH = typeof data.height === 'number' ? data.height : undefined;
     this.theme = data.theme;
@@ -220,30 +156,41 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     this.glassAlpha = typeof data.glassAlpha === 'number' ? clamp(data.glassAlpha, 0, 1) : 0.18;
     this.windowRatio =
       typeof data.windowRatio === 'number' ? clamp(data.windowRatio, 0.2, 0.5) : 0.32;
-    this.windowRect =
-      data.windowRect &&
-      typeof data.windowRect.x === 'number' &&
-      typeof data.windowRect.y === 'number' &&
-      typeof data.windowRect.width === 'number' &&
-      typeof data.windowRect.height === 'number'
-        ? data.windowRect
-        : undefined;
-    this.textSampleRect =
-      data.textSampleRect &&
-      typeof data.textSampleRect.x === 'number' &&
-      typeof data.textSampleRect.y === 'number' &&
-      typeof data.textSampleRect.width === 'number' &&
-      typeof data.textSampleRect.height === 'number'
-        ? data.textSampleRect
-        : undefined;
+    const wr = data.windowRect;
+    this.windowRect = undefined;
+    if (
+      wr &&
+      typeof wr.x === 'number' &&
+      typeof wr.y === 'number' &&
+      typeof wr.width === 'number' &&
+      typeof wr.height === 'number'
+    ) {
+      this.windowRect = wr;
+    }
+    const sr = data.textSampleRect;
+    this.textSampleRect = undefined;
+    if (
+      sr &&
+      typeof sr.x === 'number' &&
+      typeof sr.y === 'number' &&
+      typeof sr.width === 'number' &&
+      typeof sr.height === 'number'
+    ) {
+      this.textSampleRect = sr;
+    }
     this.onSuggestedTextStyleChange =
       typeof data.onSuggestedTextStyleChange === 'function'
         ? data.onSuggestedTextStyleChange
         : undefined;
     this.syncBackgroundImage(data.backgroundImageSrc);
-    return this;
+    return super.createElement(data);
   }
 
+  /**
+   * 同步背景图资源：
+   * - src 变化时创建新 Image 并异步加载
+   * - onload 后刷新底图缓存，并在需要时触发一次文本样式采样
+   */
   private syncBackgroundImage(src: string | undefined) {
     const next = typeof src === 'string' && src.trim().length > 0 ? src : undefined;
     if (next === this.backgroundImageSrc) {
@@ -280,6 +227,11 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
       this.bgImageNaturalW = img.naturalWidth || 0;
       this.bgImageNaturalH = img.naturalHeight || 0;
       this.bgImageVersion++;
+      const { width, height } = this.renderObject.size;
+      if (width > 0 && height > 0) {
+        this.updateStaticCaches(width, height);
+        this.updateSuggestedTextStyle(width, height);
+      }
       this.markNeedsPaint();
     };
     img.onerror = () => {
@@ -294,6 +246,11 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
       this.bgImageNaturalW = 0;
       this.bgImageNaturalH = 0;
       this.bgImageVersion++;
+      const { width, height } = this.renderObject.size;
+      if (width > 0 && height > 0) {
+        this.updateStaticCaches(width, height);
+        this.updateSuggestedTextStyle(width, height, { forceThemeFallback: true });
+      }
       this.markNeedsPaint();
     };
     img.src = next;
@@ -301,7 +258,98 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     this.markNeedsPaint();
   }
 
+  private isSameWindowRect(
+    a: FrostedGlassCardProps['windowRect'] | undefined,
+    b: FrostedGlassCardProps['windowRect'] | undefined,
+  ): boolean {
+    if (a === b) {
+      return true;
+    }
+    if (!a || !b) {
+      return false;
+    }
+    return (
+      a.x === b.x &&
+      a.y === b.y &&
+      a.width === b.width &&
+      a.height === b.height &&
+      (a.radius ?? null) === (b.radius ?? null)
+    );
+  }
+
+  private isSameRect(
+    a: FrostedGlassCardProps['textSampleRect'] | undefined,
+    b: FrostedGlassCardProps['textSampleRect'] | undefined,
+  ): boolean {
+    if (a === b) {
+      return true;
+    }
+    if (!a || !b) {
+      return false;
+    }
+    return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+  }
+
+  protected didUpdateWidget(oldProps: FrostedGlassCardProps): void {
+    // 约定：尺寸变化走 markNeedsLayout，其它变化尽量只走 markNeedsPaint
+    const next = this.data;
+    const sizeRelatedChanged = oldProps.width !== next.width || oldProps.height !== next.height;
+
+    const themeChanged = oldProps.theme !== next.theme;
+    const blurChanged = oldProps.blurPx !== next.blurPx;
+    const glassAlphaChanged = oldProps.glassAlpha !== next.glassAlpha;
+    const animateChanged = oldProps.animate !== next.animate;
+
+    const windowRatioChanged = oldProps.windowRatio !== next.windowRatio;
+    const windowRectChanged = !this.isSameWindowRect(oldProps.windowRect, next.windowRect);
+
+    const sampleRectChanged = !this.isSameRect(oldProps.textSampleRect, next.textSampleRect);
+    const suggestedCbChanged =
+      oldProps.onSuggestedTextStyleChange !== next.onSuggestedTextStyleChange;
+
+    const bgChanged = oldProps.backgroundImageSrc !== next.backgroundImageSrc;
+
+    if (sizeRelatedChanged) {
+      this.markNeedsLayout();
+      return;
+    }
+
+    // baseLayer 相关变更：会导致底图缓存 key 变化，需要重建底图内容
+    const baseLayerRelatedChanged =
+      themeChanged || windowRatioChanged || windowRectChanged || bgChanged;
+    // 文本采样相关变更：需要清空采样缓存，并在布局尺寸有效时重新采样
+    const samplingRelatedChanged =
+      baseLayerRelatedChanged || sampleRectChanged || suggestedCbChanged;
+    if (samplingRelatedChanged) {
+      this.cachedSuggestedTextStyleSampleKey = '';
+      this.cachedSuggestedTextStyle = null;
+      if (suggestedCbChanged) {
+        this.lastSuggestedTextStyleKey = '';
+      }
+    }
+
+    const { width, height } = this.renderObject.size;
+    if (baseLayerRelatedChanged && width > 0 && height > 0) {
+      this.updateStaticCaches(width, height);
+    }
+    if (samplingRelatedChanged && width > 0 && height > 0) {
+      this.updateSuggestedTextStyle(width, height);
+    }
+
+    const paintRelatedChanged =
+      blurChanged ||
+      glassAlphaChanged ||
+      animateChanged ||
+      baseLayerRelatedChanged ||
+      sampleRectChanged ||
+      suggestedCbChanged;
+    if (paintRelatedChanged) {
+      this.markNeedsPaint();
+    }
+  }
+
   protected performLayout(constraints: BoxConstraints): { width: number; height: number } {
+    // 这里决定最终尺寸，并在尺寸有效时更新静态缓存（baseLayer）
     const maxW = Number.isFinite(constraints.maxWidth) ? constraints.maxWidth : 360;
     const maxH = Number.isFinite(constraints.maxHeight) ? constraints.maxHeight : 240;
     const minW = Number.isFinite(constraints.minWidth) ? constraints.minWidth : 0;
@@ -311,7 +359,191 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     const h0 =
       typeof this.cardH === 'number' ? this.cardH : Math.min(320, maxH, Math.max(180, w0 * 0.58));
 
-    return { width: clamp(w0, minW, maxW), height: clamp(h0, minH, maxH) };
+    const width = clamp(w0, minW, maxW);
+    const height = clamp(h0, minH, maxH);
+    if (width > 0 && height > 0) {
+      this.updateStaticCaches(width, height);
+    }
+    return { width, height };
+  }
+
+  private getDpr(): number {
+    const renderer = this.runtime?.getRenderer?.() ?? null;
+    const dpr = renderer?.getResolution?.() ?? 1;
+    return typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  }
+
+  private computeWindowLayout(width: number, height: number, radius: number, padding: number) {
+    // windowRect 优先生效；否则使用 windowRatio 推导默认窗口位置
+    this.cachedLayoutW = width;
+    this.cachedLayoutH = height;
+    this.cachedRadius = radius;
+    this.cachedPadding = padding;
+    let windowX = 0;
+    let windowY = 0;
+    let windowW = 0;
+    let windowH = 0;
+    let windowR = 0;
+    if (this.windowRect) {
+      this.cachedHasWindowRect = true;
+      this.cachedWindowRatio = this.windowRatio;
+      this.cachedWindowRectX = this.windowRect.x;
+      this.cachedWindowRectY = this.windowRect.y;
+      this.cachedWindowRectW = this.windowRect.width;
+      this.cachedWindowRectH = this.windowRect.height;
+      this.cachedWindowRectRadius =
+        typeof this.windowRect.radius === 'number' ? this.windowRect.radius : null;
+      const x = this.windowRect.x;
+      const y = this.windowRect.y;
+      const w = this.windowRect.width;
+      const h = this.windowRect.height;
+      windowW = clamp(w, 16, width);
+      windowH = clamp(h, 16, height);
+      windowX = clamp(x, 0, Math.max(0, width - windowW));
+      windowY = clamp(y, 0, Math.max(0, height - windowH));
+      const r =
+        typeof this.windowRect.radius === 'number'
+          ? this.windowRect.radius
+          : Math.min(radius * 0.7, 14);
+      windowR = clamp(r, 0, Math.min(windowW, windowH) / 2);
+    } else {
+      this.cachedHasWindowRect = false;
+      this.cachedWindowRatio = this.windowRatio;
+      this.cachedWindowRectX = 0;
+      this.cachedWindowRectY = 0;
+      this.cachedWindowRectW = 0;
+      this.cachedWindowRectH = 0;
+      this.cachedWindowRectRadius = null;
+      windowW = clamp(width * this.windowRatio, 88, Math.min(180, width - padding * 2 - 40));
+      windowH = clamp(height - padding * 2, 96, height - padding * 2);
+      windowX = width - padding - windowW;
+      windowY = (height - windowH) / 2;
+      windowR = Math.min(radius * 0.7, 14);
+    }
+    this.cachedWindowX = windowX;
+    this.cachedWindowY = windowY;
+    this.cachedWindowW = windowW;
+    this.cachedWindowH = windowH;
+    this.cachedWindowR = windowR;
+  }
+
+  private updateStaticCaches(width: number, height: number) {
+    // 计算底图 key：只要 key 变化就重绘 baseLayer，但复用同一个离屏 canvas
+    const dpr = this.getDpr();
+    const theme = this.theme ?? Themes.light;
+    const radius = Math.min(24, height * 0.12);
+    const padding = Math.max(12, Math.min(20, Math.min(width, height) * 0.06));
+    this.computeWindowLayout(width, height, radius, padding);
+    const windowX = this.cachedWindowX;
+    const windowY = this.cachedWindowY;
+    const windowW = this.cachedWindowW;
+    const windowH = this.cachedWindowH;
+    const windowR = this.cachedWindowR;
+
+    const q = (v: number) => Math.round(v * dpr);
+    const baseKey = [
+      'base',
+      q(width),
+      q(height),
+      Math.round(dpr * 100),
+      q(windowX),
+      q(windowY),
+      q(windowW),
+      q(windowH),
+      q(windowR),
+      this.backgroundImageSrc ?? '',
+      this.bgImageVersion.toFixed(0),
+      theme.primary,
+      theme.secondary,
+      theme.background.container,
+      theme.background.surface,
+    ].join('|');
+
+    this.ensureBaseLayer(
+      baseKey,
+      width,
+      height,
+      dpr,
+      theme,
+      radius,
+      windowX,
+      windowY,
+      windowW,
+      windowH,
+      windowR,
+    );
+  }
+
+  private updateSuggestedTextStyle(
+    width: number,
+    height: number,
+    options?: { forceThemeFallback?: boolean },
+  ) {
+    // 采样结果会缓存起来，paint/performLayout 中只读取缓存，避免每帧 getImageData
+    const cb = this.onSuggestedTextStyleChange;
+    const sr = this.textSampleRect;
+    if (!cb || !sr) {
+      return;
+    }
+
+    if (!this.baseLayer) {
+      this.updateStaticCaches(width, height);
+    }
+
+    const dpr = this.getDpr();
+    const baseKey = this.baseLayer?.key ?? '';
+    const sx = clamp(sr.x, 0, width);
+    const sy = clamp(sr.y, 0, height);
+    const sw = clamp(sr.width, 0, Math.max(0, width - sx));
+    const sh = clamp(sr.height, 0, Math.max(0, height - sy));
+    const px = Math.round(sx * dpr);
+    const py = Math.round(sy * dpr);
+    const pw = Math.round(sw * dpr);
+    const ph = Math.round(sh * dpr);
+
+    const sampleKey = `${baseKey}|${px}|${py}|${pw}|${ph}`;
+    if (this.cachedSuggestedTextStyle && this.cachedSuggestedTextStyleSampleKey === sampleKey) {
+      return;
+    }
+
+    let avg: RGBA | null = null;
+    if (options?.forceThemeFallback) {
+      const theme = this.theme ?? Themes.light;
+      avg = parseHexColorToRGBA(theme.background.container);
+    } else if (this.baseLayer) {
+      const baseImage = this.baseLayer.canvas as unknown as CanvasImageSource;
+      avg =
+        averageRegionRGBAFast(baseImage, px, py, pw, ph) ??
+        averageRegionRGBA(this.baseLayer.ctx, px, py, pw, ph);
+    } else {
+      const theme = this.theme ?? Themes.light;
+      avg = parseHexColorToRGBA(theme.background.container);
+    }
+
+    const style = pickTextFillAndStroke(avg);
+    this.cachedSuggestedTextStyleSampleKey = sampleKey;
+    this.cachedSuggestedTextStyle = style;
+
+    const nextKey = `${style.fill}|${style.stroke}`;
+    if (this.lastSuggestedTextStyleKey === nextKey) {
+      return;
+    }
+    this.lastSuggestedTextStyleKey = nextKey;
+
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(() => {
+        if (!this.isDisposed()) {
+          cb(style);
+        }
+      });
+      return;
+    }
+
+    setTimeout(() => {
+      if (!this.isDisposed()) {
+        cb(style);
+      }
+    }, 0);
   }
 
   private startAnimationLoop() {
@@ -337,15 +569,20 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     if (this.rafId != null) {
       try {
         cancelAnimationFrame(this.rafId);
-      } catch {}
+      } catch {
+        void 0;
+      }
       this.rafId = null;
     }
     this.baseLayer = null;
+    this.cachedSuggestedTextStyleSampleKey = '';
+    this.cachedSuggestedTextStyle = null;
     this.bgImage = null;
     super.dispose();
   }
 
   protected paintSelf(context: BuildContext): void {
+    // 注意：paint 只做绘制与轻量计算（key 比较/矩形计算），不会做像素采样
     this.startAnimationLoop();
 
     const renderer = context.renderer;
@@ -370,81 +607,89 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
       return;
     }
 
-    const dpr = renderer.getResolution?.() ?? 1;
+    const rawDpr = renderer.getResolution?.() ?? 1;
+    const dpr = typeof rawDpr === 'number' && Number.isFinite(rawDpr) && rawDpr > 0 ? rawDpr : 1;
     const radius = Math.min(24, height * 0.12);
     const padding = Math.max(12, Math.min(20, Math.min(width, height) * 0.06));
-    let windowX = 0;
-    let windowY = 0;
-    let windowW = 0;
-    let windowH = 0;
-    let windowR = 0;
-    if (this.windowRect) {
-      const x = this.windowRect.x;
-      const y = this.windowRect.y;
-      const w = this.windowRect.width;
-      const h = this.windowRect.height;
-      windowW = clamp(w, 16, width);
-      windowH = clamp(h, 16, height);
-      windowX = clamp(x, 0, Math.max(0, width - windowW));
-      windowY = clamp(y, 0, Math.max(0, height - windowH));
-      const r =
-        typeof this.windowRect.radius === 'number'
-          ? this.windowRect.radius
-          : Math.min(radius * 0.7, 14);
-      windowR = clamp(r, 0, Math.min(windowW, windowH) / 2);
+    const wr = this.windowRect;
+    let windowInputsChanged = false;
+    if (wr) {
+      windowInputsChanged =
+        !this.cachedHasWindowRect ||
+        this.cachedWindowRectX !== wr.x ||
+        this.cachedWindowRectY !== wr.y ||
+        this.cachedWindowRectW !== wr.width ||
+        this.cachedWindowRectH !== wr.height ||
+        this.cachedWindowRectRadius !== (typeof wr.radius === 'number' ? wr.radius : null);
     } else {
-      windowW = clamp(width * this.windowRatio, 88, Math.min(180, width - padding * 2 - 40));
-      windowH = clamp(height - padding * 2, 96, height - padding * 2);
-      windowX = width - padding - windowW;
-      windowY = (height - windowH) / 2;
-      windowR = Math.min(radius * 0.7, 14);
+      windowInputsChanged = this.cachedHasWindowRect || this.cachedWindowRatio !== this.windowRatio;
     }
+    if (
+      windowInputsChanged ||
+      this.cachedLayoutW !== width ||
+      this.cachedLayoutH !== height ||
+      this.cachedRadius !== radius ||
+      this.cachedPadding !== padding
+    ) {
+      this.computeWindowLayout(width, height, radius, padding);
+    }
+    const windowX = this.cachedWindowX;
+    const windowY = this.cachedWindowY;
+    const windowW = this.cachedWindowW;
+    const windowH = this.cachedWindowH;
+    const windowR = this.cachedWindowR;
 
+    const q = (v: number) => Math.round(v * dpr);
     const baseKey = [
       'base',
-      width.toFixed(2),
-      height.toFixed(2),
-      dpr.toFixed(2),
-      windowX.toFixed(2),
-      windowY.toFixed(2),
-      windowW.toFixed(2),
-      windowH.toFixed(2),
-      windowR.toFixed(2),
+      q(width),
+      q(height),
+      Math.round(dpr * 100),
+      q(windowX),
+      q(windowY),
+      q(windowW),
+      q(windowH),
+      q(windowR),
       this.backgroundImageSrc ?? '',
       this.bgImageVersion.toFixed(0),
       theme.primary,
       theme.secondary,
       theme.background.container,
       theme.background.surface,
-      theme.text.primary,
-      theme.text.secondary,
-      theme.border.base,
-      theme.border.secondary,
     ].join('|');
-    this.ensureBaseLayer(
-      baseKey,
-      width,
-      height,
-      dpr,
-      theme,
-      radius,
-      padding,
-      windowX,
-      windowY,
-      windowW,
-      windowH,
-      windowR,
-    );
+    if (!this.baseLayer || this.baseLayer.key !== baseKey) {
+      this.ensureBaseLayer(
+        baseKey,
+        width,
+        height,
+        dpr,
+        theme,
+        radius,
+        windowX,
+        windowY,
+        windowW,
+        windowH,
+        windowR,
+      );
+    }
 
     ctx.save();
     ctx.beginPath();
     roundedRectPath(ctx, 0, 0, width, height, radius);
     ctx.clip();
 
-    const baseImage = this.baseLayer!.canvas as unknown as CanvasImageSource;
-    ctx.drawImage(baseImage, 0, 0, width, height);
+    if (this.baseLayer) {
+      const baseImage = this.baseLayer.canvas as unknown as CanvasImageSource;
+      ctx.drawImage(baseImage, 0, 0, width, height);
+    } else {
+      ctx.fillStyle = theme.background.container;
+      ctx.fillRect(0, 0, width, height);
+    }
 
-    this.paintFrostedOverlay(
+    const baseLayerCanvas = this.baseLayer
+      ? (this.baseLayer.canvas as unknown as CanvasImageSource)
+      : null;
+    paintFrostedOverlay(
       ctx,
       theme,
       width,
@@ -455,15 +700,34 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
       windowW,
       windowH,
       windowR,
+      baseLayerCanvas,
+      this.blurPx,
+      this.glassAlpha,
+      this.animate,
+      this.timeMs,
     );
 
-    this.paintClearWindow(ctx, width, height, windowX, windowY, windowW, windowH, windowR);
+    paintClearWindow(
+      ctx,
+      width,
+      height,
+      windowX,
+      windowY,
+      windowW,
+      windowH,
+      windowR,
+      baseLayerCanvas,
+    );
 
-    this.paintWindowFrame(ctx, theme, width, height, windowX, windowY, windowW, windowH, windowR);
+    paintWindowFrame(ctx, theme, windowX, windowY, windowW, windowH, windowR);
 
     ctx.restore();
   }
 
+  /**
+   * 确保底图缓存存在，并在 key 变化时重绘其内容。
+   * 约定：canvas/context 会被复用，避免每次更新重新分配离屏资源。
+   */
   private ensureBaseLayer(
     key: string,
     width: number,
@@ -471,20 +735,12 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     dpr: number,
     theme: ThemePalette,
     radius: number,
-    padding: number,
     windowX: number,
     windowY: number,
     windowW: number,
     windowH: number,
     windowR: number,
   ) {
-    /**
-     * 底图只负责“可被磨砂/清晰窗口复用”的静态内容：
-     * - 背景渐变与装饰斑点
-     * - 窗口底色（用于清晰窗口区域）
-     *
-     * 文本等应当作为上层组件叠加，避免被磨砂层二次采样后产生模糊。
-     */
     if (!this.baseLayer) {
       const canvas =
         typeof OffscreenCanvas !== 'undefined'
@@ -505,7 +761,6 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
       return;
     }
     this.baseLayer.key = key;
-    void padding;
     const pixelW = Math.max(1, Math.ceil(width * dpr));
     const pixelH = Math.max(1, Math.ceil(height * dpr));
     if (this.baseLayer.canvas.width !== pixelW) {
@@ -518,218 +773,29 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     const ctx = this.baseLayer.ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
-
-    ctx.save();
-    ctx.beginPath();
-    roundedRectPath(ctx, 0, 0, width, height, radius);
-    ctx.clip();
-
-    const hasBgImage =
+    const bgImage =
       !!this.backgroundImageSrc &&
       this.bgImageLoaded &&
       !!this.bgImage &&
       this.bgImageNaturalW > 0 &&
-      this.bgImageNaturalH > 0;
-
-    if (hasBgImage) {
-      const iw = this.bgImageNaturalW;
-      const ih = this.bgImageNaturalH;
-      const scale = Math.max(width / iw, height / ih);
-      const dw = iw * scale;
-      const dh = ih * scale;
-      const dx = (width - dw) / 2;
-      const dy = (height - dh) / 2;
-      ctx.drawImage(this.bgImage as unknown as CanvasImageSource, dx, dy, dw, dh);
-    } else {
-      const bg = ctx.createLinearGradient(0, 0, width, height);
-      bg.addColorStop(0, theme.background.container);
-      bg.addColorStop(0.55, theme.background.surface);
-      bg.addColorStop(1, theme.background.container);
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width, height);
-
-      const rnd = seeded01(toSeed(key));
-      const blobs = 7;
-      for (let i = 0; i < blobs; i++) {
-        const cx = width * (0.15 + rnd() * 0.7);
-        const cy = height * (0.15 + rnd() * 0.7);
-        const r = Math.min(width, height) * (0.18 + rnd() * 0.25);
-        const alpha = 0.08 + rnd() * 0.08;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = i % 2 ? theme.primary : theme.secondary;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = theme.background.container;
-      ctx.beginPath();
-      roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      const winGrad = ctx.createLinearGradient(
-        windowX,
-        windowY,
-        windowX + windowW,
-        windowY + windowH,
-      );
-      winGrad.addColorStop(0, theme.background.surface);
-      winGrad.addColorStop(1, theme.background.container);
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = winGrad;
-      ctx.beginPath();
-      roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    if (this.textSampleRect && this.onSuggestedTextStyleChange) {
-      const sr = this.textSampleRect;
-      const sx = clamp(sr.x, 0, width);
-      const sy = clamp(sr.y, 0, height);
-      const sw = clamp(sr.width, 0, Math.max(0, width - sx));
-      const sh = clamp(sr.height, 0, Math.max(0, height - sy));
-      const avg = averageRegionRGBA(ctx, sx * dpr, sy * dpr, sw * dpr, sh * dpr);
-      const style = pickTextFillAndStroke(avg);
-      const nextKey = `${key}|${style.fill}|${style.stroke}`;
-      if (this.lastSuggestedTextStyleKey !== nextKey) {
-        this.lastSuggestedTextStyleKey = nextKey;
-        const cb = this.onSuggestedTextStyleChange;
-        if (typeof queueMicrotask === 'function') {
-          queueMicrotask(() => {
-            if (!this.isDisposed()) {
-              cb(style);
-            }
-          });
-        } else {
-          setTimeout(() => {
-            if (!this.isDisposed()) {
-              cb(style);
-            }
-          }, 0);
-        }
-      }
-    }
-
-    ctx.restore();
-  }
-
-  private paintFrostedOverlay(
-    ctx: CanvasRenderingContext2D,
-    theme: ThemePalette,
-    width: number,
-    height: number,
-    radius: number,
-    windowX: number,
-    windowY: number,
-    windowW: number,
-    windowH: number,
-    windowR: number,
-  ) {
-    ctx.save();
-
-    ctx.beginPath();
-    roundedRectPath(ctx, 0, 0, width, height, radius);
-    roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-    try {
-      ctx.clip('evenodd');
-    } catch {
-      ctx.clip();
-    }
-
-    const supportsFilter = 'filter' in ctx;
-    if (supportsFilter && this.blurPx > 0) {
-      const prev = ctx.filter;
-      ctx.filter = `blur(${this.blurPx}px)`;
-      const baseImage = this.baseLayer!.canvas as unknown as CanvasImageSource;
-      ctx.drawImage(baseImage, 0, 0, width, height);
-      ctx.filter = prev;
-    } else if (this.blurPx > 0) {
-      const samples = 8;
-      const spread = Math.max(1, this.blurPx * 0.25);
-      ctx.globalAlpha = 1 / (samples * 2 + 1);
-      const baseImage = this.baseLayer!.canvas as unknown as CanvasImageSource;
-      for (let i = -samples; i <= samples; i++) {
-        const dx = i * spread;
-        ctx.drawImage(baseImage, dx, 0, width, height);
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.globalAlpha = this.glassAlpha;
-    ctx.fillStyle = theme.background.container;
-    ctx.fillRect(0, 0, width, height);
-    ctx.globalAlpha = 1;
-
-    const t = this.timeMs * 0.001;
-    const sweep = (Math.sin(t * 0.9) * 0.5 + 0.5) * width;
-    const g = ctx.createLinearGradient(sweep - width * 0.6, 0, sweep + width * 0.6, height);
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(0.5, 'rgba(255,255,255,0.14)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = theme.border.base;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    roundedRectPath(ctx, 0.5, 0.5, width - 1, height - 1, radius);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
-  }
-
-  private paintClearWindow(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    windowX: number,
-    windowY: number,
-    windowW: number,
-    windowH: number,
-    windowR: number,
-  ) {
-    if (!this.baseLayer) {
-      return;
-    }
-    ctx.save();
-    ctx.beginPath();
-    roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-    ctx.clip();
-    const baseImage = this.baseLayer.canvas as unknown as CanvasImageSource;
-    ctx.drawImage(baseImage, 0, 0, width, height);
-    ctx.restore();
-  }
-
-  private paintWindowFrame(
-    ctx: CanvasRenderingContext2D,
-    theme: ThemePalette,
-    width: number,
-    height: number,
-    windowX: number,
-    windowY: number,
-    windowW: number,
-    windowH: number,
-    windowR: number,
-  ) {
-    void width;
-    void height;
-    ctx.save();
-
-    ctx.globalAlpha = 0.65;
-    ctx.strokeStyle = theme.border.base;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    roundedRectPath(ctx, windowX + 0.5, windowY + 0.5, windowW - 1, windowH - 1, windowR);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
+      this.bgImageNaturalH > 0
+        ? (this.bgImage as unknown as CanvasImageSource)
+        : null;
+    renderBaseLayer(
+      ctx,
+      key,
+      width,
+      height,
+      theme,
+      radius,
+      windowX,
+      windowY,
+      windowW,
+      windowH,
+      windowR,
+      bgImage,
+      this.bgImageNaturalW,
+      this.bgImageNaturalH,
+    );
   }
 }

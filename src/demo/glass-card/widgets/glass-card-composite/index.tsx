@@ -37,10 +37,17 @@ export interface GlassCardCompositeProps extends WidgetProps {
   };
 }
 
+/**
+ * 数值夹取：用于把外部输入约束到合理范围，避免窗口超出卡片或出现负尺寸。
+ */
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
+/**
+ * 在仅给出 windowRatio 的情况下，计算默认窗口矩形。
+ * 该逻辑与 FrostedGlassCard 内部布局保持一致，便于上下层对齐（例如文本采样区域）。
+ */
 function computeWindowRect(
   width: number,
   height: number,
@@ -72,6 +79,7 @@ export class GlassCardComposite extends StatefulWidget<
 > {
   state: { textStyle: SuggestedTextStyle | null } = { textStyle: null };
 
+  // 由 FrostedGlassCard 回调推荐文字样式，只有发生变化时才 setState
   private handleSuggestedTextStyleChange = (style: SuggestedTextStyle) => {
     const prev = this.state.textStyle;
     if (prev && prev.fill === style.fill && prev.stroke === style.stroke) {
