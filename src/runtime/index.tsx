@@ -379,6 +379,14 @@ export default class Runtime {
     }
   }
 
+  public nextTick(cb: () => void): void {
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(cb);
+      return;
+    }
+    void Promise.resolve().then(cb);
+  }
+
   private ensureLayoutScheduled() {
     this.requestTick();
   }

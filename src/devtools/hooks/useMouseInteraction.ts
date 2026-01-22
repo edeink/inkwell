@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 import Runtime from '../../runtime';
-import Overlay, { hitTest } from '../components/overlay';
+import { hitTest, type OverlayHandle } from '../components/overlay';
 import { resolveHitWidget } from '../helper/resolve';
 
 import type { Widget } from '@/core/base';
 
 export interface MouseInteractionOptions {
   runtime: Runtime | null;
-  overlay: Overlay | null;
+  overlayRef: { current: OverlayHandle | null };
   active: boolean;
   getHoverRef: () => Widget | null;
   setHoverRef: (w: Widget | null) => void;
@@ -18,7 +18,7 @@ export interface MouseInteractionOptions {
 
 export function useMouseInteraction({
   runtime,
-  overlay,
+  overlayRef,
   active,
   getHoverRef,
   setHoverRef,
@@ -29,6 +29,10 @@ export function useMouseInteraction({
   isMultiRuntime: boolean;
   overlapWarning: boolean;
 } {
+  // 该 Hook 负责将「鼠标在页面上的屏幕坐标」映射到「canvas 内坐标」：
+  // - active=true 时，mousemove 会触发命中测试并驱动 Overlay 高亮；
+  // - click 会拾取当前高亮节点并回调给面板；
+  // - 多画布场景下，会根据鼠标位置动态切换更匹配的 Runtime。
   // 最近一次指针位置，用于在 Inspect 激活时进行更匹配的 runtime 比较
   const lastPos = useRef<{ x: number; y: number } | null>(null);
   const [runtimeId, setRuntimeId] = useState<string | null>(null);
@@ -68,16 +72,15 @@ export function useMouseInteraction({
 
   // 处理 overlay 激活状态和位置信息
   useEffect(() => {
-    if (!runtime || !overlay) {
+    if (!runtime) {
       return;
     }
-    const ov = overlay!;
-    ov.mount();
-    ov.setActive(active);
+    overlayRef.current?.setActive(active);
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
 
+    // mousemove 高频：仅记录最后一次事件，并在 RAF 中做命中测试与高亮提交。
     let lastEvent: MouseEvent | null = null;
     let raf = 0;
 
@@ -99,6 +102,7 @@ export function useMouseInteraction({
           if (nextMulti !== isMultiRuntime) {
             setIsMultiRuntime(nextMulti);
           }
+          // 多画布场景下：根据鼠标所在 canvas 来切换 Runtime，并同步 runtimeId。
           let overCanvas = false;
           for (const it of list) {
             const r = it.canvas.getBoundingClientRect();
@@ -116,21 +120,22 @@ export function useMouseInteraction({
             }
           }
           if (!overCanvas) {
-            ov.highlight(null);
+            overlayRef.current?.highlight(null);
             return;
           }
         } catch {}
+        // 只对“鼠标所在的 canvas 元素”做命中测试，避免覆盖层/面板等浮层干扰。
         const rendererNow = runtime?.getRenderer();
         const rawNow = rendererNow?.getRawInstance?.() as CanvasRenderingContext2D | null;
         const canvasEl = rawNow?.canvas ?? runtime?.container?.querySelector('canvas');
         if (!canvasEl) {
-          ov.highlight(null);
+          overlayRef.current?.highlight(null);
           return;
         }
         const rect = (canvasEl as HTMLCanvasElement).getBoundingClientRect();
         const elAt = document.elementFromPoint(cx, cy);
         if (elAt !== canvasEl) {
-          ov.highlight(null);
+          overlayRef.current?.highlight(null);
           return;
         }
         const x = cx - rect.left;
@@ -145,12 +150,12 @@ export function useMouseInteraction({
             // 使用 resolveHitWidget 确保选中的节点在树中可达
             finalTarget = resolveHitWidget(root, rawTarget);
           } catch (err) {
-            console.error('[DevTools] HitTest error:', err);
+            console.error('[DevTools] 命中测试失败:', err);
           }
         }
 
         setHoverRef(finalTarget);
-        ov.highlight(finalTarget);
+        overlayRef.current?.highlight(finalTarget);
       });
     }
 
@@ -161,28 +166,26 @@ export function useMouseInteraction({
     }
 
     function onClick(): void {
+      // click 始终基于“最近一次命中结果”，避免重复做 hitTest。
       const current = getHoverRef();
       if (active && current && runtime) {
         onPick(current);
-        ov.setActive(false);
-        ov.highlight(null);
+        overlayRef.current?.setActive(false);
+        overlayRef.current?.highlight(null);
       }
     }
 
-    ov.startAutoUpdate(() => getHoverRef());
     window.addEventListener('mousemove', onMove, { passive: true });
     canvas?.addEventListener('click', onClick);
 
     return () => {
       window.removeEventListener('mousemove', onMove);
       canvas?.removeEventListener('click', onClick);
-      ov.stopAutoUpdate();
-      ov.unmount();
       if (raf) {
         cancelAnimationFrame(raf);
       }
     };
-  }, [runtime, overlay, active, getHoverRef, onPick, setHoverRef, setRuntime, isMultiRuntime]);
+  }, [runtime, overlayRef, active, getHoverRef, onPick, setHoverRef, setRuntime, isMultiRuntime]);
 
   return { runtimeId, isMultiRuntime, overlapWarning };
 }

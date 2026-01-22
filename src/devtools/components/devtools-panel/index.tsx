@@ -7,7 +7,7 @@ import { getPathKeys, toAntTreeData, toTree } from '../../helper/tree';
 import { useDevtoolsHotkeys } from '../../hooks/useDevtoolsHotkeys';
 import { useMouseInteraction } from '../../hooks/useMouseInteraction';
 import LayoutPanel from '../layout';
-import Overlay from '../overlay';
+import Overlay, { type OverlayHandle } from '../overlay';
 
 import { DevtoolsHeaderLeft } from './header-left';
 import { DevtoolsHeaderRight } from './header-right';
@@ -20,6 +20,56 @@ import type { DataNode } from 'antd/es/tree';
 
 import { findWidget } from '@/core/helper/widget-selector';
 
+const objIdByRef = new WeakMap<object, number>();
+let objIdSeq = 1;
+
+function getObjId(v: unknown): number {
+  if (!v || (typeof v !== 'object' && typeof v !== 'function')) {
+    return 0;
+  }
+  const obj = v as object;
+  const existed = objIdByRef.get(obj);
+  if (existed != null) {
+    return existed;
+  }
+  const next = objIdSeq++;
+  objIdByRef.set(obj, next);
+  return next;
+}
+
+function hashStr(h: number, s: string): number {
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h;
+}
+
+function hashNum(h: number, n: number): number {
+  h ^= n >>> 0;
+  return Math.imul(h, 16777619);
+}
+
+function computeWidgetTreeHash(root: Widget | null): number {
+  if (!root) {
+    return 0;
+  }
+  let h = 2166136261;
+  const stack: Widget[] = [root];
+  while (stack.length) {
+    const w = stack.pop()!;
+    h = hashStr(h, w.key ?? '');
+    h = hashStr(h, w.type ?? '');
+    h = hashNum(h, getObjId((w as unknown as { data?: unknown }).data));
+    const children = w.children ?? [];
+    h = hashNum(h, children.length);
+    for (let i = children.length - 1; i >= 0; i--) {
+      stack.push(children[i]);
+    }
+  }
+  return h >>> 0;
+}
+
 export interface DevToolsProps {
   onClose?: () => void;
   shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
@@ -30,9 +80,11 @@ export function DevToolsPanel(props: DevToolsProps) {
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const hoverRef = useRef<Widget | null>(null);
   const treeRef = useRef<AntTreeHandle | null>(null);
+  const overlayRef = useRef<OverlayHandle | null>(null);
 
   const [version, setVersion] = useState(0);
   const [isPageVisible, setIsPageVisible] = useState(true);
+  const lastTreeHashRef = useRef<number>(0);
 
   useEffect(() => {
     setIsPageVisible(!document.hidden);
@@ -51,7 +103,6 @@ export function DevToolsPanel(props: DevToolsProps) {
   }, [runtime, version]);
   const treeData = useMemo(() => toAntTreeData(tree) as DataNode[], [tree]);
 
-  const overlay = useMemo(() => (runtime ? new Overlay(runtime) : null), [runtime]);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [activeInspect, setActiveInspect] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
@@ -81,9 +132,15 @@ export function DevToolsPanel(props: DevToolsProps) {
       return;
     }
 
+    lastTreeHashRef.current = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
     setVersion((v) => v + 1);
     const update = throttle(
       () => {
+        const nextHash = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
+        if (nextHash === lastTreeHashRef.current) {
+          return;
+        }
+        lastTreeHashRef.current = nextHash;
         setVersion((v) => v + 1);
       },
       300,
@@ -112,7 +169,7 @@ export function DevToolsPanel(props: DevToolsProps) {
 
   const { isMultiRuntime } = useMouseInteraction({
     runtime,
-    overlay,
+    overlayRef,
     active: activeInspect,
     getHoverRef: () => hoverRef.current,
     setHoverRef: (w) => {
@@ -137,18 +194,15 @@ export function DevToolsPanel(props: DevToolsProps) {
   });
 
   const handleHoverKey = (k: string | null) => {
-    if (!overlay) {
-      return;
-    }
     if (!k) {
-      overlay.setActive(false);
-      overlay.highlight(null);
+      overlayRef.current?.setActive(false);
+      overlayRef.current?.highlight(null);
       return;
     }
     const w = findWidget(runtime?.getRootWidget?.() ?? null, `#${k}`) as Widget | null;
     hoverRef.current = w;
-    overlay.setActive(true);
-    overlay.highlight(w);
+    overlayRef.current?.setActive(true);
+    overlayRef.current?.highlight(w);
   };
 
   const handleSelectKey = (k: string) => {
@@ -176,6 +230,7 @@ export function DevToolsPanel(props: DevToolsProps) {
     scrollToKey(k);
   };
 
+  // 打印选中节点（调试用）
   const handlePrintSelected = () => {
     if (!selected) {
       console.log('未选中节点');
@@ -192,6 +247,7 @@ export function DevToolsPanel(props: DevToolsProps) {
         return container ?? document.body;
       }}
     >
+      <Overlay ref={overlayRef} runtime={runtime} />
       <LayoutPanel
         visible={visible}
         headerLeft={

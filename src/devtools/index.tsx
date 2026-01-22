@@ -158,10 +158,6 @@ export class Devtools implements IDevtools {
     if (!this.container) {
       const el = document.createElement('div');
       el.id = 'inkwell-devtools-root';
-      el.style.position = 'fixed';
-      el.style.zIndex = '2147483646';
-      el.style.top = '0';
-      el.style.left = '0';
       document.body.appendChild(el);
       this.container = el;
     }

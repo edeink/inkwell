@@ -1,11 +1,29 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
 import type Runtime from '../../../runtime';
+export { hitTest } from '@/core/helper/hit-test';
 
+/**
+ * DevTools 高亮覆盖层（Overlay）
+ *
+ * 核心职责：
+ * - 将 Widget 的世界坐标包围盒转换为 DOM 像素坐标，并绘制高亮框与信息条。
+ * - 用 requestAnimationFrame 合并多次 highlight/setActive 调用，避免频繁 setState。
+ * - 通过 Portal 挂载到 runtime.container 内，保证覆盖在 canvas 之上且不拦截交互。
+ */
 type BoxRect = { left: number; top: number; width: number; height: number };
 type ViewportRect = {
   left: number;
@@ -22,265 +40,47 @@ type OverlayRenderState = {
   label?: string;
   targetRect?: ViewportRect;
   direction?: string | null;
-  debug?: boolean;
 };
-
-/**
- * Overlay 高亮框
- * - 使用 React 的 JSX 声明式渲染，避免散落的 DOM 操作
- * - 高亮框使用绝对定位（相对画布容器）
- * - info 使用 fixed，确保目标越界时仍在窗口内可见
- */
-export default class Overlay {
-  private editor: Runtime;
-  private rootEl: HTMLDivElement | null = null;
-  private reactRoot: Root | null = null;
-  private active = false;
-  private mo: MutationObserver | null = null;
-  private getCurrent: (() => Widget | null) | null = null;
-  private onWindowResize = () => this.highlight(this.getCurrent?.() ?? null);
-  private onWindowScroll = () => this.highlight(this.getCurrent?.() ?? null);
-  private rafId: number | null = null;
-  private renderState: OverlayRenderState = { active: false };
-
-  constructor(editor: Runtime) {
-    this.editor = editor;
-  }
-
-  mount(): void {
-    const container = this.editor.container;
-    if (!container) {
-      return;
-    }
-    try {
-      const computed = window.getComputedStyle(container);
-      if (computed.position === 'static') {
-        container.style.position = 'relative';
-      }
-    } catch (e) {
-      console.debug('DevTools Overlay：无法设置容器定位方式', e);
-    }
-
-    const rootEl = document.createElement('div');
-    rootEl.className = styles.overlayRoot;
-    container.appendChild(rootEl);
-    this.rootEl = rootEl;
-    this.reactRoot = createRoot(rootEl);
-    this.renderState = { active: false };
-    this.render();
-  }
-
-  unmount(): void {
-    if (this.rafId != null) {
-      try {
-        cancelAnimationFrame(this.rafId);
-      } catch {
-        void 0;
-      }
-      this.rafId = null;
-    }
-    const root = this.reactRoot;
-    const el = this.rootEl;
-    this.reactRoot = null;
-    this.rootEl = null;
-    if (root) {
-      let defer: (cb: () => void) => void;
-      if (typeof queueMicrotask === 'function') {
-        defer = queueMicrotask;
-      } else {
-        defer = (cb) => {
-          void Promise.resolve().then(cb);
-        };
-      }
-      defer(() => {
-        try {
-          root.unmount();
-        } catch {
-          void 0;
-        }
-        if (el) {
-          try {
-            el.remove();
-          } catch {
-            void 0;
-          }
-        }
-      });
-    } else if (el) {
-      try {
-        el.remove();
-      } catch {
-        void 0;
-      }
-    }
-    this.active = false;
-    this.stopAutoUpdate();
-  }
-
-  setActive(v: boolean): void {
-    this.active = v;
-    this.renderState = { ...this.renderState, active: v };
-    this.scheduleRender();
-  }
-
-  /**
-   * 计算目标在容器内的屏幕坐标，并更新渲染状态
-   * 说明：
-   * - boxRect：相对容器定位（绝对定位）
-   * - targetRect：相对窗口定位（用于 info 贴边与越界提示）
-   */
-  highlight(widget: Widget | null): void {
-    try {
-      const container = this.editor.container;
-      const renderer = this.editor.getRenderer();
-      const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-      const canvas = raw?.canvas ?? container?.querySelector('canvas') ?? null;
-      if (!container || !canvas || !this.reactRoot) {
-        return;
-      }
-
-      if (!this.active || !widget) {
-        this.renderState = { ...this.renderState, active: this.active, boxRect: undefined };
-        this.scheduleRender();
-        return;
-      }
-
-      const containerRect = container.getBoundingClientRect();
-      const canvasRect = canvas.getBoundingClientRect();
-      const cssTransform = window.getComputedStyle(canvas).transform;
-      const offsetX = canvasRect.left - containerRect.left;
-      const offsetY = canvasRect.top - containerRect.top;
-
-      const wm = widget.getWorldMatrix?.() as
-        | [number, number, number, number, number, number]
-        | undefined;
-      const bounds = isConnectorLike(widget) ? widget.getBounds() : null;
-      const localX = bounds ? bounds.x : 0;
-      const localY = bounds ? bounds.y : 0;
-      const width = bounds ? bounds.width : widget.renderObject.size.width;
-      const height = bounds ? bounds.height : widget.renderObject.size.height;
-      const x0 = wm
-        ? wm[4] + (wm[0] * localX + wm[2] * localY)
-        : widget.getAbsolutePosition().dx + localX;
-      const y0 = wm
-        ? wm[5] + (wm[1] * localX + wm[3] * localY)
-        : widget.getAbsolutePosition().dy + localY;
-      const sx0 = wm ? Math.sqrt(wm[0] * wm[0] + wm[1] * wm[1]) : 1;
-      const sy0 = wm ? Math.sqrt(wm[2] * wm[2] + wm[3] * wm[3]) : 1;
-      const cssS =
-        cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
-      const scaleX = sx0 * cssS.sx;
-      const scaleY = sy0 * cssS.sy;
-
-      const screenLeft = offsetX + x0 * cssS.sx;
-      const screenTop = offsetY + y0 * cssS.sy;
-      const screenWidth = width * scaleX;
-      const screenHeight = height * scaleY;
-
-      const viewportLeft = containerRect.left + screenLeft;
-      const viewportTop = containerRect.top + screenTop;
-      const targetRect: ViewportRect = {
-        left: viewportLeft,
-        top: viewportTop,
-        width: screenWidth,
-        height: screenHeight,
-        right: viewportLeft + screenWidth,
-        bottom: viewportTop + screenHeight,
-      };
-
-      const direction = resolveOffscreenDirection(
-        targetRect,
-        window.innerWidth,
-        window.innerHeight,
-      );
-      const isDev =
-        typeof window !== 'undefined' &&
-        /localhost|127\.0\.0\.1/.test(window.location?.hostname ?? '');
-
-      const wTxt = Math.round(screenWidth);
-      const hTxt = Math.round(screenHeight);
-
-      this.renderState = {
-        active: true,
-        boxRect: { left: screenLeft, top: screenTop, width: screenWidth, height: screenHeight },
-        label: `${widget.type} · w:${wTxt} h:${hTxt}`,
-        targetRect,
-        direction,
-        debug: isDev,
-      };
-      this.scheduleRender();
-    } catch (err) {
-      console.warn('DevTools Overlay 高亮失败：', err);
-    }
-  }
-
-  /**
-   * 开启自动刷新：在窗口 resize/scroll 或画布属性变化时刷新高亮
-   * @param provider 返回当前命中的 Widget（由 DevTools 提供）
-   */
-  startAutoUpdate(provider: () => Widget | null): void {
-    this.getCurrent = provider;
-    try {
-      window.addEventListener('resize', this.onWindowResize);
-      window.addEventListener('scroll', this.onWindowScroll, { passive: true });
-    } catch {
-      void 0;
-    }
-    try {
-      const renderer = this.editor.getRenderer();
-      const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-      const canvas = raw?.canvas ?? this.editor.container?.querySelector('canvas') ?? null;
-      if (canvas) {
-        this.mo = new MutationObserver(() => this.highlight(this.getCurrent?.() ?? null));
-        this.mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
-      }
-    } catch {
-      void 0;
-    }
-  }
-
-  /**
-   * 关闭自动刷新并清理所有监听
-   */
-  stopAutoUpdate(): void {
-    try {
-      window.removeEventListener('resize', this.onWindowResize);
-      window.removeEventListener('scroll', this.onWindowScroll);
-    } catch {
-      void 0;
-    }
-    try {
-      this.mo?.disconnect?.();
-    } catch {
-      void 0;
-    }
-    this.mo = null;
-    this.getCurrent = null;
-  }
-
-  private scheduleRender() {
-    if (!this.reactRoot) {
-      return;
-    }
-    if (this.rafId != null) {
-      return;
-    }
-    this.rafId = requestAnimationFrame(() => {
-      this.rafId = null;
-      this.render();
-    });
-  }
-
-  private render() {
-    if (!this.reactRoot) {
-      return;
-    }
-    this.reactRoot.render(<OverlayView {...this.renderState} />);
-  }
-}
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+function isSameBoxRect(a?: BoxRect, b?: BoxRect): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  return a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+}
+
+function isSameViewportRect(a?: ViewportRect, b?: ViewportRect): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  return (
+    a.left === b.left &&
+    a.top === b.top &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.right === b.right &&
+    a.bottom === b.bottom
+  );
+}
+
+function isSameRenderState(a: OverlayRenderState, b: OverlayRenderState): boolean {
+  return (
+    a.active === b.active &&
+    a.label === b.label &&
+    a.direction === b.direction &&
+    isSameBoxRect(a.boxRect, b.boxRect) &&
+    isSameViewportRect(a.targetRect, b.targetRect)
+  );
 }
 
 function resolveOffscreenDirection(
@@ -319,10 +119,209 @@ function resolveOffscreenDirection(
   return '→';
 }
 
-function OverlayView({ active, boxRect, label, targetRect, direction, debug }: OverlayRenderState) {
+export type OverlayHandle = {
+  setActive: (v: boolean) => void;
+  highlight: (widget: Widget | null) => void;
+};
+
+export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function Overlay(
+  { runtime },
+  ref,
+) {
+  const rootElRef = useRef<HTMLDivElement | null>(null);
+  const runtimeRef = useRef<Runtime | null>(runtime);
+  const activeRef = useRef<boolean>(false);
+  const currentWidgetRef = useRef<Widget | null>(null);
+
+  const rafIdRef = useRef<number | null>(null);
+  const lastCommittedRef = useRef<OverlayRenderState>({ active: false });
+  const [renderState, setRenderState] = useState<OverlayRenderState>({ active: false });
+
   const infoRef = useRef<HTMLDivElement | null>(null);
   const [infoPos, setInfoPos] = useState<{ left: number; top: number } | null>(null);
 
+  useEffect(() => {
+    runtimeRef.current = runtime;
+  }, [runtime]);
+
+  const computeRenderState = useCallback((widget: Widget | null): OverlayRenderState | null => {
+    const rt = runtimeRef.current;
+    const container = rt?.container ?? null;
+    if (!container || !rootElRef.current) {
+      return null;
+    }
+
+    // 未开启 Inspect 或未命中节点时，仅同步 active 状态并清空高亮数据。
+    if (!activeRef.current || !widget) {
+      return { active: activeRef.current };
+    }
+
+    const renderer = rt?.getRenderer?.() ?? null;
+    const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? container.querySelector('canvas') ?? null;
+    if (!canvas) {
+      return { active: activeRef.current };
+    }
+
+    // 1) 先将 Widget 的世界坐标（canvas 内）换算为容器内的像素坐标。
+    // 2) 再叠加 canvas 在容器中的偏移与 CSS transform(scale)。
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const cssTransform = window.getComputedStyle(canvas).transform;
+    const cssS =
+      cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
+    const offsetX = canvasRect.left - containerRect.left;
+    const offsetY = canvasRect.top - containerRect.top;
+
+    // 正常情况使用世界矩阵包围盒；当矩阵仍为 identity（例如未经历 paint 计算矩阵）时回退到绝对位置。
+    const wm = widget.getWorldMatrix();
+    const isIdentity =
+      wm[0] === 1 && wm[1] === 0 && wm[2] === 0 && wm[3] === 1 && wm[4] === 0 && wm[5] === 0;
+    const hasOffset =
+      (widget.renderObject.offset?.dx ?? 0) !== 0 || (widget.renderObject.offset?.dy ?? 0) !== 0;
+
+    let bbox = widget.getBoundingBox(wm);
+    if (isIdentity && (hasOffset || widget.parent)) {
+      const pos = widget.getAbsolutePosition();
+      bbox = {
+        x: pos.dx,
+        y: pos.dy,
+        width: widget.renderObject.size.width,
+        height: widget.renderObject.size.height,
+      };
+    }
+
+    // 最终的屏幕像素坐标（相对容器）。
+    const screenLeft = offsetX + bbox.x * cssS.sx;
+    const screenTop = offsetY + bbox.y * cssS.sy;
+    const screenWidth = bbox.width * cssS.sx;
+    const screenHeight = bbox.height * cssS.sy;
+
+    const viewportLeft = containerRect.left + screenLeft;
+    const viewportTop = containerRect.top + screenTop;
+    const targetRect: ViewportRect = {
+      left: viewportLeft,
+      top: viewportTop,
+      width: screenWidth,
+      height: screenHeight,
+      right: viewportLeft + screenWidth,
+      bottom: viewportTop + screenHeight,
+    };
+
+    const direction = resolveOffscreenDirection(targetRect, window.innerWidth, window.innerHeight);
+
+    const wTxt = Math.round(screenWidth);
+    const hTxt = Math.round(screenHeight);
+
+    return {
+      active: true,
+      boxRect: { left: screenLeft, top: screenTop, width: screenWidth, height: screenHeight },
+      label: `${widget.type} · w:${wTxt} h:${hTxt}`,
+      targetRect,
+      direction,
+    };
+  }, []);
+
+  const scheduleCompute = useCallback((): void => {
+    if (rafIdRef.current != null) {
+      return;
+    }
+    // 合并到同一帧提交，避免 mousemove/hover 高频触发 setState。
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const next = computeRenderState(currentWidgetRef.current);
+      if (!next) {
+        return;
+      }
+      if (isSameRenderState(next, lastCommittedRef.current)) {
+        return;
+      }
+      lastCommittedRef.current = next;
+      setRenderState(next);
+    });
+  }, [computeRenderState]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      setActive(v: boolean) {
+        activeRef.current = v;
+        if (!v) {
+          currentWidgetRef.current = null;
+        }
+        scheduleCompute();
+      },
+      highlight(widget: Widget | null) {
+        currentWidgetRef.current = widget;
+        scheduleCompute();
+      },
+    }),
+    [scheduleCompute],
+  );
+
+  useLayoutEffect(() => {
+    if (!runtime) {
+      return;
+    }
+    const container = runtime.container;
+    if (!container) {
+      return;
+    }
+
+    // Overlay 需要绝对定位覆盖容器；当容器为 static 时，提升为 relative。
+    const computed = window.getComputedStyle(container);
+    if (computed.position === 'static') {
+      container.style.position = 'relative';
+    }
+
+    const el = document.createElement('div');
+    el.className = styles.overlayRoot;
+    container.appendChild(el);
+    rootElRef.current = el;
+
+    return () => {
+      rootElRef.current = null;
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      lastCommittedRef.current = { active: false };
+      setRenderState({ active: false });
+      // 避免卸载时与 React commit/DOM 更新顺序交错，延后移除宿主节点更稳妥。
+      runtime.nextTick(() => el.remove());
+    };
+  }, [runtime]);
+
+  useEffect(() => {
+    if (!runtime) {
+      return;
+    }
+
+    // 外部环境变化时需要重算位置：窗口 resize、页面滚动、canvas style/class 变化（例如缩放/平移）。
+    const onResize = () => scheduleCompute();
+    const onScroll = () => scheduleCompute();
+
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    let mo: MutationObserver | null = null;
+    const renderer = runtime.getRenderer();
+    const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
+    if (canvas && typeof MutationObserver !== 'undefined') {
+      mo = new MutationObserver(() => scheduleCompute());
+      mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll);
+      mo?.disconnect?.();
+      mo = null;
+    };
+  }, [runtime, scheduleCompute]);
+
+  const { active, boxRect, label, targetRect, direction } = renderState;
   const infoText = useMemo(() => label ?? '', [label]);
   const dirText = useMemo(() => direction ?? '', [direction]);
 
@@ -349,14 +348,23 @@ function OverlayView({ active, boxRect, label, targetRect, direction, debug }: O
     setInfoPos({ left, top });
   }, [active, targetRect, infoText]);
 
+  if (!rootElRef.current) {
+    return null;
+  }
+
   if (!active || !boxRect) {
     return null;
   }
 
-  return (
+  let infoStyle: { left: string; top: string } | undefined;
+  if (infoPos) {
+    infoStyle = { left: `${infoPos.left}px`, top: `${infoPos.top}px` };
+  }
+
+  return createPortal(
     <>
       <div
-        className={[styles.overlayBox, debug ? styles.debug : ''].filter(Boolean).join(' ')}
+        className={[styles.overlayBox, styles.debug].join(' ')}
         style={{
           left: `${boxRect.left}px`,
           top: `${boxRect.top}px`,
@@ -364,75 +372,18 @@ function OverlayView({ active, boxRect, label, targetRect, direction, debug }: O
           height: `${boxRect.height}px`,
         }}
       >
-        {debug ? (
-          <>
-            <div className={styles.guideH} />
-            <div className={styles.guideV} />
-          </>
-        ) : null}
+        <div className={styles.guideH} />
+        <div className={styles.guideV} />
       </div>
 
-      <div
-        ref={infoRef}
-        className={styles.overlayInfo}
-        style={
-          infoPos
-            ? {
-                left: `${infoPos.left}px`,
-                top: `${infoPos.top}px`,
-              }
-            : undefined
-        }
-      >
+      <div ref={infoRef} className={styles.overlayInfo} style={infoStyle}>
         {dirText ? <span className={styles.overlayArrow}>{dirText}</span> : null}
         <span className={styles.overlayLabel}>{infoText}</span>
       </div>
-    </>
+    </>,
+    rootElRef.current,
   );
-}
-
-/**
- * 命中测试
- * 功能：根据坐标在 Widget 树中查找最内层命中节点
- * 参数：root - 根组件；x - 横坐标；y - 纵坐标
- * 返回：命中的 Widget 或 null
- */
-export function hitTest(root: Widget | null, x: number, y: number): Widget | null {
-  if (!root) {
-    return null;
-  }
-  let found: Widget | null = null;
-  function dfs(node: Widget): void {
-    const wm = node.getWorldMatrix?.() as
-      | [number, number, number, number, number, number]
-      | undefined;
-    const bounds = isConnectorLike(node) ? node.getBounds() : null;
-    const localX = bounds ? bounds.x : 0;
-    const localY = bounds ? bounds.y : 0;
-    const widthLocal = bounds ? bounds.width : node.renderObject.size.width;
-    const heightLocal = bounds ? bounds.height : node.renderObject.size.height;
-    const x0 = wm
-      ? wm[4] + (wm[0] * localX + wm[2] * localY)
-      : node.getAbsolutePosition().dx + localX;
-    const y0 = wm
-      ? wm[5] + (wm[1] * localX + wm[3] * localY)
-      : node.getAbsolutePosition().dy + localY;
-    const sx0 = wm ? Math.sqrt(wm[0] * wm[0] + wm[1] * wm[1]) : 1;
-    const sy0 = wm ? Math.sqrt(wm[2] * wm[2] + wm[3] * wm[3]) : 1;
-    const left = x0;
-    const top = y0;
-    const width = widthLocal * sx0;
-    const height = heightLocal * sy0;
-    if (x >= left && x <= left + width && y >= top && y <= top + height) {
-      found = node;
-      for (const child of node.children) {
-        dfs(child);
-      }
-    }
-  }
-  dfs(root);
-  return found;
-}
+});
 
 function parseCssScale(transform: string): { sx: number; sy: number } {
   const t = transform.trim();
@@ -451,11 +402,4 @@ function parseCssScale(transform: string): { sx: number; sy: number } {
     return { sx, sy };
   }
   return { sx: 1, sy: 1 };
-}
-
-type ConnectorBounds = { x: number; y: number; width: number; height: number };
-type ConnectorLike = Widget & { type: string; getBounds: () => ConnectorBounds | null };
-function isConnectorLike(w: Widget): w is ConnectorLike {
-  const maybe = w as unknown as { getBounds?: unknown };
-  return w.type === 'Connector' && typeof maybe.getBounds === 'function';
 }
