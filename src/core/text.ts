@@ -257,6 +257,40 @@ export class Text extends Widget<TextProps> {
     typeof document === 'undefined' ? null : document.createElement('canvas');
   private static measureCtx: CanvasRenderingContext2D | null =
     Text.measureCanvas?.getContext('2d') ?? null;
+  private static fontMetricsCache: Map<string, { ascent: number; descent: number }> = new Map();
+
+  private static getFontMetrics(params: {
+    ctx: CanvasRenderingContext2D;
+    fontStyle: string;
+    fontWeight: string | number;
+    fontSize: number;
+    fontFamily: string;
+  }): { ascent: number; descent: number } {
+    const { ctx, fontStyle, fontWeight, fontSize, fontFamily } = params;
+    const cacheKey = `${fontStyle}|${fontWeight}|${fontSize}|${fontFamily}`;
+    const cached = Text.fontMetricsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const prevFont = ctx.font;
+    ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+    const sample = ctx.measureText('Hg田');
+    ctx.font = prevFont;
+
+    let ascent = sample.actualBoundingBoxAscent ?? 0;
+    let descent = sample.actualBoundingBoxDescent ?? 0;
+    if (ascent <= 0) {
+      ascent = fontSize * 0.8;
+    }
+    if (descent <= 0) {
+      descent = fontSize * 0.2;
+    }
+
+    const metrics = { ascent, descent };
+    Text.fontMetricsCache.set(cacheKey, metrics);
+    return metrics;
+  }
 
   protected createChildWidget(_childData: WidgetProps): Widget | null {
     void _childData;
@@ -582,8 +616,13 @@ export class Text extends Widget<TextProps> {
     const fontStyle = this.fontStyle || 'normal';
     ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
     const m = ctx.measureText(this.text);
-    const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
-    const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
+    const { ascent, descent } = Text.getFontMetrics({
+      ctx,
+      fontStyle,
+      fontWeight,
+      fontSize,
+      fontFamily,
+    });
     const maxLines = this.maxLines || Infinity;
     const text = this.text;
 

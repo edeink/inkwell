@@ -81,6 +81,39 @@ export class NextText extends Widget<NextTextProps> {
     typeof document === 'undefined' ? null : document.createElement('canvas');
   private static measureCtx: CanvasRenderingContext2D | null =
     NextText.measureCanvas?.getContext('2d') ?? null;
+  private static fontMetricsCache: Map<string, { ascent: number; descent: number }> = new Map();
+
+  private static getFontMetrics(params: {
+    ctx: CanvasRenderingContext2D;
+    fontWeight: string | number;
+    fontSize: number;
+    fontFamily: string;
+  }): { ascent: number; descent: number } {
+    const { ctx, fontWeight, fontSize, fontFamily } = params;
+    const cacheKey = `${fontWeight}|${fontSize}|${fontFamily}`;
+    const cached = NextText.fontMetricsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const prevFont = ctx.font;
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const sample = ctx.measureText('Hg田');
+    ctx.font = prevFont;
+
+    let ascent = sample.actualBoundingBoxAscent ?? 0;
+    let descent = sample.actualBoundingBoxDescent ?? 0;
+    if (ascent <= 0) {
+      ascent = fontSize * 0.8;
+    }
+    if (descent <= 0) {
+      descent = fontSize * 0.2;
+    }
+
+    const metrics = { ascent, descent };
+    NextText.fontMetricsCache.set(cacheKey, metrics);
+    return metrics;
+  }
 
   protected createChildWidget(_childData: WidgetProps): Widget | null {
     void _childData;
@@ -216,8 +249,7 @@ export class NextText extends Widget<NextTextProps> {
     const fontWeight = this.fontWeight || DefaultStyle.fontWeight;
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
     const m = ctx.measureText(this.text);
-    const ascent = m.actualBoundingBoxAscent ?? fontSize * 0.8;
-    const descent = m.actualBoundingBoxDescent ?? fontSize * 0.2;
+    const { ascent, descent } = NextText.getFontMetrics({ ctx, fontWeight, fontSize, fontFamily });
     const textWidth = m.width;
 
     if (maxWidth === Infinity || textWidth <= maxWidth) {

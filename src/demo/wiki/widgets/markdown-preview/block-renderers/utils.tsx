@@ -159,6 +159,58 @@ function tokenize(line: string, _language: string, theme: ThemePalette) {
     });
 }
 
+function coalesceInlineTextNodes(nodes?: MarkdownNode[]): MarkdownNode[] | undefined {
+  if (!nodes || nodes.length <= 1) {
+    return nodes;
+  }
+
+  const out: MarkdownNode[] = [];
+  let lastTextKind: 'ws' | 'punct' | null = null;
+
+  const getTextKind = (content: string): 'ws' | 'punct' | null => {
+    if (content.length === 0) {
+      return 'ws';
+    }
+    if (/^\s+$/.test(content)) {
+      return 'ws';
+    }
+    let i = 0;
+    while (i < content.length) {
+      const codePoint = content.codePointAt(i);
+      if (codePoint === undefined) {
+        break;
+      }
+      const ch = String.fromCodePoint(codePoint);
+      if (/\s/.test(ch) || /[A-Za-z0-9]/.test(ch) || /[\u3400-\u9FFF]/.test(ch)) {
+        return null;
+      }
+      i += ch.length;
+    }
+    return 'punct';
+  };
+
+  for (const n of nodes) {
+    if (n.type !== NodeType.Text) {
+      out.push(n);
+      lastTextKind = null;
+      continue;
+    }
+
+    const content = n.content ?? '';
+    const kind = getTextKind(content);
+    const last = out[out.length - 1];
+    if (last && last.type === NodeType.Text && kind && lastTextKind === kind) {
+      out[out.length - 1] = { ...last, content: (last.content ?? '') + content };
+      continue;
+    }
+
+    out.push({ ...n, content });
+    lastTextKind = kind;
+  }
+
+  return out;
+}
+
 export function InlineWrap({
   children,
   theme,
@@ -174,13 +226,14 @@ export function InlineWrap({
   keyPrefix?: string;
   pointerEvent?: PointerEvents;
 }) {
+  const mergedChildren = coalesceInlineTextNodes(children);
   return (
     <RichText
       spacing={style.inlineWrap.spacing}
       runSpacing={style.inlineWrap.runSpacing}
       pointerEvent={pointerEvent}
     >
-      {children?.map((child, i) => (
+      {mergedChildren?.map((child, i) => (
         <InlineNodeRenderer
           key={`${keyPrefix ?? 'inline'}-${i}`}
           node={child}

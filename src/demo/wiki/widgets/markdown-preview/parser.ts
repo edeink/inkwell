@@ -312,7 +312,7 @@ export class MarkdownParser {
       }
 
       const out: MarkdownNode[] = [];
-      const cjkChunkSize = 6;
+      const cjkChunkSize = 13;
 
       let buf = '';
       let bufType: 'space' | 'ascii' | 'cjk' | null = null;
@@ -353,15 +353,6 @@ export class MarkdownParser {
           continue;
         }
 
-        if (/[A-Za-z0-9_]/.test(ch)) {
-          if (bufType !== 'ascii') {
-            flush();
-            bufType = 'ascii';
-          }
-          buf += ch;
-          continue;
-        }
-
         if (/[\u3400-\u9FFF]/.test(ch)) {
           if (bufType !== 'cjk') {
             flush();
@@ -375,8 +366,11 @@ export class MarkdownParser {
           continue;
         }
 
-        flush();
-        out.push({ type: NodeType.Text, content: ch });
+        if (bufType !== 'ascii') {
+          flush();
+          bufType = 'ascii';
+        }
+        buf += ch;
       }
 
       flush();

@@ -120,4 +120,71 @@ describe('Wrap 布局', () => {
     const boldBaseline = bold.renderObject.offset.dy + bold.lines[0].baseline;
     expect(Math.abs(normalBaseline - boldBaseline)).toBeLessThan(0.001);
   });
+
+  it('拆分空格不应改变 RichText 的基准线与行高', () => {
+    const fontSize = 14;
+    const lineHeight = 24;
+
+    const single = new Text({
+      type: 'Text',
+      text: 'AI 应用',
+      fontSize,
+      lineHeight,
+      fontWeight: 'normal',
+    });
+    const splitA = new Text({
+      type: 'Text',
+      text: 'AI',
+      fontSize,
+      lineHeight,
+      fontWeight: 'normal',
+    });
+    const splitSpace = new Text({
+      type: 'Text',
+      text: ' ',
+      fontSize,
+      lineHeight,
+      fontWeight: 'normal',
+    });
+    const splitB = new Text({
+      type: 'Text',
+      text: '应用',
+      fontSize,
+      lineHeight,
+      fontWeight: 'normal',
+    });
+
+    const richSingle = new RichText({ type: 'RichText', spacing: 0, alignBaseline: true });
+    (richSingle as any).children = [single];
+    (richSingle as any)._isBuilt = true;
+    single.parent = richSingle;
+
+    const richSplit = new RichText({ type: 'RichText', spacing: 0, alignBaseline: true });
+    (richSplit as any).children = [splitA, splitSpace, splitB];
+    (richSplit as any)._isBuilt = true;
+    splitA.parent = richSplit;
+    splitSpace.parent = richSplit;
+    splitB.parent = richSplit;
+
+    const constraints = { minWidth: 0, maxWidth: 800, minHeight: 0, maxHeight: 1000 };
+    richSingle.layout(constraints);
+    richSplit.layout(constraints);
+
+    expect(
+      Math.abs(richSingle.renderObject.size.height - richSplit.renderObject.size.height),
+    ).toBeLessThan(0.001);
+
+    const singleBaselineY = single.renderObject.offset.dy + single.lines[0].baseline;
+    const splitBaselineY0 = splitA.renderObject.offset.dy + splitA.lines[0].baseline;
+    const splitBaselineY1 = splitSpace.renderObject.offset.dy + splitSpace.lines[0].baseline;
+    const splitBaselineY2 = splitB.renderObject.offset.dy + splitB.lines[0].baseline;
+
+    expect(Math.abs(singleBaselineY - splitBaselineY0)).toBeLessThan(0.001);
+    expect(Math.abs(singleBaselineY - splitBaselineY1)).toBeLessThan(0.001);
+    expect(Math.abs(singleBaselineY - splitBaselineY2)).toBeLessThan(0.001);
+
+    const singleMetrics = (single as any).textMetrics as { ascent: number; descent: number };
+    const spaceMetrics = (splitSpace as any).textMetrics as { ascent: number; descent: number };
+    expect(Math.abs(singleMetrics.descent - spaceMetrics.descent)).toBeLessThan(0.001);
+  });
 });
