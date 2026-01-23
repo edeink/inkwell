@@ -44,12 +44,37 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
   // 注册键名
   keyRegistry.add(key);
 
+  function isProbablyJson(raw: string): boolean {
+    const s = raw.trim();
+    if (!s) {
+      return false;
+    }
+    const ch = s.charCodeAt(0);
+    if (ch === 0x7b || ch === 0x5b || ch === 0x22) {
+      return true;
+    }
+    if (ch === 0x2d || (ch >= 0x30 && ch <= 0x39)) {
+      return true;
+    }
+    return s === 'true' || s === 'false' || s === 'null';
+  }
+
   return {
     get(): T | undefined {
       try {
+        if (typeof localStorage === 'undefined') {
+          return defaultValue;
+        }
+
         const value = localStorage.getItem(key);
 
         if (value) {
+          if (!isProbablyJson(value)) {
+            try {
+              localStorage.removeItem(key);
+            } catch {}
+            return defaultValue;
+          }
           return JSON.parse(value) as T;
         } else if (defaultValue !== undefined) {
           // 如果本地存储中不存在值，但提供了默认值，则将默认值写入本地存储
@@ -59,25 +84,39 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
 
         return undefined;
       } catch (error) {
-        console.error(`Error getting value for key "${key}":`, error);
-        return defaultValue !== undefined ? defaultValue : undefined;
+        try {
+          localStorage.removeItem(key);
+        } catch {}
+        if (defaultValue !== undefined) {
+          try {
+            localStorage.setItem(key, JSON.stringify(defaultValue));
+          } catch {}
+          return defaultValue;
+        }
+        return undefined;
       }
     },
 
     set(value: T): void {
       try {
+        if (typeof localStorage === 'undefined') {
+          return;
+        }
         localStorage.setItem(key, JSON.stringify(value));
       } catch (error) {
-        console.error(`Error setting value for key "${key}":`, error);
-        throw new Error(`Failed to save data to localStorage: ${error}`);
+        console.error(`本地存储写入失败，key="${key}"`, error);
+        throw new Error(`本地存储写入失败：${String(error)}`);
       }
     },
 
     clear(): void {
       try {
+        if (typeof localStorage === 'undefined') {
+          return;
+        }
         localStorage.removeItem(key);
       } catch (error) {
-        console.error(`Error clearing value for key "${key}":`, error);
+        console.error(`本地存储清理失败，key="${key}"`, error);
       }
     },
   };

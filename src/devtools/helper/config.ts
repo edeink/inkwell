@@ -11,5 +11,5 @@ export function isProtectedKey(k: string): boolean {
 }
 
 export function isHiddenKey(k: string): boolean {
-  return k.startsWith('__');
+  return k.startsWith('__') || ['ref'].includes(k);
 }

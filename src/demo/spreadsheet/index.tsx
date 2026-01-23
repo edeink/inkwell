@@ -96,14 +96,11 @@ export default function SpreadsheetDemo() {
       <SpreadsheetToolbar onUpdateData={handleUpdateData} onAddRow={handleAddRow} />
 
       {/* Inkwell Canvas */}
-      <div style={{ height: 'calc(100% - 48px)', position: 'relative' }}>
-        <InkwellCanvas
-          style={{ width: '100%', height: '100%' }}
-          onRuntimeReady={handleRuntimeReady}
-          onResize={handleResize}
-          padding={0}
-        />
-      </div>
+      <InkwellCanvas
+        style={{ width: '100%', height: '100%' }}
+        onRuntimeReady={handleRuntimeReady}
+        onResize={handleResize}
+      />
     </div>
   );
 }

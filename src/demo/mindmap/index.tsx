@@ -14,8 +14,12 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-import { Themes } from '@/styles/theme';
-import { getCurrentThemeMode, subscribeToThemeChange, type ThemeMode } from '@/styles/theme';
+import {
+  getCurrentThemeMode,
+  subscribeToThemeChange,
+  Themes,
+  type ThemeMode,
+} from '@/styles/theme';
 
 export const meta = {
   key: 'mindmap',
@@ -55,7 +59,7 @@ export default function MindmapDemo() {
         let ctrl = MindmapController.byRuntime.get(rt);
         // 如果控制器不存在或关联的 viewport 发生变化（虽然不太可能），则重新创建
         if (!ctrl || ctrl.viewport !== vp) {
-          ctrl = new MindmapController(rt, vp, () => {});
+          ctrl = new MindmapController(rt, vp, () => undefined);
           setContext(ctrl);
         } else if (!context) {
           // 如果 ctrl 存在但 context 状态未设置（例如重新挂载）
@@ -105,12 +109,11 @@ export default function MindmapDemo() {
 
   return (
     <ErrorBoundary>
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <>
         <InkwellCanvas
           style={{ width: '100%', height: '100%' }}
           onRuntimeReady={handleRuntimeReady}
           onResize={handleResize}
-          padding={0}
         />
         {runtime && context && (
           <MindmapContext.Provider value={context}>
@@ -119,7 +122,7 @@ export default function MindmapDemo() {
             <Minimap width={200} height={150} />
           </MindmapContext.Provider>
         )}
-      </div>
+      </>
     </ErrorBoundary>
   );
 }

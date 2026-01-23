@@ -34,6 +34,8 @@ export interface EditableProps extends WidgetProps {
   placeholder?: string;
   /** 字体大小 */
   fontSize?: number;
+  /** 行高（px）；未设置时由组件内部决定 */
+  lineHeight?: number;
   /** 字体族 */
   fontFamily?: string;
   /** 选区背景色；未设置时使用主题色 */
@@ -812,7 +814,7 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     return null;
   }
 
-  private getCanvasClientRect(): { left: number; top: number } | null {
+  protected getCanvasClientRect(): { left: number; top: number } | null {
     const rt = this.runtime as unknown as {
       getRenderer?: () => { getRawInstance?: () => { canvas?: HTMLCanvasElement } | null } | null;
       container?: HTMLElement | null;

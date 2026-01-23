@@ -147,7 +147,7 @@ describe('完整 Demo 标签页布局分析', () => {
     testLogger.log(`[移动端] 视口: ${viewportWidth}, 内容: ${columnWidth}, 偏移: ${x}`);
 
     expect(columnWidth).toBeGreaterThan(viewportWidth);
-    expect(x).toBe(0); // ScrollView 内容通常从 0 开始
+    expect(x).toBe(24);
   });
 
   it('Scenario 4: Short Screen (800x400) - Should Scroll Vertical', () => {
@@ -175,7 +175,9 @@ describe('完整 Demo 标签页布局分析', () => {
 
     // 验证 Container 高度扩展到子元素高度
     const container = root.children[0];
-    expect(container.renderObject.size.height).toBe(columnHeight);
+    const padding = container.children[0];
+    expect(container.renderObject.size.height).toBe(padding.renderObject.size.height);
+    expect(padding.renderObject.size.height).toBe(columnHeight + 48);
 
     testLogger.log(`[Scroll] Viewport Height: ${viewportHeight}, Content Height: ${columnHeight}`);
   });

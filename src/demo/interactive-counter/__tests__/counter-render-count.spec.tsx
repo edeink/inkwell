@@ -7,6 +7,25 @@ import { ClassButton as Button } from '../widgets/class-button';
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';
 
+function findWidget<T>(root: any, predicate: (node: any) => boolean): T | null {
+  if (!root) {
+    return null;
+  }
+  if (predicate(root)) {
+    return root as T;
+  }
+
+  // @ts-ignore
+  const children = root.children || (root.child ? [root.child] : []);
+  for (const child of children) {
+    const found = findWidget<T>(child, predicate);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
 // 模拟 Canvas 注册表和渲染器
 const mockRenderer = {
   initialize: vi.fn(),
@@ -175,13 +194,7 @@ describe('计数器渲染计数', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // 查找 button 组件
-    // Template 渲染结构: Padding -> Row -> [Column, Column]
-    // Left Column -> [ClassButton, FunctionalButton, RawButton]
-    const padding = root.children[0];
-    const row = padding.children[0];
-    const leftColumn = row.children[0];
-
-    const button = leftColumn.children.find((c) => c instanceof Button) as Button;
+    const button = findWidget<Button>(root, (node) => node instanceof Button);
 
     expect(button).toBeDefined();
     if (!button) {
@@ -218,10 +231,7 @@ describe('计数器渲染计数', () => {
 
     // 边界条件测试：验证颜色是否正确更新
     // 重新获取 Button 实例 (因为重建可能生成了新的实例或者更新了现有实例)
-    const newPadding = root.children[0];
-    const newRow = newPadding.children[0];
-    const newLeftColumn = newRow.children[0];
-    const newButton = newLeftColumn.children.find((c) => c instanceof Button) as Button;
+    const newButton = findWidget<Button>(root, (node) => node instanceof Button);
 
     expect(newButton).toBeDefined();
   });

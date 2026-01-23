@@ -1,11 +1,37 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { EditableTextDemo } from '../editable-text/app';
+import { InputPanel } from '../editable-text/widget/input-panel';
 import { BlockNodeRenderer } from '../wiki/widgets/markdown-preview/block-renderers';
 import { NodeType } from '../wiki/widgets/markdown-preview/parser';
 import { WikiContent } from '../wiki/widgets/wiki-content';
 
 import { Themes } from '@/styles/theme';
+
+function toArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value == null) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+function findElement(root: any, predicate: (node: any) => boolean): any | null {
+  if (!root || typeof root !== 'object') {
+    return null;
+  }
+  if (predicate(root)) {
+    return root;
+  }
+
+  const children = toArray(root.props?.children);
+  for (const child of children) {
+    const found = findElement(child, predicate);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
 
 // 模拟 Canvas（避免在测试环境中访问真实渲染上下文）
 beforeAll(() => {
@@ -25,16 +51,26 @@ describe('示例主题支持', () => {
 
       const theme = Themes.light;
 
-      // 定位到输入组件节点
-      // Padding -> Column -> [Text, Row] -> Row -> [Column, Column] -> Column -> [Text, Container, Text] -> Container -> Padding -> Input/TextArea
-      const mainColumn = tree.props.children;
-      const titleText = mainColumn.props.children[0];
+      const titleText = findElement(tree, (node) => node?.key === 'title');
+      expect(titleText).toBeDefined();
+      if (!titleText) {
+        return;
+      }
 
       expect(titleText.props.color).toBe(theme.text.primary);
 
-      const row = mainColumn.props.children[1];
-      const col1 = row.props.children[0];
-      const container1 = col1.props.children[1];
+      const inputPanelEl = findElement(tree, (node) => node?.type === InputPanel);
+      expect(inputPanelEl).toBeDefined();
+      if (!inputPanelEl) {
+        return;
+      }
+
+      const inputPanel = new InputPanel({
+        type: 'InputPanel',
+        ...(inputPanelEl.props as any),
+      } as any);
+      const inputPanelTree = (inputPanel as any).render() as any;
+      const container1 = inputPanelTree.props.children[1];
 
       expect(container1.props.color).toBe(theme.background.container);
       expect(container1.props.border.color).toBe(theme.border.base);
@@ -50,14 +86,26 @@ describe('示例主题支持', () => {
       const demo = new EditableTextDemo({ type: 'EditableTextDemo', theme });
       const tree = demo.render() as any;
 
-      const mainColumn = tree.props.children;
-      const titleText = mainColumn.props.children[0];
+      const titleText = findElement(tree, (node) => node?.key === 'title');
+      expect(titleText).toBeDefined();
+      if (!titleText) {
+        return;
+      }
 
       expect(titleText.props.color).toBe(theme.text.primary);
 
-      const row = mainColumn.props.children[1];
-      const col1 = row.props.children[0];
-      const container1 = col1.props.children[1];
+      const inputPanelEl = findElement(tree, (node) => node?.type === InputPanel);
+      expect(inputPanelEl).toBeDefined();
+      if (!inputPanelEl) {
+        return;
+      }
+
+      const inputPanel = new InputPanel({
+        type: 'InputPanel',
+        ...(inputPanelEl.props as any),
+      } as any);
+      const inputPanelTree = (inputPanel as any).render() as any;
+      const container1 = inputPanelTree.props.children[1];
 
       expect(container1.props.color).toBe(theme.background.container);
       expect(container1.props.border.color).toBe(theme.border.base);

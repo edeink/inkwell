@@ -34,7 +34,6 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
   onRuntimeReady,
   onResize,
   id,
-  padding = 32,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<Runtime | null>(null);
@@ -137,7 +136,6 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
-        padding,
         boxSizing: 'border-box',
         background: wrapperBackground,
         ...style,

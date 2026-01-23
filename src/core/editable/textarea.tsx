@@ -164,12 +164,13 @@ export class TextArea extends Editable<TextAreaProps> {
     }
     if (lines.length === 0) {
       const fontSize = this.props.fontSize || 14;
+      const lineHeight = this.props.lineHeight ?? fontSize * 1.5;
       const fontFamily = this.props.fontFamily || 'Arial, sans-serif';
       if (this.measureCtx) {
         this.measureCtx.font = `${fontSize}px ${fontFamily}`;
         contentW = this.measureCtx.measureText(this.state.text).width || 0;
       }
-      contentH = fontSize * 1.5;
+      contentH = lineHeight;
     }
 
     const maxScrollX = Math.max(0, contentW - viewportW);
@@ -279,7 +280,7 @@ export class TextArea extends Editable<TextAreaProps> {
     index: number,
     affinity?: 'start' | 'end',
   ): { x: number; y: number; height: number } {
-    const defaultInfo = { x: 0, y: 0, height: this.props.fontSize || 14 };
+    const defaultInfo = { x: 0, y: 0, height: this.props.lineHeight ?? this.props.fontSize ?? 14 };
 
     if (!this.textWidgetRef || !this.textWidgetRef.lines || this.textWidgetRef.lines.length === 0) {
       const x = this.measureTextWidth(this.state.text.substring(0, index));
@@ -432,6 +433,7 @@ export class TextArea extends Editable<TextAreaProps> {
     const {
       fontSize = 14,
       fontFamily = 'Arial, sans-serif',
+      lineHeight = Math.round(fontSize * 1.5),
       color = '#000000',
       cursorColor = '#000000',
       placeholder,
@@ -497,6 +499,7 @@ export class TextArea extends Editable<TextAreaProps> {
                 ref={(r) => (this.textWidgetRef = r as Text)}
                 text={''}
                 fontSize={fontSize}
+                lineHeight={lineHeight}
                 fontFamily={fontFamily}
                 color={color}
               />
@@ -505,6 +508,7 @@ export class TextArea extends Editable<TextAreaProps> {
                 ref={(r) => (this.textWidgetRef = r as Text)}
                 text={text}
                 fontSize={fontSize}
+                lineHeight={lineHeight}
                 fontFamily={fontFamily}
                 color={color}
               />
@@ -514,6 +518,7 @@ export class TextArea extends Editable<TextAreaProps> {
               <Text
                 text={placeholder}
                 fontSize={fontSize}
+                lineHeight={lineHeight}
                 fontFamily={fontFamily}
                 color={placeholderColor}
               />

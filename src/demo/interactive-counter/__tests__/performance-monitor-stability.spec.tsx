@@ -9,6 +9,25 @@ import { Text } from '@/core';
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';
 
+function findWidget<T>(root: any, predicate: (node: any) => boolean): T | null {
+  if (!root) {
+    return null;
+  }
+  if (predicate(root)) {
+    return root as T;
+  }
+
+  // @ts-ignore
+  const children = root.children || (root.child ? [root.child] : []);
+  for (const child of children) {
+    const found = findWidget<T>(child, predicate);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
 // Mock Canvas Renderer
 const mockRenderer = {
   initialize: vi.fn(),
@@ -154,11 +173,14 @@ describe('PerformanceMonitor Erratic Text Reproduction', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Find PerformanceMonitor
-    const padding = root.children[0];
-    const row = padding.children[0];
-    const rightColumn = row.children[1];
-    const monitor = rightColumn.children[0] as PerformanceMonitor;
+    const monitor = findWidget<PerformanceMonitor>(
+      root,
+      (node) => node instanceof PerformanceMonitor,
+    );
     expect(monitor).toBeInstanceOf(PerformanceMonitor);
+    if (!monitor) {
+      return;
+    }
 
     // Get Text widgets
     const monitorColumn = monitor.children[0].children[0]; // Container -> Column
@@ -169,8 +191,11 @@ describe('PerformanceMonitor Erratic Text Reproduction', () => {
     const [textExt1, textInner1, textRender1] = texts;
 
     // Click button to trigger update
-    const leftColumn = row.children[0];
-    const button = leftColumn.children[0] as Button;
+    const button = findWidget<Button>(root, (node) => node instanceof Button);
+    expect(button).toBeDefined();
+    if (!button) {
+      return;
+    }
     // Trigger click
     button.props.onClick?.({} as any);
 
@@ -183,9 +208,15 @@ describe('PerformanceMonitor Erratic Text Reproduction', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Get new Text widgets
-    const monitor2 = rightColumn.children[0] as PerformanceMonitor;
+    const monitor2 = findWidget<PerformanceMonitor>(
+      root,
+      (node) => node instanceof PerformanceMonitor,
+    );
     // Monitor instance might be reused if it's a StatefulWidget and key didn't change (it has static key 'perf-monitor')
     expect(monitor2).toBe(monitor);
+    if (!monitor2) {
+      return;
+    }
 
     const monitorColumn2 = monitor2.children[0].children[0];
     const texts2 = monitorColumn2.children.filter((c) => c instanceof Text) as Text[];
