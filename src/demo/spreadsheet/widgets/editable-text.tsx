@@ -4,6 +4,7 @@ import type { InkwellEvent } from '@/core/type';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Container, Positioned, ScrollView, Stack, TextArea } from '@/core';
+import { applyAlpha } from '@/core/helper/color';
 import { StatefulWidget } from '@/core/state/stateful';
 import { TextLayout } from '@/core/text/layout';
 
@@ -209,6 +210,10 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
   render() {
     const { x, y, maxWidth, maxHeight, theme, fontSize = 14, color, visible = true } = this.props;
     const { value, width, height } = this.state;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     // 限制最终显示尺寸不超过 max
     const displayWidth = Math.min(width, maxWidth);
@@ -249,7 +254,16 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
           height={visible ? displayHeight : 0}
         >
           {needScroll ? (
-            <ScrollView width={displayWidth} height={displayHeight} scrollX={0} scrollY={0}>
+            <ScrollView
+              width={displayWidth}
+              height={displayHeight}
+              scrollX={0}
+              scrollY={0}
+              scrollBarTrackColor={scrollBarTrackColor}
+              scrollBarColor={scrollBarColor}
+              scrollBarHoverColor={scrollBarHoverColor}
+              scrollBarActiveColor={scrollBarActiveColor}
+            >
               {editor}
             </ScrollView>
           ) : (

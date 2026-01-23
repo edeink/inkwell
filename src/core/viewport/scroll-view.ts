@@ -1,10 +1,9 @@
 import { expose } from '../decorators';
 
 import { ScrollBar, type ScrollBarProps } from './scroll-bar';
-import { Viewport } from './viewport';
+import { Viewport, type ViewportProps } from './viewport';
 
 import type { BoxConstraints, BuildContext, Size } from '../base';
-import type { ViewportProps } from './viewport';
 import type { InkwellEvent } from '@/core/events/types';
 
 const DEFAULT_BOUNCE_DAMPING = 0.2;
@@ -128,8 +127,6 @@ export class ScrollView extends Viewport {
 
   protected _reboundTimer: ReturnType<typeof setTimeout> | null = null;
   protected _animationFrame: number | null = null;
-  protected _autoScrollbarTimer: ReturnType<typeof setTimeout> | null = null;
-  protected _autoScrollbarsVisible = false;
   protected _pointerDown = false;
   protected _isInteracting = false;
   protected _bounceState: BounceState = BounceState.IDLE;
@@ -159,6 +156,20 @@ export class ScrollView extends Viewport {
     this._scrollBarY.parent = this;
   }
 
+  private getScrollBarMode(): 'always' | 'hidden' | 'auto' {
+    return this.data.scrollBarVisibilityMode ?? 'auto';
+  }
+
+  private canScrollX(): boolean {
+    const width = this._width || 0;
+    return width > 0 && this._contentSize.width > width;
+  }
+
+  private canScrollY(): boolean {
+    const height = this._height || 0;
+    return height > 0 && this._contentSize.height > height;
+  }
+
   private getScrollBarProps(orientation: 'vertical' | 'horizontal'): ScrollBarProps {
     return {
       type: 'ScrollBar',
@@ -171,6 +182,7 @@ export class ScrollView extends Viewport {
       thumbColor: this.data.scrollBarColor,
       hoverColor: this.data.scrollBarHoverColor,
       activeColor: this.data.scrollBarActiveColor,
+      opacity: 1,
       onScroll: (pos) => {
         if (orientation === 'vertical') {
           this.scrollTo(this._scrollX, pos);
@@ -180,68 +192,34 @@ export class ScrollView extends Viewport {
       },
       onDragStart: () => {
         this._isInteracting = true;
-        this.showAutoScrollbarsTemporarily();
       },
       onDragEnd: () => {
         this._isInteracting = false;
-        this.showAutoScrollbarsTemporarily();
         // 拖拽结束后检查是否需要回弹
         this.checkRebound();
       },
     };
   }
 
-  private showAutoScrollbarsTemporarily() {
-    if (this.data.scrollBarVisibilityMode !== 'auto') {
-      return;
-    }
-
-    this._autoScrollbarsVisible = true;
-    this.updateScrollbarVisibility();
-    this.updateScrollBars();
-    this.markNeedsPaint();
-
-    if (this._autoScrollbarTimer) {
-      clearTimeout(this._autoScrollbarTimer);
-    }
-
-    this._autoScrollbarTimer = setTimeout(() => {
-      this._autoScrollbarTimer = null;
-      if (this._isInteracting) {
-        return;
-      }
-      this._autoScrollbarsVisible = false;
-      this.updateScrollbarVisibility();
-      this.updateScrollBars();
-      this.markNeedsPaint();
-    }, 800);
-  }
-
   private updateScrollbarVisibility() {
-    const width = this._width || 0;
-    const height = this._height || 0;
-    const overflowX = this._contentSize.width > width;
-    const overflowY = this._contentSize.height > height;
+    const canX = this.canScrollX();
+    const canY = this.canScrollY();
+    const mode = this.getScrollBarMode();
 
-    const baseShowX = overflowX || (this.data.alwaysShowScrollbarX ?? false);
-    const baseShowY = overflowY || (this.data.alwaysShowScrollbarY ?? true);
-
-    const mode = this.data.scrollBarVisibilityMode;
     if (mode === 'hidden') {
       this._showScrollbarX = false;
       this._showScrollbarY = false;
       return;
     }
 
-    if (mode === 'auto') {
-      const visible = this._isInteracting || this._autoScrollbarsVisible;
-      this._showScrollbarX = baseShowX && visible;
-      this._showScrollbarY = baseShowY && visible;
+    if (mode === 'always') {
+      this._showScrollbarX = canX;
+      this._showScrollbarY = canY;
       return;
     }
 
-    this._showScrollbarX = baseShowX;
-    this._showScrollbarY = baseShowY;
+    this._showScrollbarX = canX;
+    this._showScrollbarY = canY;
   }
 
   private updateScrollBars() {
@@ -255,6 +233,7 @@ export class ScrollView extends Viewport {
       thumbColor: this.data.scrollBarColor,
       hoverColor: this.data.scrollBarHoverColor,
       activeColor: this.data.scrollBarActiveColor,
+      opacity: 1,
     };
     this._scrollBarX.data = { ...this._scrollBarX.data, ...propsX };
 
@@ -276,6 +255,7 @@ export class ScrollView extends Viewport {
       thumbColor: this.data.scrollBarColor,
       hoverColor: this.data.scrollBarHoverColor,
       activeColor: this.data.scrollBarActiveColor,
+      opacity: 1,
     };
     this._scrollBarY.data = { ...this._scrollBarY.data, ...propsY };
 
@@ -362,10 +342,6 @@ export class ScrollView extends Viewport {
     if (this._animationFrame) {
       cancelAnimationFrame(this._animationFrame);
       this._animationFrame = null;
-    }
-    if (this._autoScrollbarTimer) {
-      clearTimeout(this._autoScrollbarTimer);
-      this._autoScrollbarTimer = null;
     }
     this._scrollBarX.dispose();
     this._scrollBarY.dispose();
@@ -560,15 +536,17 @@ export class ScrollView extends Viewport {
 
   onPointerDown(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
+    const x = (e.x ?? ne.clientX) as number;
+    const y = (e.y ?? ne.clientY) as number;
 
     // 检查滚动条（使用全局坐标）
-    if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
+    if (this._showScrollbarY && this._scrollBarY.hitTest(x, y)) {
       this._scrollBarY.onPointerDown(e);
       this.markNeedsPaint();
       return;
     }
 
-    if (this._showScrollbarX && this._scrollBarX.hitTest(ne.clientX, ne.clientY)) {
+    if (this._showScrollbarX && this._scrollBarX.hitTest(x, y)) {
       this._scrollBarX.onPointerDown(e);
       this.markNeedsPaint();
       return;
@@ -583,11 +561,10 @@ export class ScrollView extends Viewport {
     e.stopPropagation();
     this._pointerDown = true;
     this._isInteracting = true;
-    this.showAutoScrollbarsTemporarily();
 
     // 记录初始触摸位置
-    this._lastX = ne.clientX;
-    this._lastY = ne.clientY;
+    this._lastX = x;
+    this._lastY = y;
 
     // 交互开始，立即停止当前的回弹动画
     if (this._animationFrame) {
@@ -599,19 +576,21 @@ export class ScrollView extends Viewport {
 
   onPointerMove(e: InkwellEvent) {
     const ne = e.nativeEvent as PointerEvent;
+    const x = (e.x ?? ne.clientX) as number;
+    const y = (e.y ?? ne.clientY) as number;
 
     // 始终检查滚动条 hover 状态
     // 命中测试使用全局坐标
     let hitAny = false;
 
-    if (this._showScrollbarY && this._scrollBarY.hitTest(ne.clientX, ne.clientY)) {
+    if (this._showScrollbarY && this._scrollBarY.hitTest(x, y)) {
       hitAny = true;
       if (this._hoveredScrollBar !== this._scrollBarY) {
         this._hoveredScrollBar?.onPointerLeave(e);
         this._hoveredScrollBar = this._scrollBarY;
       }
       this._scrollBarY.onPointerMove(e);
-    } else if (this._showScrollbarX && this._scrollBarX.hitTest(ne.clientX, ne.clientY)) {
+    } else if (this._showScrollbarX && this._scrollBarX.hitTest(x, y)) {
       hitAny = true;
       if (this._hoveredScrollBar !== this._scrollBarX) {
         this._hoveredScrollBar?.onPointerLeave(e);
@@ -642,11 +621,11 @@ export class ScrollView extends Viewport {
     e.stopPropagation();
 
     // 触摸拖拽逻辑
-    const dx = this._lastX - ne.clientX; // 拖动方向与滚动方向相反
-    const dy = this._lastY - ne.clientY;
+    const dx = this._lastX - x; // 拖动方向与滚动方向相反
+    const dy = this._lastY - y;
 
-    this._lastX = ne.clientX;
-    this._lastY = ne.clientY;
+    this._lastX = x;
+    this._lastY = y;
 
     // 复用 onWheel 的滚动处理逻辑（包含回弹阻力计算）
     // 构造一个模拟的 WheelEvent 数据结构传递给 processScroll
@@ -668,7 +647,6 @@ export class ScrollView extends Viewport {
     // 滚动条通过 window 监听自行处理拖拽结束
     // 这里只需要重置交互状态
     this._isInteracting = false;
-    this.showAutoScrollbarsTemporarily();
     // 交互结束，检查是否需要回弹
     this.checkRebound();
   }
@@ -699,7 +677,6 @@ export class ScrollView extends Viewport {
     // 如果已到达边界且未开启弹性（或弹性处理未消耗），则允许冒泡给父级
     const didScroll = this.processScroll(dx, dy);
     if (didScroll) {
-      this.showAutoScrollbarsTemporarily();
       e.stopPropagation();
     }
   }

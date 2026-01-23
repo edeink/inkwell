@@ -18,6 +18,7 @@ import {
   type WidgetProps,
 } from '@/core';
 import { CrossAxisAlignment } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { ScrollView } from '@/core/viewport/scroll-view';
 import Runtime from '@/runtime';
 import { Themes, type ThemePalette } from '@/styles/theme';
@@ -32,13 +33,25 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
     const theme = this.props.theme ?? Themes.light;
     const width = this.props.width as number | undefined;
     const height = this.props.height as number | undefined;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     // 控制整体内容宽度，避免在大屏幕下卡片过宽导致观感变差
     const maxContentW = Math.min(980, (width ?? 980) - 64);
     const cardW = Math.min(560, maxContentW);
 
     return (
-      <ScrollView key="glass-card-demo-scroll" width={width} height={height}>
+      <ScrollView
+        key="glass-card-demo-scroll"
+        width={width}
+        height={height}
+        scrollBarTrackColor={scrollBarTrackColor}
+        scrollBarColor={scrollBarColor}
+        scrollBarHoverColor={scrollBarHoverColor}
+        scrollBarActiveColor={scrollBarActiveColor}
+      >
         {/* 外层使用 ScrollView：便于在小屏幕下仍能完整查看示例 */}
         <Container minWidth={width} alignment="center" color={theme.background.base}>
           <Column
@@ -83,7 +96,7 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                     title="比卡超"
                     subtitle="活泼可爱的电气鼠宝可梦，以蓄电的脸颊电袋释放强力电击，象征伙伴与勇气。"
                     imageSrc={demo00ImageUrl}
-                    blurPx={12}
+                    blurPx={24}
                     glassAlpha={theme === Themes.dark ? 0.14 : 0.18}
                     windowRatio={0.32}
                     animate={true}
@@ -113,7 +126,7 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                     title="耿鬼"
                     subtitle="狡黠阴郁的幽灵宝可梦，潜伏于影子与黑夜间以恶作剧和诡计扰乱对手。"
                     imageSrc={demo01ImageUrl}
-                    blurPx={12}
+                    blurPx={24}
                     glassAlpha={theme === Themes.dark ? 0.14 : 0.18}
                     windowRatio={0.32}
                     animate={true}

@@ -29,6 +29,7 @@ import {
   Wrap,
 } from '@/core';
 import { CrossAxisAlignment } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { Overflow } from '@/core/text';
 import { Themes } from '@/styles/theme';
 
@@ -422,6 +423,10 @@ export type ResumeDemoAppProps = {
 export class ResumeDemoApp extends StatelessWidget<ResumeDemoAppProps> {
   render() {
     const { width, height, theme, mode = 'view' } = this.props;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
     const isMobile = mode === 'view' && width < 480;
     const space = isMobile ? RESUME_SPACE_MOBILE : RESUME_SPACE_DESKTOP;
     const pageWidth =
@@ -462,7 +467,15 @@ export class ResumeDemoApp extends StatelessWidget<ResumeDemoAppProps> {
     }
 
     return (
-      <ScrollView width={width} height={height} key="resume-root-scroll">
+      <ScrollView
+        width={width}
+        height={height}
+        key="resume-root-scroll"
+        scrollBarTrackColor={scrollBarTrackColor}
+        scrollBarColor={scrollBarColor}
+        scrollBarHoverColor={scrollBarHoverColor}
+        scrollBarActiveColor={scrollBarActiveColor}
+      >
         <Container
           minWidth={width}
           alignment="center"

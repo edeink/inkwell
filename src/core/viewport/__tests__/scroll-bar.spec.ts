@@ -127,6 +127,41 @@ describe('ScrollBar', () => {
     expect(rect).toBeNull();
   });
 
+  it('应当支持十六进制颜色', () => {
+    const props: ScrollBarProps = {
+      type: 'ScrollBar',
+      orientation: 'vertical',
+      viewportSize: 100,
+      contentSize: 200,
+      scrollPosition: 0,
+      thumbColor: '#ff0000',
+      hoverColor: '#00ff00',
+      activeColor: '#0000ff80',
+    };
+    const sb = new TestScrollBar(props);
+    sb.setSize(10, 100);
+
+    expect(sb.callGetTargetColor()).toEqual([255, 0, 0, 1]);
+
+    const hoverEvent = {
+      nativeEvent: { clientX: 0, clientY: 0 } as PointerEvent,
+      stopPropagation: vi.fn(),
+    } as any;
+    sb.onPointerMove(hoverEvent);
+    expect(sb.callGetTargetColor()).toEqual([0, 255, 0, 1]);
+
+    const downEvent = {
+      nativeEvent: { clientX: 0, clientY: 0 } as PointerEvent,
+      stopPropagation: vi.fn(),
+    } as any;
+    sb.onPointerDown(downEvent);
+    const active = sb.callGetTargetColor();
+    expect(active[0]).toBe(0);
+    expect(active[1]).toBe(0);
+    expect(active[2]).toBe(255);
+    expect(active[3]).toBeCloseTo(128 / 255);
+  });
+
   it('应当响应指针事件并更新状态', () => {
     const props: ScrollBarProps = {
       type: 'ScrollBar',

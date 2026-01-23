@@ -67,7 +67,7 @@ contacts: 18410225473, edeity.fly@gmail.com, ede.ink
 - 定位：RenderEngine 部门内中台框架，支撑 Sheet、Base、People Table 等重交互文档渲染
 - 能力建设：Build（React-like JSX 与状态）、Layout（Flutter-like 约束布局，支持弹性/表格/虚拟滚动，典型场景表格渲染相较 DOM 提升 **200%+**）、Paint（离屏渲染与合批）
 - 质量体系：建设 **Devtools** 与 **E2E** 质量工具，推动业务侧 E2E 落地；引入 Jest + Storybook + E2E 的自动化回归体系，单测覆盖率 **80%**
-- 业务落地：推动 多维报表 PC 看板升级 **Faster 2.0**，灰度到 GA；上线后保持高质量（无 P0/P1），并进一步收敛相关链路的 OnCall（周均 1 次下降为月均 1 次）
+- 业务落地：推动 多维报表 PC 看板升级 Faster 2.0，灰度到 GA；上线后保持高质量（无 P0/P1），并进一步收敛相关链路的 OnCall（周均 1 次下降为月均 1 次）
 - 性能体系：对齐线上监控与指标看板，完善帧率/低帧（**jank frame**）等口径；推进移动端 **FPS** 性能实验与优化探索
 - 团队影响力：组织部门内分享，自身多次技术分享并邀请外部嘉宾分享，提升内部技术氛围与团队技术素养
 
@@ -75,7 +75,8 @@ contacts: 18410225473, edeity.fly@gmail.com, ede.ink
 
 - 目标：在头条侧建设 PGC 创作者编辑能力（类秀米），支撑内容生产与排版效率
 - 技术：基于 ProseMirror（二次封装）建设编辑器内核与动态 Block 化插件体系；基于 Myers 算法实现无时序的增量更新
-- 影响：开源为 Syllepsis（https://github.com/bytedance/syllepsis）；参与 Inspire PGC 发文工具孵化；北大软微合作（20+ 同学）推进插件孵化与项目落地；历史峰值覆盖多个业务团队使用
+- 影响：开源为 Syllepsis；参与 Inspire PGC 发文工具孵化；历史峰值覆盖多个业务团队使用
+- 其它：北大软微合作（20+ 同学）推进插件孵化与项目落地；
 
 ### 个人近期项目｜AI 相关
 
@@ -86,8 +87,8 @@ contacts: 18410225473, edeity.fly@gmail.com, ede.ink
 
 ## 教育背景
 
-**山东大学** · 软件工程本科，985 高校
-*2012.09 - 2016.06*
+**山东大学**（985） · 软件工程（本科）· *2012.09 - 2016.06*
+
 
 ## 其他经历
 

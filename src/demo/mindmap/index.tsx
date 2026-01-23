@@ -110,6 +110,7 @@ export default function MindmapDemo() {
           style={{ width: '100%', height: '100%' }}
           onRuntimeReady={handleRuntimeReady}
           onResize={handleResize}
+          padding={0}
         />
         {runtime && context && (
           <MindmapContext.Provider value={context}>

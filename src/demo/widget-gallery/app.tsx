@@ -20,6 +20,7 @@ import {
   Wrap,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { ScrollView } from '@/core/viewport/scroll-view';
 import Runtime from '@/runtime';
 import { Themes, type ThemePalette } from '@/styles/theme';
@@ -38,9 +39,21 @@ export const WidgetGalleryDemo = ({
   theme?: ThemePalette;
 }) => {
   const currentTheme = theme || Themes.light;
+  const scrollBarTrackColor = applyAlpha(currentTheme.text.primary, 0.06);
+  const scrollBarColor = applyAlpha(currentTheme.text.primary, 0.22);
+  const scrollBarHoverColor = applyAlpha(currentTheme.text.primary, 0.32);
+  const scrollBarActiveColor = applyAlpha(currentTheme.text.primary, 0.44);
 
   return (
-    <ScrollView key="root-scroll-view" width={width} height={height}>
+    <ScrollView
+      key="root-scroll-view"
+      width={width}
+      height={height}
+      scrollBarTrackColor={scrollBarTrackColor}
+      scrollBarColor={scrollBarColor}
+      scrollBarHoverColor={scrollBarHoverColor}
+      scrollBarActiveColor={scrollBarActiveColor}
+    >
       <Container minWidth={width} alignment="center">
         <Column
           key="complete-demo-root"
@@ -404,7 +417,15 @@ export const WidgetGalleryDemo = ({
                 key="scroll-container-wrapper"
                 border={{ width: 1, color: currentTheme.border.base }}
               >
-                <ScrollView key="inner-scroll-view" width={200} height={150}>
+                <ScrollView
+                  key="inner-scroll-view"
+                  width={200}
+                  height={150}
+                  scrollBarTrackColor={scrollBarTrackColor}
+                  scrollBarColor={scrollBarColor}
+                  scrollBarHoverColor={scrollBarHoverColor}
+                  scrollBarActiveColor={scrollBarActiveColor}
+                >
                   <Column
                     key="scroll-col"
                     spacing={10}

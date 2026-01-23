@@ -1,8 +1,36 @@
 export function parseColor(color: string): [number, number, number, number] {
-  if (!color) {
+  const s = (color || '').trim();
+  if (!s) {
     return [0, 0, 0, 0];
   }
-  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+
+  if (s === 'transparent') {
+    return [0, 0, 0, 0];
+  }
+
+  if (s[0] === '#') {
+    if (s.length === 4) {
+      const r = parseInt(s[1] + s[1], 16);
+      const g = parseInt(s[2] + s[2], 16);
+      const b = parseInt(s[3] + s[3], 16);
+      return [r, g, b, 1];
+    }
+    if (s.length === 7) {
+      const r = parseInt(s.slice(1, 3), 16);
+      const g = parseInt(s.slice(3, 5), 16);
+      const b = parseInt(s.slice(5, 7), 16);
+      return [r, g, b, 1];
+    }
+    if (s.length === 9) {
+      const r = parseInt(s.slice(1, 3), 16);
+      const g = parseInt(s.slice(3, 5), 16);
+      const b = parseInt(s.slice(5, 7), 16);
+      const a = parseInt(s.slice(7, 9), 16) / 255;
+      return [r, g, b, a];
+    }
+  }
+
+  const match = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
   if (match) {
     return [
       parseInt(match[1], 10),
@@ -48,4 +76,46 @@ export function isColorClose(
     Math.abs(diff[2]) < threshold &&
     Math.abs(diff[3]) < alphaThreshold
   );
+}
+
+export function applyAlpha(color: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  const s = (color || '').trim();
+  if (!s) {
+    return `rgba(0,0,0,${a})`;
+  }
+
+  const rgba = s.match(/rgba\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (rgba) {
+    return `rgba(${parseInt(rgba[1], 10)},${parseInt(rgba[2], 10)},${parseInt(rgba[3], 10)},${a})`;
+  }
+  const rgb = s.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgb) {
+    return `rgba(${parseInt(rgb[1], 10)},${parseInt(rgb[2], 10)},${parseInt(rgb[3], 10)},${a})`;
+  }
+
+  if (s[0] === '#') {
+    if (s.length === 4) {
+      const r = parseInt(s[1] + s[1], 16);
+      const g = parseInt(s[2] + s[2], 16);
+      const b = parseInt(s[3] + s[3], 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    if (s.length === 7) {
+      const r = parseInt(s.slice(1, 3), 16);
+      const g = parseInt(s.slice(3, 5), 16);
+      const b = parseInt(s.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    if (s.length === 9) {
+      const r = parseInt(s.slice(1, 3), 16);
+      const g = parseInt(s.slice(3, 5), 16);
+      const b = parseInt(s.slice(5, 7), 16);
+      const baseA = parseInt(s.slice(7, 9), 16) / 255;
+      const outA = Math.max(0, Math.min(1, baseA * a));
+      return `rgba(${r},${g},${b},${outA})`;
+    }
+  }
+
+  return s;
 }

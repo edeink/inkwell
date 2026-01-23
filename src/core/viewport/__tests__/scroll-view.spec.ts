@@ -471,31 +471,18 @@ describe('ScrollView', () => {
     expect(sv.scrollX).toBeLessThan(0);
   });
 
-  it('alwaysShowScrollbarY 应当强制显示纵向滚动条', () => {
+  it('内容不足时不应显示滚动条', () => {
     const scrollView = new TestScrollView({
       type: 'ScrollView',
       width: 300,
       height: 400,
       alwaysShowScrollbarY: true,
+      alwaysShowScrollbarX: true,
     });
 
-    // 内容高度小于视口高度
     scrollView.simulateLayout(300, 400, 300, 200);
 
-    expect(scrollView.isShowScrollbarY).toBe(true);
-  });
-
-  it('默认情况下内容不足时不显示滚动条', () => {
-    const scrollView = new TestScrollView({
-      type: 'ScrollView',
-      width: 300,
-      height: 400,
-      alwaysShowScrollbarY: false,
-    });
-
-    // 内容高度小于视口高度
-    scrollView.simulateLayout(300, 400, 300, 200);
-
+    expect(scrollView.isShowScrollbarX).toBe(false);
     expect(scrollView.isShowScrollbarY).toBe(false);
   });
 
@@ -515,7 +502,7 @@ describe('ScrollView', () => {
     expect(scrollView.isShowScrollbarY).toBe(false);
   });
 
-  it('scrollBarVisibilityMode=always 不应改变默认的按轴显示逻辑', () => {
+  it('scrollBarVisibilityMode=always 应当常显可滚动方向的滚动条', () => {
     const scrollView = new TestScrollView({
       type: 'ScrollView',
       width: 300,
@@ -524,13 +511,13 @@ describe('ScrollView', () => {
       alwaysShowScrollbarX: false,
     });
 
-    scrollView.simulateLayout(300, 400, 200, 200);
+    scrollView.simulateLayout(300, 400, 300, 800);
 
     expect(scrollView.isShowScrollbarX).toBe(false);
     expect(scrollView.isShowScrollbarY).toBe(true);
   });
 
-  it('scrollBarVisibilityMode=auto 应当在滚动时显示并在空闲时隐藏', () => {
+  it('scrollBarVisibilityMode=auto 应当常显可滚动方向的滚动条', () => {
     const scrollView = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -540,12 +527,53 @@ describe('ScrollView', () => {
     });
 
     scrollView.simulateLayout(100, 100, 100, 300);
-    expect(scrollView.isShowScrollbarY).toBe(false);
+    expect(scrollView.isShowScrollbarY).toBe(true);
 
     scrollView.simulateWheel(0, 10);
     expect(scrollView.isShowScrollbarY).toBe(true);
+  });
 
-    vi.advanceTimersByTime(801);
-    expect(scrollView.isShowScrollbarY).toBe(false);
+  it('scrollBarVisibilityMode=auto 默认应常显垂直滚动条', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      scrollBarVisibilityMode: 'auto',
+    });
+
+    scrollView.simulateLayout(100, 100, 100, 300);
+    expect(scrollView.isShowScrollbarY).toBe(true);
+
+    vi.advanceTimersByTime(1200);
+    expect(scrollView.isShowScrollbarY).toBe(true);
+  });
+
+  it('拖拽滚动条应当更新滚动位置', () => {
+    const scrollView = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      scrollBarVisibilityMode: 'auto',
+    });
+
+    scrollView.simulateLayout(100, 100, 100, 300);
+    scrollView.simulateWheel(0, 10);
+    const prev = scrollView.scrollY;
+
+    scrollView.onPointerDown({
+      x: 97,
+      y: 10,
+      nativeEvent: { clientX: 97, clientY: 10, pointerType: 'mouse' } as unknown as PointerEvent,
+      stopPropagation: vi.fn(),
+    } as any);
+
+    // 模拟 window move
+    // @ts-ignore
+    (scrollView as any)._scrollBarY._handleWindowMove({ clientX: 97, clientY: 20 } as PointerEvent);
+
+    expect(scrollView.scrollY).toBeGreaterThan(prev);
+
+    // @ts-ignore
+    (scrollView as any)._scrollBarY._handleWindowUp({ clientX: 97, clientY: 20 } as PointerEvent);
   });
 });

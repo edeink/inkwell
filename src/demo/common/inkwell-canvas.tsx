@@ -23,6 +23,7 @@ export interface InkwellCanvasProps {
    * Canvas 容器的可选 ID。如果未提供，将生成一个随机 ID。
    */
   id?: string;
+  padding?: number;
 }
 
 export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
@@ -33,6 +34,7 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
   onRuntimeReady,
   onResize,
   id,
+  padding = 32,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<Runtime | null>(null);
@@ -40,6 +42,10 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
   onRuntimeReadyRef.current = onRuntimeReady;
   const onResizeRef = useRef(onResize);
   onResizeRef.current = onResize;
+
+  const themeBg = Themes[getCurrentThemeMode()].background.base;
+  const finalBackground = background || themeBg;
+  const wrapperBackground = backgroundAlpha === 1 ? finalBackground : 'transparent';
 
   const [containerId] = useState(
     () => id || `inkwell-canvas-${Math.random().toString(36).slice(2)}`,
@@ -58,10 +64,6 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
     let isActive = true;
 
     const initRuntime = async () => {
-      // 获取当前主题背景色
-      const themeBg = Themes[getCurrentThemeMode()].background.base;
-      const finalBackground = background || themeBg;
-
       const runtime = await Runtime.create(containerId, {
         renderer: 'canvas2d',
         background: finalBackground,
@@ -92,7 +94,7 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
         el.innerHTML = '';
       }
     };
-  }, [containerId, background, backgroundAlpha]); // 如果这些发生变化则重新创建
+  }, [containerId, finalBackground, backgroundAlpha]); // 如果这些发生变化则重新创建
 
   useEffect(() => {
     const el = containerRef.current;
@@ -129,15 +131,27 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className={className}
       style={{
         width: '100%',
         height: '100%',
         overflow: 'hidden',
         position: 'relative',
+        padding,
+        boxSizing: 'border-box',
+        background: wrapperBackground,
         ...style,
       }}
-    />
+    >
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      />
+    </div>
   );
 };

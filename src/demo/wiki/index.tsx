@@ -42,6 +42,7 @@ export default function WikiDemo() {
       style={{ width: '100%', height: '100%', overflow: 'hidden' }}
       onRuntimeReady={handleRuntimeReady}
       onResize={handleResize}
+      padding={0}
     />
   );
 }

@@ -16,6 +16,7 @@ import {
   type WidgetProps,
 } from '@/core';
 import { CrossAxisAlignment } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { ScrollView } from '@/core/viewport/scroll-view';
 import Runtime from '@/runtime';
 import { Themes, type ThemePalette } from '@/styles/theme';
@@ -33,6 +34,10 @@ export class SwiperDemoApp extends StatelessWidget<SwiperDemoAppProps> {
     const theme = this.props.theme || Themes.light;
     const width = this.props.width as number | undefined;
     const height = this.props.height as number | undefined;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     // Helper to create colored pages
     const createPages = (prefix: string, count: number = 3) =>
@@ -48,7 +53,15 @@ export class SwiperDemoApp extends StatelessWidget<SwiperDemoAppProps> {
       });
 
     return (
-      <ScrollView key="root-scroll-view" width={width} height={height}>
+      <ScrollView
+        key="root-scroll-view"
+        width={width}
+        height={height}
+        scrollBarTrackColor={scrollBarTrackColor}
+        scrollBarColor={scrollBarColor}
+        scrollBarHoverColor={scrollBarHoverColor}
+        scrollBarActiveColor={scrollBarActiveColor}
+      >
         <Container minWidth={width} alignment="center" color={theme.background.base}>
           <Column
             key="demo-root"

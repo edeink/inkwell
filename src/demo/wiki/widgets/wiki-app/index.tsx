@@ -28,6 +28,7 @@ import {
   type WidgetProps,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { findWidget } from '@/core/helper/widget-selector';
 import { type ThemePalette } from '@/styles/theme';
 
@@ -431,6 +432,10 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     const contentW = Math.max(0, width - sidebarWidth - DIVIDER_WIDTH - TOC_WIDTH);
     const navStyleBase = createUnifiedWikiNavPanelStyle(theme);
     const sidebarStyle = navStyleBase;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     const doc = docs.find((d) => d.key === selectedKey) || docs[0] || null;
     if (doc) {
@@ -490,6 +495,10 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
                       key={`md-${doc.key}-sv`}
                       ref={this.setScrollViewRef}
                       onScroll={this.handleContentScroll}
+                      scrollBarTrackColor={scrollBarTrackColor}
+                      scrollBarColor={scrollBarColor}
+                      scrollBarHoverColor={scrollBarHoverColor}
+                      scrollBarActiveColor={scrollBarActiveColor}
                     >
                       <Row
                         mainAxisSize={MainAxisSize.Max}

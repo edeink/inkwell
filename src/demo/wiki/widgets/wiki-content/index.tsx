@@ -22,6 +22,7 @@ import {
   type ScrollViewHandle,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 import { findWidget } from '@/core/helper/widget-selector';
 
 type State = {
@@ -317,9 +318,21 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
       Math.max(0, contentAreaWidth - contentPadding * 2),
       contentMaxWidth,
     );
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     const contentTree = (
-      <ScrollView key={`md-${doc.key}-sv`} ref={this.setScrollViewRef} onScroll={this.handleScroll}>
+      <ScrollView
+        key={`md-${doc.key}-sv`}
+        ref={this.setScrollViewRef}
+        onScroll={this.handleScroll}
+        scrollBarTrackColor={scrollBarTrackColor}
+        scrollBarColor={scrollBarColor}
+        scrollBarHoverColor={scrollBarHoverColor}
+        scrollBarActiveColor={scrollBarActiveColor}
+      >
         <Row mainAxisSize={MainAxisSize.Max} mainAxisAlignment={MainAxisAlignment.Center}>
           <Container
             width={containerWidth}

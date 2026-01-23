@@ -21,6 +21,7 @@ export interface ScrollBarProps extends WidgetProps {
   thumbColor?: string;
   hoverColor?: string;
   activeColor?: string;
+  opacity?: number;
 
   // 回调
   onScroll?: (newPos: number) => void;
@@ -38,8 +39,8 @@ export class ScrollBar extends Widget<ScrollBarProps> {
   private _currentThickness: number = 0;
 
   // 用于拖拽的 window 事件监听
-  private _handleWindowMoveBound: (e: PointerEvent) => void;
-  private _handleWindowUpBound: (e: PointerEvent) => void;
+  private _handleWindowMoveBound: (e: PointerEvent | MouseEvent) => void;
+  private _handleWindowUpBound: (e: PointerEvent | MouseEvent) => void;
 
   constructor(props: ScrollBarProps) {
     super(props);
@@ -51,17 +52,6 @@ export class ScrollBar extends Widget<ScrollBarProps> {
   protected paintSelf(context: BuildContext): void {
     const renderer = context.renderer;
     const { width, height } = this.renderObject.size;
-
-    // 绘制轨道
-    if (this.data.trackColor) {
-      renderer.drawRect({
-        x: 0,
-        y: 0,
-        width,
-        height,
-        fill: this.data.trackColor,
-      });
-    }
 
     const rect = this.getThumbRect();
     if (!rect) {
@@ -122,7 +112,12 @@ export class ScrollBar extends Widget<ScrollBarProps> {
       y: thumbY,
       width: thumbW,
       height: thumbH,
-      fill: colorToString(this._currentColor),
+      fill: colorToString([
+        this._currentColor[0],
+        this._currentColor[1],
+        this._currentColor[2],
+        this._currentColor[3] * (this.data.opacity ?? 1),
+      ]),
       borderRadius: Math.min(thumbW, thumbH) / 2,
     });
   }
@@ -189,6 +184,8 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     // 绑定 window 监听
     window.addEventListener('pointermove', this._handleWindowMoveBound);
     window.addEventListener('pointerup', this._handleWindowUpBound);
+    window.addEventListener('mousemove', this._handleWindowMoveBound);
+    window.addEventListener('mouseup', this._handleWindowUpBound);
 
     this.markNeedsPaint();
   }
@@ -216,7 +213,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     }
   }
 
-  private _handleWindowMove(e: PointerEvent) {
+  private _handleWindowMove(e: PointerEvent | MouseEvent) {
     if (!this._isDragging) {
       return;
     }
@@ -246,7 +243,7 @@ export class ScrollBar extends Widget<ScrollBarProps> {
     this.data.onScroll?.(newPos);
   }
 
-  private _handleWindowUp(_e: PointerEvent) {
+  private _handleWindowUp(_e: PointerEvent | MouseEvent) {
     if (!this._isDragging) {
       return;
     }
@@ -257,6 +254,8 @@ export class ScrollBar extends Widget<ScrollBarProps> {
 
     window.removeEventListener('pointermove', this._handleWindowMoveBound);
     window.removeEventListener('pointerup', this._handleWindowUpBound);
+    window.removeEventListener('mousemove', this._handleWindowMoveBound);
+    window.removeEventListener('mouseup', this._handleWindowUpBound);
 
     this.markNeedsPaint();
   }
@@ -265,6 +264,8 @@ export class ScrollBar extends Widget<ScrollBarProps> {
   dispose() {
     window.removeEventListener('pointermove', this._handleWindowMoveBound);
     window.removeEventListener('pointerup', this._handleWindowUpBound);
+    window.removeEventListener('mousemove', this._handleWindowMoveBound);
+    window.removeEventListener('mouseup', this._handleWindowUpBound);
     super.dispose();
   }
 }

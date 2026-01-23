@@ -14,6 +14,7 @@ import type { ThemePalette } from '@/styles/theme';
 
 import { Container, Positioned, Stack } from '@/core';
 import { isEditableElement } from '@/core/events/helper';
+import { applyAlpha } from '@/core/helper/color';
 import { StatefulWidget } from '@/core/state/stateful';
 import { ScrollView } from '@/core/viewport/scroll-view';
 
@@ -582,6 +583,10 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
     const { width, height, theme } = this.props;
     const { config } = this.model;
     const { scrollX, scrollY, selections, editingCell, resizing } = this.state;
+    const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
+    const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
+    const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
+    const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
     const viewportWidth = width - config.headerWidth;
     const viewportHeight = height - config.headerHeight;
@@ -645,6 +650,10 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
               scrollY={scrollY}
               onScroll={this.handleScroll}
               overflow="hidden"
+              scrollBarTrackColor={scrollBarTrackColor}
+              scrollBarColor={scrollBarColor}
+              scrollBarHoverColor={scrollBarHoverColor}
+              scrollBarActiveColor={scrollBarActiveColor}
             >
               <SpreadsheetGrid
                 showGridLines={this.props.showGridLines ?? true}

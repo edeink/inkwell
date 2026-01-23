@@ -58,23 +58,28 @@ function buildPdfWithJpeg(opts: {
   startObj();
   pushStr(`2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n`);
 
-  startObj();
-  pushStr(
-    `3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im0 4 0 R >> /ProcSet [/PDF /ImageC] >> /MediaBox [0 0 ${pageWidthPt.toFixed(
-      2,
-    )} ${pageHeightPt.toFixed(2)}] /Contents 5 0 R >>\nendobj\n`,
-  );
+  const pageWidthStr = pageWidthPt.toFixed(2);
+  const pageHeightStr = pageHeightPt.toFixed(2);
 
   startObj();
   pushStr(
-    `4 0 obj\n<< /Type /XObject /Subtype /Image /Name /Im0 /Filter /DCTDecode /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${jpeg.length} >>\nstream\n`,
+    [
+      `3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im0 4 0 R >> `,
+      `/ProcSet [/PDF /ImageC] >> /MediaBox [0 0 ${pageWidthStr} ${pageHeightStr}] `,
+      `/Contents 5 0 R >>\nendobj\n`,
+    ].join(''),
   );
+
+  startObj();
+  const imageObj =
+    `4 0 obj\n<< /Type /XObject /Subtype /Image /Name /Im0 /Filter /DCTDecode ` +
+    `/Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 ` +
+    `/Length ${jpeg.length} >>\nstream\n`;
+  pushStr(imageObj);
   pushBytes(jpeg);
   pushStr(`\nendstream\nendobj\n`);
 
-  const content = enc.encode(
-    `q\n${pageWidthPt.toFixed(2)} 0 0 ${pageHeightPt.toFixed(2)} 0 0 cm\n/Im0 Do\nQ\n`,
-  );
+  const content = enc.encode(`q\n${pageWidthStr} 0 0 ${pageHeightStr} 0 0 cm\n/Im0 Do\nQ\n`);
 
   startObj();
   pushStr(`5 0 obj\n<< /Length ${content.length} >>\nstream\n`);
@@ -131,18 +136,22 @@ async function waitFontsReady(): Promise<void> {
   if (!fonts) {
     return;
   }
-  await withTimeout(
-    (async () => {
-      await Promise.all([
-        fonts.load('12px "Noto Sans SC"'),
-        fonts.load('14px "Noto Sans SC"'),
-        fonts.load('16px "Noto Sans SC"'),
-        fonts.load('22px "Noto Sans SC"'),
-      ]);
-      await fonts.ready;
-    })(),
-    2_000,
-  ).catch(() => {});
+  try {
+    await withTimeout(
+      (async () => {
+        await Promise.all([
+          fonts.load('12px "Noto Sans SC"'),
+          fonts.load('14px "Noto Sans SC"'),
+          fonts.load('16px "Noto Sans SC"'),
+          fonts.load('22px "Noto Sans SC"'),
+        ]);
+        await fonts.ready;
+      })(),
+      2_000,
+    );
+  } catch {
+    void 0;
+  }
 }
 
 async function preloadImages(srcList: string[]): Promise<void> {
@@ -179,7 +188,7 @@ function collectDescendants(root: Widget): Widget[] {
 async function waitRuntimeImagesLoaded(runtime: Runtime, timeoutMs: number): Promise<void> {
   type ImageWidgetLike = Widget & { src?: string; imageLoaded?: boolean };
   const start = performance.now();
-  for (;;) {
+  while (true) {
     const root = runtime.getRootWidget() as Widget | null;
     if (!root) {
       await waitNextFrame();
@@ -232,7 +241,7 @@ function collectMarkdownImageSrcs(raw: string): string[] {
     out.push(avatar);
   }
   const re = /!\[[^\]]*?\]\((.*?)\)/g;
-  for (;;) {
+  while (true) {
     const m = re.exec(raw);
     if (!m) {
       break;
@@ -294,10 +303,14 @@ export default function ResumeDemo() {
       const cleanup = (rt: Runtime | null) => {
         try {
           rt?.destroy();
-        } catch {}
+        } catch {
+          void 0;
+        }
         try {
           document.body.removeChild(container);
-        } catch {}
+        } catch {
+          void 0;
+        }
       };
 
       try {

@@ -15,6 +15,7 @@ import {
   type WidgetProps,
 } from '@/core';
 import { CrossAxisAlignment, MainAxisAlignment, MainAxisSize } from '@/core/flex/type';
+import { applyAlpha } from '@/core/helper/color';
 
 export type WikiNavNode = {
   key: string;
@@ -240,6 +241,11 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
     const rightPadBase = panelStyle?.basePaddingRight ?? 8;
     const indentW = panelStyle?.indentWidth ?? 12;
     const leafExtra = panelStyle?.leafIndentOffset ?? 0;
+    const scrollBarBaseColor = panelStyle?.scrollBarColor ?? theme.text.primary;
+    const scrollBarTrackColor = applyAlpha(scrollBarBaseColor, 0.06);
+    const scrollBarColor = applyAlpha(scrollBarBaseColor, 0.22);
+    const scrollBarHoverColor = applyAlpha(scrollBarBaseColor, 0.32);
+    const scrollBarActiveColor = applyAlpha(scrollBarBaseColor, 0.44);
 
     const header =
       title || headerRight ? (
@@ -279,7 +285,10 @@ export class WikiNavPanel extends FStateWidget<WikiNavPanelProps, State> {
           <ScrollView
             ref={scrollRef}
             scrollBarWidth={panelStyle?.scrollBarWidth ?? 6}
-            scrollBarColor={panelStyle?.scrollBarColor ?? theme.text.secondary}
+            scrollBarTrackColor={scrollBarTrackColor}
+            scrollBarColor={scrollBarColor}
+            scrollBarHoverColor={scrollBarHoverColor}
+            scrollBarActiveColor={scrollBarActiveColor}
           >
             <Column mainAxisSize={MainAxisSize.Min} spacing={listRowGap}>
               {flat.map((f) => {

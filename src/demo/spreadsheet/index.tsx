@@ -101,6 +101,7 @@ export default function SpreadsheetDemo() {
           style={{ width: '100%', height: '100%' }}
           onRuntimeReady={handleRuntimeReady}
           onResize={handleResize}
+          padding={0}
         />
       </div>
     </div>
