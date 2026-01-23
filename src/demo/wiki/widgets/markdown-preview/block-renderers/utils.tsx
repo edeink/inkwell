@@ -6,7 +6,7 @@
  * - ensureKey：把可选 key 规整为字符串，避免 key 类型变化导致 diff 不稳定。
  * - plainText：把一组 Markdown 行内节点降级为纯文本（用于表格等需要稳定布局的场景）。
  * - CodeBlockHighlighter：代码块轻量高亮（Demo 级别），按行拆分并对 token 上色。
- * - InlineWrap：把行内 children 交给 InlineNodeRenderer 渲染，并用 Wrap 自动换行。
+ * - InlineWrap：把行内 children 交给 InlineNodeRenderer 渲染，并用 RichText 负责行内排版。
  *
  * 说明：
  * - 本文件的实现目标是“演示 + 可测 + 稳定”，不追求完整语法高亮与 Markdown 规范覆盖。
@@ -19,7 +19,7 @@ import type { InlineRenderer } from '../inline-renderers/types';
 import type { PointerEvents } from '@/core/type';
 import type { ThemePalette } from '@/styles/theme';
 
-import { Column, Container, CrossAxisAlignment, Text, Wrap } from '@/core';
+import { Column, Container, CrossAxisAlignment, RichText, Text, Wrap } from '@/core';
 
 export function ensureKey(ctxKey?: string | number | null) {
   if (ctxKey === undefined || ctxKey === null) {
@@ -175,7 +175,7 @@ export function InlineWrap({
   pointerEvent?: PointerEvents;
 }) {
   return (
-    <Wrap
+    <RichText
       spacing={style.inlineWrap.spacing}
       runSpacing={style.inlineWrap.runSpacing}
       pointerEvent={pointerEvent}
@@ -189,6 +189,6 @@ export function InlineWrap({
           inlineRenderers={inlineRenderers}
         />
       ))}
-    </Wrap>
+    </RichText>
   );
 }

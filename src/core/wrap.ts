@@ -20,8 +20,16 @@ export class Wrap extends Widget<WrapProps> {
 
   constructor(data: WrapProps) {
     super(data);
-    this.spacing = data.spacing || 0;
-    this.runSpacing = data.runSpacing || 0;
+    this.initWrapProperties(data);
+  }
+
+  private initWrapProperties(data: WrapProps) {
+    this.spacing = data.spacing ?? 0;
+    this.runSpacing = data.runSpacing ?? 0;
+  }
+
+  protected didUpdateWidget(_oldProps: WrapProps): void {
+    this.initWrapProperties(this.props as unknown as WrapProps);
   }
 
   protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {

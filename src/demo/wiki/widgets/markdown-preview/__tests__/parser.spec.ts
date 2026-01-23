@@ -83,13 +83,14 @@ describe('MarkdownParser', () => {
     expect(paragraph.type).toBe(NodeType.Paragraph);
 
     const inlineNodes = paragraph.children!;
-    expect(inlineNodes).toHaveLength(4);
-
-    expect(inlineNodes[0].content).toBe('Hello ');
-    expect(inlineNodes[1].type).toBe(NodeType.Bold);
-    expect(inlineNodes[1].content).toBe('Bold');
-    expect(inlineNodes[3].type).toBe(NodeType.Italic);
-    expect(inlineNodes[3].content).toBe('Italic');
+    expect(inlineNodes.some((n) => n.type === NodeType.Bold && n.content === 'Bold')).toBe(true);
+    expect(inlineNodes.some((n) => n.type === NodeType.Italic && n.content === 'Italic')).toBe(
+      true,
+    );
+    const plain = inlineNodes
+      .map((n) => (n.type === NodeType.Text ? n.content || '' : n.content || ''))
+      .join('');
+    expect(plain).toBe('Hello Bold and Italic');
   });
 
   it('应该正确解析链接', () => {
@@ -321,6 +322,13 @@ describe('文字样式渲染调用', () => {
     expect(arg.fontWeight).toBe('bold');
     expect(arg.textDecoration).toEqual(['underline', 'line-through']);
     expect(arg.fontSize).toBe(14);
+  });
+
+  it('Text 行内渲染应拆分长文本以避免错误折行', () => {
+    const parser = new MarkdownParser();
+    const nodes = parser.parseInline('完成各阶段 Schema 转换；建设模板上传与生产闭环');
+    const textNodes = nodes.filter((n) => n.type === NodeType.Text);
+    expect(textNodes.length).toBeGreaterThan(1);
   });
 
   it('Canvas2DRenderer.drawText 默认字号应为 14px', () => {

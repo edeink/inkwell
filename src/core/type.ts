@@ -17,6 +17,7 @@ export const enum ComponentType {
   Stack = 'Stack',
   Positioned = 'Positioned',
   Wrap = 'Wrap',
+  RichText = 'RichText',
 }
 
 // --- 来自 src/core/flex/type.ts ---

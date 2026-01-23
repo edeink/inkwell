@@ -214,7 +214,7 @@ export class MarkdownParser {
         root.children!.push({
           type: NodeType.Header,
           level: headerMatch[1].length,
-          children: this.parseInline(headerMatch[2]),
+          children: [{ type: NodeType.Text, content: headerMatch[2] }],
         });
         i++;
         continue;
@@ -306,6 +306,83 @@ export class MarkdownParser {
   }
 
   parseInline(text: string): MarkdownNode[] {
+    const splitPlainText = (content: string): MarkdownNode[] => {
+      if (!content) {
+        return [];
+      }
+
+      const out: MarkdownNode[] = [];
+      const cjkChunkSize = 6;
+
+      let buf = '';
+      let bufType: 'space' | 'ascii' | 'cjk' | null = null;
+      let cjkCount = 0;
+
+      const flush = () => {
+        if (!buf) {
+          return;
+        }
+        out.push({ type: NodeType.Text, content: buf });
+        buf = '';
+        bufType = null;
+        cjkCount = 0;
+      };
+
+      for (let i = 0; i < content.length; i++) {
+        const codePoint = content.codePointAt(i);
+        if (codePoint === undefined) {
+          break;
+        }
+        const ch = String.fromCodePoint(codePoint);
+        if (ch.length === 2) {
+          i += 1;
+        }
+
+        if (ch === '\n') {
+          flush();
+          out.push({ type: NodeType.Text, content: ch });
+          continue;
+        }
+
+        if (/\s/.test(ch)) {
+          if (bufType !== 'space') {
+            flush();
+            bufType = 'space';
+          }
+          buf += ch;
+          continue;
+        }
+
+        if (/[A-Za-z0-9_]/.test(ch)) {
+          if (bufType !== 'ascii') {
+            flush();
+            bufType = 'ascii';
+          }
+          buf += ch;
+          continue;
+        }
+
+        if (/[\u3400-\u9FFF]/.test(ch)) {
+          if (bufType !== 'cjk') {
+            flush();
+            bufType = 'cjk';
+          }
+          buf += ch;
+          cjkCount += 1;
+          if (cjkCount >= cjkChunkSize) {
+            flush();
+          }
+          continue;
+        }
+
+        flush();
+        out.push({ type: NodeType.Text, content: ch });
+      }
+
+      flush();
+      return out;
+    };
+
     const nodes: MarkdownNode[] = [];
     let currentText = text;
 
@@ -327,7 +404,7 @@ export class MarkdownParser {
         .sort((a, b) => a.index! - b.index!);
 
       if (matches.length === 0) {
-        nodes.push({ type: NodeType.Text, content: currentText });
+        nodes.push(...splitPlainText(currentText));
         break;
       }
 
@@ -336,7 +413,7 @@ export class MarkdownParser {
       const matchLength = firstMatch.match![0].length;
 
       if (matchIndex > 0) {
-        nodes.push({ type: NodeType.Text, content: currentText.slice(0, matchIndex) });
+        nodes.push(...splitPlainText(currentText.slice(0, matchIndex)));
       }
 
       if (firstMatch.type === NodeType.Image) {

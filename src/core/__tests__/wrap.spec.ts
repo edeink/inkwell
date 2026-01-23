@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { Widget } from '../base';
+import { RichText } from '../rich-text';
+import { Text } from '../text';
 import { Wrap } from '../wrap';
 
 import type { BoxConstraints, Size } from '../base';
@@ -88,5 +90,34 @@ describe('Wrap 布局', () => {
 
     expect(wrap.renderObject.size.height).toBe(100);
     expect(wrap.renderObject.size.width).toBe(210);
+  });
+
+  it('应当支持基线对齐（RichText）', () => {
+    const normal = new Text({
+      type: 'Text',
+      text: '2023、2024 为',
+      fontSize: 14,
+      lineHeight: 24,
+      fontWeight: 'normal',
+    });
+    const bold = new Text({
+      type: 'Text',
+      text: 'M+',
+      fontSize: 14,
+      lineHeight: 24,
+      fontWeight: 'bold',
+    });
+
+    const richText = new RichText({ type: 'RichText', spacing: 4, alignBaseline: true });
+    (richText as any).children = [normal, bold];
+    (richText as any)._isBuilt = true;
+    normal.parent = richText;
+    bold.parent = richText;
+
+    richText.layout({ minWidth: 0, maxWidth: 800, minHeight: 0, maxHeight: 1000 });
+
+    const normalBaseline = normal.renderObject.offset.dy + normal.lines[0].baseline;
+    const boldBaseline = bold.renderObject.offset.dy + bold.lines[0].baseline;
+    expect(Math.abs(normalBaseline - boldBaseline)).toBeLessThan(0.001);
   });
 });
