@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { BlockNodeRenderer } from '../block-renderers';
+import { defaultMarkdownRenderStyle } from '../block-renderers/types';
 import { hasFrontMatter } from '../front-matter/has-front-matter';
 import { MarkdownParser, NodeType } from '../parser';
 
@@ -203,6 +204,45 @@ describe('MarkdownPreview 渲染稳定性', () => {
       const el = BlockNodeRenderer({ node, theme: Themes.light, key: String(i) });
       const data = compileElement(el as any);
       expect(data.key).toBe(String(i));
+    }
+  });
+
+  it('嵌套列表（depth>0）不应带有列表块底部间距', () => {
+    const parser = new MarkdownParser();
+    const cases = [
+      {
+        md: ['- A', '- B'].join('\n'),
+        type: NodeType.List,
+        marginBottom: defaultMarkdownRenderStyle.list.marginBottom,
+      },
+      {
+        md: ['1. A', '2. B'].join('\n'),
+        type: NodeType.OrderedList,
+        marginBottom: defaultMarkdownRenderStyle.orderedList.marginBottom,
+      },
+      {
+        md: ['- [ ] A', '- [x] B'].join('\n'),
+        type: NodeType.TaskList,
+        marginBottom: defaultMarkdownRenderStyle.taskList.marginBottom,
+      },
+    ];
+
+    for (const c of cases) {
+      const ast = parser.parse(c.md);
+      const node = ast.children?.[0];
+      expect(node?.type).toBe(c.type);
+
+      const top = compileElement(
+        BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 0, key: 'top' }) as any,
+      ) as any;
+      expect(top.type).toBe('Padding');
+      expect(top.padding?.bottom).toBe(c.marginBottom);
+
+      const nested = compileElement(
+        BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 1, key: 'nested' }) as any,
+      ) as any;
+      expect(nested.type).toBe('Padding');
+      expect(nested.padding?.bottom).toBe(0);
     }
   });
 

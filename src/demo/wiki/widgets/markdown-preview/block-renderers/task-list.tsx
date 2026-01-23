@@ -40,7 +40,10 @@ export const taskListRenderer: BlockRenderer = {
     return (
       <Padding
         key={key}
-        padding={{ left: indentUnit * depth, bottom: ctx.style.taskList.marginBottom }}
+        padding={{
+          left: indentUnit * depth,
+          bottom: depth === 0 ? ctx.style.taskList.marginBottom : 0,
+        }}
       >
         <Column
           crossAxisAlignment={CrossAxisAlignment.Start}
@@ -57,11 +60,7 @@ export const taskListRenderer: BlockRenderer = {
             );
 
             return (
-              <Column
-                key={String(i)}
-                crossAxisAlignment={CrossAxisAlignment.Start}
-                spacing={ctx.style.taskList.columnSpacing}
-              >
+              <Column key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={0}>
                 <Row
                   crossAxisAlignment={CrossAxisAlignment.Start}
                   spacing={ctx.style.taskList.rowSpacing}

@@ -29,7 +29,7 @@ contacts: 18410225473, edeity.fly@gmail.com, ede.ink
 *2018.10 - 2021.05*
 
 - 从 **0 到 1** 参与两款编辑器类应用：文字方向，形态接近 Office Word；文档方向，形态接近 Notion
-- 文档：Notion-like 形态，基于 **ProseMirror** 迭代链接、列表、快捷键、历史等常规能力
+- 文档：Notion-like 形态，基于 **ProseMirror** 迭代自定义光标选区，链接列表、快捷键、历史等能力
 - 文字：Web WPS Word，参与 Open-SDK，孵化「个人简历」应用，水印、RTL、光标交互优化等能力建设
 - 性能与体验：通过切片 + 调度优化长文档虚拟滚动；包体积治理，体积降低约 **6%**、建立资源分类机制首屏优化 **200ms**
 
@@ -98,5 +98,5 @@ contacts: 18410225473, edeity.fly@gmail.com, ede.ink
 
 - 前端工程：TypeScript / JavaScript、React、Node.js BFF、组件化与工程化、性能分析与性能治理
 - 渲染与图形：Canvas2D、Pixi.js、SSR 渲染
-- 编辑器方向：ProseMirror、输入与光标/选区、长文档性能、开放平台与插件工程化
-- AI 应用：AIGC 链路工程化、Vibe/Spec Coding 工作流
+- 编辑器方向：ProseMirror、输入与光标选区、长文档性能、开放平台与插件工程化
+- AI 应用：AIGC 链路工程化、Vibe / Spec Coding 工作流

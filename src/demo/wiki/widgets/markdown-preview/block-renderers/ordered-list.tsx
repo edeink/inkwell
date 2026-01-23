@@ -39,7 +39,10 @@ export const orderedListRenderer: BlockRenderer = {
     return (
       <Padding
         key={key}
-        padding={{ left: indentUnit * depth, bottom: ctx.style.orderedList.marginBottom }}
+        padding={{
+          left: indentUnit * depth,
+          bottom: depth === 0 ? ctx.style.orderedList.marginBottom : 0,
+        }}
       >
         <Column
           crossAxisAlignment={CrossAxisAlignment.Start}
@@ -56,11 +59,7 @@ export const orderedListRenderer: BlockRenderer = {
             );
 
             return (
-              <Column
-                key={String(i)}
-                crossAxisAlignment={CrossAxisAlignment.Start}
-                spacing={ctx.style.orderedList.columnSpacing}
-              >
+              <Column key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={0}>
                 <Row
                   crossAxisAlignment={CrossAxisAlignment.Start}
                   spacing={ctx.style.orderedList.rowSpacing}
