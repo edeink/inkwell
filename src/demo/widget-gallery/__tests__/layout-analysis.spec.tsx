@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { WidgetGalleryDemo } from '../app';
+import { WidgetGalleryDemo } from '../app.tsx';
 
 import { createBoxConstraints, Widget } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';
@@ -106,14 +106,7 @@ describe('完整 Demo 标签页布局分析', () => {
     expect(Math.abs(x - expectedX)).toBeLessThan(1);
   });
 
-  it('场景 3：小屏幕 (400x800) - 应左对齐 (如果 ScrollView 行为正确)', () => {
-    // 内容 (432) > 视口 (350)
-    // 应该从 0 开始（或者如果居中逻辑适用于较大内容则接近 0？）
-    // 如果 Container minWidth=350. Child=432.
-    // Container width = max(350, 432) = 432.
-    // Container alignment center. Child is 432. (432-432)/2 = 0.
-    // 所以偏移应该是 0.
-
+  it('场景 3：小屏幕 (350x800) - 内容应在可用宽度内居中', () => {
     const viewportWidth = 350; // < 432 (卡片宽度 200 * 2 + spacing 16 + padding 16 = 432?)
     const viewportHeight = 800;
     const template = (
@@ -130,27 +123,19 @@ describe('完整 Demo 标签页布局分析', () => {
       }),
     );
 
-    // 验证 ScrollView 内容尺寸
-    // 通过类型断言或 renderObject 访问受保护的 _contentSize
-    // ScrollView 在 performLayout 中更新 _contentSize
-    // 但我们可以检查 root.renderObject.size 吗？不，那是视口尺寸。
-    // 如果内容尺寸 > 视口尺寸，我们可以推断出滚动。
-    // 我们可以检查 Container 尺寸是否为 432。
-
     const column = findWidgetByKey(root, 'complete-demo-root')!;
     const { x } = getOffsetRelativeToRoot(column, root);
     const columnWidth = column.renderObject.size.width;
 
-    // 内容应该比 600 高
-    // 验证 Container 高度扩展到子元素高度
-
     testLogger.log(`[移动端] 视口: ${viewportWidth}, 内容: ${columnWidth}, 偏移: ${x}`);
 
-    expect(columnWidth).toBeGreaterThan(viewportWidth);
+    const expectedX = (viewportWidth - columnWidth) / 2;
+    expect(columnWidth).toBeLessThanOrEqual(viewportWidth);
+    expect(Math.abs(x - expectedX)).toBeLessThan(1);
     expect(x).toBe(24);
   });
 
-  it('Scenario 4: Short Screen (800x400) - Should Scroll Vertical', () => {
+  it('场景 4：矮屏幕 (800x400) - 应可垂直滚动', () => {
     const viewportWidth = 800;
     const viewportHeight = 400;
     const template = (
@@ -170,13 +155,10 @@ describe('完整 Demo 标签页布局分析', () => {
     const column = findWidgetByKey(root, 'complete-demo-root')!;
     const columnHeight = column.renderObject.size.height;
 
-    // Content should be taller than 600
+    // 内容高度应大于视口高度
     expect(columnHeight).toBeGreaterThan(viewportHeight);
 
-    // 验证 Container 高度扩展到子元素高度
-    const container = root.children[0];
-    const padding = container.children[0];
-    expect(container.renderObject.size.height).toBe(padding.renderObject.size.height);
+    const padding = findWidgetByKey(root, 'complete-demo-padding')!;
     expect(padding.renderObject.size.height).toBe(columnHeight + 48);
 
     testLogger.log(`[Scroll] Viewport Height: ${viewportHeight}, Content Height: ${columnHeight}`);

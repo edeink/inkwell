@@ -131,6 +131,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   protected _disposed: boolean = false;
   public _isReused: boolean = false;
   protected _suppressDidUpdateWidget: boolean = false;
+  private _didInitWidget: boolean = false;
   private _cachedBoundingBox: { x: number; y: number; width: number; height: number } | null = null;
   protected _worldMatrix?: [number, number, number, number, number, number];
   private _inverseWorldMatrix: [number, number, number, number, number, number] | null = null;
@@ -193,10 +194,25 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   }
 
   constructor(data: TData) {
-    this.init(data);
+    this.initBase(data);
   }
 
   protected init(data: TData) {
+    this.initBase(data);
+    this.ensureInitWidget(data);
+  }
+
+  protected initWidget(_data: TData): void {}
+
+  protected ensureInitWidget(data: TData): void {
+    if (this._didInitWidget) {
+      return;
+    }
+    this.initWidget(data);
+    this._didInitWidget = true;
+  }
+
+  protected initBase(data: TData) {
     if (!data) {
       throw new Error('组件数据不能为空');
     }
@@ -235,6 +251,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this._needsPaint = true;
     this._isBuilt = false;
     this._cachedBoundingBox = null;
+    this._didInitWidget = false;
   }
 
   public exposeMethods(methods: Record<string, unknown>) {
@@ -845,6 +862,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * 如果是创建子元素，请调用createChildWidget
    */
   createElement(data: TData): Widget {
+    this.ensureInitWidget(data);
     this._isBuilt = true;
 
     const nextData = data;

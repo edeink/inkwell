@@ -1,0 +1,70 @@
+---
+title: Popconfirm
+---
+
+核心用途：对危险/不可逆操作增加二次确认浮层，支持标题、描述与确定/取消回调。
+
+## 如何引入
+
+- 项目代码：`import { Popconfirm } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 基础用法
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Stack allowOverflowPositioned={true}>
+  <Container width={520} height={200} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <MessageHost viewportWidth={520} viewportHeight={200} />
+  <Positioned left={16} top={16}>
+    <Popconfirm
+      title="确认删除？"
+      description="删除后无法恢复，请谨慎操作。"
+      okText="删除"
+      cancelText="取消"
+      triggerHeight={32}
+      onConfirm={() => message.success('已删除')}
+      onCancel={() => message.info('已取消')}
+    >
+      <Button danger={true}>
+        <Text text="删除" pointerEvent="none" />
+      </Button>
+    </Popconfirm>
+  </Positioned>
+</Stack>
+```
+
+### 禁用
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Popconfirm title="不会弹出" disabled={true} onConfirm={() => message.info('不会触发')}>
+  <Button disabled={true}>
+    <Text text="禁用" pointerEvent="none" />
+  </Button>
+</Popconfirm>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `title` | 标题 | `string` | 无 |
+| `description` | 描述文案 | `string` | 无 |
+| `okText` | 确定按钮文案 | `string` | `'确定'` |
+| `cancelText` | 取消按钮文案 | `string` | `'取消'` |
+| `disabled` | 禁用（不响应触发） | `boolean` | `false` |
+| `width` | 面板宽度 | `number` | `260` |
+| `triggerHeight` | 触发器高度（用于计算面板位置） | `number` | `32` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+| `onConfirm` | 点击确定回调 | `(e: InkwellEvent) => void` | 无 |
+| `onCancel` | 点击取消回调 | `(e: InkwellEvent) => void` | 无 |
+
+- children：触发器内容（建议可交互组件，如 `Button`）
+
+## Tips
+
+- 面板默认在触发器左下方展示；触发器高度不标准时建议显式传入 `triggerHeight`，避免定位偏差。
+- 面板在 pointer 离开时自动关闭，适合“悬停式确认”；如需“点击外部关闭”，可在外层自行处理事件。

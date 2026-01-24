@@ -2,18 +2,19 @@ import { useEffect, useRef } from 'react';
 
 import { useTheme } from '../../styles/theme';
 import { InkwellCanvas } from '../common/inkwell-canvas';
+import { DemoKey } from '../type';
 
 import { runApp } from './app';
 
-import Runtime from '@/runtime';
+import type Runtime from '@/runtime';
 
 export const meta = {
-  key: 'widget-gallery',
-  label: '小部件画廊',
-  description: '核心组件功能展示。包含布局组件(Row, Column, Stack)和基础组件的综合运用效果。',
+  key: DemoKey.CompGallery,
+  label: '组件画廊',
+  description: '以 Liquid Glass 风格展示 src/comp 的组件外观与交互。',
 };
 
-export default function WidgetGalleryDemo() {
+export default function CompGalleryDemo() {
   const theme = useTheme();
   const runtimeRef = useRef<Runtime | null>(null);
   const sizeRef = useRef({ width: 0, height: 0 });
@@ -37,7 +38,7 @@ export default function WidgetGalleryDemo() {
 
   return (
     <InkwellCanvas
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
       onRuntimeReady={handleRuntimeReady}
       onResize={handleResize}
     />

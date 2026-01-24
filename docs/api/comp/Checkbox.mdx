@@ -1,0 +1,48 @@
+---
+title: Checkbox
+---
+
+核心用途：复选框。支持受控（`checked`）与非受控（`defaultChecked`）两种使用方式，并可搭配 `label` 快速展示文本。
+
+## 如何引入
+
+- 项目代码：`import { Checkbox } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 非受控（推荐简单场景）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Stack allowOverflowPositioned={true}>
+  <Container width={520} height={160} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <MessageHost viewportWidth={520} viewportHeight={160} />
+  <Positioned left={16} top={16}>
+    <Column spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
+      <Checkbox
+        defaultChecked={true}
+        label="接收站内信"
+        onChange={(checked) => message.info(checked ? '已开启站内信' : '已关闭站内信')}
+      />
+      <Checkbox disabled={true} defaultChecked={true} label="已禁用" />
+    </Column>
+  </Positioned>
+</Stack>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `checked` | 受控选中态 | `boolean` | 无 |
+| `defaultChecked` | 非受控默认选中态 | `boolean` | `false` |
+| `disabled` | 禁用 | `boolean` | `false` |
+| `label` | 文本标签 | `string` | 无 |
+| `size` | 尺寸 | `'small' \| 'middle' \| 'large'` | `'middle'` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+| `onChange` | 变化回调 | `(checked: boolean, e: InkwellEvent) => void` | 无 |
+
+## Tips
+
+- 当传入 `checked` 时，组件不会维护内部状态，需要在外部同步更新 `checked` 才会反映 UI 变化。

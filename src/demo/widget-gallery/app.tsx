@@ -55,8 +55,8 @@ export const WidgetGalleryDemo = ({
       scrollBarHoverColor={scrollBarHoverColor}
       scrollBarActiveColor={scrollBarActiveColor}
     >
-      <Container minWidth={width} alignment="center">
-        <Padding padding={24}>
+      <Container minWidth={width} maxWidth={width} alignment="center">
+        <Padding key="complete-demo-padding" padding={24}>
           <Column
             key="complete-demo-root"
             mainAxisAlignment={MainAxisAlignment.Center}

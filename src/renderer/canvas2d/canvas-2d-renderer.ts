@@ -64,7 +64,14 @@ export class Canvas2DRenderer implements IRenderer {
     const devicePixelRatio = window.devicePixelRatio || 1;
     const resolution = options.resolution || devicePixelRatio;
 
-    if (resolution !== 1) {
+    if (typeof this.ctx.setTransform === 'function') {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (resolution !== 1) {
+        this.canvas.width = options.width * resolution;
+        this.canvas.height = options.height * resolution;
+        this.ctx.setTransform(resolution, 0, 0, resolution, 0, 0);
+      }
+    } else if (resolution !== 1) {
       this.canvas.width = options.width * resolution;
       this.canvas.height = options.height * resolution;
       this.ctx.scale(resolution, resolution);
@@ -140,7 +147,14 @@ export class Canvas2DRenderer implements IRenderer {
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
 
-    this.ctx.scale(resolution, resolution);
+    if (typeof this.ctx.setTransform === 'function') {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (resolution !== 1) {
+        this.ctx.setTransform(resolution, 0, 0, resolution, 0, 0);
+      }
+    } else if (resolution !== 1) {
+      this.ctx.scale(resolution, resolution);
+    }
 
     // 重新设置抗锯齿
     if (this.options.antialias !== false) {

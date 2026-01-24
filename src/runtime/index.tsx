@@ -936,7 +936,21 @@ export default class Runtime {
     try {
       const ctx = raw as CanvasRenderingContext2D;
       const canvas = ctx.canvas;
-      if (rect) {
+      const rawResolution = this.renderer.getResolution?.() ?? 1;
+      const resolution =
+        typeof rawResolution === 'number' && Number.isFinite(rawResolution) && rawResolution > 0
+          ? rawResolution
+          : 1;
+      if (typeof ctx.setTransform === 'function') {
+        ctx.save();
+        ctx.setTransform(resolution, 0, 0, resolution, 0, 0);
+        if (rect) {
+          ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+        } else {
+          ctx.clearRect(0, 0, canvas.width / resolution, canvas.height / resolution);
+        }
+        ctx.restore();
+      } else if (rect) {
         ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
       } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);

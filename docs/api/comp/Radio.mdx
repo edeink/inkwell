@@ -1,0 +1,54 @@
+---
+title: Radio
+---
+
+核心用途：单选项组件。`Radio` 自身不维护选中状态，通常与 `RadioGroup` 搭配使用以管理选中值。
+
+## 如何引入
+
+- 项目代码：`import { Radio } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 作为展示（选中态由外部控制）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Stack allowOverflowPositioned={true}>
+  <Container width={520} height={160} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <MessageHost viewportWidth={520} viewportHeight={160} />
+  <Positioned left={16} top={16}>
+    <Column spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
+      <Radio
+        value="a"
+        checked={true}
+        label="选项 A（已选中）"
+        onChange={() => message.info('点击了 A')}
+      />
+      <Radio
+        value="b"
+        checked={false}
+        label="选项 B"
+        onChange={() => message.info('点击了 B')}
+      />
+    </Column>
+  </Positioned>
+</Stack>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `value` | 选项值 | `T` | 无 |
+| `checked` | 是否选中（受控） | `boolean` | `false` |
+| `disabled` | 禁用 | `boolean` | `false` |
+| `label` | 文本标签 | `string` | 无 |
+| `size` | 尺寸 | `'small' \| 'middle' \| 'large'` | `'middle'` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+| `onChange` | 变化回调（仅在从未选中变为选中时触发） | `(value: T, e: InkwellEvent) => void` | 无 |
+
+## Tips
+
+- 推荐使用 `RadioGroup` 管理选中态；`Radio` 更适合作为受控子项渲染。

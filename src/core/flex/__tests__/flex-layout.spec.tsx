@@ -45,7 +45,33 @@ class TestContainer extends Widget {
   }
 }
 
+class TestExpandToMaxWidthIfBounded extends Widget {
+  constructor(props: any = {}) {
+    super({ ...props, type: 'TestExpandToMaxWidthIfBounded' });
+  }
+
+  protected performLayout(constraints: BoxConstraints, _childrenSizes: Size[]): Size {
+    const w = isFinite(constraints.maxWidth) ? constraints.maxWidth : 10;
+    return { width: w, height: 10 };
+  }
+}
+
 describe('Flex Layout Unit Tests', () => {
+  it('Row 非 Flex 子组件主轴应接收无界约束', () => {
+    const row = new Row({ type: 'Row', mainAxisSize: MainAxisSize.Min });
+    const child = new TestExpandToMaxWidthIfBounded();
+
+    row.children = [child];
+    child.parent = row;
+
+    row.layout(createBoxConstraints({ maxWidth: 500, maxHeight: 100 }));
+
+    const childConstraints = (child.renderObject as any).constraints;
+    expect(childConstraints.maxWidth).toBe(Infinity);
+    expect(child.renderObject.size.width).toBe(10);
+    expect(row.renderObject.size.width).toBe(10);
+  });
+
   // 1. 子元素变化需要父元素重新布局的测试用例
   it('当非Flex子元素尺寸变化时，应触发父容器(Row/Wrap)重新布局', () => {
     // Setup: Row with MainAxisSize.Min (wraps content)

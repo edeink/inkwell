@@ -1,0 +1,80 @@
+---
+title: Table
+---
+
+核心用途：表格展示。支持列宽配置、行 hover 高亮、单元格自定义渲染（文本或任意 Widget）。
+
+## 如何引入
+
+- 项目代码：`import { Table } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 基础用法（带自定义渲染）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Table
+  width={520}
+  height={240}
+  columns={[
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 160 },
+    { title: '年龄', dataIndex: 'age', key: 'age', width: 120 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 200,
+      render: (v) => (
+        <Container
+          padding={{ left: 8, right: 8, top: 4, bottom: 4 }}
+          borderRadius={6}
+          color={v === '正常' ? '#dcfce7' : '#fee2e2'}
+        >
+          <Text
+            text={String(v ?? '')}
+            fontSize={12}
+            color={v === '正常' ? '#166534' : '#991b1b'}
+            pointerEvent="none"
+          />
+        </Container>
+      ),
+    },
+  ]}
+  dataSource={[
+    { key: 'u1', name: '张三', age: 24, status: '正常' },
+    { key: 'u2', name: '李四', age: 31, status: '异常' },
+    { key: 'u3', name: '王五', age: 18, status: '正常' },
+  ]}
+/>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `columns` | 列定义 | `ReadonlyArray<TableColumn<T>>` | 无 |
+| `dataSource` | 数据源 | `ReadonlyArray<T>` | 无 |
+| `rowKey` | 行 key 生成函数（未传则尝试使用 `record.key`） | `(record: T, index: number) => string` | 无 |
+| `width` | 表格宽度 | `number` | 按列宽求和 |
+| `height` | 表格高度（传入后可滚动） | `number` | 无 |
+| `size` | 尺寸 | `'small' \| 'middle' \| 'large'` | `'middle'` |
+| `bordered` | 是否展示边框 | `boolean` | `true` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+
+## 类型
+
+### TableColumn
+
+| 字段 | 说明 | 类型 |
+| --- | --- | --- |
+| `title` | 表头标题 | `string` |
+| `dataIndex` | 取值字段（可选） | `keyof T & string` |
+| `key` | 列唯一 key | `string` |
+| `width` | 列宽 | `number` |
+| `render` | 单元格渲染 | `(value: unknown, record: T, rowIndex: number) => WidgetProps \| string` |
+
+## Tips
+
+- 列未显式传 `width` 时，默认按 `160` 计算，建议为关键列指定固定宽度以获得更稳定的布局。

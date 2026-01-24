@@ -67,28 +67,30 @@ export function renderBaseLayer(
     }
     ctx.globalAlpha = 1;
 
-    // 清晰窗口底层：先铺一层纯色，再叠加一层轻渐变，避免窗口区域过“空”
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = theme.background.container;
-    ctx.beginPath();
-    roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    const hasWindow = windowW > 0 && windowH > 0;
+    if (hasWindow) {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = theme.background.container;
+      ctx.beginPath();
+      roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
+      ctx.fill();
+      ctx.globalAlpha = 1;
 
-    const winGrad = ctx.createLinearGradient(
-      windowX,
-      windowY,
-      windowX + windowW,
-      windowY + windowH,
-    );
-    winGrad.addColorStop(0, theme.background.surface);
-    winGrad.addColorStop(1, theme.background.container);
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = winGrad;
-    ctx.beginPath();
-    roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+      const winGrad = ctx.createLinearGradient(
+        windowX,
+        windowY,
+        windowX + windowW,
+        windowY + windowH,
+      );
+      winGrad.addColorStop(0, theme.background.surface);
+      winGrad.addColorStop(1, theme.background.container);
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = winGrad;
+      ctx.beginPath();
+      roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   ctx.restore();
@@ -121,13 +123,19 @@ export function paintFrostedOverlay(
 ) {
   ctx.save();
 
-  // 通过 evenodd 把清晰窗口“挖洞”，确保模糊只作用于窗口外区域
+  const hasWindow = windowW > 0 && windowH > 0;
   ctx.beginPath();
   roundedRectPath(ctx, 0, 0, width, height, radius);
-  roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
-  try {
-    ctx.clip('evenodd');
-  } catch {
+  if (hasWindow) {
+    roundedRectPath(ctx, windowX, windowY, windowW, windowH, windowR);
+  }
+  if (hasWindow) {
+    try {
+      ctx.clip('evenodd');
+    } catch {
+      ctx.clip();
+    }
+  } else {
     ctx.clip();
   }
 
@@ -197,7 +205,7 @@ export function paintClearWindow(
   windowR: number,
   baseLayerCanvas: CanvasImageSource | null,
 ) {
-  if (!baseLayerCanvas) {
+  if (!baseLayerCanvas || windowW <= 0 || windowH <= 0) {
     return;
   }
   ctx.save();
@@ -220,6 +228,9 @@ export function paintWindowFrame(
   windowH: number,
   windowR: number,
 ) {
+  if (windowW <= 0 || windowH <= 0) {
+    return;
+  }
   ctx.save();
 
   ctx.globalAlpha = 0.65;

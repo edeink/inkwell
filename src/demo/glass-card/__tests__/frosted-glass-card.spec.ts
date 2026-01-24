@@ -84,6 +84,34 @@ describe('FrostedGlassCard', () => {
     expect((ctx.drawImage as any).mock.calls.length).toBe(3);
   });
 
+  it('windowRect=false 时不应绘制清晰窗口挖孔', () => {
+    WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
+
+    const ctx = createMock2dContext();
+    const renderer = {
+      getResolution: () => 1,
+      getRawInstance: () => ctx,
+      drawRect: vi.fn(),
+    } as any;
+
+    const w = new FrostedGlassCard({
+      type: 'FrostedGlassCard',
+      width: 420,
+      height: 240,
+      theme: Themes.light,
+      blurPx: 12,
+      glassAlpha: 0.18,
+      windowRect: false,
+      animate: false,
+    });
+    w.createElement(w.data as any);
+    w.layout(createBoxConstraints({ maxWidth: 800, maxHeight: 600 }));
+    (w as any).paintSelf({ renderer } as any);
+
+    expect(ctx.drawImage).toHaveBeenCalled();
+    expect((ctx.drawImage as any).mock.calls.length).toBe(2);
+  });
+
   it('应复用离屏底图缓存，避免重复分配', () => {
     WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
 

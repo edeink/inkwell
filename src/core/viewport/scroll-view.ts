@@ -268,7 +268,6 @@ export class ScrollView extends Viewport {
     }
   }
 
-  @expose
   public override scrollTo(x: number, y: number) {
     super.scrollTo(x, y);
     // 立即同步滚动条位置
@@ -805,3 +804,5 @@ export class ScrollView extends Viewport {
     return false;
   }
 }
+
+expose(ScrollView.prototype, 'scrollTo');

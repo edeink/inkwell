@@ -1,0 +1,50 @@
+---
+title: Modal
+---
+
+核心用途：模态对话框，包含遮罩、标题、内容区与底部操作区（确定/取消）。
+
+## 如何引入
+
+- 项目代码：`import { Modal } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 基础用法（打开状态）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Modal
+  open={true}
+  viewportWidth={600}
+  viewportHeight={300}
+  title="示例对话框"
+  onOk={() => console.log('点击确定')}
+  onCancel={() => console.log('点击取消')}
+>
+  <Text text="这里是内容区域" />
+</Modal>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `open` | 是否打开 | `boolean` | 必填 |
+| `viewportWidth` | 视口宽度（用于遮罩与居中） | `number` | 必填 |
+| `viewportHeight` | 视口高度（用于遮罩与居中） | `number` | 必填 |
+| `width` | 对话框宽度 | `number` | `520` |
+| `title` | 标题 | `string` | 无 |
+| `maskClosable` | 点击遮罩是否触发取消 | `boolean` | `true` |
+| `okText` | 确认按钮文本 | `string` | `'确定'` |
+| `cancelText` | 取消按钮文本 | `string` | `'取消'` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+| `onOk` | 点击确认回调 | `(e: InkwellEvent) => void` | 无 |
+| `onCancel` | 点击取消/遮罩回调 | `(e: InkwellEvent) => void` | 无 |
+
+- children 支持类型：`Multi`
+
+## Tips
+
+- Modal 依赖外部传入 `viewportWidth/viewportHeight`，用于遮罩尺寸与居中布局；在应用中通常来自 Runtime 的画布尺寸。

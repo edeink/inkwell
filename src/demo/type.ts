@@ -6,6 +6,7 @@ export enum ThemeType {
 export enum DemoKey {
   InteractiveCounter = 'interactive-counter',
   WidgetGallery = 'widget-gallery',
+  CompGallery = 'comp-gallery',
   Swiper = 'swiper',
   GlassCard = 'glass-card',
   Mindmap = 'mindmap',

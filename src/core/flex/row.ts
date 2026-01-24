@@ -229,7 +229,7 @@ export class Row extends Widget<RowProps> {
       // 子组件可以根据自己的内容决定高度
       return {
         minWidth: 0,
-        maxWidth: constraints.maxWidth,
+        maxWidth: Infinity,
         minHeight: 0,
         maxHeight: constraints.maxHeight,
       };

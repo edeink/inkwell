@@ -1,0 +1,50 @@
+---
+title: CheckboxGroup
+---
+
+核心用途：复选框组选中管理。支持横向/纵向布局、受控（`value`）与非受控（`defaultValue`）两种模式。
+
+## 如何引入
+
+- 项目代码：`import { CheckboxGroup } from '@/comp'`
+- 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
+
+## 示例
+
+### 非受控（默认值）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Stack allowOverflowPositioned={true}>
+  <Container width={520} height={180} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <MessageHost viewportWidth={520} viewportHeight={180} />
+  <Positioned left={16} top={16}>
+    <CheckboxGroup
+      direction="vertical"
+      options={[
+        { label: '邮件', value: 'mail' },
+        { label: '短信', value: 'sms' },
+        { label: '推送', value: 'push', disabled: true },
+      ]}
+      defaultValue={['mail']}
+      onChange={(v) => message.info(`当前选择：${v.join(', ') || '无'}`)}
+    />
+  </Positioned>
+</Stack>
+```
+
+## 属性
+
+| 属性名 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| `options` | 选项列表 | `ReadonlyArray<{ label: string; value: T; disabled?: boolean; key?: string }>` | 无 |
+| `value` | 受控值 | `ReadonlyArray<T>` | 无 |
+| `defaultValue` | 非受控默认值 | `ReadonlyArray<T>` | `[]` |
+| `disabled` | 整组禁用 | `boolean` | `false` |
+| `direction` | 排列方向 | `'horizontal' \| 'vertical'` | `'horizontal'` |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
+| `onChange` | 变化回调 | `(value: T[]) => void` | 无 |
+
+## Tips
+
+- 受控模式下传入 `value` 时，需要在外部更新 `value` 才会反映 UI 变化。

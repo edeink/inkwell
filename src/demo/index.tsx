@@ -2,6 +2,7 @@ import { theme as antTheme, ConfigProvider, Tabs } from 'antd';
 import cn from 'classnames';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import CompGallery, { meta as CompGalleryMeta } from './comp-gallery';
 import EditableText, { meta as EditableTextMeta } from './editable-text';
 import GlassCard, { meta as GlassCardMeta } from './glass-card';
 import styles from './index.module.less';
@@ -108,6 +109,7 @@ export default function UnifiedDemo() {
       { Component: InteractiveCounter, ...InteractiveCounterMeta },
       { Component: EditableText, ...EditableTextMeta },
       { Component: WidgetGallery, ...WidgetGalleryMeta },
+      { Component: CompGallery, ...CompGalleryMeta },
       { Component: Swiper, ...SwiperMeta },
       { Component: GlassCard, ...GlassCardMeta },
       { Component: Mindmap, ...MindmapMeta },

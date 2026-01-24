@@ -58,13 +58,15 @@ export interface FrostedGlassCardProps extends WidgetProps {
    */
   windowRatio?: number;
 
-  windowRect?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    radius?: number;
-  };
+  windowRect?:
+    | false
+    | {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        radius?: number;
+      };
 
   textSampleRect?: { x: number; y: number; width: number; height: number };
 
@@ -98,6 +100,7 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
   private blurPx: number = 10;
   private glassAlpha: number = 0.18;
   private windowRatio: number = 0.32;
+  private windowDisabled: boolean = false;
   private windowRect?: {
     x: number;
     y: number;
@@ -137,6 +140,7 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
   private cachedWindowR: number = 0;
   private cachedHasWindowRect: boolean = false;
   private cachedWindowRatio: number = 0.32;
+  private cachedWindowDisabled: boolean = false;
   private cachedWindowRectX: number = 0;
   private cachedWindowRectY: number = 0;
   private cachedWindowRectW: number = 0;
@@ -157,9 +161,12 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     this.windowRatio =
       typeof data.windowRatio === 'number' ? clamp(data.windowRatio, 0.2, 0.5) : 0.32;
     const wr = data.windowRect;
+    this.windowDisabled = wr === false;
     this.windowRect = undefined;
     if (
+      !this.windowDisabled &&
       wr &&
+      typeof wr === 'object' &&
       typeof wr.x === 'number' &&
       typeof wr.y === 'number' &&
       typeof wr.width === 'number' &&
@@ -379,11 +386,27 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     this.cachedLayoutH = height;
     this.cachedRadius = radius;
     this.cachedPadding = padding;
+    this.cachedWindowDisabled = this.windowDisabled;
     let windowX = 0;
     let windowY = 0;
     let windowW = 0;
     let windowH = 0;
     let windowR = 0;
+    if (this.windowDisabled) {
+      this.cachedHasWindowRect = false;
+      this.cachedWindowRatio = this.windowRatio;
+      this.cachedWindowRectX = 0;
+      this.cachedWindowRectY = 0;
+      this.cachedWindowRectW = 0;
+      this.cachedWindowRectH = 0;
+      this.cachedWindowRectRadius = null;
+      this.cachedWindowX = 0;
+      this.cachedWindowY = 0;
+      this.cachedWindowW = 0;
+      this.cachedWindowH = 0;
+      this.cachedWindowR = 0;
+      return;
+    }
     if (this.windowRect) {
       this.cachedHasWindowRect = true;
       this.cachedWindowRatio = this.windowRatio;
@@ -613,8 +636,12 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     const padding = Math.max(12, Math.min(20, Math.min(width, height) * 0.06));
     const wr = this.windowRect;
     let windowInputsChanged = false;
+    if (this.cachedWindowDisabled !== this.windowDisabled) {
+      windowInputsChanged = true;
+    }
     if (wr) {
       windowInputsChanged =
+        windowInputsChanged ||
         !this.cachedHasWindowRect ||
         this.cachedWindowRectX !== wr.x ||
         this.cachedWindowRectY !== wr.y ||
@@ -622,7 +649,10 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
         this.cachedWindowRectH !== wr.height ||
         this.cachedWindowRectRadius !== (typeof wr.radius === 'number' ? wr.radius : null);
     } else {
-      windowInputsChanged = this.cachedHasWindowRect || this.cachedWindowRatio !== this.windowRatio;
+      windowInputsChanged =
+        windowInputsChanged ||
+        this.cachedHasWindowRect ||
+        this.cachedWindowRatio !== this.windowRatio;
     }
     if (
       windowInputsChanged ||

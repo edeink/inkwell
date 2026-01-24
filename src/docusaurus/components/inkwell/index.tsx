@@ -7,6 +7,7 @@ import styles from './index.module.less';
 
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
+import * as Comp from '@/comp';
 import * as Core from '@/core';
 import { InteractiveCounterDemo } from '@/demo/interactive-counter/app';
 import { MindmapDemo } from '@/demo/mindmap/app';
@@ -145,6 +146,7 @@ export default function Inkwell({
           'WidgetGalleryDemo',
           'SpreadsheetDemoApp',
           'SwiperDemoApp',
+          ...Object.keys(Comp),
           ...Object.keys(Core),
           `${compiled}; return Template;`,
         );
@@ -162,6 +164,7 @@ export default function Inkwell({
           WidgetGalleryDemo,
           SpreadsheetDemoApp,
           Swiper,
+          ...Object.values(Comp),
           ...Object.values(Core),
         );
         await runtime.renderTemplate(tplFn as () => JSXElement);
