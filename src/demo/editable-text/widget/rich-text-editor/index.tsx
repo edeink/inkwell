@@ -1,5 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
 
+/**
+ * 文件用途：RichTextEditor 富文本编辑器（Widget）。
+ * 主要功能：
+ * - 基于 Editable 基类复用输入捕获、选区与光标逻辑
+ * - 用 RichText/Text 进行按字符渲染，支持粗体/斜体/颜色/字号/字体
+ * - 对外提供 caret/selection 的 clientRect，用于浮动工具栏定位
+ */
 import type { Widget } from '@/core/base';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
@@ -25,6 +32,9 @@ export interface RichSelectionInfo {
   selectionClientRect: { left: number; top: number; width: number; height: number } | null;
 }
 
+/**
+ * 富文本 span 的样式描述（按区间应用）。
+ */
 export type RichTextSpanStyle = {
   bold?: boolean;
   italic?: boolean;
@@ -33,12 +43,18 @@ export type RichTextSpanStyle = {
   fontFamily?: string;
 };
 
+/**
+ * 富文本样式区间：以 [start, end) 表示作用范围。
+ */
 export type RichTextSpan = {
   start: number;
   end: number;
   style: RichTextSpanStyle;
 };
 
+/**
+ * 富文本文档模型：text 为纯文本，spans 为可选样式区间。
+ */
 export type RichTextDoc = {
   text: string;
   spans?: ReadonlyArray<RichTextSpan>;

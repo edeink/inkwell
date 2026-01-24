@@ -1,11 +1,12 @@
 /** @jsxImportSource @/utils/compiler */
 
 /**
- * RichTextPanel：富文本示例面板。
- *
- * 结构：
- * - 标题
- * - 编辑区（RichTextEditor）+ 划词浮动工具栏（应用到选区）
+ * 文件用途：富文本示例面板（RichTextEditor + 选区浮动工具栏）。
+ * 主要功能：
+ * - 组合 RichTextEditor 与 RichTextToolbar，演示选区样式应用
+ * - 根据选区矩形计算浮动工具栏位置，并做边界约束
+ * 作者：InkWell 团队
+ * 最后修改日期：2026-01-24
  */
 import {
   RichTextEditor,

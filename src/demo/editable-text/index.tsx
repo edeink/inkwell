@@ -1,3 +1,9 @@
+/**
+ * 文件用途：editable-text 示例的 React 外壳（Demos 面板入口）。
+ * 主要功能：
+ * - 通过 InkwellCanvas 创建 Runtime
+ * - 在 Runtime 就绪、尺寸变化、主题变化时调用 runApp 重新渲染
+ */
 import { useEffect, useRef } from 'react';
 
 import { useTheme } from '../../styles/theme';

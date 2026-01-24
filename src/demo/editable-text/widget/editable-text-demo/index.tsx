@@ -1,11 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
 
 /**
- * EditableTextDemoWidget：editable-text 示例的 Widget 入口。
- *
- * 目标：
- * - 页面只负责组合与排版（1 行 3 列等分）
- * - 各列内部的业务组件拆分到 widget 子目录，降低 app.tsx 复杂度
+ * 文件用途：editable-text 示例的 Widget 入口（页面级组合）。
+ * 主要功能：
+ * - 组合 InputPanel / TextAreaPanel / RichTextPanel 三个示例列
+ * - 维护各列输入值与富文本初始 spans（演示粗体/斜体/颜色/字号/字体）
  */
 import { InputPanel } from '../input-panel';
 import { RichTextPanel } from '../rich-text-panel';

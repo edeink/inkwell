@@ -1,8 +1,20 @@
 /** @jsxImportSource @/utils/compiler */
+/**
+ * 文件用途：editable-text demo 内的可编辑基类（Widget 抽象基类）。
+ * 主要功能：
+ * - 通过隐藏的 input/textarea 捕获浏览器输入与快捷键
+ * - 维护文本、选区、光标闪烁与拖拽选区等通用状态
+ * - 提供坐标换算与自动滚动钩子，供子类实现具体渲染
+ * 作者：InkWell 团队
+ * 最后修改日期：2026-01-24
+ */
 import { type InkwellEvent, ScrollView, StatefulWidget, type WidgetProps } from '@/core';
 import { invert, transformPoint } from '@/core/helper/transform';
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
+/**
+ * Editable 的基础 props（由具体输入组件扩展）。
+ */
 export interface EditableProps extends WidgetProps {
   value: string;
   onChange?: (value: string) => void;
@@ -13,6 +25,9 @@ export interface EditableProps extends WidgetProps {
   autoFocus?: boolean;
 }
 
+/**
+ * Editable 的基础 state（由具体输入组件扩展）。
+ */
 export interface EditableState {
   text: string;
   selectionStart: number;
@@ -27,6 +42,9 @@ type DragPointerTarget = {
   _worldMatrix?: [number, number, number, number, number, number];
 };
 
+/**
+ * 可编辑基类：负责输入捕获、选区维护与拖拽交互；渲染由子类实现。
+ */
 export abstract class Editable<P extends EditableProps> extends StatefulWidget<P, EditableState> {
   protected input: HTMLInputElement | HTMLTextAreaElement | null = null;
   protected measureCanvas: HTMLCanvasElement | null = null;
@@ -76,6 +94,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     this._handleFocusBound = (_e) => this.handleFocus();
   }
 
+  /**
+   * 初始化可编辑能力：创建测量上下文与隐藏输入框。
+   */
   protected initEditable() {
     this.initMeasureContext();
     this.createHiddenInput();
@@ -165,6 +186,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
 
   protected abstract createDomInput(): HTMLInputElement | HTMLTextAreaElement;
 
+  /**
+   * 创建不可见的 DOM 输入控件，用于接收输入法/快捷键/剪贴板等事件。
+   */
   private createHiddenInput() {
     if (typeof document === 'undefined') {
       return;
@@ -196,6 +220,9 @@ export abstract class Editable<P extends EditableProps> extends StatefulWidget<P
     this.startInputPositionLoop();
   }
 
+  /**
+   * 输入框位置同步循环：跟随 caret 的 clientRect 更新隐藏输入框的位置与尺寸。
+   */
   private startInputPositionLoop() {
     if (typeof window === 'undefined') {
       return;

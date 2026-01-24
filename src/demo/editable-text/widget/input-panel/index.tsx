@@ -1,9 +1,10 @@
 /** @jsxImportSource @/utils/compiler */
 
 /**
- * InputPanel：单行输入示例（Input + 外观容器 + 状态展示）。
- *
- * 说明：这里不封装编辑能力，只负责 demo 中的组合与对齐。
+ * 文件用途：单行输入示例面板（Input + 外观容器 + 状态展示）。
+ * 主要功能：
+ * - 演示 Input 的输入、光标与选区效果
+ * - 展示当前输入值，便于观察 onChange 的联动
  */
 import type { WidgetProps } from '@/core/base';
 import type { ThemePalette } from '@/styles/theme';
