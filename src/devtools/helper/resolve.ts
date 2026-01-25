@@ -5,17 +5,23 @@ import type { Widget } from '@/core/base';
  * 尝试从命中节点向上查找，直到找到一个在树中可以通过选择器定位到的节点。
  * 这保证了 DevTools 的 Tree 跳转和高亮的一致性。
  */
-export function resolveHitWidget(root: Widget, hitNode: Widget | null): Widget | null {
+export function resolveHitWidget(
+  root: Widget,
+  hitNode: Widget | null,
+  overlayRoot?: Widget | null,
+): Widget | null {
   if (!root || !hitNode) {
     return hitNode;
   }
 
-  const isReachableInTree = (target: Widget): boolean => {
-    if (target === root) {
+  const roots = [root, overlayRoot].filter(Boolean) as Widget[];
+
+  const isReachableInTree = (treeRoot: Widget, target: Widget): boolean => {
+    if (target === treeRoot) {
       return true;
     }
     let cur: Widget | null = target;
-    while (cur && cur !== root) {
+    while (cur && cur !== treeRoot) {
       const p = cur.parent as Widget | null;
       if (!p) {
         return false;
@@ -26,13 +32,22 @@ export function resolveHitWidget(root: Widget, hitNode: Widget | null): Widget |
       }
       cur = p;
     }
-    return cur === root;
+    return cur === treeRoot;
+  };
+
+  const isReachableInAnyTree = (target: Widget): boolean => {
+    for (const r of roots) {
+      if (isReachableInTree(r, target)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   let target: Widget | null = hitNode;
 
   while (target) {
-    if (isReachableInTree(target)) {
+    if (isReachableInAnyTree(target)) {
       return target;
     }
     target = target.parent as Widget | null;

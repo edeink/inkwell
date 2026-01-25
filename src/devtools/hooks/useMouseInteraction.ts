@@ -142,13 +142,19 @@ export function useMouseInteraction({
         const y = cy - rect.top;
 
         const root = runtime!.getRootWidget?.();
+        const overlayRoot = runtime!.getOverlayRootWidget?.() ?? null;
         let finalTarget: Widget | null = null;
 
         if (root) {
           try {
-            const rawTarget = hitTest(root, x, y);
-            // 使用 resolveHitWidget 确保选中的节点在树中可达
-            finalTarget = resolveHitWidget(root, rawTarget);
+            let rawTarget: Widget | null = null;
+            if (overlayRoot) {
+              rawTarget = hitTest(overlayRoot, x, y);
+            }
+            if (!rawTarget) {
+              rawTarget = hitTest(root, x, y);
+            }
+            finalTarget = resolveHitWidget(root, rawTarget, overlayRoot);
           } catch (err) {
             console.error('[DevTools] 命中测试失败:', err);
           }

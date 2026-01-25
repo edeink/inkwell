@@ -68,6 +68,12 @@ function computeWidgetTreeHash(root: Widget | null): number {
   return h >>> 0;
 }
 
+function computeRuntimeTreeHash(runtime: Runtime): number {
+  const rootHash = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
+  const overlayHash = computeWidgetTreeHash(runtime.getOverlayRootWidget?.() ?? null);
+  return hashNum(rootHash, overlayHash);
+}
+
 export interface DevToolsProps {
   onClose?: () => void;
   shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
@@ -98,7 +104,10 @@ export function DevToolsPanel(props: DevToolsProps) {
 
   const treeBuild = useMemo(() => {
     void version;
-    return buildDevtoolsTree(runtime?.getRootWidget?.() ?? null);
+    return buildDevtoolsTree(
+      runtime?.getRootWidget?.() ?? null,
+      runtime?.getOverlayRootWidget?.() ?? null,
+    );
   }, [runtime, version]);
   const treeData = useMemo(() => treeBuild.treeData as DataNode[], [treeBuild]);
 
@@ -131,11 +140,11 @@ export function DevToolsPanel(props: DevToolsProps) {
       return;
     }
 
-    lastTreeHashRef.current = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
+    lastTreeHashRef.current = computeRuntimeTreeHash(runtime);
     setVersion((v) => v + 1);
     const update = throttle(
       () => {
-        const nextHash = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
+        const nextHash = computeRuntimeTreeHash(runtime);
         if (nextHash === lastTreeHashRef.current) {
           return;
         }

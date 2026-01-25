@@ -25,7 +25,10 @@ function getSiblingDuplicateKeys(children: Widget[]): unknown[] {
   return Array.from(dup);
 }
 
-export function buildDevtoolsTree(root: Widget | null): DevtoolsTreeBuild {
+export function buildDevtoolsTree(
+  root: Widget | null,
+  overlayRoot: Widget | null,
+): DevtoolsTreeBuild {
   const widgetByNodeKey = new Map<string, Widget>();
   const parentByNodeKey = new Map<string, string | null>();
   const nodeKeyByWidget = new WeakMap<Widget, string>();
@@ -61,12 +64,13 @@ export function buildDevtoolsTree(root: Widget | null): DevtoolsTreeBuild {
     };
   }
 
-  if (!root) {
+  const roots = [root, overlayRoot].filter(Boolean) as Widget[];
+  if (roots.length === 0) {
     return { treeData: [], widgetByNodeKey, parentByNodeKey, nodeKeyByWidget };
   }
 
   return {
-    treeData: [wrap(root, '0', null)],
+    treeData: roots.map((r, idx) => wrap(r, String(idx), null)),
     widgetByNodeKey,
     parentByNodeKey,
     nodeKeyByWidget,

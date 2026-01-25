@@ -15,6 +15,7 @@ import {
   TextAlignVertical,
   type WidgetProps,
 } from '@/core';
+import Runtime from '@/runtime';
 
 export type MessageType = 'info' | 'success' | 'warning' | 'error';
 
@@ -29,6 +30,19 @@ export interface MessagePayload {
 }
 
 const MESSAGE_EVENT = 'inkwell:comp-message';
+const MESSAGE_OVERLAY_KEY = '__inkwell_message_overlay__';
+const DEFAULT_MAX_COUNT = 5;
+
+type RuntimeStore = {
+  items: MessageItem[];
+  timeouts: Map<string, number>;
+  lastViewportW: number;
+  lastViewportH: number;
+  lastTheme: ThemePalette | null;
+};
+
+const STORE = new WeakMap<Runtime, RuntimeStore>();
+let mountedExternalHostCount = 0;
 
 export const message = {
   info(content: string, options: MessageOptions = {}) {
@@ -48,6 +62,12 @@ export const message = {
 function emitMessage(payload: MessagePayload): void {
   if (typeof window === 'undefined') {
     return;
+  }
+  if (mountedExternalHostCount === 0) {
+    const rt = pickRuntimeForMessage();
+    if (rt) {
+      enqueueToRuntime(rt, payload);
+    }
   }
   try {
     window.dispatchEvent(new CustomEvent(MESSAGE_EVENT, { detail: payload }));
@@ -80,6 +100,7 @@ export class MessageHost extends StatefulWidget<MessageHostProps, MessageHostSta
 
   protected override initWidget(data: MessageHostProps) {
     super.initWidget(data);
+    mountedExternalHostCount++;
     this.state.items = [];
     for (const t of this.timeouts.values()) {
       clearTimeout(t);
@@ -102,6 +123,7 @@ export class MessageHost extends StatefulWidget<MessageHostProps, MessageHostSta
   }
 
   public override dispose(): void {
+    mountedExternalHostCount = Math.max(0, mountedExternalHostCount - 1);
     if (typeof window !== 'undefined' && this.boundListener) {
       window.removeEventListener(MESSAGE_EVENT, this.boundListener as EventListener);
     }
@@ -186,4 +208,140 @@ function resolveMessageColor(theme: ThemePalette, type: MessageType): string {
     return theme.danger;
   }
   return theme.text.primary;
+}
+
+function pickRuntimeForMessage(): Runtime | null {
+  const list = Runtime.listCanvas();
+  if (list.length === 0) {
+    return null;
+  }
+  if (list.length === 1) {
+    return list[0].runtime;
+  }
+  const active = document.activeElement;
+  for (const it of list) {
+    const raw = it.runtime.getRenderer()?.getRawInstance?.() as CanvasRenderingContext2D | null;
+    const canvas = raw?.canvas ?? null;
+    if (canvas && active === canvas) {
+      return it.runtime;
+    }
+  }
+  return list[0].runtime;
+}
+
+function ensureRuntimeStore(rt: Runtime): RuntimeStore {
+  const prev = STORE.get(rt);
+  if (prev) {
+    return prev;
+  }
+  const next: RuntimeStore = {
+    items: [],
+    timeouts: new Map(),
+    lastViewportW: 0,
+    lastViewportH: 0,
+    lastTheme: null,
+  };
+  STORE.set(rt, next);
+  return next;
+}
+
+function enqueueToRuntime(rt: Runtime, payload: MessagePayload): void {
+  const root = rt.getRootWidget();
+  const viewportW = root?.renderObject.size.width ?? 0;
+  const viewportH = root?.renderObject.size.height ?? 0;
+  if (viewportW <= 0 || viewportH <= 0) {
+    return;
+  }
+
+  const store = ensureRuntimeStore(rt);
+  const id = `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const maxCount = DEFAULT_MAX_COUNT;
+  const next = [...store.items, { ...payload, id }];
+  store.items = next.length > maxCount ? next.slice(next.length - maxCount) : next;
+
+  const t = window.setTimeout(() => removeFromRuntime(rt, id), payload.duration);
+  store.timeouts.set(id, t);
+
+  const theme = getDefaultTheme();
+  renderOverlay(rt, store, viewportW, viewportH, theme);
+}
+
+function removeFromRuntime(rt: Runtime, id: string): void {
+  const store = STORE.get(rt);
+  if (!store) {
+    return;
+  }
+  const t = store.timeouts.get(id);
+  if (t) {
+    clearTimeout(t);
+    store.timeouts.delete(id);
+  }
+  store.items = store.items.filter((it) => it.id !== id);
+
+  if (store.items.length === 0) {
+    rt.removeOverlayEntry(MESSAGE_OVERLAY_KEY);
+    return;
+  }
+
+  const root = rt.getRootWidget();
+  const viewportW = root?.renderObject.size.width ?? 0;
+  const viewportH = root?.renderObject.size.height ?? 0;
+  if (viewportW <= 0 || viewportH <= 0) {
+    rt.removeOverlayEntry(MESSAGE_OVERLAY_KEY);
+    return;
+  }
+  const theme = getDefaultTheme();
+  renderOverlay(rt, store, viewportW, viewportH, theme);
+}
+
+function renderOverlay(
+  rt: Runtime,
+  store: RuntimeStore,
+  viewportW: number,
+  viewportH: number,
+  theme: ThemePalette,
+): void {
+  store.lastViewportW = viewportW;
+  store.lastViewportH = viewportH;
+  store.lastTheme = theme;
+  const tokens = getDefaultTokens();
+  const top = 16;
+  const right = 16;
+
+  rt.setOverlayEntry(
+    MESSAGE_OVERLAY_KEY,
+    <SizedBox
+      key={MESSAGE_OVERLAY_KEY}
+      width={viewportW}
+      height={viewportH}
+      pointerEvent="none"
+      zIndex={2000}
+    >
+      <Stack allowOverflowPositioned={true} pointerEvent="none">
+        <Positioned key="message-pos" right={right} top={top} pointerEvent="none">
+          <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.End}>
+            {store.items.map((it) => (
+              <Container
+                key={it.id}
+                padding={{ left: 12, right: 12, top: 8, bottom: 8 }}
+                borderRadius={tokens.borderRadius}
+                border={{ width: tokens.borderWidth, color: theme.border.base }}
+                color={theme.background.container}
+                pointerEvent="auto"
+              >
+                <Text
+                  text={it.content}
+                  fontSize={14}
+                  color={resolveMessageColor(theme, it.type)}
+                  lineHeight={18}
+                  textAlignVertical={TextAlignVertical.Center}
+                  pointerEvent="none"
+                />
+              </Container>
+            ))}
+          </Column>
+        </Positioned>
+      </Stack>
+    </SizedBox>,
+  );
 }

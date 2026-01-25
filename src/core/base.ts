@@ -244,6 +244,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       this.children.length = 0;
     }
     this.parent = null;
+    this.__root = null;
+    this._runtime = undefined;
     this._disposed = false;
     this._isReused = false;
     this._dirty = false;
@@ -537,6 +539,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 清理引用，防止内存泄漏
     this.children = [];
     this.parent = null;
+    this.__root = null;
     this._layer = null;
     this._runtime = undefined;
     this._owner = undefined;
@@ -872,13 +875,10 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       ? (prevData.children as WidgetProps[])
       : [];
 
-    // 优化：缓存长度
-    const nextChildrenLength = Array.isArray(nextData.children)
-      ? (nextData.children as unknown[]).length
-      : 0;
-
-    const nextChildrenData =
-      nextChildrenLength > 0 ? (nextData.children as WidgetProps[]) : prevChildrenData || [];
+    const nextChildrenData = Array.isArray(nextData.children)
+      ? (nextData.children as WidgetProps[])
+      : prevChildrenData;
+    const nextChildrenLength = nextChildrenData.length;
 
     const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
 

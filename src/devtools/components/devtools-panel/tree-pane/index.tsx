@@ -50,6 +50,12 @@ export function DevtoolsTreePane({
   const [search, setSearch] = useState<string>('');
   const searchLower = useMemo(() => search.trim().toLowerCase(), [search]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const breadcrumbsRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState<number>(0);
+
   const breadcrumbScrollRef = useRef<HTMLDivElement>(null);
   const [scrollState, setScrollState] = useState({ left: false, right: false });
 
@@ -89,28 +95,51 @@ export function DevtoolsTreePane({
     });
   }, [breadcrumbs]);
 
-  const treeHeight = (() => {
-    if (info.isNarrow) {
-      return Math.max(120, info.treeHeight - 92);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) {
+      return;
     }
-    if (info.dock === 'top' || info.dock === 'bottom') {
-      return Math.max(120, info.height - 160);
+    const update = () => setContainerHeight(el.clientHeight);
+    update();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
     }
-    return info.height + 160;
-  })();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const treeHeight = useMemo(() => {
+    const containerH =
+      containerHeight ||
+      (info.isNarrow
+        ? info.treeHeight
+        : info.dock === 'top' || info.dock === 'bottom'
+          ? info.height
+          : window.innerHeight);
+    const tipH = tipRef.current?.getBoundingClientRect().height ?? 0;
+    const toolbarH = toolbarRef.current?.getBoundingClientRect().height ?? 0;
+    const breadcrumbsH = breadcrumbsRef.current?.getBoundingClientRect().height ?? 0;
+    const gap = 8;
+    return Math.max(120, Math.floor(containerH - tipH - toolbarH - breadcrumbsH - gap));
+  }, [containerHeight, info.dock, info.height, info.isNarrow, info.treeHeight]);
 
   return (
-    <>
+    <div ref={containerRef} className={styles.treePaneRoot}>
       {isMultiRuntime && (
-        <SimpleTip
-          message={
-            '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
-            '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
-          }
-        />
+        <div ref={tipRef}>
+          <SimpleTip
+            message={
+              '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
+              '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
+            }
+          />
+        </div>
       )}
 
-      <div className={styles.treeToolbar}>
+      <div className={styles.treeToolbar} ref={toolbarRef}>
         <div className={styles.treeToolbarSearch}>
           <Input.Search
             value={search}
@@ -155,7 +184,7 @@ export function DevtoolsTreePane({
         }
       />
 
-      <div className={styles.breadcrumbsContainer}>
+      <div className={styles.breadcrumbsContainer} ref={breadcrumbsRef}>
         <div
           className={cn(styles.navBtn, { [styles.disabled]: !scrollState.left })}
           onClick={() => {
@@ -195,6 +224,6 @@ export function DevtoolsTreePane({
           <RightOutlined style={{ fontSize: 10 }} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

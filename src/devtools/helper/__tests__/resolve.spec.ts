@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { resolveHitWidget } from '../resolve';
 
@@ -49,6 +49,15 @@ describe('resolveHitWidget', () => {
 
     const result = resolveHitWidget(root, hidden2);
     expect(result).toBe(valid);
+  });
+
+  it('overlayRoot 可达时应支持返回 overlay 树内节点', () => {
+    const overlayChild = createMockWidget('overlay-child');
+    const overlayRoot = createMockWidget('overlay-root', [overlayChild]);
+    const root = createMockWidget('root');
+
+    const result = resolveHitWidget(root, overlayChild, overlayRoot);
+    expect(result).toBe(overlayChild);
   });
 
   it('整条父链都不可达时应回退到原始命中节点', () => {

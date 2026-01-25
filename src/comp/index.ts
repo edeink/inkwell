@@ -26,7 +26,7 @@ export {
   type RadioProps,
   type SelectOption,
   type SelectProps,
-} from './selection';
+} from './select';
 export {
   Pagination,
   Table,

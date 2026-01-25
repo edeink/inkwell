@@ -4,12 +4,37 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BuildContext, Size } from '@/core/base';
 import type { WidgetProps } from '@/core/type';
 
-import { Popconfirm, Select } from '@/comp';
-import { Column, Container, CrossAxisAlignment, MainAxisAlignment, Row, Widget } from '@/core';
-import { hitTest } from '@/core/events/dispatcher';
+import { DatePicker, Form, FormItem, Popconfirm, Select } from '@/comp';
+import {
+  Column,
+  Container,
+  CrossAxisAlignment,
+  MainAxisAlignment,
+  Row,
+  ScrollView,
+  Widget,
+} from '@/core';
+import { dispatchToTree, hitTest } from '@/core/events/dispatcher';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';
+
+async function waitForValue<T>(
+  getter: () => T,
+  predicate: (v: T) => boolean,
+  timeoutMs: number = 300,
+  intervalMs: number = 10,
+): Promise<T> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const v = getter();
+    if (predicate(v)) {
+      return v;
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return getter();
+}
 
 class PaintSpyWidget extends Widget<WidgetProps> {
   constructor(
@@ -93,6 +118,44 @@ describe('Overlay 运行时能力', () => {
     expect(overlayNode).not.toBeNull();
   });
 
+  it('FormItem 中控件列应按内容高度收缩，不应被父约束拉伸', async () => {
+    await runtime.render(
+      <Container key="root" width={420} height={260} pointerEvent="auto">
+        <Form key="form" theme={Themes.light}>
+          <FormItem key="fi" theme={Themes.light} label="城市">
+            <Select
+              key="select"
+              theme={Themes.light}
+              width={200}
+              options={[
+                { label: '北京', value: 'bj' },
+                { label: '上海', value: 'sh' },
+              ]}
+            />
+          </FormItem>
+        </Form>
+      </Container>,
+    );
+
+    const root1 = runtime.getRootWidget()!;
+    const fi1 = findWidget(root1, '#fi') as any;
+    const controlCol1 = fi1.children[1] as any;
+    const select1 = findWidget(root1, '#select') as any;
+
+    expect(controlCol1.renderObject.size.height).toBe(select1.renderObject.size.height);
+
+    (select1 as any).toggleOpened({ stopPropagation: vi.fn() } as any);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const root2 = runtime.getRootWidget()!;
+    const fi2 = findWidget(root2, '#fi') as any;
+    const controlCol2 = fi2.children[1] as any;
+    const select2 = findWidget(root2, '#select') as any;
+
+    expect(controlCol2.renderObject.size.height).toBe(select2.renderObject.size.height);
+  });
+
   it('Popconfirm 打开时应通过 Overlay 渲染面板并可置顶命中', async () => {
     await runtime.render(
       <Container key="root" width={420} height={240} pointerEvent="auto">
@@ -116,6 +179,133 @@ describe('Overlay 运行时能力', () => {
     const overlayHit = hitTest(root, 1, 50);
     expect(overlayHit).not.toBeNull();
     expect(overlayHit?.key).not.toBe('root');
+  });
+
+  it('Select 打开后滚动 ScrollView 应跟随触发器更新位置', async () => {
+    await runtime.render(
+      <Container key="root" width={420} height={240} pointerEvent="auto">
+        <ScrollView key="sv" enableBounceVertical={false} enableBounceHorizontal={false}>
+          <Column key="content" spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
+            <Container key="spacer" width={200} height={260} pointerEvent="none" />
+            <Select
+              key="select"
+              theme={Themes.light}
+              width={200}
+              options={[
+                { label: '北京', value: 'bj' },
+                { label: '上海', value: 'sh' },
+              ]}
+            />
+          </Column>
+        </ScrollView>
+      </Container>,
+    );
+
+    const root = runtime.getRootWidget()!;
+    const select = findWidget(root, '#select') as Select;
+    (select as any).toggleOpened({ stopPropagation: vi.fn() } as any);
+    runtime.tick();
+    const overlayKey = `#${String((select as any).key)}-dropdown-overlay`;
+
+    const overlayNode1 = await waitForValue(
+      () => {
+        const overlayRoot = runtime.getOverlayRootWidget();
+        if (!overlayRoot) {
+          return null;
+        }
+        return findWidget(overlayRoot, overlayKey) as any;
+      },
+      (v) => v != null,
+    );
+    expect(overlayNode1).not.toBeNull();
+    const top1 = overlayNode1.top as number;
+
+    const sv = findWidget(root, '#sv') as ScrollView;
+    const prevScrollY = sv.scrollY;
+    sv.scrollBy(0, 120);
+    runtime.tick();
+    const overlayNode2 = await waitForValue(
+      () => {
+        const overlayRoot = runtime.getOverlayRootWidget();
+        if (!overlayRoot) {
+          return null;
+        }
+        return findWidget(overlayRoot, overlayKey) as any;
+      },
+      (v) => v != null,
+    );
+    const nextScrollY = sv.scrollY;
+    const actualDeltaY = nextScrollY - prevScrollY;
+    expect(overlayNode2).not.toBeNull();
+    const top2 = overlayNode2.top as number;
+
+    expect(Math.round(top2 - top1)).toBe(-Math.round(actualDeltaY));
+  });
+
+  it('点击空白区域应收起 Overlay 面板', async () => {
+    await runtime.render(
+      <Container key="root" width={420} height={260} pointerEvent="auto">
+        <Column key="col" spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
+          <Select
+            key="select"
+            theme={Themes.light}
+            width={200}
+            options={[
+              { label: '北京', value: 'bj' },
+              { label: '上海', value: 'sh' },
+            ]}
+          />
+          <Popconfirm key="pc" title="标题" description="描述">
+            <Container key="pc-trigger" width={80} height={32} pointerEvent="auto" />
+          </Popconfirm>
+          <DatePicker key="dp" theme={Themes.light} width={200} />
+        </Column>
+      </Container>,
+    );
+
+    const root = runtime.getRootWidget()!;
+
+    const select = findWidget(root, '#select') as Select;
+    (select as any).toggleOpened({ stopPropagation: vi.fn() } as any);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const selectOverlayKey = `${String((select as any).key)}-dropdown-overlay`;
+    const overlayRoot1 = runtime.getOverlayRootWidget()!;
+    const selectMask = findWidget(overlayRoot1, `#${selectOverlayKey}-mask`) as any;
+    const p1 = selectMask.getAbsolutePosition();
+    dispatchToTree(overlayRoot1, selectMask, 'pointerdown', p1.dx + 1, p1.dy + 1);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(runtime.getOverlayRootWidget()).toBeNull();
+
+    const pc = findWidget(root, '#pc') as Popconfirm;
+    (pc as any).toggleOpened({ stopPropagation: vi.fn() } as any);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const pcOverlayKey = `${String((pc as any).key)}-popconfirm-overlay`;
+    const overlayRoot2 = runtime.getOverlayRootWidget()!;
+    const pcMask = findWidget(overlayRoot2, `#${pcOverlayKey}-mask`) as any;
+    const p2 = pcMask.getAbsolutePosition();
+    dispatchToTree(overlayRoot2, pcMask, 'pointerdown', p2.dx + 1, p2.dy + 1);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(runtime.getOverlayRootWidget()).toBeNull();
+
+    const dp = findWidget(root, '#dp') as DatePicker;
+    (dp as any).toggleOpened({ stopPropagation: vi.fn() } as any);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const dpOverlayKey = `${String((dp as any).key)}-date-picker-overlay`;
+    const overlayRoot3 = runtime.getOverlayRootWidget()!;
+    const dpMask = findWidget(overlayRoot3, `#${dpOverlayKey}-mask`) as any;
+    const p3 = dpMask.getAbsolutePosition();
+    dispatchToTree(overlayRoot3, dpMask, 'pointerdown', p3.dx + 1, p3.dy + 1);
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(runtime.getOverlayRootWidget()).toBeNull();
   });
 
   it('存在 Overlay 时，裁剪不应影响 Overlay 的绘制顺序', () => {
