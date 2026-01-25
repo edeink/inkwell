@@ -3,10 +3,12 @@ import { EventManager } from '../core/events/manager';
 import { EventRegistry } from '../core/events/registry';
 import { clearSelectorCache } from '../core/helper/widget-selector';
 import { PipelineOwner } from '../core/pipeline/owner';
+import { Stack } from '../core/stack';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
 import type { BoxConstraints, BuildContext } from '../core/base';
+import type { StackProps } from '../core/stack';
 import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
 import type { ComponentType } from '@/core/type';
 import type { AnyElement } from '@/utils/compiler/jsx-compiler';
@@ -50,6 +52,8 @@ export default class Runtime {
   private _container: HTMLElement | null = null;
   private _canvas: HTMLCanvasElement | null = null;
   private rootWidget: Widget | null = null;
+  private overlayHost: Widget | null = null;
+  private overlayEntries: Map<string, AnyElement> = new Map();
   public pipelineOwner: PipelineOwner = new PipelineOwner();
   private oomErrorCount: number = 0;
   private lastOomToastAt: number = 0;
@@ -82,6 +86,7 @@ export default class Runtime {
    */
   destroy(): void {
     const root = this.rootWidget;
+    const overlayRoot = this.overlayHost;
 
     // 1. 取消正在进行的布局调度
     if (this.__layoutRaf) {
@@ -107,6 +112,8 @@ export default class Runtime {
 
     // 4. 清理引用
     this.rootWidget = null;
+    this.overlayHost = null;
+    this.overlayEntries.clear();
     this._canvas = null;
     this._container = null;
     this.dirtyWidgets.clear();
@@ -119,6 +126,9 @@ export default class Runtime {
       clearSelectorCache(root);
       this.disposeWidgetTree(root);
       Widget._pool.clear();
+    }
+    if (overlayRoot) {
+      this.disposeWidgetTree(overlayRoot);
     }
   }
 
@@ -257,8 +267,75 @@ export default class Runtime {
     return this.rootWidget;
   }
 
+  getOverlayRootWidget(): Widget | null {
+    if (!this.overlayHost) {
+      return null;
+    }
+    if (this.overlayHost.children.length === 0) {
+      return null;
+    }
+    return this.overlayHost;
+  }
+
   getCanvasId(): string | null {
     return this.canvasId;
+  }
+
+  setOverlayEntry(key: string, element: AnyElement | null): void {
+    if (!key) {
+      return;
+    }
+    if (!element) {
+      this.removeOverlayEntry(key);
+      return;
+    }
+    this.overlayEntries.set(key, element);
+    this.syncOverlayHost();
+    this.requestTick();
+  }
+
+  removeOverlayEntry(key: string): void {
+    if (!key) {
+      return;
+    }
+    if (!this.overlayEntries.has(key)) {
+      return;
+    }
+    this.overlayEntries.delete(key);
+    this.syncOverlayHost();
+    this.requestTick();
+  }
+
+  private ensureOverlayHost(): Widget {
+    if (this.overlayHost) {
+      return this.overlayHost;
+    }
+    const host = new Stack({
+      type: 'Stack',
+      key: '__inkwell_overlay__',
+      allowOverflowPositioned: true,
+      alignment: 'topLeft',
+      fit: 'expand',
+      children: [],
+    } as StackProps);
+    host.runtime = this;
+    host.createElement(host.data);
+    this.overlayHost = host;
+    return host;
+  }
+
+  private syncOverlayHost(): void {
+    const host = this.ensureOverlayHost();
+    if (this.overlayEntries.size === 0) {
+      host.createElement({ ...host.data, children: [] });
+      return;
+    }
+
+    EventRegistry.setCurrentRuntime(this);
+    const children = Array.from(this.overlayEntries.values()).map((el) => compileElement(el));
+    EventRegistry.setCurrentRuntime(null);
+
+    host.createElement({ ...host.data, children });
   }
 
   addTickListener(listener: () => void): () => void {
@@ -731,6 +808,8 @@ export default class Runtime {
       return;
     }
 
+    const overlayRoot = this.getOverlayRootWidget();
+
     // 创建构建上下文
     const context: BuildContext = {
       renderer: this.renderer,
@@ -741,13 +820,31 @@ export default class Runtime {
     // 执行绘制
     try {
       this.renderer.save();
-
-      // 处理裁剪逻辑
-      if (dirtyRect) {
-        this.renderer.clipRect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+      try {
+        if (dirtyRect) {
+          this.renderer.clipRect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        }
+        this.rootWidget.paint(context);
+      } finally {
+        this.renderer.restore();
       }
 
-      this.rootWidget.paint(context);
+      if (overlayRoot) {
+        this.renderer.save();
+        try {
+          const size = this.rootWidget.renderObject.size;
+          overlayRoot.layout({
+            minWidth: size.width,
+            maxWidth: size.width,
+            minHeight: size.height,
+            maxHeight: size.height,
+          });
+          overlayRoot.paint(context);
+        } finally {
+          this.renderer.restore();
+        }
+      }
+
       this.renderer.render();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -756,13 +853,6 @@ export default class Runtime {
         this.notifyOomRisk('检测到 Canvas 渲染异常，可能是内存溢出');
       }
       throw e;
-    } finally {
-      // 确保恢复状态，防止状态污染
-      try {
-        this.renderer.restore();
-      } catch (e) {
-        console.error('Failed to restore renderer state:', e);
-      }
     }
     this.monitorMemory();
   }
@@ -910,6 +1000,10 @@ export default class Runtime {
     }
 
     if (fullRepaint) {
+      dirtyRect = undefined;
+    }
+
+    if (this.getOverlayRootWidget()) {
       dirtyRect = undefined;
     }
 

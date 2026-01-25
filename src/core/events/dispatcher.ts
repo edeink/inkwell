@@ -32,6 +32,17 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
   if (!root) {
     return null;
   }
+  const rt = root.runtime;
+  const overlayRoot =
+    (rt && 'getOverlayRootWidget' in rt && typeof rt.getOverlayRootWidget === 'function'
+      ? (rt.getOverlayRootWidget() as Widget | null)
+      : null) ?? null;
+  if (overlayRoot) {
+    const hit = overlayRoot.visitHitTest(x, y);
+    if (hit) {
+      return hit;
+    }
+  }
   return root.visitHitTest(x, y);
 }
 

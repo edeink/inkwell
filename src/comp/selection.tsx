@@ -12,7 +12,6 @@ import {
   Positioned,
   Row,
   ScrollView,
-  Stack,
   StatefulWidget,
   Text,
   TextAlign,
@@ -501,13 +500,82 @@ export class Select<T extends string | number = string> extends StatefulWidget<
     }
     e.stopPropagation?.();
     this.setState({ opened: !this.state.opened });
+    this.syncOverlay();
   };
 
   private closeOpened = () => {
     if (this.state.opened) {
       this.setState({ opened: false, hoveredKey: null });
+      this.syncOverlay();
     }
   };
+
+  private setHoveredKey = (k: string | null) => {
+    this.setState({ hoveredKey: k });
+    this.syncOverlay();
+  };
+
+  private getOverlayEntryKey(): string {
+    return `${String(this.key)}-dropdown-overlay`;
+  }
+
+  private syncOverlay(): void {
+    const rt = this.runtime;
+    if (!rt) {
+      return;
+    }
+    const overlayKey = this.getOverlayEntryKey();
+    if (!this.state.opened) {
+      rt.removeOverlayEntry(overlayKey);
+      return;
+    }
+
+    const theme = getDefaultTheme(this.props.theme);
+    const tokens = getDefaultTokens();
+    const size = this.props.size ?? 'middle';
+    const height = tokens.controlHeight[size];
+
+    const dropdownMaxH = Math.max(120, height * 6);
+    const dropdownItemH = height;
+    const dropdownGap = 4;
+    const dropdownPadding = 6;
+    const innerW = this.props.width - dropdownPadding * 2;
+
+    const pos = this.getAbsolutePosition();
+    rt.setOverlayEntry(
+      overlayKey,
+      <PositionedDropdown
+        widgetKey={overlayKey}
+        theme={theme}
+        tokens={tokens}
+        width={this.props.width}
+        left={pos.dx}
+        top={pos.dy + height + 4}
+        maxHeight={dropdownMaxH}
+        padding={dropdownPadding}
+        itemHeight={dropdownItemH}
+        itemGap={dropdownGap}
+        innerWidth={innerW}
+        hoveredKey={this.state.hoveredKey}
+        options={this.props.options}
+        onHoverKey={this.setHoveredKey}
+        onClose={this.closeOpened}
+        onSelect={(v) => {
+          this.updateValue(v);
+          this.closeOpened();
+        }}
+        disabled={!!this.props.disabled}
+      />,
+    );
+  }
+
+  override dispose(): void {
+    const rt = this.runtime;
+    if (rt) {
+      rt.removeOverlayEntry(this.getOverlayEntryKey());
+    }
+    super.dispose();
+  }
 
   render() {
     const theme = getDefaultTheme(this.props.theme);
@@ -525,69 +593,37 @@ export class Select<T extends string | number = string> extends StatefulWidget<
     const triggerBg = this.state.opened ? theme.state.hover : theme.background.container;
     const triggerBorderColor = this.state.opened ? theme.primary : theme.border.base;
 
-    const dropdownMaxH = Math.max(120, height * 6);
-    const dropdownItemH = height;
-    const dropdownGap = 4;
-    const dropdownPadding = 6;
-    const innerW = this.props.width - dropdownPadding * 2;
-
     return (
-      <Stack allowOverflowPositioned={true}>
-        <Container
-          key={`${this.key}-trigger`}
-          width={this.props.width}
-          height={height}
-          padding={{ left: paddingX, right: paddingX }}
-          borderRadius={tokens.borderRadius}
-          border={{
-            width: tokens.borderWidth,
-            color: disabled ? theme.border.base : triggerBorderColor,
-          }}
-          color={disabled ? theme.state.disabled : triggerBg}
-          cursor={disabled ? 'not-allowed' : 'pointer'}
-          alignment="center"
-          pointerEvent="auto"
-          onPointerDown={this.toggleOpened}
+      <Container
+        key={`${this.key}-trigger`}
+        width={this.props.width}
+        height={height}
+        padding={{ left: paddingX, right: paddingX }}
+        borderRadius={tokens.borderRadius}
+        border={{
+          width: tokens.borderWidth,
+          color: disabled ? theme.border.base : triggerBorderColor,
+        }}
+        color={disabled ? theme.state.disabled : triggerBg}
+        cursor={disabled ? 'not-allowed' : 'pointer'}
+        alignment="center"
+        pointerEvent="auto"
+        onPointerDown={this.toggleOpened}
+      >
+        <Row
+          mainAxisAlignment={MainAxisAlignment.Start}
+          crossAxisAlignment={CrossAxisAlignment.Center}
         >
-          <Row
-            mainAxisAlignment={MainAxisAlignment.Start}
-            crossAxisAlignment={CrossAxisAlignment.Center}
-          >
-            <Text
-              text={label ?? this.props.placeholder ?? '请选择'}
-              fontSize={fontSize}
-              lineHeight={height}
-              color={label ? theme.text.primary : theme.text.placeholder}
-              textAlignVertical={TextAlignVertical.Center}
-              pointerEvent="none"
-            />
-          </Row>
-        </Container>
-
-        {this.state.opened ? (
-          <PositionedDropdown
-            widgetKey={`${this.key}-dropdown`}
-            theme={theme}
-            tokens={tokens}
-            width={this.props.width}
-            top={height + 4}
-            maxHeight={dropdownMaxH}
-            padding={dropdownPadding}
-            itemHeight={dropdownItemH}
-            itemGap={dropdownGap}
-            innerWidth={innerW}
-            hoveredKey={this.state.hoveredKey}
-            options={this.props.options}
-            onHoverKey={(k) => this.setState({ hoveredKey: k })}
-            onClose={this.closeOpened}
-            onSelect={(v) => {
-              this.updateValue(v);
-              this.closeOpened();
-            }}
-            disabled={disabled}
+          <Text
+            text={label ?? this.props.placeholder ?? '请选择'}
+            fontSize={fontSize}
+            lineHeight={height}
+            color={label ? theme.text.primary : theme.text.placeholder}
+            textAlignVertical={TextAlignVertical.Center}
+            pointerEvent="none"
           />
-        ) : null}
-      </Stack>
+        </Row>
+      </Container>
     );
   }
 }
@@ -597,6 +633,7 @@ function PositionedDropdown<T extends string | number>(props: {
   theme: ThemePalette;
   tokens: ReturnType<typeof getDefaultTokens>;
   width: number;
+  left: number;
   top: number;
   maxHeight: number;
   padding: number;
@@ -612,7 +649,7 @@ function PositionedDropdown<T extends string | number>(props: {
 }) {
   const { theme, tokens } = props;
   return (
-    <Positioned key={props.widgetKey} left={0} top={props.top}>
+    <Positioned key={props.widgetKey} left={props.left} top={props.top}>
       <ClipRect borderRadius={tokens.borderRadius}>
         <Container
           width={props.width}
