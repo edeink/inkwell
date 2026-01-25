@@ -111,15 +111,22 @@ export class CompGalleryRoot extends StatefulWidget<CompGalleryRootProps, CompGa
       },
     ];
 
-    const tableData: TableRow[] = Array.from({ length: 12 }).map((_, idx) => ({
-      key: String(idx + 1),
-      name: idx % 2 === 0 ? '张三' : '李四',
-      age: 20 + (idx % 6),
-      city: idx % 3 === 0 ? '上海' : idx % 3 === 1 ? '北京' : '深圳',
-      phone: `138-${String(1000 + idx).padStart(4, '0')}-${String(2000 + idx).padStart(4, '0')}`,
-      email: `user${idx + 1}@example.com`,
-      address: `某市某区 ${idx + 1} 号`,
-    }));
+    const tablePageSize = 12;
+    const tableTotal = 120;
+    const tableStartIndex = (this.state.currentPage - 1) * tablePageSize;
+    const tableCount = Math.max(0, Math.min(tablePageSize, tableTotal - tableStartIndex));
+    const tableData: TableRow[] = Array.from({ length: tableCount }).map((_, idx) => {
+      const n = tableStartIndex + idx;
+      return {
+        key: String(n + 1),
+        name: n % 2 === 0 ? `张三${n + 1}` : `李四${n + 1}`,
+        age: 20 + (n % 20),
+        city: n % 3 === 0 ? '上海' : n % 3 === 1 ? '北京' : '深圳',
+        phone: `138-${String(1000 + n).padStart(4, '0')}-${String(2000 + n).padStart(4, '0')}`,
+        email: `user${n + 1}@example.com`,
+        address: `某市某区 ${n + 1} 号`,
+      };
+    });
 
     const contentW = clamp(Math.min(760, width - 48), 0, 760);
 
@@ -257,7 +264,7 @@ export class CompGalleryRoot extends StatefulWidget<CompGalleryRootProps, CompGa
                         >
                           <Pagination
                             theme={currentTheme}
-                            total={120}
+                            total={tableTotal}
                             current={this.state.currentPage}
                             onChange={(p) => this.setState({ currentPage: p })}
                           />

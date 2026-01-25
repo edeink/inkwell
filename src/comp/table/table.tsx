@@ -3,6 +3,7 @@ import { getDefaultTheme, getDefaultTokens, type CompSize } from '../theme';
 
 import type { BoxConstraints, Size } from '@/core/base';
 import type { ThemePalette } from '@/styles/theme';
+import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import {
   Column,
@@ -23,7 +24,11 @@ export interface TableColumn<T extends Record<string, unknown> = Record<string, 
   key: string;
   width?: number;
   fixed?: 'left' | 'right';
-  render?: (value: unknown, record: T, rowIndex: number) => WidgetProps | string;
+  render?: (
+    value: unknown,
+    record: T,
+    rowIndex: number,
+  ) => WidgetProps | JSXElement | string | number | null | undefined;
 }
 
 export interface TableProps<
@@ -37,6 +42,7 @@ export interface TableProps<
   dataSource: ReadonlyArray<T>;
   rowKey?: (record: T, index: number) => string;
   bordered?: boolean;
+  affixHeader?: boolean;
 }
 
 interface TableState {
@@ -52,6 +58,14 @@ function isWidgetPropsLike(v: unknown): v is WidgetProps {
   }
   const r = v as Record<string, unknown>;
   return typeof r.type === 'string';
+}
+
+function isJSXElementLike(v: unknown): v is JSXElement {
+  if (!v || typeof v !== 'object') {
+    return false;
+  }
+  const r = v as Record<string, unknown>;
+  return 'type' in r && 'props' in r;
 }
 
 export class Table<
@@ -124,6 +138,7 @@ export class Table<
     const rowH = tokens.controlHeight[size];
     const fontSize = tokens.controlFontSize[size];
     const bordered = this.props.bordered ?? true;
+    const affixHeader = this.props.affixHeader ?? true;
     const border = bordered ? { width: tokens.borderWidth, color: theme.border.base } : undefined;
 
     const headerBg = theme.component.headerBg;
@@ -228,7 +243,9 @@ export class Table<
           pointerEvent="none"
         />
       ) : isWidgetPropsLike(content) ? (
-        content
+        (content as WidgetProps)
+      ) : isJSXElementLike(content) ? (
+        (content as JSXElement)
       ) : null;
       const rowKey = this.getRowKey(args.record, args.rowIndex);
       return (
@@ -360,6 +377,129 @@ export class Table<
       </Row>
     );
 
+    const header = (
+      <Container height={rowH}>
+        <Row key={`${this.key}-thead`} spacing={0} crossAxisAlignment={CrossAxisAlignment.Center}>
+          {leftIdx.map((colIndex) => (
+            <Container
+              key={`th-${columns[colIndex].key}`}
+              width={computedWidths[colIndex]}
+              height={rowH}
+              padding={{ left: 12, right: 12 }}
+              color={headerBg}
+              border={bordered ? { width: 0, color: theme.border.base } : undefined}
+              alignment="center"
+              pointerEvent="none"
+            >
+              <Text
+                text={columns[colIndex].title}
+                fontSize={fontSize}
+                color={headerText}
+                lineHeight={rowH}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Container>
+          ))}
+
+          {midIdx.length ? (
+            <Expanded flex={{ flex: 1 }}>
+              <ScrollView
+                key={`${this.key}-thead-scroll-x`}
+                height={rowH}
+                enableBounceVertical={false}
+                enableBounceHorizontal={true}
+                scrollX={this.state.scrollX}
+                scrollY={0}
+                alwaysShowScrollbarX={showScrollbarX}
+                alwaysShowScrollbarY={false}
+                scrollBarVisibilityMode="hidden"
+                onScroll={(scrollX) => {
+                  if (scrollX !== this.state.scrollX) {
+                    this.setState({ scrollX });
+                  }
+                }}
+              >
+                <Container width={midContentW}>
+                  <Row spacing={0} crossAxisAlignment={CrossAxisAlignment.Center}>
+                    {midIdx.map((colIndex) => (
+                      <Container
+                        key={`th-${columns[colIndex].key}`}
+                        width={computedWidths[colIndex]}
+                        height={rowH}
+                        padding={{ left: 12, right: 12 }}
+                        color={headerBg}
+                        border={bordered ? { width: 0, color: theme.border.base } : undefined}
+                        alignment="center"
+                        pointerEvent="none"
+                      >
+                        <Text
+                          text={columns[colIndex].title}
+                          fontSize={fontSize}
+                          color={headerText}
+                          lineHeight={rowH}
+                          textAlignVertical={TextAlignVertical.Center}
+                          pointerEvent="none"
+                        />
+                      </Container>
+                    ))}
+                  </Row>
+                </Container>
+              </ScrollView>
+            </Expanded>
+          ) : null}
+
+          {rightIdx.map((colIndex) => (
+            <Container
+              key={`th-${columns[colIndex].key}`}
+              width={computedWidths[colIndex]}
+              height={rowH}
+              padding={{ left: 12, right: 12 }}
+              color={headerBg}
+              border={bordered ? { width: 0, color: theme.border.base } : undefined}
+              alignment="center"
+              pointerEvent="none"
+            >
+              <Text
+                text={columns[colIndex].title}
+                fontSize={fontSize}
+                color={headerText}
+                lineHeight={rowH}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Container>
+          ))}
+        </Row>
+      </Container>
+    );
+
+    const body =
+      hasFixedHeight && typeof bodyH === 'number' ? (
+        <Container height={bodyH}>
+          <ScrollView
+            key={`${this.key}-tbody-scroll-y`}
+            height={bodyH}
+            enableBounceVertical={true}
+            enableBounceHorizontal={false}
+            alwaysShowScrollbarX={false}
+            alwaysShowScrollbarY={false}
+            scrollBarVisibilityMode="auto"
+          >
+            {affixHeader ? (
+              bodyContent
+            ) : (
+              <Column spacing={0} crossAxisAlignment={CrossAxisAlignment.Start}>
+                {header}
+                {bodyContent}
+              </Column>
+            )}
+          </ScrollView>
+        </Container>
+      ) : (
+        bodyContent
+      );
+
     return (
       <Container
         key={`${this.key}-root`}
@@ -377,122 +517,8 @@ export class Table<
         onPointerLeave={() => this.setState({ hovered: false, hoveredRowKey: null })}
       >
         <Column spacing={0} crossAxisAlignment={CrossAxisAlignment.Start}>
-          <Container height={rowH}>
-            <Row
-              key={`${this.key}-thead`}
-              spacing={0}
-              crossAxisAlignment={CrossAxisAlignment.Center}
-            >
-              {leftIdx.map((colIndex) => (
-                <Container
-                  key={`th-${columns[colIndex].key}`}
-                  width={computedWidths[colIndex]}
-                  height={rowH}
-                  padding={{ left: 12, right: 12 }}
-                  color={headerBg}
-                  border={bordered ? { width: 0, color: theme.border.base } : undefined}
-                  alignment="center"
-                  pointerEvent="none"
-                >
-                  <Text
-                    text={columns[colIndex].title}
-                    fontSize={fontSize}
-                    color={headerText}
-                    lineHeight={rowH}
-                    textAlignVertical={TextAlignVertical.Center}
-                    pointerEvent="none"
-                  />
-                </Container>
-              ))}
-
-              {midIdx.length ? (
-                <Expanded flex={{ flex: 1 }}>
-                  <ScrollView
-                    key={`${this.key}-thead-scroll-x`}
-                    height={rowH}
-                    enableBounceVertical={false}
-                    enableBounceHorizontal={true}
-                    scrollX={this.state.scrollX}
-                    scrollY={0}
-                    alwaysShowScrollbarX={showScrollbarX}
-                    alwaysShowScrollbarY={false}
-                    scrollBarVisibilityMode="hidden"
-                    onScroll={(scrollX) => {
-                      if (scrollX !== this.state.scrollX) {
-                        this.setState({ scrollX });
-                      }
-                    }}
-                  >
-                    <Container width={midContentW}>
-                      <Row spacing={0} crossAxisAlignment={CrossAxisAlignment.Center}>
-                        {midIdx.map((colIndex) => (
-                          <Container
-                            key={`th-${columns[colIndex].key}`}
-                            width={computedWidths[colIndex]}
-                            height={rowH}
-                            padding={{ left: 12, right: 12 }}
-                            color={headerBg}
-                            border={bordered ? { width: 0, color: theme.border.base } : undefined}
-                            alignment="center"
-                            pointerEvent="none"
-                          >
-                            <Text
-                              text={columns[colIndex].title}
-                              fontSize={fontSize}
-                              color={headerText}
-                              lineHeight={rowH}
-                              textAlignVertical={TextAlignVertical.Center}
-                              pointerEvent="none"
-                            />
-                          </Container>
-                        ))}
-                      </Row>
-                    </Container>
-                  </ScrollView>
-                </Expanded>
-              ) : null}
-
-              {rightIdx.map((colIndex) => (
-                <Container
-                  key={`th-${columns[colIndex].key}`}
-                  width={computedWidths[colIndex]}
-                  height={rowH}
-                  padding={{ left: 12, right: 12 }}
-                  color={headerBg}
-                  border={bordered ? { width: 0, color: theme.border.base } : undefined}
-                  alignment="center"
-                  pointerEvent="none"
-                >
-                  <Text
-                    text={columns[colIndex].title}
-                    fontSize={fontSize}
-                    color={headerText}
-                    lineHeight={rowH}
-                    textAlignVertical={TextAlignVertical.Center}
-                    pointerEvent="none"
-                  />
-                </Container>
-              ))}
-            </Row>
-          </Container>
-
-          {hasFixedHeight ? (
-            <Container height={bodyH}>
-              <ScrollView
-                key={`${this.key}-tbody-scroll-y`}
-                height={bodyH}
-                enableBounceVertical={true}
-                enableBounceHorizontal={false}
-                alwaysShowScrollbarX={false}
-                alwaysShowScrollbarY={false}
-                scrollBarVisibilityMode="auto"
-              >
-                {bodyContent}
-              </ScrollView>
-            </Container>
-          ) : (
-            bodyContent
-          )}
+          {hasFixedHeight ? (affixHeader ? header : null) : header}
+          {body}
         </Column>
       </Container>
     );

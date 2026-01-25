@@ -11,13 +11,14 @@ title: Table
 
 ## 示例
 
-### 基础用法（带自定义渲染）
+### 表头不吸附（affixHeader=false）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <Table
   width={520}
   height={240}
+  affixHeader={false}
   columns={[
     { title: '姓名', dataIndex: 'name', key: 'name', width: 160 },
     { title: '年龄', dataIndex: 'age', key: 'age', width: 120 },
@@ -42,11 +43,41 @@ title: Table
       ),
     },
   ]}
-  dataSource={[
-    { key: 'u1', name: '张三', age: 24, status: '正常' },
-    { key: 'u2', name: '李四', age: 31, status: '异常' },
-    { key: 'u3', name: '王五', age: 18, status: '正常' },
+  dataSource={Array.from({ length: 24 }).map((_, i) => ({
+    key: `u${i + 1}`,
+    name: i % 2 === 0 ? '张三' : '李四',
+    age: 18 + (i % 20),
+    status: i % 3 === 0 ? '异常' : '正常',
+  }))}
+/>
+```
+
+### 固定表头与固定列（多个吸附）
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<Table
+  width={720}
+  height={240}
+  affixHeader={true}
+  columns={[
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 140, fixed: 'left' },
+    { title: '年龄', dataIndex: 'age', key: 'age', width: 100, fixed: 'left' },
+    { title: '城市', dataIndex: 'city', key: 'city', width: 140 },
+    { title: '电话', dataIndex: 'phone', key: 'phone', width: 180 },
+    { title: '邮箱', dataIndex: 'email', key: 'email', width: 220 },
+    { title: '地址', dataIndex: 'address', key: 'address', width: 240 },
+    { title: '操作', key: 'action', width: 120, fixed: 'right', render: () => '查看' },
   ]}
+  dataSource={Array.from({ length: 24 }).map((_, i) => ({
+    key: String(i + 1),
+    name: `用户${i + 1}`,
+    age: 18 + (i % 20),
+    city: ['北京', '上海', '深圳', '杭州'][i % 4],
+    phone: `188-0000-${String(i + 1).padStart(4, '0')}`,
+    email: `user${i + 1}@example.com`,
+    address: `示例地址 ${i + 1} 号`,
+  }))}
 />
 ```
 
@@ -61,6 +92,7 @@ title: Table
 | `height` | 表格高度（传入后可滚动） | `number` | 无 |
 | `size` | 尺寸 | `'small' \| 'middle' \| 'large'` | `'middle'` |
 | `bordered` | 是否展示边框 | `boolean` | `true` |
+| `affixHeader` | 是否固定表头（需设置 `height`） | `boolean` | `true` |
 | `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
 
 ## 类型
@@ -73,7 +105,8 @@ title: Table
 | `dataIndex` | 取值字段（可选） | `keyof T & string` |
 | `key` | 列唯一 key | `string` |
 | `width` | 列宽 | `number` |
-| `render` | 单元格渲染 | `(value: unknown, record: T, rowIndex: number) => WidgetProps \| string` |
+| `fixed` | 固定列（可选） | `'left' \| 'right'` |
+| `render` | 单元格渲染 | `(value: unknown, record: T, rowIndex: number) => WidgetProps \| JSXElement \| string \| number \| null \| undefined` |
 
 ## Tips
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Table, type TableColumn } from '../table';
 import { getDefaultTokens } from '../theme';
 
-import { Container } from '@/core';
+import { Container, Text } from '@/core';
 import { createBoxConstraints } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
@@ -29,6 +29,22 @@ function buildFitColumns(): ReadonlyArray<TableColumn<RowData>> {
     { title: '姓名', key: 'name', dataIndex: 'name', width: 120, fixed: 'left' },
     { title: '城市', key: 'city', dataIndex: 'city', width: 160 },
     { title: '操作', key: 'action', width: 120, fixed: 'right', render: () => '查看' },
+  ];
+}
+
+function buildColumnsWithWidgetRender(): ReadonlyArray<TableColumn<RowData>> {
+  return [
+    { title: '姓名', key: 'name', dataIndex: 'name', width: 120 },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_value, record) => (
+        <Container key={`act-${record.key}`} padding={{ left: 4, right: 4 }} color="#FF0000">
+          <Text text="查看" />
+        </Container>
+      ),
+    },
   ];
 }
 
@@ -124,6 +140,39 @@ describe('Table Header 布局', () => {
     expect(headerInsideBody).toBeNull();
   });
 
+  it('设置 affixHeader=false 且 height 固定时 Header 应随 Body 纵向滚动', () => {
+    const tokens = getDefaultTokens();
+    const rowH = tokens.controlHeight.middle;
+
+    const el = (
+      <Container key="root4" width={400} height={200}>
+        <Table
+          key="tbl4"
+          width={400}
+          height={200}
+          affixHeader={false}
+          columns={buildColumns()}
+          dataSource={buildData()}
+        />
+      </Container>
+    );
+
+    const json = compileElement(el as any);
+    const root = WidgetRegistry.createWidget(json)!;
+    root.createElement(json);
+    root.layout(createBoxConstraints({ maxWidth: 1000, maxHeight: 1000 }));
+
+    const header = findWidget(root, 'Row#tbl4-thead') as any;
+    expect(header).toBeTruthy();
+    expect(header.renderObject.size.height).toBe(rowH);
+
+    const bodyScrollY = findWidget(root, 'ScrollView#tbl4-tbody-scroll-y') as any;
+    expect(bodyScrollY).toBeTruthy();
+
+    const headerInsideBody = findWidget(bodyScrollY, '#tbl4-thead') as any;
+    expect(headerInsideBody).toBeTruthy();
+  });
+
   it('固定列宽度总和超过 Table 宽度时应自动缩放，避免溢出外层宽度', () => {
     const el = (
       <Container key="root3" width={400} height={200}>
@@ -161,6 +210,53 @@ describe('Table Header 布局', () => {
       0,
     );
     expect(sum).toBeCloseTo(400, 6);
+  });
+});
+
+describe('Table 列渲染', () => {
+  it('columns.render 返回 JSX 元素时应正常渲染', () => {
+    const el = (
+      <Table
+        key="tbl-render"
+        width={320}
+        height={200}
+        columns={buildColumnsWithWidgetRender()}
+        dataSource={buildData()}
+      />
+    );
+
+    const json = compileElement(el as any);
+    const table = WidgetRegistry.createWidget(json)!;
+    table.createElement(json);
+    table.layout(createBoxConstraints({ maxWidth: 320, maxHeight: 200 }));
+
+    expect(findWidget(table, 'Container#act-1')).toBeTruthy();
+    expect(findWidget(table, 'Container#act-2')).toBeTruthy();
+    expect(findWidget(table, 'Container#act-3')).toBeTruthy();
+  });
+});
+
+describe('Table 固定列', () => {
+  it('columns.fixed 声明后应渲染固定列区域', () => {
+    const el = (
+      <Table
+        key="tbl-fixed"
+        width={400}
+        height={200}
+        columns={buildColumns()}
+        dataSource={buildData()}
+      />
+    );
+
+    const json = compileElement(el as any);
+    const table = WidgetRegistry.createWidget(json)!;
+    table.createElement(json);
+    table.layout(createBoxConstraints({ maxWidth: 400, maxHeight: 200 }));
+
+    expect(findWidget(table, 'Container#th-name')).toBeTruthy();
+    expect(findWidget(table, 'Container#th-action')).toBeTruthy();
+    expect(findWidget(table, 'Container#td-1-name')).toBeTruthy();
+    expect(findWidget(table, 'Container#td-1-action')).toBeTruthy();
   });
 });
 
