@@ -6,6 +6,16 @@ import { Viewport, type ViewportProps } from './viewport';
 import type { BoxConstraints, BuildContext, Size } from '../base';
 import type { InkwellEvent } from '@/core/events/types';
 
+import {
+  applySteps,
+  composeSteps,
+  IDENTITY_MATRIX,
+  invert,
+  multiply,
+  transformPoint,
+  type TransformStep,
+} from '@/core/helper/transform';
+
 const DEFAULT_BOUNCE_DAMPING = 0.2;
 const DEFAULT_RESISTANCE_FACTOR = 0.5;
 const MIN_BOUNCE_DIFF = 0.5;
@@ -67,6 +77,8 @@ export interface ScrollViewProps extends ViewportProps {
    */
   enableBounce?: boolean;
 
+  enableWheelBounce?: boolean;
+
   /**
    * 是否开启垂直弹性
    * 如果未设置，则跟随 enableBounce
@@ -106,16 +118,6 @@ export interface ScrollViewProps extends ViewportProps {
    */
   bounceDamping?: number;
 }
-
-import {
-  applySteps,
-  composeSteps,
-  IDENTITY_MATRIX,
-  invert,
-  multiply,
-  transformPoint,
-  type TransformStep,
-} from '@/core/helper/transform';
 
 export class ScrollView extends Viewport {
   protected _contentSize: Size = { width: 0, height: 0 };
@@ -666,18 +668,65 @@ export class ScrollView extends Viewport {
     const dx = we.deltaX;
     const dy = we.deltaY;
 
-    // 优化：禁用 Chrome 原生的滑动返回功能
-    // 当检测到水平滑动意图时，阻止默认行为（防止触发浏览器历史导航）
-    if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > 0) {
-      we.preventDefault();
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const primary: 'x' | 'y' = absX > absY ? 'x' : 'y';
+
+    const maxScrollX = Math.max(0, this._contentSize.width - (this._width || 0));
+    const maxScrollY = Math.max(0, this._contentSize.height - (this._height || 0));
+
+    const enableBounce = this.data.enableBounce ?? false;
+    const enableBounceX = this.data.enableBounceHorizontal ?? enableBounce;
+    const enableBounceY = this.data.enableBounceVertical ?? enableBounce;
+    const enableWheelBounce = this.data.enableWheelBounce ?? false;
+
+    // 判断 wheel 事件是否要透传，避免同时触发两个滚动容器的滚动事件
+    // 只有里层的滚动容器滚动到边界时，才会透传 whell 事件，以实现滚动容器的链式调用
+    const canConsumeDelta = (
+      cur: number,
+      max: number,
+      d: number,
+      bounceAtBoundary: boolean,
+    ): boolean => {
+      if (!d) {
+        return false;
+      }
+      if (cur < 0) {
+        return d > 0;
+      }
+      if (cur > max) {
+        return d < 0;
+      }
+      if (d > 0) {
+        return cur < max || (cur === max && bounceAtBoundary);
+      }
+      return cur > 0 || (cur === 0 && bounceAtBoundary);
+    };
+
+    if (primary === 'x' && absX > 0) {
+      we.preventDefault?.();
     }
 
-    // 只有在发生实际滚动时才阻止冒泡
-    // 如果已到达边界且未开启弹性（或弹性处理未消耗），则允许冒泡给父级
-    const didScroll = this.processScroll(dx, dy);
-    if (didScroll) {
-      e.stopPropagation();
+    const bounceAtBoundaryX = enableWheelBounce && enableBounceX;
+    const bounceAtBoundaryY = enableWheelBounce && enableBounceY;
+    const canConsumeX = canConsumeDelta(this._scrollX, maxScrollX, dx, bounceAtBoundaryX);
+    const canConsumeY = canConsumeDelta(this._scrollY, maxScrollY, dy, bounceAtBoundaryY);
+
+    if (!canConsumeX && !canConsumeY) {
+      return;
     }
+
+    const applyDx = canConsumeX ? dx : 0;
+    const applyDy = canConsumeY ? dy : 0;
+
+    const didScroll = this.processScroll(applyDx, applyDy);
+
+    if (!didScroll) {
+      return;
+    }
+
+    we.preventDefault?.();
+    e.stopPropagation();
   }
 
   /**

@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ScrollView } from '../scroll-view';
 
-import type { InkwellEvent } from '@/core';
+import { dispatchToTree } from '@/core/events';
 
 // 模拟 InkwellEvent
-function createMockEvent(type: string, props: any = {}): InkwellEvent {
+function createMockEvent(type: string, props: any = {}) {
   const e = {
     type,
     target: null,
@@ -18,11 +18,12 @@ function createMockEvent(type: string, props: any = {}): InkwellEvent {
     },
     nativeEvent: {
       pointerType: 'mouse',
+      preventDefault: vi.fn(),
       ...props,
     },
     ...props,
-  } as unknown as InkwellEvent;
-  return e;
+  } as any;
+  return e as any;
 }
 
 // 辅助函数：创建测试视图层级
@@ -79,7 +80,7 @@ describe('嵌套 ScrollView', () => {
     expect(innerScrollView._scrollY).toBe(50); // 保持在 50
   });
 
-  it('当内部 ScrollView 开启回弹时，总是消费事件，阻止冒泡', () => {
+  it('当内部 ScrollView 开启回弹且到达边界时，不应消费事件', () => {
     const innerScrollView = new ScrollView({
       type: 'ScrollView',
       enableBounce: true,
@@ -94,7 +95,11 @@ describe('嵌套 ScrollView', () => {
     // @ts-expect-error 访问私有属性用于测试设置
     innerScrollView._height = 50;
 
-    const mockEvent = createMockEvent('wheel', { deltaX: 0, deltaY: 10 });
+    const mockEvent = createMockEvent('wheel', {
+      deltaX: 0,
+      deltaY: 10,
+      preventDefault: vi.fn(),
+    });
     const stopPropagationSpy = vi.spyOn(mockEvent, 'stopPropagation');
 
     // 滚动到底部
@@ -104,10 +109,149 @@ describe('嵌套 ScrollView', () => {
     // 再次向下滚动
     innerScrollView.onWheel(mockEvent);
 
-    // 期望：消费事件（触发回弹逻辑），停止冒泡
-    expect(stopPropagationSpy).toHaveBeenCalled();
+    expect(stopPropagationSpy).not.toHaveBeenCalled();
     // @ts-expect-error 访问私有属性验证状态
-    // 纵向滚动位置应增加（应用了阻尼）
-    expect(innerScrollView._scrollY).toBeGreaterThan(50);
+    expect(innerScrollView._scrollY).toBe(50);
+    expect((mockEvent.nativeEvent as any).preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('嵌套场景：内层到底后应让外层消费并阻止默认滚动', () => {
+    const outer = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: false,
+      width: 100,
+      height: 100,
+    });
+    const inner = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: true,
+      width: 100,
+      height: 50,
+    });
+
+    (outer as any).children = [inner];
+    inner.parent = outer;
+
+    (outer as any)._contentSize = { width: 100, height: 300 };
+    (outer as any)._width = 100;
+    (outer as any)._height = 100;
+
+    (inner as any)._contentSize = { width: 100, height: 200 };
+    (inner as any)._width = 100;
+    (inner as any)._height = 50;
+
+    inner.scrollTo(0, 150);
+    outer.scrollTo(0, 0);
+
+    const native = { deltaX: 0, deltaY: 20, preventDefault: vi.fn() } as any;
+    dispatchToTree(outer as any, inner as any, 'wheel' as any, 0, 0, native);
+    expect(native.preventDefault).toHaveBeenCalled();
+    expect(outer.scrollY).toBeGreaterThan(0);
+    expect(inner.scrollY).toBe(150);
+  });
+
+  it('DOM 互操作：所有 ScrollView 都无法继续滚动时不应阻止默认滚动', () => {
+    const outer = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: true,
+      width: 100,
+      height: 100,
+    });
+    const inner = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: true,
+      width: 100,
+      height: 50,
+    });
+
+    (outer as any).children = [inner];
+    inner.parent = outer;
+
+    (outer as any)._contentSize = { width: 100, height: 300 };
+    (outer as any)._width = 100;
+    (outer as any)._height = 100;
+
+    (inner as any)._contentSize = { width: 100, height: 200 };
+    (inner as any)._width = 100;
+    (inner as any)._height = 50;
+
+    inner.scrollTo(0, 150);
+    outer.scrollTo(0, 200);
+
+    const native = { deltaX: 0, deltaY: 20, preventDefault: vi.fn() } as any;
+    dispatchToTree(outer as any, inner as any, 'wheel' as any, 0, 0, native);
+    expect(native.preventDefault).not.toHaveBeenCalled();
+    expect(outer.scrollY).toBe(200);
+    expect(inner.scrollY).toBe(150);
+  });
+
+  it('DOM 互操作：自下而上滚动到顶后应允许交给 DOM 默认滚动', () => {
+    const outer = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: true,
+      width: 100,
+      height: 100,
+    });
+    const inner = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: true,
+      width: 100,
+      height: 50,
+    });
+
+    (outer as any).children = [inner];
+    inner.parent = outer;
+
+    (outer as any)._contentSize = { width: 100, height: 300 };
+    (outer as any)._width = 100;
+    (outer as any)._height = 100;
+
+    (inner as any)._contentSize = { width: 100, height: 200 };
+    (inner as any)._width = 100;
+    (inner as any)._height = 50;
+
+    inner.scrollTo(0, 0);
+    outer.scrollTo(0, 0);
+
+    const native = { deltaX: 0, deltaY: -20, preventDefault: vi.fn() } as any;
+    dispatchToTree(outer as any, inner as any, 'wheel' as any, 0, 0, native);
+    expect(native.preventDefault).not.toHaveBeenCalled();
+    expect(outer.scrollY).toBe(0);
+    expect(inner.scrollY).toBe(0);
+  });
+
+  it('不同方向嵌套：内层可滚动时外层不应收到滚动', () => {
+    const outer = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: false,
+      width: 100,
+      height: 100,
+    });
+    const inner = new ScrollView({
+      type: 'ScrollView',
+      enableBounce: false,
+      width: 100,
+      height: 50,
+    });
+
+    (outer as any).children = [inner];
+    inner.parent = outer;
+
+    (outer as any)._contentSize = { width: 100, height: 300 };
+    (outer as any)._width = 100;
+    (outer as any)._height = 100;
+
+    (inner as any)._contentSize = { width: 300, height: 50 };
+    (inner as any)._width = 100;
+    (inner as any)._height = 50;
+
+    inner.scrollTo(0, 0);
+    outer.scrollTo(0, 0);
+
+    const native = { deltaX: 20, deltaY: 10, preventDefault: vi.fn() } as any;
+    dispatchToTree(outer as any, inner as any, 'wheel' as any, 0, 0, native);
+    expect(inner.scrollX).toBeGreaterThan(0);
+    expect(outer.scrollY).toBe(0);
+    expect(native.preventDefault).toHaveBeenCalled();
   });
 });

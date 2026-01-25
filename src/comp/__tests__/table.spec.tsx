@@ -168,6 +168,7 @@ describe('Table Header 布局', () => {
 
     const bodyScrollY = findWidget(root, 'ScrollView#tbl4-tbody-scroll-y') as any;
     expect(bodyScrollY).toBeTruthy();
+    expect(bodyScrollY.renderObject.size.height).toBe(200);
 
     const headerInsideBody = findWidget(bodyScrollY, '#tbl4-thead') as any;
     expect(headerInsideBody).toBeTruthy();

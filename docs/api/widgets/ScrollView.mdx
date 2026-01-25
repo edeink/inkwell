@@ -50,6 +50,41 @@ import { ScrollView } from '@/core';
 </ScrollView>
 ```
 
+### 3. 滚轮链式滚动与 DOM 互操作
+
+默认情况下，`ScrollView` 的滚轮滚动在到达边界时不会继续“过卷”（overscroll），而是允许事件继续向外传播：
+- 嵌套在外层 `ScrollView` 内时，可以把剩余滚动交给外层消费，实现链式滚动。
+- 当整个 Canvas 内的滚动都到达边界时，可以把滚动交给 DOM（页面）继续滚动，实现 DOM/Canvas 无缝切换（自上而下与自下而上对称）。
+
+如果你希望在滚轮上也启用回弹过卷（例如纯 Canvas 场景的触控板手感），可以打开 `enableWheelBounce`。
+
+```tsx mode:edit
+/** @jsxImportSource @/utils/compiler */
+<ScrollView width={360} height={240}>
+  <Column>
+    <Container width={360} height={120} color="#f0f0f0">
+      <Text text="外层：垂直滚动容器（向下滚动）" />
+    </Container>
+
+    <ScrollView width={360} height={120}>
+      <Row>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Container key={i} width={120} height={120} color={i % 2 === 0 ? '#e6f7ff' : '#fff7e6'}>
+            <Center>
+              <Text text={`卡片 ${i + 1}`} />
+            </Center>
+          </Container>
+        ))}
+      </Row>
+    </ScrollView>
+
+    <Container width={360} height={240} color="#f0f0f0">
+      <Text text="继续向下滚动：外层会接管；到达边界后交给页面滚动" />
+    </Container>
+  </Column>
+</ScrollView>
+```
+
 ## API 文档
 
 ### ScrollViewProps
@@ -62,6 +97,7 @@ import { ScrollView } from '@/core';
 | `scrollBarColor` | `string` | 否 | - | 滚动条颜色。 |
 | `scrollBarWidth` | `number` | 否 | - | 滚动条宽度。 |
 | `enableBounce` | `boolean` | 否 | `false` | 是否开启弹性滚动（回弹效果）。 |
+| `enableWheelBounce` | `boolean` | 否 | `false` | 是否允许滚轮在边界继续过卷（会阻断链式滚动与 DOM 交接）。 |
 | `enableBounceVertical` | `boolean` | 否 | - | 是否开启垂直方向弹性（默认跟随 `enableBounce`）。 |
 | `enableBounceHorizontal` | `boolean` | 否 | - | 是否开启水平方向弹性（默认跟随 `enableBounce`）。 |
 | `maxBounceDistance` | `number` | 否 | - | 最大回弹距离。 |

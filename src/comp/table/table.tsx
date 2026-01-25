@@ -211,7 +211,7 @@ export class Table<
     }
 
     const hasFixedHeight = typeof outerH === 'number' && Number.isFinite(outerH);
-    const bodyH = hasFixedHeight ? Math.max(0, outerH - rowH) : undefined;
+    const bodyH = hasFixedHeight ? Math.max(0, outerH - (affixHeader ? rowH : 0)) : undefined;
     const bodyContentH = this.props.dataSource.length * rowH;
     const midContentW = midIdx.reduce((sum, i) => sum + computedWidths[i], 0);
     const midViewportW = isFinite(outerW) ? Math.max(0, outerW - leftW - rightW) : undefined;

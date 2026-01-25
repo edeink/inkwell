@@ -162,6 +162,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
     });
     sv.simulateLayout(100, 100, 200, 200);
 
@@ -179,6 +180,7 @@ describe('ScrollView', () => {
       height: 100,
       enableBounceVertical: true,
       enableBounceHorizontal: false,
+      enableWheelBounce: true,
     });
     sv.simulateLayout(100, 100, 200, 200);
 
@@ -195,6 +197,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
       maxBounceDistance: maxBounce,
     });
     sv.simulateLayout(100, 100, 200, 200);
@@ -211,6 +214,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
       maxBounceDistance: 400,
     });
     sv.simulateLayout(100, 100, 200, 200);
@@ -227,6 +231,7 @@ describe('ScrollView', () => {
       width: 200,
       height: 200,
       enableBounce: true,
+      enableWheelBounce: true,
       maxBounceDistance: 200,
     });
     sv.simulateLayout(200, 200, 400, 400);
@@ -251,6 +256,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
       onBounceComplete,
     });
     sv.simulateLayout(100, 100, 200, 200);
@@ -280,7 +286,7 @@ describe('ScrollView', () => {
     expect(mockEvent.nativeEvent.preventDefault).toHaveBeenCalled();
   });
 
-  it('垂直滚动时不应阻止默认行为', () => {
+  it('垂直滚动时应阻止 DOM 默认滚动', () => {
     const sv = new TestScrollView({
       type: 'ScrollView',
       width: 100,
@@ -291,7 +297,21 @@ describe('ScrollView', () => {
     // 垂直滑动 (deltaY > deltaX)
     const mockEvent = sv.simulateWheel(0, 10);
 
-    // 验证 preventDefault 未被调用
+    expect(mockEvent.nativeEvent.preventDefault).toHaveBeenCalled();
+  });
+
+  it('垂直到达边界且无法继续滚动时不应阻止默认行为', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      enableBounce: false,
+    });
+    sv.simulateLayout(100, 100, 100, 200);
+
+    sv.scrollTo(0, 100);
+
+    const mockEvent = sv.simulateWheel(0, 10);
     expect(mockEvent.nativeEvent.preventDefault).not.toHaveBeenCalled();
   });
 
@@ -329,6 +349,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
       onBounceStart,
       onBounceComplete,
     });
@@ -356,6 +377,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
       onBounceStart,
       onBounceComplete,
     });
@@ -460,6 +482,7 @@ describe('ScrollView', () => {
       width: 100,
       height: 100,
       enableBounce: true,
+      enableWheelBounce: true,
     });
     sv.simulateLayout(100, 100, 200, 200);
 
@@ -469,6 +492,21 @@ describe('ScrollView', () => {
     // 验证事件传播停止（内部消耗事件）
     expect(event.stopPropagation).toHaveBeenCalled();
     expect(sv.scrollX).toBeLessThan(0);
+  });
+
+  it('默认行为：滚轮到达边界时应允许继续冒泡/交给外部处理', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      width: 100,
+      height: 100,
+      enableBounce: true,
+    });
+    sv.simulateLayout(100, 100, 200, 200);
+
+    const event = sv.simulateWheel(-10, -10);
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+    expect(sv.scrollX).toBe(0);
+    expect(sv.scrollY).toBe(0);
   });
 
   it('内容不足时不应显示滚动条', () => {
