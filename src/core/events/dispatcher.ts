@@ -49,7 +49,7 @@ export function hitTest(root: Widget | null, x: number, y: number): Widget | nul
 /**
  * 类方法解析：为给定事件类型与阶段生成可能的类方法名称列表
  * 设计说明：
- * - 优先支持类方法事件处理（例如 onClick / onClickCapture），并在同类型处理器中先于 JSX 属性触发。
+ * - 优先支持类方法事件处理（例如 onClick / onClickCapture），当类方法存在时忽略同阶段的 JSX 属性处理器。
  * - 采用最小映射策略：通用规则为 `on${PascalCase(type)}` 与 `on${PascalCase(type)}Capture`；
  *   同时为双击事件兼容 `onDblClick*` 与 `onDoubleClick*` 两种命名。
  */
@@ -175,12 +175,14 @@ function invokeHandlers(
   runtime: Runtime | null,
 ): boolean {
   // 1) 类方法优先调用：按解析出的候选方法顺序调用
+  let invokedClassMethod = false;
   const methods = resolveMethodNames(type, phase);
   for (const name of methods) {
     const fn = (node as unknown as Record<string, unknown>)[name] as
       | ((e: InkwellEvent) => boolean | void)
       | undefined;
     if (isFunction(fn)) {
+      invokedClassMethod = true;
       const ret = (fn as (e: InkwellEvent) => boolean | void).call(node, event);
       if (event.propagationStopped === true) {
         return false;
@@ -189,6 +191,10 @@ function invokeHandlers(
         return false;
       }
     }
+  }
+
+  if (invokedClassMethod) {
+    return true;
   }
 
   // 2) JSX 属性注册的处理器：保持现有注册表行为与顺序

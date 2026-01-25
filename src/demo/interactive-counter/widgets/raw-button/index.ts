@@ -24,14 +24,7 @@ export class RawButton extends Widget<RawButtonProps> {
     this._height = data.height ?? 48;
   }
 
-  // 4. 事件处理: 显式定义事件处理方法
-  // 注意：这会导致双重触发，因为基类也会自动绑定 props 中的 onClick
   onClick(e: InkwellEvent) {
-    // 检测到双重绑定风险时发出警告
-    if (this.props.onClick) {
-      console.warn('检测到双重事件绑定，建议仅保留一种实现方式');
-    }
-
     this.props.onClick?.(e);
   }
 

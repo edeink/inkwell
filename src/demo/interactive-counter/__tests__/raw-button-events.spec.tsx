@@ -17,10 +17,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('RawButton 事件双重绑定问题验证', () => {
-  it('点击事件应触发两次并发出警告（预期行为）', () => {
+describe('RawButton 事件绑定行为验证', () => {
+  it('点击事件应触发一次且不应发出警告', () => {
     const onClick = vi.fn();
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     // 使用 JSX 编译方式创建组件
     const element = (
@@ -46,15 +46,8 @@ describe('RawButton 事件双重绑定问题验证', () => {
     const pos = { dx: 0, dy: 0 };
     dispatchToTree(button, button, 'click', pos.dx + 10, pos.dy + 10);
 
-    // 验证调用次数 - 预期触发 2 次：
-    // 1. RawButton.onClick 方法被调用 (调用 props.onClick)
-    // 2. EventRegistry 注册的 props.onClick 处理器被调用
-    expect(onClick).toHaveBeenCalledTimes(2);
-
-    // 验证是否输出了警告信息
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('检测到双重事件绑定，建议仅保留一种实现方式'),
-    );
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it('无回调函数时不应报错', () => {
@@ -75,7 +68,6 @@ describe('RawButton 事件双重绑定问题验证', () => {
   });
 
   it('事件对象应正确传递', () => {
-    // 即使触发两次，事件对象也应该被传递
     let capturedEvent: InkwellEvent | undefined;
     const onClick = vi.fn((e: InkwellEvent) => {
       capturedEvent = e;

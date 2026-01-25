@@ -25,7 +25,9 @@ class CustomWidget extends Widget<WidgetProps & { width?: number; height?: numbe
     return { width: Math.min(w, constraints.maxWidth), height: Math.min(h, constraints.maxHeight) };
   }
 
-  protected paintSelf(_context: BuildContext): void {}
+  protected paintSelf(_context: BuildContext): void {
+    void _context;
+  }
 
   // 类方法事件处理（用于测试优先级与传播阶段）
   onClick?(_e: InkwellEvent): boolean | void;
@@ -94,7 +96,7 @@ describe('事件系统（类方法）', () => {
     expect(calls).toEqual(['method:leaf']);
   });
 
-  it('类方法优先于 JSX 属性：onClick 方法先于属性处理器', () => {
+  it('类方法存在时应忽略 JSX 属性：仅调用 onClick 方法', () => {
     const calls: string[] = [];
     const { root, leaf } = buildTree({
       leaf: {
@@ -108,7 +110,7 @@ describe('事件系统（类方法）', () => {
     };
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
-    expect(calls).toEqual(['method:leaf', 'attr:leaf']);
+    expect(calls).toEqual(['method:leaf']);
   });
 
   it('跨组件传播顺序一致：捕获→目标→冒泡（MouseOver）', () => {
