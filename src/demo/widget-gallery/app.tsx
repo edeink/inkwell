@@ -60,7 +60,7 @@ export const WidgetGalleryDemo = ({
           <Column
             key="complete-demo-root"
             mainAxisAlignment={MainAxisAlignment.Center}
-            crossAxisAlignment={CrossAxisAlignment.Start}
+            crossAxisAlignment={CrossAxisAlignment.Center}
             spacing={24}
             mainAxisSize={MainAxisSize.Max}
           >

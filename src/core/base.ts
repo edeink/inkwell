@@ -46,7 +46,7 @@ export type {
 } from './type';
 
 // 内置的属性
-export type WidgetCompactProps<T extends WidgetProps, C = Widget[]> = {
+export type WidgetCompactProps<T extends WidgetProps, C = WidgetProps[]> = {
   [P in keyof T]: P extends 'children' ? C : T[P];
 } & WidgetEventHandler;
 
@@ -100,8 +100,10 @@ export function isTight(c: BoxConstraints): boolean {
  */
 export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   key!: string;
+  eventKey!: string;
   type!: string;
   children: Widget[] = [];
+  private _childrenData: WidgetProps[] = [];
   parent: Widget | null = null;
   // 编译 JSX 得到的数据
   data!: TData;
@@ -222,11 +224,13 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     // 如果未提供 key，则自动生成唯一且可读的 key
     this.key = data.key || Widget._generateKey(data.type);
+    this.eventKey = Widget._generateKey(`${data.type}-evt`);
     this.type = data.type;
     // 编译 JSX 得到的数据
     this.data = data;
     // 实际运行的 props
-    this.props = { ...data, children: [] /** 未初始化 */ } as unknown as WidgetCompactProps<TData>;
+    const slotChildren = Array.isArray(data.children) ? (data.children as WidgetProps[]) : [];
+    this.props = { ...data, children: slotChildren } as unknown as WidgetCompactProps<TData>;
     this.flex = (data.flex || Widget.EMPTY_FLEX) as FlexProperties; // 初始化flex属性
     this.zIndex = typeof data.zIndex === 'number' ? (data.zIndex as number) : 0;
 
@@ -242,6 +246,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 重置状态
     if (this.children.length > 0) {
       this.children.length = 0;
+    }
+    if (this._childrenData.length > 0) {
+      this._childrenData.length = 0;
     }
     this.parent = null;
     this.__root = null;
@@ -481,17 +488,12 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // 假设所有的 props 变更都被 buildChildren 消费
     const stateChanged = this.didStateChange();
 
-    const prevData = this.data;
-    const prevChildrenData = Array.isArray(prevData.children)
-      ? (prevData.children as WidgetProps[])
-      : [];
     const nextChildrenData = this.computeNextChildrenData();
 
     const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
-    const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
-    const propsChanged = this.shallowDiff(this.props, { ...prevData, children: nextChildrenData });
+    const childrenChanged = this.shallowArrayDiff(this._childrenData, nextChildrenData);
 
-    const hasActualUpdate = needInitialBuild || childrenChanged || propsChanged || stateChanged;
+    const hasActualUpdate = needInitialBuild || childrenChanged || stateChanged;
     if (!hasActualUpdate) {
       this._dirty = false;
       return false;
@@ -503,9 +505,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       this.children = [];
     }
 
-    const nextProps = { ...prevData, children: this.children };
-    this.data = nextProps;
-    this.props = nextProps as unknown as WidgetCompactProps<TData>;
+    this._childrenData = nextChildrenData;
     this._dirty = false;
     return true;
   }
@@ -533,7 +533,7 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   dispose(): void {
     const rt = this.runtime ?? null;
-    EventRegistry.clearKey(String(this.key), rt);
+    EventRegistry.clearKey(String(this.eventKey), rt);
     this._disposed = true;
 
     // 清理引用，防止内存泄漏
@@ -866,30 +866,15 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    */
   createElement(data: TData): Widget {
     this.ensureInitWidget(data);
+    const wasBuilt = this._isBuilt;
     this._isBuilt = true;
 
     const nextData = data;
     const prevData = this.data;
     const propsChanged = this.shallowDiff(prevData, nextData);
-    const prevChildrenData = Array.isArray(prevData.children)
-      ? (prevData.children as WidgetProps[])
-      : [];
-
-    const nextChildrenData = Array.isArray(nextData.children)
-      ? (nextData.children as WidgetProps[])
-      : prevChildrenData;
-    const nextChildrenLength = nextChildrenData.length;
-
-    const childrenChanged = this.shallowArrayDiff(prevChildrenData, nextChildrenData);
 
     if (!this.parent) {
       DOMEventManager.bindEvents(this, nextData);
-    }
-
-    const needInitialBuild = this.children.length === 0 && nextChildrenLength > 0;
-    if (!propsChanged && !childrenChanged && !needInitialBuild) {
-      // props 不变且 children 结构不变，且无需初始构建：直接返回
-      return this;
     }
 
     this.data = nextData;
@@ -903,11 +888,34 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     // RepaintBoundary 相关
     this.isRepaintBoundary = !!nextData.isRepaintBoundary;
 
-    // 初始构建或 children 差异/需要更新时执行子树增量重建
-    if (nextChildrenLength > 0) {
-      this.buildChildren(nextChildrenData);
-    } else if (this.children.length > 0) {
-      this.children = [];
+    const isComposite = WidgetRegistry.isCompositeType(this.type);
+    if (!isComposite) {
+      const slotChildren = Array.isArray(nextData.children)
+        ? (nextData.children as WidgetProps[])
+        : [];
+      this.props = Object.assign({}, nextData) as unknown as WidgetCompactProps<TData>;
+      this.props.children = slotChildren as unknown as WidgetCompactProps<TData>['children'];
+    }
+
+    const nextChildrenData = isComposite
+      ? Array.isArray(nextData.children)
+        ? (nextData.children as WidgetProps[])
+        : []
+      : this.computeNextChildrenData();
+    const needInitialBuild = this.children.length === 0 && nextChildrenData.length > 0;
+    const childrenChanged = this.shallowArrayDiff(this._childrenData, nextChildrenData);
+
+    if (wasBuilt && !propsChanged && !needInitialBuild && !childrenChanged) {
+      return this;
+    }
+
+    if (needInitialBuild || childrenChanged) {
+      if (nextChildrenData.length > 0) {
+        this.buildChildren(nextChildrenData);
+      } else if (this.children.length > 0) {
+        this.children = [];
+      }
+      this._childrenData = nextChildrenData;
     }
 
     // 处理 ref 绑定
@@ -919,13 +927,11 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
       }
     }
 
-    // 更新自身 props 引用
-    // 优化：使用 Object.assign
-    this.props = Object.assign({}, nextData) as unknown as WidgetCompactProps<TData>;
-    this.props.children = this.children;
-
     if (propsChanged) {
-      this.didUpdateWidget(prevData);
+      if (!this._suppressDidUpdateWidget) {
+        this.didUpdateWidget(prevData);
+      }
+      this._suppressDidUpdateWidget = false;
     }
 
     return this;

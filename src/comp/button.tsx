@@ -37,6 +37,13 @@ interface ButtonState {
 export class Button extends StatefulWidget<ButtonProps, ButtonState> {
   protected state: ButtonState = { hovered: false, active: false };
 
+  onClick(e: InkwellEvent): void {
+    if (this.props.disabled) {
+      return;
+    }
+    this.props.onClick?.(e);
+  }
+
   private handlePointerEnter = () => {
     if (this.props.disabled) {
       return;
@@ -62,13 +69,6 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
     if (this.state.active) {
       this.setState({ active: false });
     }
-  };
-
-  private handleClick = (e: InkwellEvent) => {
-    if (this.props.disabled) {
-      return;
-    }
-    this.props.onClick?.(e);
   };
 
   render() {
@@ -152,7 +152,6 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
         onPointerLeave={this.handlePointerLeave}
         onPointerDown={this.handlePointerDown}
         onPointerUp={this.handlePointerUp}
-        onClick={this.handleClick}
       >
         <Row mainAxisAlignment={MainAxisAlignment.Center} spacing={8}>
           {loadingText ? (
@@ -166,7 +165,7 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
               pointerEvent="none"
             />
           ) : null}
-          {this.props.children}
+          {this.props.children as unknown as WidgetProps[]}
         </Row>
       </Container>
     );

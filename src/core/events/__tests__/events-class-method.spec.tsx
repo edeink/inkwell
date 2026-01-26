@@ -89,7 +89,7 @@ describe('事件系统（类方法）', () => {
     leaf.onClick = (_e: InkwellEvent) => {
       calls.push('method:leaf');
     };
-    const handlers = EventRegistry.getHandlers(leaf.key!, 'click');
+    const handlers = EventRegistry.getHandlers(String(leaf.eventKey), 'click');
     testLogger.log('DEBUG: Handlers for leaf/click:', handlers.length, handlers);
     const pos = leaf.getAbsolutePosition();
     dispatchToTree(root, leaf, 'click', pos.dx + 1, pos.dy + 1);
@@ -146,7 +146,7 @@ describe('事件系统（类方法）', () => {
     // 纯属性处理器
     const callsAttr: number[] = [];
     leaf.onClick = undefined;
-    EventRegistry.clearKey(leaf.key);
+    EventRegistry.clearKey(String(leaf.eventKey));
     const dataAttr = compileElement(
       <Container key="rootA" width={200} height={200}>
         <CustomWidgetElement key="leafA" width={80} height={40} onClick={() => callsAttr.push(1)} />

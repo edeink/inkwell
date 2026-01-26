@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BuildContext, Size } from '@/core/base';
 import type { WidgetProps } from '@/core/type';
 
-import { DatePicker, Form, FormItem, Popconfirm, Select } from '@/comp';
+import { DatePicker, Form, FormItem, Modal, Popconfirm, Select } from '@/comp';
 import {
   Column,
   Container,
@@ -179,6 +179,43 @@ describe('Overlay 运行时能力', () => {
     const overlayHit = hitTest(root, 1, 50);
     expect(overlayHit).not.toBeNull();
     expect(overlayHit?.key).not.toBe('root');
+  });
+
+  it('Modal 打开时应通过 Overlay 渲染且不影响布局', async () => {
+    await runtime.render(
+      <Container key="root" width={420} height={240} pointerEvent="auto">
+        <Column key="col" spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
+          <Container key="above" width={200} height={28} pointerEvent="auto" />
+          <Container key="below" width={200} height={28} pointerEvent="auto" />
+          <Modal
+            key="modal"
+            theme={Themes.light}
+            open={true}
+            viewportWidth={420}
+            viewportHeight={240}
+            title="标题"
+          >
+            <Container key="body" width={100} height={20} pointerEvent="none" />
+          </Modal>
+        </Column>
+      </Container>,
+    );
+
+    const root1 = runtime.getRootWidget()!;
+    const below1 = findWidget(root1, '#below') as Container;
+    const y1 = below1.getAbsolutePosition().dy;
+
+    runtime.tick();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const root2 = runtime.getRootWidget()!;
+    const below2 = findWidget(root2, '#below') as Container;
+    const y2 = below2.getAbsolutePosition().dy;
+    expect(y2).toBe(y1);
+
+    const overlayRoot = runtime.getOverlayRootWidget();
+    expect(overlayRoot).not.toBeNull();
+    expect(findWidget(overlayRoot!, '#modal-modal-overlay-dialog')).not.toBeNull();
   });
 
   it('Select 打开后滚动 ScrollView 应跟随触发器更新位置', async () => {

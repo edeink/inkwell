@@ -198,7 +198,7 @@ function invokeHandlers(
   }
 
   // 2) JSX 属性注册的处理器：保持现有注册表行为与顺序
-  const list = EventRegistry.getHandlers(String(node.key), type, runtime);
+  const list = EventRegistry.getHandlers(String(node.eventKey), type, runtime);
   const ordered =
     phase === DISPATCH_PHASE_CAPTURE
       ? list.filter((h) => h.capture)

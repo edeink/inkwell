@@ -40,7 +40,7 @@ describe('DOM 事件管理器', () => {
       onClick: handler,
     });
 
-    const handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers).toHaveLength(1);
     expect(handlers[0].handler).toBe(handler);
     expect(handlers[0].capture).toBe(false);
@@ -55,7 +55,7 @@ describe('DOM 事件管理器', () => {
       onClickCapture: handler,
     });
 
-    const handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers).toHaveLength(1);
     expect(handlers[0].capture).toBe(true);
   });
@@ -69,7 +69,7 @@ describe('DOM 事件管理器', () => {
       onDoubleClick: handler,
     });
 
-    const handlers = EventRegistry.getHandlers('w1', 'dblclick', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'dblclick', mockRuntime);
     expect(handlers).toHaveLength(1);
   });
 
@@ -82,7 +82,7 @@ describe('DOM 事件管理器', () => {
       onMouseEnter: handler,
     });
 
-    const handlers = EventRegistry.getHandlers('w1', 'mouseenter', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'mouseenter', mockRuntime);
     expect(handlers).toHaveLength(1);
   });
 
@@ -98,7 +98,7 @@ describe('DOM 事件管理器', () => {
       onClick: handler,
     });
 
-    const handlers = EventRegistry.getHandlers('comp1', 'click', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers).toHaveLength(1);
   });
 
@@ -113,7 +113,7 @@ describe('DOM 事件管理器', () => {
       onClick: handler1,
     });
 
-    let handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
+    let handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers[0].handler).toBe(handler1);
 
     // 第二次绑定 (更新)
@@ -121,7 +121,7 @@ describe('DOM 事件管理器', () => {
       onClick: handler2,
     });
 
-    handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
+    handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers).toHaveLength(1);
     expect(handlers[0].handler).toBe(handler2);
   });
@@ -138,7 +138,7 @@ describe('DOM 事件管理器', () => {
     // 绑定空事件
     DOMEventManager.bindEvents(widget, {});
 
-    const handlers = EventRegistry.getHandlers('w1', 'click', mockRuntime);
+    const handlers = EventRegistry.getHandlers(String(widget.eventKey), 'click', mockRuntime);
     expect(handlers).toHaveLength(0);
   });
 
@@ -151,16 +151,17 @@ describe('DOM 事件管理器', () => {
       onClick: handler,
     });
 
-    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(1);
+    const ek = String(widget.eventKey);
+    expect(EventRegistry.getHandlers(ek, 'click', mockRuntime)).toHaveLength(1);
 
     widget.dispose();
 
-    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(0);
+    expect(EventRegistry.getHandlers(ek, 'click', mockRuntime)).toHaveLength(0);
 
     const reusedKeyWidget = new TestWidget({ key: 'w1' });
     (reusedKeyWidget as any)._runtime = mockRuntime;
     DOMEventManager.bindEvents(reusedKeyWidget, {});
 
-    expect(EventRegistry.getHandlers('w1', 'click', mockRuntime)).toHaveLength(0);
+    expect(EventRegistry.getHandlers(ek, 'click', mockRuntime)).toHaveLength(0);
   });
 });

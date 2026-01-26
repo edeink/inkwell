@@ -71,7 +71,9 @@ function emitMessage(payload: MessagePayload): void {
   }
   try {
     window.dispatchEvent(new CustomEvent(MESSAGE_EVENT, { detail: payload }));
-  } catch {}
+  } catch (e) {
+    void e;
+  }
 }
 
 interface MessageItem extends MessagePayload {
@@ -306,7 +308,8 @@ function renderOverlay(
   store.lastTheme = theme;
   const tokens = getDefaultTokens();
   const top = 16;
-  const right = 16;
+  const left = 0;
+  const right = 0;
 
   rt.setOverlayEntry(
     MESSAGE_OVERLAY_KEY,
@@ -318,8 +321,8 @@ function renderOverlay(
       zIndex={2000}
     >
       <Stack allowOverflowPositioned={true} pointerEvent="none">
-        <Positioned key="message-pos" right={right} top={top} pointerEvent="none">
-          <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.End}>
+        <Positioned key="message-pos" left={left} right={right} top={top} pointerEvent="none">
+          <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Center}>
             {store.items.map((it) => (
               <Container
                 key={it.id}

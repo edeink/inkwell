@@ -71,7 +71,7 @@ describe('事件处理器按 canvas 实例隔离', () => {
     const { root, leaf } = buildTreeWithRuntime(rtA);
     let calls = 0;
     EventRegistry.register(
-      String(leaf.key),
+      String(leaf.eventKey),
       'click',
       () => {
         calls++;
@@ -106,7 +106,7 @@ describe('事件处理器按 canvas 实例隔离', () => {
 
     const calls: string[] = [];
     EventRegistry.register(
-      String(leaf.key),
+      String(leaf.eventKey),
       'click',
       () => {
         calls.push('A');
@@ -115,7 +115,7 @@ describe('事件处理器按 canvas 实例隔离', () => {
       rtA,
     );
     EventRegistry.register(
-      String(leaf.key),
+      String(leaf.eventKey),
       'click',
       () => {
         calls.push('B');

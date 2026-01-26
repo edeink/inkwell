@@ -26,7 +26,7 @@ export class DOMEventManager {
    */
   static bindEvents(widget: Widget, data: WidgetProps): void {
     const rt = widget.runtime ?? null;
-    const key = String(widget.key);
+    const key = String(widget.eventKey);
 
     type HandlerMap = Record<string, { type: EventType; handler: EventHandler; capture: boolean }>;
     let handlers: HandlerMap | null = null;

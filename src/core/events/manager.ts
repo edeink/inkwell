@@ -285,4 +285,8 @@ class EventManagerImpl {
   }
 }
 
-export const EventManager = new EventManagerImpl();
+const EVENT_MANAGER_SINGLETON_KEY = '__inkwell_event_manager__';
+const _global = globalThis as unknown as Record<string, unknown>;
+export const EventManager =
+  (_global[EVENT_MANAGER_SINGLETON_KEY] as EventManagerImpl | undefined) ??
+  ((_global[EVENT_MANAGER_SINGLETON_KEY] = new EventManagerImpl()) as EventManagerImpl);

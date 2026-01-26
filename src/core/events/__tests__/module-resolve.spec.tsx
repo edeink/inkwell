@@ -31,11 +31,11 @@ describe('模块解析与事件系统（路径别名验证）', () => {
     const leaf = root.children[0];
 
     const calls: string[] = [];
-    // 通过 JSX 注册的 onClick 已由编译器写入注册表，此处额外验证注册调用也可用
-    EventRegistry.register('root', 'click', () => {
+    // 通过 JSX 注册的 onClick 已由编译器写入注册表，此处额外验证手动注册也可用
+    EventRegistry.register(String(root.eventKey), 'click', () => {
       calls.push('root');
     });
-    EventRegistry.register('leaf', 'click', () => {
+    EventRegistry.register(String(leaf.eventKey), 'click', () => {
       calls.push('leaf');
     });
 
