@@ -206,6 +206,77 @@ export class RichTextEditor extends Editable<RichTextEditorProps> {
     return (this.state.typingFontFamily as string) || this.props.fontFamily || 'Arial, sans-serif';
   }
 
+  getTypingBold(): boolean {
+    return Boolean(this.state.typingBold);
+  }
+
+  getTypingItalic(): boolean {
+    return Boolean(this.state.typingItalic);
+  }
+
+  getTypingColor(): string {
+    return String(this.state.typingColor || this.props.color || '#000000');
+  }
+
+  getBoldForSelection(): boolean | null {
+    const { start, end } = this.getNormalizedSelection();
+    if (start === end) {
+      return null;
+    }
+    let hasTrue = false;
+    let hasFalse = false;
+    for (let i = start; i < end; i++) {
+      const v = !!this.styles[i]?.bold;
+      if (v) {
+        hasTrue = true;
+      } else {
+        hasFalse = true;
+      }
+      if (hasTrue && hasFalse) {
+        return null;
+      }
+    }
+    return hasTrue;
+  }
+
+  getItalicForSelection(): boolean | null {
+    const { start, end } = this.getNormalizedSelection();
+    if (start === end) {
+      return null;
+    }
+    let hasTrue = false;
+    let hasFalse = false;
+    for (let i = start; i < end; i++) {
+      const v = !!this.styles[i]?.italic;
+      if (v) {
+        hasTrue = true;
+      } else {
+        hasFalse = true;
+      }
+      if (hasTrue && hasFalse) {
+        return null;
+      }
+    }
+    return hasTrue;
+  }
+
+  getColorForSelection(): string | null {
+    const { start, end } = this.getNormalizedSelection();
+    if (start === end) {
+      return null;
+    }
+    const v = this.styles[start]?.color;
+    if (typeof v !== 'string') {
+      return null;
+    }
+    for (let i = start + 1; i < end; i++) {
+      if (this.styles[i]?.color !== v) {
+        return null;
+      }
+    }
+    return v;
+  }
+
   toggleBoldForSelection() {
     const { start, end } = this.getNormalizedSelection();
     if (start === end) {

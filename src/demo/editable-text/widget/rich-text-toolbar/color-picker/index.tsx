@@ -8,17 +8,18 @@
 import { ToolbarColorPickerDropdown } from '../toolbar-color-picker-dropdown';
 import { ToolbarColorPickerTrigger } from '../toolbar-color-picker-trigger';
 
-import type { RichTextColorPreset } from '../index';
 import type { WidgetProps } from '@/core/base';
+import type { RichTextColorPreset } from '@/demo/editable-text/widget/rich-text-toolbar';
 import type { ThemePalette } from '@/styles/theme';
 
-import { Stack, StatefulWidget, type InkwellEvent } from '@/core';
+import { Container, Stack, StatefulWidget, type BuildContext, type InkwellEvent } from '@/core';
 
 export interface ColorPickerProps extends WidgetProps {
   widgetKey: string;
   theme: ThemePalette;
   width: number;
   height: number;
+  active?: boolean;
   triggerHoverKey: string;
   dropdownTop: number;
   dropdownLeft: number;
@@ -48,6 +49,9 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
     opened: false,
   };
 
+  private _lastOverlayLeft: number | null = null;
+  private _lastOverlayTop: number | null = null;
+
   /**
    * 设置打开状态；仅在状态变化时触发 setState 与回调。
    */
@@ -56,6 +60,7 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
       return;
     }
     this.setState({ opened });
+    this.syncOverlay();
     if (opened) {
       this.props.onOpen?.();
     } else {
@@ -78,6 +83,150 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
     this.setOpened(false);
   };
 
+  private getOverlayEntryKey(): string {
+    return `${String(this.key)}-color-picker-overlay`;
+  }
+
+  private syncOverlay(): void {
+    const rt = this.runtime;
+    if (!rt) {
+      return;
+    }
+    const overlayKey = this.getOverlayEntryKey();
+    if (!this.state.opened) {
+      this._lastOverlayLeft = null;
+      this._lastOverlayTop = null;
+      rt.removeOverlayEntry(overlayKey);
+      return;
+    }
+
+    const cols = Math.max(1, this.props.cols | 0);
+    const swatchSize = Math.max(1, this.props.swatchSize | 0);
+    const gap = Math.max(0, this.props.gap | 0);
+    const padding = Math.max(0, this.props.padding | 0);
+
+    const panelW = padding * 2 + cols * swatchSize + Math.max(0, cols - 1) * gap;
+    const rows = Math.max(1, Math.ceil(this.props.presets.length / cols));
+    const panelH = padding * 2 + rows * swatchSize + Math.max(0, rows - 1) * gap;
+
+    const triggerPos = this.getAbsolutePosition();
+    const root = rt.getRootWidget();
+    const viewportW = root?.renderObject.size.width ?? null;
+    const viewportH = root?.renderObject.size.height ?? null;
+
+    let left = triggerPos.dx + this.props.dropdownLeft;
+    let top = triggerPos.dy + this.props.dropdownTop;
+
+    if (viewportW !== null) {
+      left = Math.max(0, Math.min(left, viewportW - panelW));
+    }
+
+    if (viewportH !== null) {
+      const belowTop = triggerPos.dy + this.props.dropdownTop;
+      const belowBottom = belowTop + panelH;
+      const aboveTop = triggerPos.dy - 4 - panelH;
+      if (belowBottom > viewportH && aboveTop >= 0) {
+        top = aboveTop;
+      } else {
+        top = belowTop;
+      }
+      top = Math.max(0, Math.min(top, viewportH - panelH));
+    }
+
+    this._lastOverlayLeft = left;
+    this._lastOverlayTop = top;
+
+    rt.setOverlayEntry(
+      overlayKey,
+      <Stack key={`${overlayKey}-host`} allowOverflowPositioned={true}>
+        <Container
+          key={`${overlayKey}-mask`}
+          width={viewportW ?? undefined}
+          height={viewportH ?? undefined}
+          alignment="topLeft"
+          pointerEvent="auto"
+          onPointerDown={(e: InkwellEvent) => {
+            e.stopPropagation?.();
+            this.closeOpened();
+          }}
+        />
+        <ToolbarColorPickerDropdown
+          widgetKey={`${overlayKey}-dropdown`}
+          theme={this.props.theme}
+          left={left}
+          top={top}
+          cols={this.props.cols}
+          swatchSize={this.props.swatchSize}
+          gap={this.props.gap}
+          padding={this.props.padding}
+          presets={this.props.presets}
+          hoveredKey={this.props.hoveredKey}
+          onHoverKey={this.props.onHoverKey}
+          swatchWidgetKey={this.props.swatchWidgetKey}
+          onPick={(color) => {
+            this.props.onPick(color);
+            this.props.onHoverKey(null);
+            this.closeOpened();
+          }}
+        />
+      </Stack>,
+    );
+  }
+
+  override paint(context: BuildContext): void {
+    super.paint(context);
+    if (!this.state.opened) {
+      return;
+    }
+    if (!this.runtime) {
+      return;
+    }
+    const cols = Math.max(1, this.props.cols | 0);
+    const swatchSize = Math.max(1, this.props.swatchSize | 0);
+    const gap = Math.max(0, this.props.gap | 0);
+    const padding = Math.max(0, this.props.padding | 0);
+
+    const panelW = padding * 2 + cols * swatchSize + Math.max(0, cols - 1) * gap;
+    const rows = Math.max(1, Math.ceil(this.props.presets.length / cols));
+    const panelH = padding * 2 + rows * swatchSize + Math.max(0, rows - 1) * gap;
+
+    const triggerPos = this.getAbsolutePosition();
+    const root = this.runtime.getRootWidget();
+    const viewportW = root?.renderObject.size.width ?? null;
+    const viewportH = root?.renderObject.size.height ?? null;
+
+    let left = triggerPos.dx + this.props.dropdownLeft;
+    let top = triggerPos.dy + this.props.dropdownTop;
+
+    if (viewportW !== null) {
+      left = Math.max(0, Math.min(left, viewportW - panelW));
+    }
+
+    if (viewportH !== null) {
+      const belowTop = triggerPos.dy + this.props.dropdownTop;
+      const belowBottom = belowTop + panelH;
+      const aboveTop = triggerPos.dy - 4 - panelH;
+      if (belowBottom > viewportH && aboveTop >= 0) {
+        top = aboveTop;
+      } else {
+        top = belowTop;
+      }
+      top = Math.max(0, Math.min(top, viewportH - panelH));
+    }
+
+    if (this._lastOverlayLeft !== left || this._lastOverlayTop !== top) {
+      this.syncOverlay();
+    }
+  }
+
+  override dispose(): void {
+    const rt = this.runtime;
+    if (rt) {
+      rt.removeOverlayEntry(this.getOverlayEntryKey());
+    }
+    super.dispose();
+  }
+
   protected render() {
     const hovered = this.props.hoveredKey === this.props.triggerHoverKey;
     const opened = this.state.opened;
@@ -89,6 +238,7 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
           theme={this.props.theme}
           width={this.props.width}
           height={this.props.height}
+          active={this.props.active}
           opened={opened}
           hovered={hovered}
           onPointerEnter={() => this.props.onHoverKey(this.props.triggerHoverKey)}
@@ -96,7 +246,7 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
           onPointerDown={this.toggleOpened}
         />
 
-        {opened && (
+        {opened && !this.runtime && (
           <ToolbarColorPickerDropdown
             widgetKey={`${this.props.widgetKey}-dropdown`}
             theme={this.props.theme}
@@ -115,7 +265,6 @@ export class ColorPicker extends StatefulWidget<ColorPickerProps, ColorPickerSta
               this.props.onHoverKey(null);
               this.closeOpened();
             }}
-            onPointerLeave={this.closeOpened}
           />
         )}
       </Stack>

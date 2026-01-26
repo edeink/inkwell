@@ -7,7 +7,7 @@
  */
 import { toolbarConstants } from '../constants';
 
-import type { RichTextColorPreset } from '../index';
+import type { RichTextColorPreset } from '@/demo/editable-text/widget/rich-text-toolbar';
 import type { ThemePalette } from '@/styles/theme';
 
 import {
@@ -15,6 +15,7 @@ import {
   Column,
   Container,
   CrossAxisAlignment,
+  MainAxisSize,
   Positioned,
   Row,
   type InkwellEvent,
@@ -53,7 +54,11 @@ export function ToolbarColorPickerDropdown(props: ToolbarColorPickerDropdownProp
           pointerEvent="auto"
           onPointerLeave={props.onPointerLeave}
         >
-          <Column spacing={props.gap} crossAxisAlignment={CrossAxisAlignment.Start}>
+          <Column
+            spacing={props.gap}
+            crossAxisAlignment={CrossAxisAlignment.Start}
+            mainAxisSize={MainAxisSize.Min}
+          >
             {Array.from({ length: Math.ceil(props.presets.length / props.cols) }).map((_, ri) => {
               const rowPresets = props.presets.slice(ri * props.cols, ri * props.cols + props.cols);
               return (

@@ -50,6 +50,8 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
   private editorRef: RichTextEditor | null = null;
   private _appliedInitKey: string | null = null;
   private _applyInitTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingInitKey: string | null = null;
+  private _pendingInitSpans: ReadonlyArray<RichTextSpan> | null = null;
 
   state: RichTextPanelState = {
     focused: false,
@@ -67,7 +69,9 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
   }
 
   private scheduleApplyInitialSpans(text: string, spans: ReadonlyArray<RichTextSpan> | null) {
-    if (!this.editorRef || !spans || spans.length === 0) {
+    if (!spans || spans.length === 0) {
+      this._pendingInitKey = null;
+      this._pendingInitSpans = null;
       return;
     }
 
@@ -85,7 +89,8 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
     if (this._appliedInitKey === key) {
       return;
     }
-    this._appliedInitKey = key;
+    this._pendingInitKey = key;
+    this._pendingInitSpans = spans;
 
     if (this._applyInitTimer !== null) {
       clearTimeout(this._applyInitTimer);
@@ -94,8 +99,38 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
 
     this._applyInitTimer = setTimeout(() => {
       this._applyInitTimer = null;
-      this.editorRef?.applyInitialSpans(spans);
+      this.tryApplyInitialSpans();
     }, 0);
+  }
+
+  private tryApplyInitialSpans() {
+    if (!this.isMounted) {
+      return;
+    }
+    if (!this.editorRef) {
+      return;
+    }
+    if (!this._pendingInitKey || !this._pendingInitSpans) {
+      return;
+    }
+    if (this._appliedInitKey === this._pendingInitKey) {
+      this._pendingInitKey = null;
+      this._pendingInitSpans = null;
+      return;
+    }
+
+    this.editorRef.applyInitialSpans(this._pendingInitSpans);
+    this._appliedInitKey = this._pendingInitKey;
+    this._pendingInitKey = null;
+    this._pendingInitSpans = null;
+  }
+
+  override dispose(): void {
+    if (this._applyInitTimer !== null) {
+      clearTimeout(this._applyInitTimer);
+      this._applyInitTimer = null;
+    }
+    super.dispose();
   }
 
   protected render() {
@@ -117,7 +152,6 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
     ] as const;
 
     const showFloating =
-      this.state.focused &&
       this.state.selectionStart !== this.state.selectionEnd &&
       !this.state.draggingSelection &&
       this.state.selectionFromDrag;
@@ -173,17 +207,27 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
       <Column spacing={10} crossAxisAlignment={CrossAxisAlignment.Start}>
         <Text text="富文本编辑器 (RichText)" fontSize={16} color={theme.text.secondary} />
         <Container
+          key="rich-text-panel-frame"
           width={300}
           height={150}
           border={{ color: borderColor, width: 1 }}
           borderRadius={4}
           color={theme.background.container}
+          pointerEvent="auto"
+          onPointerDown={() => {
+            if (this.state.selectionFromDrag) {
+              this.setState({ selectionFromDrag: false });
+              this.emitSelectionInfo();
+            }
+          }}
         >
           <Padding padding={12}>
             <Stack>
               <RichTextEditor
                 key="rich-editor"
-                ref={(r) => (this.editorRef = r as RichTextEditor)}
+                ref={(r) => {
+                  this.editorRef = r as RichTextEditor;
+                }}
                 value={textValue}
                 onChange={(nextText) => {
                   if (typeof value === 'string') {
@@ -230,7 +274,6 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
                   this.setState({
                     focused: false,
                     draggingSelection: false,
-                    selectionFromDrag: false,
                   });
                   this.emitSelectionInfo();
                 }}

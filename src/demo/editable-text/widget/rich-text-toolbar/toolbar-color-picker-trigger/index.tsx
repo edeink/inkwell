@@ -34,6 +34,7 @@ export interface ToolbarColorPickerTriggerProps {
   theme: ThemePalette;
   width: number;
   height: number;
+  active?: boolean;
   opened: boolean;
   hovered: boolean;
   onPointerEnter?: (e: InkwellEvent) => void;
@@ -46,7 +47,10 @@ export function ToolbarColorPickerTrigger(props: ToolbarColorPickerTriggerProps)
     ? props.theme.state.hover
     : props.hovered
       ? props.theme.state.hover
-      : props.theme.background.container;
+      : props.active
+        ? props.theme.state.selected
+        : props.theme.background.container;
+  const iconColor = props.active ? props.theme.primary : props.theme.text.primary;
 
   return (
     <ToolbarButton
@@ -59,7 +63,7 @@ export function ToolbarColorPickerTrigger(props: ToolbarColorPickerTriggerProps)
       onPointerLeave={props.onPointerLeave}
       onPointerDown={props.onPointerDown}
     >
-      <Icon svg={colorButtonSvg} size={16} color={props.theme.text.primary} />
+      <Icon svg={colorButtonSvg} size={16} color={iconColor} />
     </ToolbarButton>
   );
 }

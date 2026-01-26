@@ -39,6 +39,8 @@ export interface SelectProps<T extends string | number = string> extends WidgetP
   placeholder?: string;
   disabled?: boolean;
   onChange?: (value: T) => void;
+  onOpen?: () => void;
+  onClose?: () => void;
 }
 
 interface SelectState<T extends string | number> {
@@ -96,14 +98,21 @@ export class Select<T extends string | number = string> extends StatefulWidget<
       return;
     }
     e.stopPropagation?.();
-    this.setState({ opened: !this.state.opened });
+    const nextOpened = !this.state.opened;
+    this.setState({ opened: nextOpened });
     this.syncOverlay();
+    if (nextOpened) {
+      this.props.onOpen?.();
+    } else {
+      this.props.onClose?.();
+    }
   };
 
   private closeOpened = () => {
     if (this.state.opened) {
       this.setState({ opened: false, hoveredKey: null });
       this.syncOverlay();
+      this.props.onClose?.();
     }
   };
 

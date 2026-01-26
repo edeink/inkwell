@@ -17,7 +17,13 @@ import {
   ToolbarColorPickerTrigger,
 } from '../index';
 
-import { Text } from '@/core';
+import type { WidgetProps } from '@/core/type';
+import type { ThemePalette } from '@/styles/theme';
+
+import { Container, StatefulWidget, Text } from '@/core';
+import { dispatchToTree } from '@/core/events/dispatcher';
+import { findWidget } from '@/core/helper/widget-selector';
+import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
@@ -232,5 +238,165 @@ describe('RichTextToolbar - 可复用组件', () => {
 
     const closedAfterPick = compileElement((widget as any).render());
     expect(findByKey(closedAfterPick, 'rt-test-cp-dropdown')).toBeNull();
+  });
+});
+
+interface TestHostProps extends WidgetProps {
+  theme: ThemePalette;
+}
+
+interface TestHostState {
+  tick: number;
+  [key: string]: unknown;
+}
+
+class TestHost extends StatefulWidget<TestHostProps, TestHostState> {
+  state: TestHostState = { tick: 0 };
+
+  bump() {
+    this.setState({ tick: this.state.tick + 1 });
+  }
+
+  render() {
+    const theme = this.props.theme;
+    const hoveredKey = this.state.tick % 2 === 0 ? null : 'color';
+    return (
+      <Container key="root" width={300} height={220} pointerEvent="auto">
+        <ColorPicker
+          key="cp"
+          widgetKey="cp"
+          theme={theme}
+          width={28}
+          height={28}
+          triggerHoverKey="color"
+          dropdownTop={34}
+          dropdownLeft={0}
+          cols={4}
+          swatchSize={22}
+          gap={6}
+          padding={8}
+          presets={[
+            { label: 'a', value: '#111' },
+            { label: 'b', value: '#222' },
+            { label: 'c', value: '#333' },
+            { label: 'd', value: '#444' },
+            { label: 'e', value: '#555' },
+            { label: 'f', value: '#666' },
+            { label: 'g', value: '#777' },
+            { label: 'h', value: '#888' },
+          ]}
+          hoveredKey={hoveredKey}
+          onHoverKey={() => undefined}
+          swatchWidgetKey={(color: string) => `sw-${color}`}
+          onPick={() => undefined}
+        />
+      </Container>
+    );
+  }
+}
+
+describe('RichTextToolbar - ColorPicker Overlay 行为', () => {
+  it('打开后应通过 Overlay 渲染下拉面板，并可点击空白收起', async () => {
+    const container = document.createElement('div');
+    container.id = `rt-cp-ov-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { renderer: 'canvas2d' });
+
+    try {
+      const onClose = vi.fn();
+      await runtime.render(
+        <Container key="root" width={300} height={220} pointerEvent="auto">
+          <ColorPicker
+            key="cp"
+            widgetKey="cp"
+            theme={Themes.light}
+            width={28}
+            height={28}
+            triggerHoverKey="color"
+            dropdownTop={34}
+            dropdownLeft={0}
+            cols={4}
+            swatchSize={22}
+            gap={6}
+            padding={8}
+            presets={[
+              { label: 'a', value: '#111' },
+              { label: 'b', value: '#222' },
+              { label: 'c', value: '#333' },
+              { label: 'd', value: '#444' },
+              { label: 'e', value: '#555' },
+              { label: 'f', value: '#666' },
+              { label: 'g', value: '#777' },
+              { label: 'h', value: '#888' },
+            ]}
+            hoveredKey={null}
+            onHoverKey={() => undefined}
+            swatchWidgetKey={(color: string) => `sw-${color}`}
+            onPick={() => undefined}
+            onClose={onClose}
+          />
+        </Container>,
+      );
+
+      const root = runtime.getRootWidget()!;
+      const cp = findWidget(root, '#cp') as any;
+      cp.toggleOpened({ stopPropagation: vi.fn() } as any);
+      runtime.tick();
+      await new Promise((r) => setTimeout(r, 20));
+
+      const overlayRoot1 = runtime.getOverlayRootWidget();
+      expect(overlayRoot1).not.toBeNull();
+      const overlayKey = `${String(cp.key)}-color-picker-overlay`;
+      const dd1 = findWidget(overlayRoot1!, `#${overlayKey}-dropdown`);
+      expect(dd1).not.toBeNull();
+
+      const mask = findWidget(overlayRoot1!, `#${overlayKey}-mask`) as any;
+      expect(mask).not.toBeNull();
+      const p = mask.getAbsolutePosition();
+      dispatchToTree(overlayRoot1!, mask, 'pointerdown', p.dx + 1, p.dy + 1);
+      runtime.tick();
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(runtime.getOverlayRootWidget()).toBeNull();
+    } finally {
+      runtime.destroy();
+      document.body.innerHTML = '';
+    }
+  });
+
+  it('打开后父组件更新不应导致自动收起', async () => {
+    const container = document.createElement('div');
+    container.id = `rt-cp-keep-${Math.random().toString(36).slice(2)}`;
+    document.body.appendChild(container);
+    const runtime = await Runtime.create(container.id, { renderer: 'canvas2d' });
+
+    try {
+      await runtime.render(<TestHost key="host" theme={Themes.light} />);
+      const root1 = runtime.getRootWidget()!;
+      const host = findWidget(root1, '#host') as TestHost;
+      const cp1 = findWidget(root1, '#cp') as any;
+      cp1.toggleOpened({ stopPropagation: vi.fn() } as any);
+      runtime.tick();
+      await new Promise((r) => setTimeout(r, 20));
+
+      const overlayKey = `${String(cp1.key)}-color-picker-overlay`;
+      const overlayRoot1 = runtime.getOverlayRootWidget()!;
+      expect(findWidget(overlayRoot1, `#${overlayKey}-dropdown`)).not.toBeNull();
+
+      host.bump();
+      runtime.tick();
+      await new Promise((r) => setTimeout(r, 20));
+
+      const root2 = runtime.getRootWidget()!;
+      const cp2 = findWidget(root2, '#cp') as any;
+      expect(cp2).toBe(cp1);
+      expect(cp2.state.opened).toBe(true);
+      const overlayRoot2 = runtime.getOverlayRootWidget()!;
+      expect(findWidget(overlayRoot2, `#${overlayKey}-dropdown`)).not.toBeNull();
+    } finally {
+      runtime.destroy();
+      document.body.innerHTML = '';
+    }
   });
 });

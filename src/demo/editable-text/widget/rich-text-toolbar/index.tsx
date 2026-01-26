@@ -7,13 +7,13 @@
  */
 import { ColorPicker as ToolbarColorPicker } from './color-picker';
 import { fontFamilyOptions, fontSizeOptions, toolbarConstants, toolbarDerived } from './constants';
-import { Select as ToolbarSelect } from './select';
 import { ToolbarButton } from './toolbar-button';
 
-import type { RichTextEditor } from '../rich-text-editor';
 import type { WidgetProps } from '@/core/base';
+import type { RichTextEditor } from '@/demo/editable-text/widget/rich-text-editor';
 import type { ThemePalette } from '@/styles/theme';
 
+import { Select as CompSelect } from '@/comp';
 import {
   Container,
   CrossAxisAlignment,
@@ -66,10 +66,34 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
   }
 
   private captureSelectionSnapshot() {
-    const { editor } = this.props;
+    const { editor, variant } = this.props;
     const info = editor?.getRichSelectionInfo() ?? null;
-    this.savedSelectionStart = info ? info.selectionStart : null;
-    this.savedSelectionEnd = info ? info.selectionEnd : null;
+    if (!info) {
+      this.savedSelectionStart = null;
+      this.savedSelectionEnd = null;
+      return;
+    }
+
+    if (variant === 'selection') {
+      if (info.selectionStart !== info.selectionEnd) {
+        this.savedSelectionStart = info.selectionStart;
+        this.savedSelectionEnd = info.selectionEnd;
+        return;
+      }
+
+      if (
+        typeof this.lastSelectionStart === 'number' &&
+        typeof this.lastSelectionEnd === 'number' &&
+        this.lastSelectionStart !== this.lastSelectionEnd
+      ) {
+        this.savedSelectionStart = this.lastSelectionStart;
+        this.savedSelectionEnd = this.lastSelectionEnd;
+        return;
+      }
+    }
+
+    this.savedSelectionStart = info.selectionStart;
+    this.savedSelectionEnd = info.selectionEnd;
   }
 
   private clearSelectionSnapshot() {
@@ -82,18 +106,31 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
     if (!editor || variant !== 'selection') {
       return;
     }
-    const a =
+
+    let a =
       typeof this.savedSelectionStart === 'number'
         ? this.savedSelectionStart
         : typeof this.lastSelectionStart === 'number'
           ? this.lastSelectionStart
           : null;
-    const b =
+    let b =
       typeof this.savedSelectionEnd === 'number'
         ? this.savedSelectionEnd
         : typeof this.lastSelectionEnd === 'number'
           ? this.lastSelectionEnd
           : null;
+
+    if (
+      typeof a === 'number' &&
+      typeof b === 'number' &&
+      a === b &&
+      typeof this.lastSelectionStart === 'number' &&
+      typeof this.lastSelectionEnd === 'number' &&
+      this.lastSelectionStart !== this.lastSelectionEnd
+    ) {
+      a = this.lastSelectionStart;
+      b = this.lastSelectionEnd;
+    }
 
     if (typeof a !== 'number' || typeof b !== 'number') {
       return;
@@ -185,6 +222,20 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
       }
     }
 
+    const boldActive =
+      variant === 'selection'
+        ? (editor?.getBoldForSelection() ?? null) === true
+        : (editor?.getTypingBold() ?? false);
+    const italicActive =
+      variant === 'selection'
+        ? (editor?.getItalicForSelection() ?? null) === true
+        : (editor?.getTypingItalic() ?? false);
+    const currentColor =
+      variant === 'selection'
+        ? (editor?.getColorForSelection() ?? null)
+        : (editor?.getTypingColor() ?? null);
+    const colorActive = typeof currentColor === 'string' && currentColor !== '#000000';
+
     const fontSizeValue =
       variant === 'selection'
         ? (editor?.getFontSizeForSelection() ?? null)
@@ -193,12 +244,6 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
       variant === 'selection'
         ? (editor?.getFontFamilyForSelection() ?? null)
         : (editor?.getTypingFontFamily() ?? null);
-
-    const fontSizeLabel = typeof fontSizeValue === 'number' ? `${fontSizeValue}px` : '字号';
-    const fontFamilyLabel =
-      typeof fontFamilyValue === 'string' && fontFamilyValue.length > 0
-        ? fontFamilyValue.split(',')[0].replaceAll('"', '').trim()
-        : '字体';
 
     return (
       <Container width={toolbarDerived.toolbarW} pointerEvent="none" cursor="default">
@@ -223,7 +268,11 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
                 width={toolbarConstants.buttonSize}
                 height={toolbarConstants.buttonSize}
                 backgroundColor={
-                  this.state.hoveredKey === 'bold' ? theme.state.hover : theme.background.container
+                  this.state.hoveredKey === 'bold'
+                    ? theme.state.hover
+                    : boldActive
+                      ? theme.state.selected
+                      : theme.background.container
                 }
                 onPointerEnter={() => this.setState({ hoveredKey: 'bold' })}
                 onPointerLeave={() => this.setState({ hoveredKey: null })}
@@ -235,7 +284,7 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
                 <Text
                   text="B"
                   fontSize={14}
-                  color={theme.text.primary}
+                  color={boldActive ? theme.primary : theme.text.primary}
                   fontWeight="bold"
                   textAlign={TextAlign.Center}
                   textAlignVertical={TextAlignVertical.Center}
@@ -250,7 +299,9 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
                 backgroundColor={
                   this.state.hoveredKey === 'italic'
                     ? theme.state.hover
-                    : theme.background.container
+                    : italicActive
+                      ? theme.state.selected
+                      : theme.background.container
                 }
                 onPointerEnter={() => this.setState({ hoveredKey: 'italic' })}
                 onPointerLeave={() => this.setState({ hoveredKey: null })}
@@ -262,7 +313,7 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
                 <Text
                   text="I"
                   fontSize={14}
-                  color={theme.text.primary}
+                  color={italicActive ? theme.primary : theme.text.primary}
                   fontStyle="italic"
                   textAlign={TextAlign.Center}
                   textAlignVertical={TextAlignVertical.Center}
@@ -270,59 +321,39 @@ export class RichTextToolbar extends StatefulWidget<RichTextToolbarProps, RichTe
                 />
               </ToolbarButton>
 
-              <ToolbarSelect
-                widgetKey="rt-select-fontSize"
+              <CompSelect<number>
+                key="rt-select-fontSize"
                 theme={theme}
                 width={toolbarConstants.fontSizeW}
-                height={toolbarConstants.buttonSize}
-                label={fontSizeLabel}
-                triggerHoverKey="fontSize"
-                dropdownTop={toolbarDerived.dropdownTopFromTrigger}
-                viewportHeight={toolbarDerived.dropdownViewportH}
-                itemHeight={toolbarConstants.dropdownItemH}
-                itemGap={toolbarConstants.dropdownGap}
-                hoveredKey={this.state.hoveredKey}
-                onHoverKey={(key) => this.setState({ hoveredKey: key })}
-                options={fontSizeOptions.map((fs) => ({
-                  label: `${fs}px`,
-                  value: fs,
-                  hoverKey: `fs-${fs}`,
-                  widgetKey: `rt-fs-${fs}`,
-                }))}
+                size="small"
+                value={typeof fontSizeValue === 'number' ? fontSizeValue : null}
+                placeholder="字号"
+                options={fontSizeOptions.map((fs) => ({ label: `${fs}px`, value: fs }))}
                 onOpen={() => this.captureSelectionSnapshot()}
                 onClose={() => this.clearSelectionSnapshot()}
-                onSelect={(fs) => this.applyFontSize(fs)}
+                onChange={(fs) => this.applyFontSize(fs)}
               />
 
-              <ToolbarSelect
-                widgetKey="rt-select-fontFamily"
+              <CompSelect<string>
+                key="rt-select-fontFamily"
                 theme={theme}
                 width={toolbarConstants.fontFamilyW}
-                height={toolbarConstants.buttonSize}
-                label={fontFamilyLabel}
-                triggerHoverKey="fontFamily"
-                dropdownTop={toolbarDerived.dropdownTopFromTrigger}
-                viewportHeight={toolbarDerived.dropdownViewportH}
-                itemHeight={toolbarConstants.dropdownItemH}
-                itemGap={toolbarConstants.dropdownGap}
-                hoveredKey={this.state.hoveredKey}
-                onHoverKey={(key) => this.setState({ hoveredKey: key })}
-                options={fontFamilyOptions.map((ff) => ({
-                  label: ff.label,
-                  value: ff.value,
-                  hoverKey: `ff-${ff.label}`,
-                  widgetKey: `rt-ff-${ff.label}`,
-                }))}
+                size="small"
+                value={typeof fontFamilyValue === 'string' ? fontFamilyValue : null}
+                placeholder="字体"
+                options={fontFamilyOptions.map((ff) => ({ label: ff.label, value: ff.value }))}
                 onOpen={() => this.captureSelectionSnapshot()}
                 onClose={() => this.clearSelectionSnapshot()}
-                onSelect={(ff) => this.applyFontFamily(ff)}
+                onChange={(ff) => this.applyFontFamily(ff)}
               />
 
               <ToolbarColorPicker
+                key="rt-btn-color"
                 widgetKey="rt-btn-color"
                 theme={theme}
                 width={toolbarConstants.buttonSize}
                 height={toolbarConstants.buttonSize}
+                active={colorActive}
                 triggerHoverKey="color"
                 dropdownTop={toolbarDerived.dropdownTopFromTrigger}
                 dropdownLeft={toolbarDerived.colorDropdownLeftFromTrigger}
