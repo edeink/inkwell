@@ -23,8 +23,6 @@ import {
 export interface ModalProps extends WidgetProps {
   theme?: ThemePalette;
   open: boolean;
-  viewportWidth: number;
-  viewportHeight: number;
   width?: number;
   title?: string;
   maskClosable?: boolean;
@@ -75,11 +73,10 @@ class ModalInner extends StatefulWidget<ModalProps, ModalState> {
 
     rt.setOverlayEntry(
       overlayKey,
-      <Stack key={`${overlayKey}-host`} allowOverflowPositioned={true}>
+      <Stack key={`${overlayKey}-host`} allowOverflowPositioned={true} alignment="center">
         <Container
           key={`${overlayKey}-mask`}
-          width={this.props.viewportWidth}
-          height={this.props.viewportHeight}
+          alignment="topLeft"
           color={maskColor}
           pointerEvent="auto"
           onPointerDown={(e: InkwellEvent) => {
@@ -90,70 +87,62 @@ class ModalInner extends StatefulWidget<ModalProps, ModalState> {
           }}
         />
         <Container
-          key={`${overlayKey}-center`}
-          width={this.props.viewportWidth}
-          height={this.props.viewportHeight}
-          alignment="center"
-          padding={{ bottom: slide }}
-          pointerEvent="none"
+          key={`${overlayKey}-dialog`}
+          width={dialogW}
+          minWidth={320}
+          minHeight={160}
+          borderRadius={tokens.borderRadius}
+          border={{ width: tokens.borderWidth, color: theme.border.base }}
+          color={theme.background.container}
+          padding={16}
+          margin={{ bottom: slide }}
+          pointerEvent="auto"
         >
-          <Container
-            key={`${overlayKey}-dialog`}
-            width={dialogW}
-            minWidth={320}
-            minHeight={160}
-            borderRadius={tokens.borderRadius}
-            border={{ width: tokens.borderWidth, color: theme.border.base }}
-            color={theme.background.container}
-            padding={16}
-            pointerEvent="auto"
+          <Column
+            spacing={12}
+            crossAxisAlignment={CrossAxisAlignment.Start}
+            mainAxisSize={MainAxisSize.Min}
           >
-            <Column
-              spacing={12}
-              crossAxisAlignment={CrossAxisAlignment.Start}
-              mainAxisSize={MainAxisSize.Min}
+            {this.props.title ? (
+              <Text
+                key="modal-title"
+                text={this.props.title}
+                fontSize={16}
+                color={theme.text.primary}
+                lineHeight={24}
+                fontWeight="bold"
+                pointerEvent="none"
+              />
+            ) : null}
+            <Container key="modal-body" pointerEvent="auto">
+              {this.props.children as unknown as WidgetProps[]}
+            </Container>
+            <Row
+              key="modal-footer"
+              spacing={8}
+              mainAxisAlignment={MainAxisAlignment.End}
+              crossAxisAlignment={CrossAxisAlignment.Center}
             >
-              {this.props.title ? (
+              <Button theme={theme} btnType="default" onClick={(e) => this.props.onCancel?.(e)}>
                 <Text
-                  key="modal-title"
-                  text={this.props.title}
-                  fontSize={16}
+                  text={this.props.cancelText ?? '取消'}
+                  fontSize={14}
                   color={theme.text.primary}
-                  lineHeight={24}
-                  fontWeight="bold"
+                  textAlignVertical={TextAlignVertical.Center}
                   pointerEvent="none"
                 />
-              ) : null}
-              <Container key="modal-body" pointerEvent="auto">
-                {this.props.children as unknown as WidgetProps[]}
-              </Container>
-              <Row
-                key="modal-footer"
-                spacing={8}
-                mainAxisAlignment={MainAxisAlignment.End}
-                crossAxisAlignment={CrossAxisAlignment.Center}
-              >
-                <Button theme={theme} btnType="default" onClick={(e) => this.props.onCancel?.(e)}>
-                  <Text
-                    text={this.props.cancelText ?? '取消'}
-                    fontSize={14}
-                    color={theme.text.primary}
-                    textAlignVertical={TextAlignVertical.Center}
-                    pointerEvent="none"
-                  />
-                </Button>
-                <Button theme={theme} btnType="primary" onClick={(e) => this.props.onOk?.(e)}>
-                  <Text
-                    text={this.props.okText ?? '确定'}
-                    fontSize={14}
-                    color={theme.text.inverse}
-                    textAlignVertical={TextAlignVertical.Center}
-                    pointerEvent="none"
-                  />
-                </Button>
-              </Row>
-            </Column>
-          </Container>
+              </Button>
+              <Button theme={theme} btnType="primary" onClick={(e) => this.props.onOk?.(e)}>
+                <Text
+                  text={this.props.okText ?? '确定'}
+                  fontSize={14}
+                  color={theme.text.inverse}
+                  textAlignVertical={TextAlignVertical.Center}
+                  pointerEvent="none"
+                />
+              </Button>
+            </Row>
+          </Column>
         </Container>
       </Stack>,
     );

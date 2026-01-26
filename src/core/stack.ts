@@ -60,7 +60,7 @@ export class Stack extends Widget<StackProps> {
 
   private getPositionedProxy(child: Widget): Positioned | null {
     let w: Widget | null = child;
-    for (let depth = 0; depth < 32 && w; depth++) {
+    for (let depth = 0; depth < 128 && w; depth++) {
       if (w.isPositioned) {
         return w as Positioned;
       }
@@ -173,6 +173,58 @@ export class Stack extends Widget<StackProps> {
         break;
     }
 
+    let maxPosReqW = 0;
+    let maxPosReqH = 0;
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      const pos = this.getPositionedProxy(child);
+      if (!pos) {
+        continue;
+      }
+      const s = childrenSizes[i];
+      if (!s) {
+        continue;
+      }
+      const childW = s.width;
+      const childH = s.height;
+
+      let reqW = 0;
+      if (pos.left !== undefined && pos.right !== undefined) {
+        reqW = pos.left + childW + pos.right;
+      } else if (pos.left !== undefined) {
+        reqW = pos.left + childW;
+      } else if (pos.right !== undefined) {
+        reqW = pos.right + childW;
+      } else {
+        reqW = childW;
+      }
+
+      let reqH = 0;
+      if (pos.top !== undefined && pos.bottom !== undefined) {
+        reqH = pos.top + childH + pos.bottom;
+      } else if (pos.top !== undefined) {
+        reqH = pos.top + childH;
+      } else if (pos.bottom !== undefined) {
+        reqH = pos.bottom + childH;
+      } else {
+        reqH = childH;
+      }
+
+      if (reqW > maxPosReqW) {
+        maxPosReqW = reqW;
+      }
+      if (reqH > maxPosReqH) {
+        maxPosReqH = reqH;
+      }
+    }
+
+    if (maxPosReqW > width) {
+      width = maxPosReqW;
+    }
+    if (maxPosReqH > height) {
+      height = maxPosReqH;
+    }
+
     // 确保满足约束条件
     width = Math.max(constraints.minWidth, Math.min(width, constraints.maxWidth));
     height = Math.max(constraints.minHeight, Math.min(height, constraints.maxHeight));
@@ -263,19 +315,11 @@ export class Stack extends Widget<StackProps> {
       parentConstraints.minWidth === parentConstraints.maxWidth &&
       parentConstraints.minHeight === parentConstraints.maxHeight;
 
-    if (isTight || this.allowOverflowPositioned) {
-      const loosePosConstraints = createBoxConstraints({
-        minWidth: 0,
-        maxWidth: parentConstraints.maxWidth,
-        minHeight: 0,
-        maxHeight: parentConstraints.maxHeight,
-      });
-      const posConstraints = this.allowOverflowPositioned ? parentConstraints : loosePosConstraints;
-
+    if (isTight) {
       for (let i = 0; i < len; i++) {
         const child = this.children[i];
         if (this.getPositionedProxy(child)) {
-          sizes[i] = child.layout(posConstraints);
+          sizes[i] = child.layout(parentConstraints);
         } else {
           const constraints = this.getConstraintsForChild(parentConstraints, i);
           sizes[i] = child.layout(constraints);
@@ -332,16 +376,61 @@ export class Stack extends Widget<StackProps> {
       refHeight = parentConstraints.minHeight ?? 0;
     }
 
-    // 2) 布局 Positioned 子项，使用基于参考尺寸的约束避免无穷大尺寸
+    if (!hasNonPos) {
+      for (let i = 0; i < len; i++) {
+        const child = this.children[i];
+        const pos = this.getPositionedProxy(child);
+        if (!pos) {
+          continue;
+        }
+        if (pos.width !== undefined) {
+          const left = pos.left ?? 0;
+          const right = pos.right ?? 0;
+          const w = left + right + pos.width;
+          if (w > refWidth) {
+            refWidth = w;
+          }
+        }
+        if (pos.height !== undefined) {
+          const top = pos.top ?? 0;
+          const bottom = pos.bottom ?? 0;
+          const h = top + bottom + pos.height;
+          if (h > refHeight) {
+            refHeight = h;
+          }
+        }
+      }
+    }
+
+    const maxWidthForPos = Number.isFinite(parentConstraints.maxWidth)
+      ? parentConstraints.maxWidth
+      : refWidth > 0
+        ? refWidth
+        : parentConstraints.maxWidth;
+    const maxHeightForPos = Number.isFinite(parentConstraints.maxHeight)
+      ? parentConstraints.maxHeight
+      : refHeight > 0
+        ? refHeight
+        : parentConstraints.maxHeight;
+
+    const posMaxWidth = this.allowOverflowPositioned
+      ? maxWidthForPos
+      : refWidth === 0
+        ? maxWidthForPos
+        : refWidth;
+    const posMaxHeight = this.allowOverflowPositioned
+      ? maxHeightForPos
+      : refHeight === 0
+        ? maxHeightForPos
+        : refHeight;
+
     const refPosConstraints = createBoxConstraints({
       minWidth: 0,
-      maxWidth: refWidth === 0 ? parentConstraints.maxWidth : refWidth,
+      maxWidth: posMaxWidth,
       minHeight: 0,
-      maxHeight: refHeight === 0 ? parentConstraints.maxHeight : refHeight,
+      maxHeight: posMaxHeight,
     });
-    const posConstraints = this.props.allowOverflowPositioned
-      ? parentConstraints
-      : refPosConstraints;
+    const posConstraints = refPosConstraints;
 
     for (let i = 0; i < len; i++) {
       const child = this.children[i];

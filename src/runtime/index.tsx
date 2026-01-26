@@ -788,9 +788,22 @@ export default class Runtime {
     // 执行布局计算
     const size = widget.layout(constraints);
 
+    const containerW = this._container?.clientWidth ?? 0;
+    const containerH = this._container?.clientHeight ?? 0;
+
+    let w = size.width;
+    let h = size.height;
+
+    if (!Number.isFinite(w) || w <= 0) {
+      w = containerW > 0 ? containerW : 0;
+    }
+    if (!Number.isFinite(h) || h <= 0) {
+      h = containerH > 0 ? containerH : 0;
+    }
+
     const finalSize = {
-      width: Math.max(size.width, 100), // 最小宽度
-      height: Math.max(size.height, 100), // 最小高度
+      width: Math.max(w, 100), // 最小宽度
+      height: Math.max(h, 100), // 最小高度
     };
 
     return finalSize;
@@ -832,12 +845,13 @@ export default class Runtime {
       if (overlayRoot) {
         this.renderer.save();
         try {
-          const size = this.rootWidget.renderObject.size;
+          const vw = this.renderer.getWidth?.() ?? this.rootWidget.renderObject.size.width;
+          const vh = this.renderer.getHeight?.() ?? this.rootWidget.renderObject.size.height;
           overlayRoot.layout({
-            minWidth: size.width,
-            maxWidth: size.width,
-            minHeight: size.height,
-            maxHeight: size.height,
+            minWidth: vw,
+            maxWidth: vw,
+            minHeight: vh,
+            maxHeight: vh,
           });
           overlayRoot.paint(context);
         } finally {

@@ -2,16 +2,16 @@
 title: Message
 ---
 
-核心用途：轻量全局提示。通过 `message.*` 触发消息，通过 `MessageHost` 承载渲染（监听全局事件并在指定视口内展示）。
+核心用途：轻量全局提示。通过 `message.*` 触发消息，组件内部会基于 runtime 的 overlay 机制进行渲染。
 
 ## 如何引入
 
-- 项目代码：`import { MessageHost, message } from '@/comp'`
+- 项目代码：`import { message } from '@/comp'`
 - 文档/示例：在代码块首行添加 `/** @jsxImportSource @/utils/compiler */`
 
 ## 示例
 
-### 基础用法（消息 + 宿主）
+### 基础用法
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
@@ -23,19 +23,18 @@ title: Message
     borderRadius={8}
     color="#ffffff"
   />
-  <MessageHost viewportWidth={520} viewportHeight={180} maxCount={3} />
   <Positioned left={16} top={16}>
     <Row spacing={8} mainAxisSize="min">
       <Button
         btnType="primary"
-        onClick={() => message.success('操作成功', { duration: 1800 })}
+        onClick={() => message.success('操作成功', { duration: 1800, placement: 'center' })}
       >
         <Text text="成功" color="#ffffff" pointerEvent="none" />
       </Button>
-      <Button onClick={() => message.info('这是一条提示')}>
+      <Button onClick={() => message.info('这是一条提示', { placement: 'center' })}>
         <Text text="提示" pointerEvent="none" />
       </Button>
-      <Button danger={true} onClick={() => message.error('发生错误')}>
+      <Button danger={true} onClick={() => message.error('发生错误', { placement: 'center' })}>
         <Text text="错误" pointerEvent="none" />
       </Button>
     </Row>
@@ -59,18 +58,4 @@ title: Message
 | 字段 | 说明 | 类型 | 默认值 |
 | --- | --- | --- | --- |
 | `duration` | 自动关闭时间（毫秒） | `number` | info: 2000 / success: 2000 / warning: 2500 / error: 3000 |
-
-### MessageHost
-
-| 属性名 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| `viewportWidth` | 宿主视口宽度 | `number` | 无 |
-| `viewportHeight` | 宿主视口高度 | `number` | 无 |
-| `top` | 消息区域距顶部偏移 | `number` | `16` |
-| `right` | 消息区域距右侧偏移 | `number` | `16` |
-| `maxCount` | 最大展示条数 | `number` | `5` |
-| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
-
-## Tips
-
-- 需要在应用中放置 `MessageHost`，否则调用 `message.*` 不会有可见效果。
+| `placement` | 弹出位置 | `'topRight' \| 'center'` | `'topRight'` |

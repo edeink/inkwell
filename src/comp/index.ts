@@ -3,13 +3,7 @@ export { DatePicker, type DatePickerProps } from './date-picker';
 export { Drawer, type DrawerProps } from './drawer';
 export { Form, FormItem, type FormItemProps, type FormProps } from './form';
 export { Menu, type MenuItem, type MenuProps } from './menu';
-export {
-  MessageHost,
-  message,
-  type MessageHostProps,
-  type MessageOptions,
-  type MessageType,
-} from './message';
+export { message, type MessageOptions, type MessageType } from './message';
 export { Modal, type ModalProps } from './modal';
 export { Popconfirm, type PopconfirmProps } from './popconfirm';
 export {

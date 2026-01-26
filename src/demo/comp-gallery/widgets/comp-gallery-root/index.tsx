@@ -446,8 +446,6 @@ export class CompGalleryRoot extends StatefulWidget<CompGalleryRootProps, CompGa
             key="modal"
             theme={currentTheme}
             open={this.state.modalOpen}
-            viewportWidth={width}
-            viewportHeight={height}
             title="对话框"
             onCancel={() => this.setState({ modalOpen: false })}
             onOk={() => {

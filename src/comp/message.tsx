@@ -10,52 +10,70 @@ import {
   Positioned,
   SizedBox,
   Stack,
-  StatefulWidget,
   Text,
   TextAlignVertical,
-  type WidgetProps,
 } from '@/core';
 import Runtime from '@/runtime';
 
 export type MessageType = 'info' | 'success' | 'warning' | 'error';
 
+export type MessagePlacement = 'topRight' | 'center';
+
 export interface MessageOptions {
   duration?: number;
+  placement?: MessagePlacement;
 }
 
 export interface MessagePayload {
   type: MessageType;
   content: string;
   duration: number;
+  placement?: MessagePlacement;
 }
 
-const MESSAGE_EVENT = 'inkwell:comp-message';
 const MESSAGE_OVERLAY_KEY = '__inkwell_message_overlay__';
 const DEFAULT_MAX_COUNT = 5;
 
 type RuntimeStore = {
   items: MessageItem[];
   timeouts: Map<string, number>;
-  lastViewportW: number;
-  lastViewportH: number;
-  lastTheme: ThemePalette | null;
+  placement: MessagePlacement;
 };
 
 const STORE = new WeakMap<Runtime, RuntimeStore>();
-let mountedExternalHostCount = 0;
 
 export const message = {
   info(content: string, options: MessageOptions = {}) {
-    emitMessage({ type: 'info', content, duration: options.duration ?? 2000 });
+    emitMessage({
+      type: 'info',
+      content,
+      duration: options.duration ?? 2000,
+      placement: options.placement,
+    });
   },
   success(content: string, options: MessageOptions = {}) {
-    emitMessage({ type: 'success', content, duration: options.duration ?? 2000 });
+    emitMessage({
+      type: 'success',
+      content,
+      duration: options.duration ?? 2000,
+      placement: options.placement,
+    });
   },
   warning(content: string, options: MessageOptions = {}) {
-    emitMessage({ type: 'warning', content, duration: options.duration ?? 2500 });
+    emitMessage({
+      type: 'warning',
+      content,
+      duration: options.duration ?? 2500,
+      placement: options.placement,
+    });
   },
   error(content: string, options: MessageOptions = {}) {
-    emitMessage({ type: 'error', content, duration: options.duration ?? 3000 });
+    emitMessage({
+      type: 'error',
+      content,
+      duration: options.duration ?? 3000,
+      placement: options.placement,
+    });
   },
 };
 
@@ -63,140 +81,16 @@ function emitMessage(payload: MessagePayload): void {
   if (typeof window === 'undefined') {
     return;
   }
-  if (mountedExternalHostCount === 0) {
-    const rt = pickRuntimeForMessage();
-    if (rt) {
-      enqueueToRuntime(rt, payload);
-    }
+  const rt = pickRuntimeForMessage();
+  if (!rt) {
+    return;
   }
-  try {
-    window.dispatchEvent(new CustomEvent(MESSAGE_EVENT, { detail: payload }));
-  } catch (e) {
-    void e;
-  }
+  enqueueToRuntime(rt, payload);
 }
 
 interface MessageItem extends MessagePayload {
   id: string;
   [key: string]: unknown;
-}
-
-export interface MessageHostProps extends WidgetProps {
-  theme?: ThemePalette;
-  viewportWidth: number;
-  viewportHeight: number;
-  top?: number;
-  right?: number;
-  maxCount?: number;
-}
-
-interface MessageHostState {
-  items: MessageItem[];
-  [key: string]: unknown;
-}
-
-export class MessageHost extends StatefulWidget<MessageHostProps, MessageHostState> {
-  protected state: MessageHostState = { items: [] };
-  private timeouts = new Map<string, number>();
-  private boundListener: ((e: Event) => void) | null = null;
-
-  protected override initWidget(data: MessageHostProps) {
-    super.initWidget(data);
-    mountedExternalHostCount++;
-    this.state.items = [];
-    for (const t of this.timeouts.values()) {
-      clearTimeout(t);
-    }
-    this.timeouts.clear();
-    if (typeof window === 'undefined') {
-      return;
-    }
-    if (this.boundListener) {
-      return;
-    }
-    this.boundListener = (e: Event) => {
-      const detail = (e as CustomEvent<MessagePayload>).detail;
-      if (!detail || typeof detail.content !== 'string') {
-        return;
-      }
-      this.enqueue(detail);
-    };
-    window.addEventListener(MESSAGE_EVENT, this.boundListener as EventListener);
-  }
-
-  public override dispose(): void {
-    mountedExternalHostCount = Math.max(0, mountedExternalHostCount - 1);
-    if (typeof window !== 'undefined' && this.boundListener) {
-      window.removeEventListener(MESSAGE_EVENT, this.boundListener as EventListener);
-    }
-    this.boundListener = null;
-    for (const t of this.timeouts.values()) {
-      clearTimeout(t);
-    }
-    this.timeouts.clear();
-    super.dispose();
-  }
-
-  private enqueue(payload: MessagePayload): void {
-    const id = `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const maxCount = this.props.maxCount ?? 5;
-    const next = [...this.state.items, { ...payload, id }];
-    const trimmed = next.length > maxCount ? next.slice(next.length - maxCount) : next;
-    this.setState({ items: trimmed });
-    const t = window.setTimeout(() => this.remove(id), payload.duration);
-    this.timeouts.set(id, t);
-  }
-
-  private remove(id: string): void {
-    const t = this.timeouts.get(id);
-    if (t) {
-      clearTimeout(t);
-      this.timeouts.delete(id);
-    }
-    this.setState({ items: this.state.items.filter((it) => it.id !== id) });
-  }
-
-  render() {
-    const theme = getDefaultTheme(this.props.theme);
-    const tokens = getDefaultTokens();
-    const top = this.props.top ?? 16;
-    const right = this.props.right ?? 16;
-
-    return (
-      <SizedBox
-        key={this.key}
-        width={this.props.viewportWidth}
-        height={this.props.viewportHeight}
-        pointerEvent="none"
-      >
-        <Stack allowOverflowPositioned={true} pointerEvent="none">
-          <Positioned key="message-pos" right={right} top={top} pointerEvent="none">
-            <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.End}>
-              {this.state.items.map((it) => (
-                <Container
-                  key={it.id}
-                  padding={{ left: 12, right: 12, top: 8, bottom: 8 }}
-                  borderRadius={tokens.borderRadius}
-                  border={{ width: tokens.borderWidth, color: theme.border.base }}
-                  color={theme.background.container}
-                  pointerEvent="auto"
-                >
-                  <Text
-                    text={it.content}
-                    fontSize={14}
-                    color={resolveMessageColor(theme, it.type)}
-                    lineHeight={18}
-                    textAlignVertical={TextAlignVertical.Center}
-                    pointerEvent="none"
-                  />
-                </Container>
-              ))}
-            </Column>
-          </Positioned>
-        </Stack>
-      </SizedBox>
-    );
-  }
 }
 
 function resolveMessageColor(theme: ThemePalette, type: MessageType): string {
@@ -239,9 +133,7 @@ function ensureRuntimeStore(rt: Runtime): RuntimeStore {
   const next: RuntimeStore = {
     items: [],
     timeouts: new Map(),
-    lastViewportW: 0,
-    lastViewportH: 0,
-    lastTheme: null,
+    placement: 'center',
   };
   STORE.set(rt, next);
   return next;
@@ -256,6 +148,9 @@ function enqueueToRuntime(rt: Runtime, payload: MessagePayload): void {
   }
 
   const store = ensureRuntimeStore(rt);
+  if (payload.placement) {
+    store.placement = payload.placement;
+  }
   const id = `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const maxCount = DEFAULT_MAX_COUNT;
   const next = [...store.items, { ...payload, id }];
@@ -303,13 +198,62 @@ function renderOverlay(
   viewportH: number,
   theme: ThemePalette,
 ): void {
-  store.lastViewportW = viewportW;
-  store.lastViewportH = viewportH;
-  store.lastTheme = theme;
   const tokens = getDefaultTokens();
-  const top = 16;
-  const left = 0;
-  const right = 0;
+  const top = 8;
+  const right = 8;
+
+  const stackAlignment = store.placement === 'center' ? 'topCenter' : 'topLeft';
+
+  const stackContent =
+    store.placement === 'center' ? (
+      <Container padding={{ top }} pointerEvent="none">
+        <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Center}>
+          {store.items.map((it) => (
+            <Container
+              key={it.id}
+              padding={{ left: 12, right: 12, top: 8, bottom: 8 }}
+              borderRadius={tokens.borderRadius}
+              border={{ width: tokens.borderWidth, color: theme.border.base }}
+              color={theme.background.container}
+              pointerEvent="auto"
+            >
+              <Text
+                text={it.content}
+                fontSize={14}
+                color={resolveMessageColor(theme, it.type)}
+                lineHeight={18}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Container>
+          ))}
+        </Column>
+      </Container>
+    ) : (
+      <Positioned key="message-pos" right={right} top={top} pointerEvent="none">
+        <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.End}>
+          {store.items.map((it) => (
+            <Container
+              key={it.id}
+              padding={{ left: 12, right: 12, top: 8, bottom: 8 }}
+              borderRadius={tokens.borderRadius}
+              border={{ width: tokens.borderWidth, color: theme.border.base }}
+              color={theme.background.container}
+              pointerEvent="auto"
+            >
+              <Text
+                text={it.content}
+                fontSize={14}
+                color={resolveMessageColor(theme, it.type)}
+                lineHeight={18}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Container>
+          ))}
+        </Column>
+      </Positioned>
+    );
 
   rt.setOverlayEntry(
     MESSAGE_OVERLAY_KEY,
@@ -320,30 +264,8 @@ function renderOverlay(
       pointerEvent="none"
       zIndex={2000}
     >
-      <Stack allowOverflowPositioned={true} pointerEvent="none">
-        <Positioned key="message-pos" left={left} right={right} top={top} pointerEvent="none">
-          <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Center}>
-            {store.items.map((it) => (
-              <Container
-                key={it.id}
-                padding={{ left: 12, right: 12, top: 8, bottom: 8 }}
-                borderRadius={tokens.borderRadius}
-                border={{ width: tokens.borderWidth, color: theme.border.base }}
-                color={theme.background.container}
-                pointerEvent="auto"
-              >
-                <Text
-                  text={it.content}
-                  fontSize={14}
-                  color={resolveMessageColor(theme, it.type)}
-                  lineHeight={18}
-                  textAlignVertical={TextAlignVertical.Center}
-                  pointerEvent="none"
-                />
-              </Container>
-            ))}
-          </Column>
-        </Positioned>
+      <Stack allowOverflowPositioned={true} pointerEvent="none" alignment={stackAlignment}>
+        {stackContent}
       </Stack>
     </SizedBox>,
   );

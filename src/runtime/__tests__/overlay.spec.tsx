@@ -187,14 +187,7 @@ describe('Overlay 运行时能力', () => {
         <Column key="col" spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
           <Container key="above" width={200} height={28} pointerEvent="auto" />
           <Container key="below" width={200} height={28} pointerEvent="auto" />
-          <Modal
-            key="modal"
-            theme={Themes.light}
-            open={true}
-            viewportWidth={420}
-            viewportHeight={240}
-            title="标题"
-          >
+          <Modal key="modal" theme={Themes.light} open={true} title="标题">
             <Container key="body" width={100} height={20} pointerEvent="none" />
           </Modal>
         </Column>
