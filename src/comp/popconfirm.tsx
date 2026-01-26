@@ -108,7 +108,7 @@ export class Popconfirm extends StatefulWidget<PopconfirmProps, PopconfirmState>
           key={`${overlayKey}-mask`}
           alignment="topLeft"
           pointerEvent="auto"
-          onPointerDown={(e: InkwellEvent) => {
+          onPointerDown={(e) => {
             e.stopPropagation?.();
             this.closeOpened();
           }}
@@ -215,11 +215,6 @@ export class Popconfirm extends StatefulWidget<PopconfirmProps, PopconfirmState>
     this.syncOverlay();
   };
 
-  private preventTriggerClick = (e: InkwellEvent) => {
-    e.stopPropagation?.();
-    return false;
-  };
-
   private closeOpened = () => {
     if (this.state.opened) {
       this.setState({ opened: false });
@@ -288,11 +283,9 @@ export class Popconfirm extends StatefulWidget<PopconfirmProps, PopconfirmState>
       <Container
         key={`${this.key}-trigger`}
         pointerEvent="auto"
-        onMouseDownCapture={this.toggleOpenedByTriggerCapture}
-        onPointerDownCapture={this.toggleOpenedByTriggerCapture}
-        onClickCapture={this.preventTriggerClick}
+        onClick={this.toggleOpenedByTriggerCapture}
       >
-        {this.data.children ?? []}
+        {this.props.children as unknown as WidgetProps[]}
       </Container>
     );
   }

@@ -125,7 +125,7 @@ class ModalInner extends StatefulWidget<ModalProps, ModalState> {
                 />
               ) : null}
               <Container key="modal-body" pointerEvent="auto">
-                {this.data.children ?? []}
+                {this.props.children as unknown as WidgetProps[]}
               </Container>
               <Row
                 key="modal-footer"

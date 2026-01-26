@@ -47,6 +47,36 @@ class EventManagerImpl {
     native: MouseEvent | PointerEvent | TouchEvent;
   } | null = null;
   private rafId: number | null = null;
+  private lastClick: { t: number; x: number; y: number; detail: number } | null = null;
+
+  private shouldSkipClick(
+    native: MouseEvent | WheelEvent | PointerEvent | TouchEvent,
+    pos: { x: number; y: number },
+  ): boolean {
+    const detail =
+      'detail' in native && typeof (native as MouseEvent).detail === 'number'
+        ? (native as MouseEvent).detail
+        : 0;
+    const ts =
+      typeof (native as unknown as { timeStamp?: unknown }).timeStamp === 'number'
+        ? ((native as unknown as { timeStamp: number }).timeStamp as number)
+        : 0;
+    const now = ts > 0 ? ts : typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const last = this.lastClick;
+    const x = Math.round(pos.x);
+    const y = Math.round(pos.y);
+    this.lastClick = { t: now, x, y, detail };
+    if (!last) {
+      return false;
+    }
+    if (detail > 1 || last.detail > 1) {
+      return false;
+    }
+    if (Math.abs(last.x - x) > 1 || Math.abs(last.y - y) > 1) {
+      return false;
+    }
+    return now - last.t < 50;
+  }
 
   private attachDelegated(): void {
     if (this.delegatedAttached) {
@@ -142,9 +172,7 @@ class EventManagerImpl {
     this.globalHandlers.clear();
     this.delegatedAttached = false;
     if (this.rafId != null) {
-      try {
-        window.cancelAnimationFrame(this.rafId);
-      } catch {}
+      window.cancelAnimationFrame(this.rafId);
       this.rafId = null;
       this.latestMoveEvent = null;
     }
@@ -174,7 +202,11 @@ class EventManagerImpl {
     if (!pos) {
       return null;
     }
-    const els = document.elementsFromPoint(pos.x, pos.y);
+    return this.getTargetRuntimeAt(pos.x, pos.y);
+  }
+
+  private getTargetRuntimeAt(x: number, y: number): Runtime | null {
+    const els = document.elementsFromPoint(x, y);
     for (const el of els) {
       if (el instanceof HTMLCanvasElement) {
         const id = (el as HTMLCanvasElement).dataset.inkwellId || '';
@@ -194,7 +226,14 @@ class EventManagerImpl {
     type: EventType,
     native: MouseEvent | WheelEvent | PointerEvent | TouchEvent,
   ): void {
-    const runtime = this.getTargetRuntime(native);
+    const pos = this.getClientXY(native);
+    if (!pos) {
+      return;
+    }
+    if (type === EventTypes.Click && this.shouldSkipClick(native, pos)) {
+      return;
+    }
+    const runtime = this.getTargetRuntimeAt(pos.x, pos.y);
     if (!runtime) {
       return;
     }

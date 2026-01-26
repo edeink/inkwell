@@ -35,10 +35,11 @@ describe('事件委托（多 canvas 路由）', () => {
     rtB = createStubRuntime('B', canvasB, containerB);
     EventManager.bind(rtA);
     EventManager.bind(rtB);
+    (EventManager as any).lastClick = null;
   });
 
   it('点击路由到顶部命中的 canvas', () => {
-    const spy = vi.spyOn(Dispatcher, 'dispatchAt').mockImplementation(() => {});
+    const spy = vi.spyOn(Dispatcher, 'dispatchAt').mockImplementation(() => undefined);
     const orig = document.elementsFromPoint;
     (document as any).elementsFromPoint = vi.fn().mockImplementation(() => [canvasB, canvasA]);
     document.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10 }));
@@ -49,8 +50,29 @@ describe('事件委托（多 canvas 路由）', () => {
     (document as any).elementsFromPoint = orig;
   });
 
+  it('重复 click 应只路由一次', () => {
+    const spy = vi.spyOn(Dispatcher, 'dispatchAt').mockImplementation(() => undefined);
+    const orig = document.elementsFromPoint;
+    (document as any).elementsFromPoint = vi.fn().mockImplementation(() => [canvasA]);
+
+    document.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, detail: 1 }));
+    document.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, detail: 1 }));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    (EventManager as any).lastClick = null;
+    spy.mockClear();
+
+    document.dispatchEvent(new MouseEvent('click', { clientX: 10.2, clientY: 10.4, detail: 1 }));
+    document.dispatchEvent(new MouseEvent('click', { clientX: 10.6, clientY: 10.5, detail: 1 }));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+    (document as any).elementsFromPoint = orig;
+  });
+
   it('mousemove 采用 rAF 合并高频事件', async () => {
-    const spy = vi.spyOn(Dispatcher, 'dispatchAt').mockImplementation(() => {});
+    const spy = vi.spyOn(Dispatcher, 'dispatchAt').mockImplementation(() => undefined);
     let stored: FrameRequestCallback | null = null;
     const origRAF = window.requestAnimationFrame;
     const origCAF = window.cancelAnimationFrame;
@@ -58,7 +80,7 @@ describe('事件委托（多 canvas 路由）', () => {
       stored = cb;
       return 1 as any;
     };
-    (window as any).cancelAnimationFrame = () => {};
+    (window as any).cancelAnimationFrame = vi.fn();
     const orig = document.elementsFromPoint;
     (document as any).elementsFromPoint = vi.fn().mockImplementation(() => [canvasA]);
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 20, clientY: 20 }));

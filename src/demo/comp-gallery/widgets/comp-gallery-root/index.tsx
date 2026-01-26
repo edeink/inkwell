@@ -442,14 +442,6 @@ export class CompGalleryRoot extends StatefulWidget<CompGalleryRootProps, CompGa
             </Container>
           </ScrollView>
 
-          {/* <MessageHost
-            key="message-host"
-            theme={currentTheme}
-            viewportWidth={width}
-            viewportHeight={height}
-            zIndex={1000}
-          /> */}
-
           <Modal
             key="modal"
             theme={currentTheme}

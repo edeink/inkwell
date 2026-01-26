@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CompGalleryRoot } from '../widgets/comp-gallery-root';
 
 import { message } from '@/comp';
-import { dispatchToTree } from '@/core/events';
+import { dispatchToTree, EventRegistry } from '@/core/events';
 import { clearSelectorCache, findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
 import Runtime from '@/runtime';
@@ -117,15 +117,38 @@ describe('CompGalleryRoot 交互稳定性', () => {
       expect(btn).toBeTruthy();
       expect(pc).toBeTruthy();
 
-      const widthBefore = (btn as any).renderObject?.size?.width ?? 0;
+      const btnBox = (btn as any).children?.[0] ?? btn;
+      const widthBefore = (btnBox as any).renderObject?.size?.width ?? 0;
       expect(widthBefore).toBeGreaterThan(0);
 
-      const btnTarget = (btn as any).children?.[0] ?? btn;
-      dispatchToTree(root as any, btnTarget, 'mousedown', 0, 0, {
-        stopPropagation: vi.fn(),
-      } as any);
+      const triggerKey = `${String((pc as any).key)}-trigger`;
+      const trigger = findWidget<any>(root, `#${triggerKey}`);
+      expect(trigger).toBeTruthy();
+
+      const clickHandlers = EventRegistry.getHandlers(
+        String((trigger as any).eventKey),
+        'click',
+        runtime as any,
+      );
+      expect(clickHandlers.length).toBe(1);
+      expect(clickHandlers[0].capture).toBe(false);
+      const originalClickHandler = clickHandlers[0].handler as any;
+      const clickSpy = vi.fn((e) => originalClickHandler(e));
+      EventRegistry.register(
+        String((trigger as any).eventKey),
+        'click',
+        clickSpy as any,
+        {},
+        runtime as any,
+      );
+
+      dispatchToTree(root as any, trigger as any, 'click', 0, 0);
       runtime.tick();
       await new Promise((r) => setTimeout(r, 20));
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect((pc as any).state?.opened).toBe(true);
+      clearSelectorCache(root);
+      expect(findAllBySelector(root, `#${triggerKey}`).length).toBe(1);
 
       const overlayKey = `${String((pc as any).key)}-popconfirm-overlay`;
       const overlayRoot = runtime.getOverlayRootWidget();
@@ -137,7 +160,8 @@ describe('CompGalleryRoot 交互稳定性', () => {
       const deleteText2 = findSingleText(root, '删除');
       const btn2 = findAncestor(deleteText2, 'Button');
       expect(btn2).toBeTruthy();
-      const widthAfter = (btn2 as any).renderObject?.size?.width ?? 0;
+      const btnBox2 = (btn2 as any).children?.[0] ?? btn2;
+      const widthAfter = (btnBox2 as any).renderObject?.size?.width ?? 0;
       expect(widthAfter).toBe(widthBefore);
     } finally {
       runtime.destroy();

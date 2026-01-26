@@ -206,7 +206,7 @@ class DrawerInner extends StatefulWidget<DrawerProps, DrawerState> {
                   </Row>
                 </Container>
                 <Container key="drawer-body" padding={16} pointerEvent="auto">
-                  {this.data.children ?? []}
+                  {this.props.children as unknown as WidgetProps[]}
                 </Container>
               </Column>
             </Container>
