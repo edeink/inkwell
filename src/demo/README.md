@@ -89,19 +89,19 @@ export function runApp(runtime: Runtime) {
 
 不要使用硬编码的 Hex 颜色值（如 `#1677ff`），应使用 `src/demo/styles/theme.ts` 中定义的语义化颜色。
 
-| 语义名称 | 说明 | 对应 Docusaurus 变量 |
+| 语义名称 | 说明 | 对应 CSS 变量 |
 | --- | --- | --- |
-| `primary` | 主色 | `--ifm-color-primary` |
-| `background.base` | 基础背景 | `--ifm-background-color` |
-| `text.primary` | 主要文本 | `--ifm-font-color-base` |
-| `border.base` | 边框 | `--ifm-color-emphasis-200` |
+| `primary` | 主色 | `--ink-demo-primary` |
+| `background.base` | 基础背景 | `--ink-demo-bg-base` |
+| `text.primary` | 主要文本 | `--ink-demo-text-primary` |
+| `border.base` | 边框 | `--ink-demo-border` |
 
 ### 2. Canvas 组件主题集成
 
 对于 InkWell Canvas 组件，通过 `Themes` 对象获取当前主题色板，并通过 `theme` 属性传递给子组件。
 
 ```typescript
-import { Themes } from '@/demo/styles/theme';
+import { Themes } from '@/styles/theme';
 
 // 在 Widget 中
 const isDarkMode = ...; // 获取当前模式
@@ -119,15 +119,15 @@ return (
 对于 React 组件（如 Toolbar），使用 `useTheme` Hook 或 CSS 变量。
 
 ```typescript
-import { useTheme } from '@/demo/styles/theme';
+import { useTheme } from '@/styles/theme';
 
 export function Toolbar() {
-  const { colors } = useTheme();
-  return <div style={{ color: colors.text.primary }}>...</div>;
+  const theme = useTheme();
+  return <div style={{ color: theme.text.primary }}>...</div>;
 }
 ```
 
-或者直接使用 `src/demo/styles/colors.css` 中定义的 CSS 变量：
+或者直接使用 `src/styles/colors.css` 中定义的 CSS 变量：
 
 ```css
 .toolbar {

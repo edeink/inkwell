@@ -1,10 +1,10 @@
 :root {
-  /* 基础语义色 - 对应 Docusaurus 主题变量 */
-  --ink-demo-primary: var(--ifm-color-primary);
-  --ink-demo-secondary: var(--ifm-color-secondary);
-  --ink-demo-success: var(--ifm-color-success);
-  --ink-demo-warning: var(--ifm-color-warning);
-  --ink-demo-danger: var(--ifm-color-danger);
+  /* 基础语义色 - 与 src/styles/theme.ts 保持一致 */
+  --ink-demo-primary: #1677ff;
+  --ink-demo-secondary: #8c8c8c;
+  --ink-demo-success: #52c41a;
+  --ink-demo-warning: #faad14;
+  --ink-demo-danger: #ff4d4f;
 
   /* 背景色 */
   --ink-demo-bg-base: #fff;
@@ -28,6 +28,13 @@
 }
 
 html[data-theme='dark'] {
+  /* 基础语义色 - 与 src/styles/theme.ts 保持一致 */
+  --ink-demo-primary: #1677ff;
+  --ink-demo-secondary: #bfbfbf;
+  --ink-demo-success: #52c41a;
+  --ink-demo-warning: #faad14;
+  --ink-demo-danger: #ff4d4f;
+
   /* 背景色 */
   --ink-demo-bg-base: #1b1b1d;
   --ink-demo-bg-surface: #242526;

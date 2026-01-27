@@ -24,4 +24,7 @@ coverage/
 *.sln
 *.sw?
 build/
-.docusaurus/
+.vitepress/cache/
+.vitepress/.data/
+.vitepress/dist/
+.vitepress/.temp/

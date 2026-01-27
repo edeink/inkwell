@@ -51,7 +51,7 @@ export interface ThemePalette {
 // 实际运行时应尽量与 CSS 变量保持同步
 export const Themes: Record<ThemeMode, ThemePalette> = {
   light: {
-    primary: '#1677ff', // var(--ifm-color-primary)
+    primary: '#1677ff', // var(--ink-demo-primary)
     secondary: '#8c8c8c',
     success: '#52c41a',
     warning: '#faad14',

@@ -1,6 +1,5 @@
 import {
   AppleOutlined,
-  BgColorsOutlined,
   ChromeOutlined,
   ClockCircleOutlined,
   CopyOutlined,

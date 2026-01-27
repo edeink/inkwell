@@ -27,4 +27,4 @@
   - 在 `raw/sidebar.ts` 中新增对应 `doc` 条目（`id` 用相对路径去掉扩展名，例如 `guide/getting-started`），并填写 `label` 作为侧边栏展示文本
 - 目录树展示：以 `raw/sidebar.ts` 的 `category.label` / `doc.label` 为准，不依赖读取 Markdown 标题
 - 文档加载：点击文档时才加载对应 Markdown 内容，避免首次进入读取全部文件
-- 兼容环境：同一份 `app.tsx` 同时兼容 Vite 与 Docusaurus，通过 `import('*.markdown?raw')` 加载原始文本
+- 兼容环境：同一份 `app.tsx` 同时兼容 Vite 与 Webpack 构建，通过 `import('*.markdown?raw')` 加载原始文本

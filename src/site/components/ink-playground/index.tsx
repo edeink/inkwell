@@ -10,7 +10,7 @@ import styles from './index.module.less';
 import type { InkPlaygroundProps } from './types';
 
 import { DevTools } from '@/devtools';
-import { stripJsxImportSource } from '@/docusaurus/utils/strip-jsx';
+import { stripJsxImportSource } from '@/site/utils/strip-jsx';
 
 /**
  * InkPlayground 组件，用于展示和编辑代码

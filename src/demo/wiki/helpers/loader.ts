@@ -38,7 +38,7 @@ function moduleKeyToDocId(modulePath: string): string {
 
 /**
  * Wiki Demo 的 Markdown 加载策略：
- * - Webpack/Docusaurus：用 require.context 扫描 raw 目录并读取为字符串
+ * - Webpack：用 require.context 扫描 raw 目录并读取为字符串
  * - 非 Webpack 环境：返回 null，交给上层决定兜底策略（例如 Vite 入口使用 import.meta.glob）
  */
 export function loadRawMarkdownByDocKeyFromWebpack(): WikiRawMarkdownMap | null {

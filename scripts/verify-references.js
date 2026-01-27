@@ -7,7 +7,7 @@ import http from 'http';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_FILE = path.join(__dirname, '../src/docusaurus/data/benchmarks.ts');
+const DATA_FILE = path.join(__dirname, '../src/site/data/benchmarks.ts');
 
 console.log('🔍 开始验证引用数据源有效性...');
 console.log(`📂 读取文件: ${DATA_FILE}`);

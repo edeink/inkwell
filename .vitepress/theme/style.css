@@ -1,0 +1,42 @@
+@import url('../../src/styles/colors.css');
+
+:root {
+  --ifm-color-primary: #1677ff;
+  --ink-primary: #1677ff;
+  --ink-accent: #52c41a;
+  --ink-muted: #c0c6d4;
+  --ink-surface: #f6f8fa;
+  --ink-card: #fff;
+  --ink-text: #1f2328;
+  --ink-text-muted: #667085;
+  --ink-radius: 14px;
+  --ink-shadow-lg: 0 8px 24px rgb(0 0 0 / 15%);
+}
+
+html.dark {
+  --ink-surface: #0d1117;
+  --ink-card: #0b1320;
+  --ink-text: #e6edf3;
+  --ink-text-muted: #9aa4b2;
+  --ink-muted: #3d4350;
+  --ink-shadow-lg: 0 8px 24px rgb(255 255 255 / 15%);
+}
+
+html {
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+body {
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+.ink-react-mount {
+  width: 100%;
+}
+
+.ink-react-mount[data-fullscreen='true'] {
+  height: calc(100vh - var(--vp-nav-height));
+  overflow: hidden;
+}
