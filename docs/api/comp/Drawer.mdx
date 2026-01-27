@@ -11,22 +11,68 @@ title: Drawer
 
 ## 示例
 
-### 基础用法（打开状态）
+### 基础用法
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Drawer
-  open={true}
-  viewportWidth={600}
-  viewportHeight={300}
-  title="示例抽屉"
-  onClose={() => console.log('关闭抽屉')}
->
-  <Column spacing={8} crossAxisAlignment="start">
-    <Text text="这里是抽屉内容" />
-    <Text text="可放置表单、列表等组件" />
-  </Column>
-</Drawer>
+(() => {
+  class DrawerDemo extends StatefulWidget {
+    state = { open: false };
+
+    render() {
+      const theme = getCurrentTheme();
+      const viewportWidth = 600;
+      const viewportHeight = 300;
+      const height = 32;
+      const opened = this.state.open;
+
+      return (
+        <Stack allowOverflowPositioned={true}>
+          <Container
+            width={viewportWidth}
+            height={viewportHeight}
+            border={{ width: 1, color: theme.border.secondary }}
+            borderRadius={8}
+            color={theme.background.container}
+          />
+
+          <Positioned left={16} top={16}>
+            <Button
+              theme={theme}
+              btnType={opened ? 'default' : 'primary'}
+              onClick={() => this.setState({ open: !opened })}
+            >
+              <Text
+                text={opened ? '关闭抽屉' : '打开抽屉'}
+                fontSize={14}
+                lineHeight={height}
+                color={opened ? theme.text.primary : theme.text.inverse}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Button>
+          </Positioned>
+
+          <Drawer
+            theme={theme}
+            open={opened}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
+            title="示例抽屉"
+            onClose={() => this.setState({ open: false })}
+          >
+            <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Start}>
+              <Text text="这里是抽屉内容" color={theme.text.primary} pointerEvent="none" />
+              <Text text="可放置表单、列表等组件" color={theme.text.primary} pointerEvent="none" />
+            </Column>
+          </Drawer>
+        </Stack>
+      );
+    }
+  }
+
+  return <DrawerDemo />;
+})()
 ```
 
 ## 属性

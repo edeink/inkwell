@@ -15,31 +15,78 @@ title: Button
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Row spacing={12} mainAxisSize="min">
-  <Button btnType="default" onClick={() => console.log('点击默认按钮')}>
-    <Text text="默认" pointerEvent="none" />
-  </Button>
-  <Button btnType="primary" onClick={() => console.log('点击主按钮')}>
-    <Text text="主按钮" color="#ffffff" pointerEvent="none" />
-  </Button>
-  <Button btnType="text" onClick={() => console.log('点击文本按钮')}>
-    <Text text="文本" pointerEvent="none" />
-  </Button>
-</Row>
+(() => {
+  const theme = getCurrentTheme();
+  const height = 32;
+  return (
+    <Row spacing={12} mainAxisSize="min">
+      <Button theme={theme} btnType="default" onClick={() => console.log('点击默认按钮')}>
+        <Text
+          text="默认"
+          fontSize={14}
+          lineHeight={height}
+          color={theme.text.primary}
+          textAlignVertical={TextAlignVertical.Center}
+          pointerEvent="none"
+        />
+      </Button>
+      <Button theme={theme} btnType="primary" onClick={() => console.log('点击主按钮')}>
+        <Text
+          text="主按钮"
+          fontSize={14}
+          lineHeight={height}
+          color={theme.text.inverse}
+          textAlignVertical={TextAlignVertical.Center}
+          pointerEvent="none"
+        />
+      </Button>
+      <Button theme={theme} btnType="text" onClick={() => console.log('点击文本按钮')}>
+        <Text
+          text="文本"
+          fontSize={14}
+          lineHeight={height}
+          color={theme.text.primary}
+          textAlignVertical={TextAlignVertical.Center}
+          pointerEvent="none"
+        />
+      </Button>
+    </Row>
+  );
+})()
 ```
 
 ### 禁用与加载态
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Row spacing={12} mainAxisSize="min">
-  <Button disabled={true}>
-    <Text text="禁用" pointerEvent="none" />
-  </Button>
-  <Button loading={true} btnType="primary">
-    <Text text="提交" color="#ffffff" pointerEvent="none" />
-  </Button>
-</Row>
+(() => {
+  const theme = getCurrentTheme();
+  const height = 32;
+  return (
+    <Row spacing={12} mainAxisSize="min">
+      <Button theme={theme} disabled={true}>
+        <Text
+          text="禁用"
+          fontSize={14}
+          lineHeight={height}
+          color={theme.text.placeholder}
+          textAlignVertical={TextAlignVertical.Center}
+          pointerEvent="none"
+        />
+      </Button>
+      <Button theme={theme} loading={true} btnType="primary">
+        <Text
+          text="提交"
+          fontSize={14}
+          lineHeight={height}
+          color={theme.text.inverse}
+          textAlignVertical={TextAlignVertical.Center}
+          pointerEvent="none"
+        />
+      </Button>
+    </Row>
+  );
+})()
 ```
 
 ## 属性

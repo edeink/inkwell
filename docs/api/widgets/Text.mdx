@@ -13,29 +13,77 @@ title: Text
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} padding={8} border={{ width: 1, color: '#ddd' }} color="#ffffff">
-  <Column spacing={8} mainAxisSize="min">
-    <Text text="默认：行高等于字号" fontSize={16} color="#000000" />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container
+      width={360}
+      padding={8}
+      border={{ width: 1, color: theme.border.base }}
+      color={theme.background.container}
+    >
+      <Column spacing={8} mainAxisSize="min">
+        <Text text="默认：行高等于字号" fontSize={16} color={theme.text.primary} />
 
-    <Text text="指定行高 24px（lineHeight）" fontSize={16} lineHeight={24} color="#000000" />
+        <Text
+          text="指定行高 24px（lineHeight）"
+          fontSize={16}
+          lineHeight={24}
+          color={theme.text.primary}
+        />
 
-    <Text text="使用 height 作为行高（同义字段）" fontSize={16} height={28} color="#000000" />
+        <Text
+          text="使用 height 作为行高（同义字段）"
+          fontSize={16}
+          height={28}
+          color={theme.text.primary}
+        />
 
-    <Text text={"多行省略：多行文本示例，多行文本示例，多行文本示例，多行文本示例，多行文本示例"} fontSize={16} lineHeight={22} maxLines={3} overflow="ellipsis" color="#000000" />
+        <Text
+          text={'多行省略：多行文本示例，多行文本示例，多行文本示例，多行文本示例，多行文本示例'}
+          fontSize={16}
+          lineHeight={22}
+          maxLines={3}
+          overflow="ellipsis"
+          color={theme.text.primary}
+        />
 
-    <Row spacing={8} mainAxisSize="min" crossAxisAlignment="center">
-      <Container width={100} height={60} border={{ width: 1, color: '#ccc' }}>
-        <Text text="Top" fontSize={16} lineHeight={24} textAlign="center" textAlignVertical="top" color="#000000" />
-      </Container>
-      <Container width={100} height={60} border={{ width: 1, color: '#ccc' }}>
-        <Text text="Center" fontSize={16} lineHeight={24} textAlign="center" textAlignVertical="center" color="#000000" />
-      </Container>
-      <Container width={100} height={60} border={{ width: 1, color: '#ccc' }}>
-        <Text text="Bottom" fontSize={16} lineHeight={24} textAlign="center" textAlignVertical="bottom" color="#000000" />
-      </Container>
-    </Row>
-  </Column>
-</Container>
+        <Row spacing={8} mainAxisSize="min" crossAxisAlignment="center">
+          <Container width={100} height={60} border={{ width: 1, color: theme.border.secondary }}>
+            <Text
+              text="Top"
+              fontSize={16}
+              lineHeight={24}
+              textAlign="center"
+              textAlignVertical="top"
+              color={theme.text.primary}
+            />
+          </Container>
+          <Container width={100} height={60} border={{ width: 1, color: theme.border.secondary }}>
+            <Text
+              text="Center"
+              fontSize={16}
+              lineHeight={24}
+              textAlign="center"
+              textAlignVertical="center"
+              color={theme.text.primary}
+            />
+          </Container>
+          <Container width={100} height={60} border={{ width: 1, color: theme.border.secondary }}>
+            <Text
+              text="Bottom"
+              fontSize={16}
+              lineHeight={24}
+              textAlign="center"
+              textAlignVertical="bottom"
+              color={theme.text.primary}
+            />
+          </Container>
+        </Row>
+      </Column>
+    </Container>
+  );
+})()
 ```
 
 ## 属性

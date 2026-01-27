@@ -14,43 +14,81 @@ title: RichText
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={120} color="#ffffff" padding={12}>
-  <RichText spacing={2} runSpacing={8}>
-    <Text text="这是一段包含" fontSize={14} lineHeight={24} color="#262626" />
-    <Text text="加粗" fontSize={14} lineHeight={24} fontWeight="bold" color="#262626" />
-    <Text text="、" fontSize={14} lineHeight={24} color="#262626" />
-    <Text text="不同颜色" fontSize={14} lineHeight={24} color="#1677ff" />
-    <Text text="以及自动换行的文字。" fontSize={14} lineHeight={24} color="#262626" />
-  </RichText>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={120} color={theme.background.container} padding={12}>
+      <RichText spacing={2} runSpacing={8}>
+        <Text text="这是一段包含" fontSize={14} lineHeight={24} color={theme.text.primary} />
+        <Text
+          text="加粗"
+          fontSize={14}
+          lineHeight={24}
+          fontWeight="bold"
+          color={theme.text.primary}
+        />
+        <Text text="、" fontSize={14} lineHeight={24} color={theme.text.primary} />
+        <Text text="不同颜色" fontSize={14} lineHeight={24} color={theme.primary} />
+        <Text text="以及自动换行的文字。" fontSize={14} lineHeight={24} color={theme.text.primary} />
+      </RichText>
+    </Container>
+  );
+})()
 ```
 
 ### 基线对齐（默认开启）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={120} color="#ffffff" padding={12}>
-  <RichText spacing={4} runSpacing={8}>
-    <Text text="2023、2024、" fontSize={14} lineHeight={24} color="#262626" />
-    <Text text="HAHAHA" fontSize={14} lineHeight={24} fontWeight="bold" color="#262626" />
-    <Text text="，继续保持一致的基线。" fontSize={14} lineHeight={24} color="#262626" />
-  </RichText>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={120} color={theme.background.container} padding={12}>
+      <RichText spacing={4} runSpacing={8}>
+        <Text text="2023、2024、" fontSize={14} lineHeight={24} color={theme.text.primary} />
+        <Text
+          text="HAHAHA"
+          fontSize={14}
+          lineHeight={24}
+          fontWeight="bold"
+          color={theme.text.primary}
+        />
+        <Text text="，继续保持一致的基线。" fontSize={14} lineHeight={24} color={theme.text.primary} />
+      </RichText>
+    </Container>
+  );
+})()
 ```
 
 ### 关闭基线对齐
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={120} color="#ffffff" padding={12}>
-  <RichText spacing={4} runSpacing={8} alignBaseline={false}>
-    <Text text="普通文本" fontSize={14} lineHeight={24} color="#262626" />
-    <Container color="#F5F5F5" padding={4} borderRadius={6}>
-      <Text text="行内代码" fontSize={12} lineHeight={20} color="#262626" fontFamily="monospace" />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={120} color={theme.background.container} padding={12}>
+      <RichText spacing={4} runSpacing={8} alignBaseline={false}>
+        <Text text="普通文本" fontSize={14} lineHeight={24} color={theme.text.primary} />
+        <Container color={theme.background.surface} padding={4} borderRadius={6}>
+          <Text
+            text="行内代码"
+            fontSize={12}
+            lineHeight={20}
+            color={theme.text.primary}
+            fontFamily="monospace"
+          />
+        </Container>
+        <Text
+          text="与容器混排时可禁用基线对齐。"
+          fontSize={14}
+          lineHeight={24}
+          color={theme.text.primary}
+        />
+      </RichText>
     </Container>
-    <Text text="与容器混排时可禁用基线对齐。" fontSize={14} lineHeight={24} color="#262626" />
-  </RichText>
-</Container>
+  );
+})()
 ```
 
 ## 属性
@@ -68,4 +106,3 @@ title: RichText
 - 测量策略：子组件测量时使用无界宽度（`maxWidth = Infinity`），避免 Text 自行换行；由 RichText 统一做折行决策。
 - 折行规则：从左到右布局，若加入下一个子元素会超过父容器可用宽度，则换行。
 - 基线对齐：开启时会统计每行的最大上升部（ascent）与下降部（descent），并回填每个子组件的 y 偏移，使其基线对齐。
-

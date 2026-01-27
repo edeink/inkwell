@@ -15,34 +15,86 @@ title: Modal
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Stack allowOverflowPositioned={true}>
-  <Container
-    width={600}
-    height={320}
-    border={{ width: 1, color: '#e5e7eb' }}
-    borderRadius={8}
-    color="#ffffff"
-  />
-  <Positioned left={16} top={16} pointerEvent="none">
-    <Column spacing={6} crossAxisAlignment={CrossAxisAlignment.Start}>
-      <Text text="示例窗口（600×320）" fontSize={12} color="#6b7280" />
-      <Text text="Modal 默认打开，便于在文档中完整展示。" fontSize={12} color="#6b7280" />
-    </Column>
-  </Positioned>
+(() => {
+  class ModalDemo extends StatefulWidget {
+    state = { open: false };
 
-  <Modal
-    open={true}
-    width={360}
-    title="对话框"
-    onCancel={() => message.info('已取消')}
-    onOk={() => message.success('已确认')}
-  >
-    <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Start}>
-      <Text text="这是一个基于 InkWell Widget 实现的 Modal。" pointerEvent="none" />
-      <Text text="通过 Overlay 自适应容器尺寸，内容会在窗口内居中显示。" pointerEvent="none" />
-    </Column>
-  </Modal>
-</Stack>
+    render() {
+      const theme = getCurrentTheme();
+      const height = 32;
+      const opened = this.state.open;
+
+      return (
+        <Stack allowOverflowPositioned={true}>
+          <Container
+            width={600}
+            height={320}
+            border={{ width: 1, color: theme.border.secondary }}
+            borderRadius={8}
+            color={theme.background.container}
+          />
+          <Positioned left={16} top={16} pointerEvent="none">
+            <Column spacing={6} crossAxisAlignment={CrossAxisAlignment.Start}>
+              <Text text="示例窗口（600×320）" fontSize={12} color={theme.text.secondary} />
+              <Text text="点击按钮打开/关闭 Modal。" fontSize={12} color={theme.text.secondary} />
+            </Column>
+          </Positioned>
+
+          <Positioned left={16} top={64}>
+            <Button
+              theme={theme}
+              btnType={opened ? 'default' : 'primary'}
+              onClick={() => this.setState({ open: !opened })}
+            >
+              <Text
+                text={opened ? '关闭 Modal' : '打开 Modal'}
+                fontSize={14}
+                lineHeight={height}
+                color={opened ? theme.text.primary : theme.text.inverse}
+                textAlignVertical={TextAlignVertical.Center}
+                pointerEvent="none"
+              />
+            </Button>
+          </Positioned>
+
+          <Modal
+            theme={theme}
+            open={opened}
+            width={360}
+            title="对话框"
+            onCancel={() => {
+              this.setState({ open: false });
+              message.info('已取消');
+            }}
+            onOk={() => {
+              this.setState({ open: false });
+              message.success('已确认');
+            }}
+          >
+            <Column spacing={8} crossAxisAlignment={CrossAxisAlignment.Start}>
+              <Text
+                text="这是一个基于 InkWell Widget 实现的 Modal。"
+                fontSize={14}
+                lineHeight={22}
+                color={theme.text.primary}
+                pointerEvent="none"
+              />
+              <Text
+                text="通过 Overlay 自适应容器尺寸，内容会在窗口内居中显示。"
+                fontSize={14}
+                lineHeight={22}
+                color={theme.text.primary}
+                pointerEvent="none"
+              />
+            </Column>
+          </Modal>
+        </Stack>
+      );
+    }
+  }
+
+  return <ModalDemo />;
+})()
 ```
 
 ## 属性

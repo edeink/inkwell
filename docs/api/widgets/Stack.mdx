@@ -14,37 +14,52 @@ title: Stack
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={260} height={160}>
-  <Stack alignment="center" fit="loose">
-    <Container width={120} height={80} color="#e6f4ff" />
-    <Container width={80} height={40} color="#fff7e6" />
-  </Stack>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={260} height={160} color={theme.background.container}>
+      <Stack alignment="center" fit="loose">
+        <Container width={120} height={80} color={theme.state.selected} />
+        <Container width={80} height={40} color={theme.background.surface} />
+      </Stack>
+    </Container>
+  );
+})()
 ```
 
 ### 与 Positioned 配合使用
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Stack>
-  <Positioned left={12} top={12} width={80} height={40}>
-    <Container color="#e6f4ff" />
-  </Positioned>
-  <Positioned right={12} bottom={12} width={80} height={40}>
-    <Container color="#f6ffed" />
-  </Positioned>
-</Stack>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Stack>
+      <Positioned left={12} top={12} width={80} height={40}>
+        <Container color={theme.state.selected} />
+      </Positioned>
+      <Positioned right={12} bottom={12} width={80} height={40}>
+        <Container color={theme.background.surface} />
+      </Positioned>
+    </Stack>
+  );
+})()
 ```
 
 ### 容器宽度
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Stack>
-  <Container color="#e6f4ff" width={80} height={80} />
-  <Positioned left={40} top={40} width={80} height={40}>
-    <Container color="#f6ffed" />
-  </Positioned>
-</Stack>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Stack>
+      <Container color={theme.state.selected} width={80} height={80} />
+      <Positioned left={40} top={40} width={80} height={40}>
+        <Container color={theme.background.surface} />
+      </Positioned>
+    </Stack>
+  );
+})()
 ```
 
 ## 属性

@@ -18,11 +18,16 @@ title: Center
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={300} height={120} color="#e6f4ff">
-  <Center>
-    <Text text="居中元素" />
-  </Center>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={300} height={120} color={theme.background.surface}>
+      <Center>
+        <Text text="居中元素" color={theme.text.primary} />
+      </Center>
+    </Container>
+  );
+})()
 ```
 
 ## 属性

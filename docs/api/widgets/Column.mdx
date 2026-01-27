@@ -14,41 +14,56 @@ title: Column
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={300} height={160}>
-  <Column spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
-    <Container width={180} height={28} color="#e6f4ff"/>
-    <Container width={200} height={28} color="#f6ffed"/>
-    <Container width={160} height={28} color="#fff7e6"/>
-  </Column>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={300} height={160} color={theme.background.container}>
+      <Column spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
+        <Container width={180} height={28} color={theme.state.selected} />
+        <Container width={200} height={28} color={theme.state.focus} />
+        <Container width={160} height={28} color={theme.state.hover} />
+      </Column>
+    </Container>
+  );
+})()
 ```
 
 ### 交叉轴拉伸（stretch）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={140}>
-  <Column crossAxisAlignment="stretch" spacing={8}>
-    <Container height={28} color="#e6f4ff" />
-    <Container height={28} color="#f6ffed" />
-  </Column>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={140} color={theme.background.container}>
+      <Column crossAxisAlignment="stretch" spacing={8}>
+        <Container height={28} color={theme.state.selected} />
+        <Container height={28} color={theme.state.focus} />
+      </Column>
+    </Container>
+  );
+})()
 ```
 
 ### 使用 flex 子元素分配高度
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={180}>
-  <Column spacing={8} mainAxisSize="max">
-    <Container color="#e6f4ff" flex={{ flex: 1, fit: 'tight' }}>
-      <Text text="flex: 1" />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={180} color={theme.background.container}>
+      <Column spacing={8} mainAxisSize="max">
+        <Container color={theme.state.selected} flex={{ flex: 1, fit: 'tight' }}>
+          <Text text="flex: 1" color={theme.text.primary} />
+        </Container>
+        <Container color={theme.state.focus} flex={{ flex: 2, fit: 'tight' }}>
+          <Text text="flex: 2" color={theme.text.primary} />
+        </Container>
+      </Column>
     </Container>
-    <Container color="#f6ffed" flex={{ flex: 2, fit: 'tight' }}>
-      <Text text="flex: 2" />
-    </Container>
-  </Column>
-</Container>
+  );
+})()
 ```
 
 ## 属性

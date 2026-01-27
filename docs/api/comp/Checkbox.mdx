@@ -16,7 +16,13 @@ title: Checkbox
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <Stack allowOverflowPositioned={true}>
-  <Container width={520} height={160} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <Container
+    width={520}
+    height={160}
+    color={getCurrentTheme().background.container}
+    border={{ width: 1, color: getCurrentTheme().border.secondary }}
+    borderRadius={8}
+  />
   <Positioned left={16} top={16}>
     <Column spacing={12} crossAxisAlignment={CrossAxisAlignment.Start}>
       <Checkbox

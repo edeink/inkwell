@@ -15,31 +15,59 @@ title: Message
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Stack allowOverflowPositioned={true}>
-  <Container
-    width={520}
-    height={180}
-    border={{ width: 1, color: '#e5e7eb' }}
-    borderRadius={8}
-    color="#ffffff"
-  />
-  <Positioned left={16} top={16}>
-    <Row spacing={8} mainAxisSize="min">
-      <Button
-        btnType="primary"
-        onClick={() => message.success('操作成功', { duration: 1800, placement: 'center' })}
-      >
-        <Text text="成功" color="#ffffff" pointerEvent="none" />
-      </Button>
-      <Button onClick={() => message.info('这是一条提示', { placement: 'center' })}>
-        <Text text="提示" pointerEvent="none" />
-      </Button>
-      <Button danger={true} onClick={() => message.error('发生错误', { placement: 'center' })}>
-        <Text text="错误" pointerEvent="none" />
-      </Button>
-    </Row>
-  </Positioned>
-</Stack>
+(() => {
+  const theme = getCurrentTheme();
+  const height = 32;
+  return (
+    <Stack allowOverflowPositioned={true}>
+      <Container
+        width={520}
+        height={180}
+        border={{ width: 1, color: theme.border.secondary }}
+        borderRadius={8}
+        color={theme.background.container}
+      />
+      <Positioned left={16} top={16}>
+        <Row spacing={8} mainAxisSize="min">
+          <Button
+            theme={theme}
+            btnType="primary"
+            onClick={() => message.success('操作成功', { duration: 1800 })}
+          >
+            <Text
+              text="成功"
+              fontSize={14}
+              lineHeight={height}
+              color={theme.text.inverse}
+              textAlignVertical={TextAlignVertical.Center}
+              pointerEvent="none"
+            />
+          </Button>
+          <Button theme={theme} onClick={() => message.info('这是一条提示')}>
+            <Text
+              text="提示"
+              fontSize={14}
+              lineHeight={height}
+              color={theme.text.primary}
+              textAlignVertical={TextAlignVertical.Center}
+              pointerEvent="none"
+            />
+          </Button>
+          <Button theme={theme} danger={true} onClick={() => message.error('发生错误')}>
+            <Text
+              text="错误"
+              fontSize={14}
+              lineHeight={height}
+              color={theme.danger}
+              textAlignVertical={TextAlignVertical.Center}
+              pointerEvent="none"
+            />
+          </Button>
+        </Row>
+      </Positioned>
+    </Stack>
+  );
+})()
 ```
 
 ## API

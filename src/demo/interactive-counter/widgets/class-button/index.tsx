@@ -47,7 +47,7 @@ export class ClassButton extends StatefulWidget<ButtonProps, ButtonState> {
             key="counter-btn-text-01"
             text="Class"
             fontSize={16}
-            color="#ffffff"
+            color={this.props.theme.text.inverse}
             textAlign={TextAlign.Center}
             textAlignVertical={TextAlignVertical.Center}
           />

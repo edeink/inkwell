@@ -14,34 +14,48 @@ title: Padding
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={300} height={120} color="#e6f4ff">
-  <Padding padding={12}>
-    <Text text="数字简写（四边等距）" />
-  </Padding>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={300} height={120} color={theme.background.surface}>
+      <Padding padding={12}>
+        <Text text="数字简写（四边等距）" color={theme.text.primary} />
+      </Padding>
+    </Container>
+  );
+})()
 ```
 
 ### 对象形式（分别控制四边）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={300} height={120} color="#e6f4ff">
-  <Padding padding={{ top: 32, right: 16, bottom: 8, left: 16 }}>
-    <Text text="对象形式（分别控制四边）" />
-  </Padding>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={300} height={120} color={theme.background.surface}>
+      <Padding padding={{ top: 32, right: 16, bottom: 8, left: 16 }}>
+        <Text text="对象形式（分别控制四边）" color={theme.text.primary} />
+      </Padding>
+    </Container>
+  );
+})()
 ```
 
 ### 数组简写（CSS 风格）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={300} height={120} color="#e6f4ff">
-  {/* [vertical, horizontal] */}
-  <Padding padding={[16, 32]}>
-    <Text text="数组简写 [16, 32]" />
-  </Padding>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={300} height={120} color={theme.background.surface}>
+      <Padding padding={[16, 32]}>
+        <Text text="数组简写 [16, 32]" color={theme.text.primary} />
+      </Padding>
+    </Container>
+  );
+})()
 ```
 
 ## 属性

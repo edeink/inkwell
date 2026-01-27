@@ -15,12 +15,12 @@ import type { GraphState, NodeId, SelectionData } from './type';
 import type { MindMapViewport as MindMapViewportCls } from './widgets/mindmap-viewport';
 import type { Widget, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
-import type { ThemePalette } from '@/styles/theme';
 
 import { Stack, StatefulWidget } from '@/core';
 import { transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
+import { Themes, type ThemePalette } from '@/styles/theme';
 
 interface SceneProps extends WidgetProps {
   width?: number;
@@ -501,7 +501,7 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
     for (const e of state.edges) {
       const k = `e-${e.from}-${e.to}`;
       let el = this.edgeElementCache.get(k) as unknown as Connector | null;
-      const connectorColor = theme ? theme.text.secondary : '#4a90e2';
+      const connectorColor = (theme ?? Themes.light).text.secondary;
       if (!el || el.props.color !== connectorColor) {
         el = (
           <Connector

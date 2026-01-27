@@ -13,14 +13,19 @@ title: TextArea
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<TextArea
-  value={'这是第一行\n这是第二行'}
-  placeholder="请输入多行内容"
-  fontSize={14}
-  color="#000000"
-  selectionColor="rgba(22, 119, 255, 0.2)"
-  cursorColor="#000000"
-/>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <TextArea
+      value={'这是第一行\n这是第二行'}
+      placeholder="请输入多行内容"
+      fontSize={14}
+      color={theme.text.primary}
+      selectionColor={theme.state.focus}
+      cursorColor={theme.text.primary}
+    />
+  );
+})()
 ```
 
 ## 属性
@@ -39,9 +44,9 @@ title: TextArea
 | `placeholder` | 占位文本（仅在空文本时显示） | `string` | 无 |
 | `fontSize` | 字号 | `number` | `14` |
 | `fontFamily` | 字体族 | `string` | `'Arial, sans-serif'` |
-| `color` | 文本颜色 | `string` | `'#000000'` |
+| `color` | 文本颜色 | `string` | 主题 `text.primary` |
 | `selectionColor` | 选区颜色（聚焦时使用） | `string` | 主题 `state.focus` |
-| `cursorColor` | 光标颜色 | `string` | `'#000000'` |
+| `cursorColor` | 光标颜色 | `string` | 主题 `text.primary` |
 | `autoFocus` | 初始化后自动聚焦 | `boolean` | `false` |
 
 - children 支持类型：`None`

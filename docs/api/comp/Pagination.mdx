@@ -16,13 +16,19 @@ title: Pagination
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <Stack allowOverflowPositioned={true}>
-  <Container width={520} height={140} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <Container
+    width={520}
+    height={140}
+    color={getCurrentTheme().background.container}
+    border={{ width: 1, color: getCurrentTheme().border.secondary }}
+    borderRadius={8}
+  />
   <Positioned left={16} top={16}>
     <Pagination
       total={235}
       pageSize={10}
       defaultCurrent={3}
-      onChange={(p) => message.info(`切换到第 ${p} 页`)}
+      onChange={(p) => console.log(`切换到第 ${p} 页`)}
     />
   </Positioned>
 </Stack>

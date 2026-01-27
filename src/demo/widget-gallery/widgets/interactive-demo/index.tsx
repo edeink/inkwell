@@ -51,7 +51,7 @@ export class InteractiveDemo extends StatefulWidget<Props, State> {
             onClick={this.handleIncrement}
           >
             <Center>
-              <Text text={`点击计数: ${count}`} color="#FFFFFF" />
+              <Text text={`点击计数: ${count}`} color={theme.text.inverse} />
             </Center>
           </Container>
 
@@ -83,14 +83,14 @@ export class InteractiveDemo extends StatefulWidget<Props, State> {
             onClick={this.handleToggle}
           >
             <Center>
-              <Text text={active ? '状态: 开启' : '状态: 关闭'} color="#FFFFFF" />
+              <Text text={active ? '状态: 开启' : '状态: 关闭'} color={theme.text.inverse} />
             </Center>
           </Container>
 
           {active && (
             <Container width={120} height={40} color={theme.warning} borderRadius={4}>
               <Center>
-                <Text text="激活显示" color="#FFFFFF" />
+                <Text text="激活显示" color={theme.text.inverse} />
               </Center>
             </Container>
           )}

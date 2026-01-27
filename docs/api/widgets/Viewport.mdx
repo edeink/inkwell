@@ -18,21 +18,26 @@ import { Viewport } from '@/core';
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Viewport 
-  width={400} 
-  height={300} 
-  scale={1.0} 
-  minScale={0.5} 
-  maxScale={3.0}
-  tx={0}
-  ty={0}
->
-  <Container width={200} height={200} color="#ffccc7">
-    <Center>
-      <Text text="Scalable Content" />
-    </Center>
-  </Container>
-</Viewport>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Viewport
+      width={400}
+      height={300}
+      scale={1.0}
+      minScale={0.5}
+      maxScale={3.0}
+      tx={0}
+      ty={0}
+    >
+      <Container width={200} height={200} color={theme.danger}>
+        <Center>
+          <Text text="Scalable Content" color={theme.text.inverse} />
+        </Center>
+      </Container>
+    </Viewport>
+  );
+})()
 ```
 
 ## API 文档

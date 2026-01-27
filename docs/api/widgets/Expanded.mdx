@@ -14,32 +14,70 @@ title: Expanded
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={180} border={{ width: 1, color: '#ddd' }}>
-  <Column spacing={8} mainAxisSize="max">
-    <Container color="#EBF3FF" border={{ width: 1, color: '#BBD3FF' }} flex={{ flex: 1, fit: 'tight' }}>
-      <Text text="flex: 1" textAlign="center" textAlignVertical="center" />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={180} border={{ width: 1, color: theme.border.base }}>
+      <Column spacing={8} mainAxisSize="max">
+        <Container
+          color={theme.state.hover}
+          border={{ width: 1, color: theme.primary }}
+          flex={{ flex: 1, fit: 'tight' }}
+        >
+          <Text
+            text="flex: 1"
+            textAlign="center"
+            textAlignVertical="center"
+            color={theme.text.primary}
+          />
+        </Container>
+        <Container
+          color={theme.state.hover}
+          border={{ width: 1, color: theme.primary }}
+          flex={{ flex: 2, fit: 'tight' }}
+        >
+          <Text
+            text="flex: 2"
+            textAlign="center"
+            textAlignVertical="center"
+            color={theme.text.primary}
+          />
+        </Container>
+      </Column>
     </Container>
-    <Container color="#EBF3FF" border={{ width: 1, color: '#BBD3FF' }} flex={{ flex: 2, fit: 'tight' }}>
-      <Text text="flex: 2" textAlign="center" textAlignVertical="center" />
-    </Container>
-  </Column>
-</Container>
+  );
+})()
 ```
 
 ### 在 Row 中按权重分配宽度（示意）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={360} height={100} border={{ width: 1, color: '#ddd' }}>
-  <Row spacing={8} mainAxisSize="max">
-    <Container height={40} color="#FFF7E6" border={{ width: 1, color: '#FFD591' }} flex={{ flex: 1, fit: 'tight' }}>
-      <Text text="1x" textAlign="center" textAlignVertical="center" />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={360} height={100} border={{ width: 1, color: theme.border.base }}>
+      <Row spacing={8} mainAxisSize="max">
+        <Container
+          height={40}
+          color={theme.state.hover}
+          border={{ width: 1, color: theme.warning }}
+          flex={{ flex: 1, fit: 'tight' }}
+        >
+          <Text text="1x" textAlign="center" textAlignVertical="center" color={theme.text.primary} />
+        </Container>
+        <Container
+          height={40}
+          color={theme.state.hover}
+          border={{ width: 1, color: theme.warning }}
+          flex={{ flex: 2, fit: 'tight' }}
+        >
+          <Text text="2x" textAlign="center" textAlignVertical="center" color={theme.text.primary} />
+        </Container>
+      </Row>
     </Container>
-    <Container height={40} color="#FFF7E6" border={{ width: 1, color: '#FFD591' }} flex={{ flex: 2, fit: 'tight' }}>
-      <Text text="2x" textAlign="center" textAlignVertical="center" />
-    </Container>
-  </Row>
-</Container>
+  );
+})()
 ```
 
 ## 属性（子元素的 `flex`）

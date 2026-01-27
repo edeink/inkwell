@@ -18,15 +18,26 @@ import { ScrollView } from '@/core';
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<ScrollView width={300} height={200} overflow="hidden" scrollBarColor="#999">
-  <Column>
-    {Array.from({ length: 10 }).map((_, i) => (
-      <Container key={i} width={280} height={40} margin={{ bottom: 10 }} color="#f0f0f0">
-        <Text text={`Item ${i + 1}`} />
-      </Container>
-    ))}
-  </Column>
-</ScrollView>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <ScrollView width={300} height={200} overflow="hidden" scrollBarColor={theme.text.secondary}>
+      <Column>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Container
+            key={i}
+            width={280}
+            height={40}
+            margin={{ bottom: 10 }}
+            color={theme.background.surface}
+          >
+            <Text text={`Item ${i + 1}`} color={theme.text.primary} />
+          </Container>
+        ))}
+      </Column>
+    </ScrollView>
+  );
+})()
 ```
 
 ### 2. 弹性滚动 (Bouncing ScrollView)
@@ -35,19 +46,24 @@ import { ScrollView } from '@/core';
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<ScrollView 
-  width={300} 
-  height={200} 
-  enableBounce={true} 
-  bounceDamping={0.6}
-  scrollBarColor="#ccc"
->
-  <Container width={300} height={200} color="#e6f7ff">
-     <Center>
-       <Text text="Pull me down/up!" />
-     </Center>
-  </Container>
-</ScrollView>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <ScrollView
+      width={300}
+      height={200}
+      enableBounce={true}
+      bounceDamping={0.6}
+      scrollBarColor={theme.text.secondary}
+    >
+      <Container width={300} height={200} color={theme.background.surface}>
+        <Center>
+          <Text text="Pull me down/up!" color={theme.text.primary} />
+        </Center>
+      </Container>
+    </ScrollView>
+  );
+})()
 ```
 
 ### 3. 滚轮链式滚动与 DOM 互操作
@@ -60,29 +76,39 @@ import { ScrollView } from '@/core';
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<ScrollView width={360} height={240}>
-  <Column>
-    <Container width={360} height={120} color="#f0f0f0">
-      <Text text="外层：垂直滚动容器（向下滚动）" />
-    </Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <ScrollView width={360} height={240}>
+      <Column>
+        <Container width={360} height={120} color={theme.background.surface}>
+          <Text text="外层：垂直滚动容器（向下滚动）" color={theme.text.primary} />
+        </Container>
 
-    <ScrollView width={360} height={120}>
-      <Row>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <Container key={i} width={120} height={120} color={i % 2 === 0 ? '#e6f7ff' : '#fff7e6'}>
-            <Center>
-              <Text text={`卡片 ${i + 1}`} />
-            </Center>
-          </Container>
-        ))}
-      </Row>
+        <ScrollView width={360} height={120} scrollBarColor={theme.text.secondary}>
+          <Row>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Container
+                key={i}
+                width={120}
+                height={120}
+                color={i % 2 === 0 ? theme.state.selected : theme.background.container}
+              >
+                <Center>
+                  <Text text={`卡片 ${i + 1}`} color={theme.text.primary} />
+                </Center>
+              </Container>
+            ))}
+          </Row>
+        </ScrollView>
+
+        <Container width={360} height={240} color={theme.background.surface}>
+          <Text text="继续向下滚动：外层会接管；到达边界后交给页面滚动" color={theme.text.primary} />
+        </Container>
+      </Column>
     </ScrollView>
-
-    <Container width={360} height={240} color="#f0f0f0">
-      <Text text="继续向下滚动：外层会接管；到达边界后交给页面滚动" />
-    </Container>
-  </Column>
-</ScrollView>
+  );
+})()
 ```
 
 ## API 文档

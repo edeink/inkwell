@@ -15,41 +15,51 @@ title: Table
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Table
-  width={520}
-  height={300}
-  affixHeader={false}
-  columns={[
-    { title: '姓名', dataIndex: 'name', key: 'name', width: 160 },
-    { title: '年龄', dataIndex: 'age', key: 'age', width: 120 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 200,
-      render: (v) => (
-        <Container
-          padding={{ left: 8, right: 8, top: 4, bottom: 4 }}
-          borderRadius={6}
-          color={v === '正常' ? '#dcfce7' : '#fee2e2'}
-        >
-          <Text
-            text={String(v ?? '')}
-            fontSize={12}
-            color={v === '正常' ? '#166534' : '#991b1b'}
-            pointerEvent="none"
-          />
-        </Container>
-      ),
-    },
-  ]}
-  dataSource={Array.from({ length: 24 }).map((_, i) => ({
-    key: `u${i + 1}`,
-    name: i % 2 === 0 ? '张三' : '李四',
-    age: 18 + (i % 20),
-    status: i % 3 === 0 ? '异常' : '正常',
-  }))}
-/>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Table
+      width={520}
+      height={300}
+      affixHeader={false}
+      columns={[
+        { title: '姓名', dataIndex: 'name', key: 'name', width: 160 },
+        { title: '年龄', dataIndex: 'age', key: 'age', width: 120 },
+        {
+          title: '状态',
+          dataIndex: 'status',
+          key: 'status',
+          width: 200,
+          render: (v) => {
+            const ok = v === '正常';
+            const statusColor = ok ? theme.success : theme.danger;
+            return (
+              <Container
+                padding={{ left: 8, right: 8, top: 4, bottom: 4 }}
+                borderRadius={6}
+                color={theme.background.container}
+                border={{ width: 1, color: statusColor }}
+              >
+                <Text
+                  text={String(v ?? '')}
+                  fontSize={12}
+                  color={statusColor}
+                  pointerEvent="none"
+                />
+              </Container>
+            );
+          },
+        },
+      ]}
+      dataSource={Array.from({ length: 24 }).map((_, i) => ({
+        key: `u${i + 1}`,
+        name: i % 2 === 0 ? '张三' : '李四',
+        age: 18 + (i % 20),
+        status: i % 3 === 0 ? '异常' : '正常',
+      }))}
+    />
+  );
+})()
 ```
 
 ### 固定表头与固定列（多个吸附）

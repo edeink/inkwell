@@ -5,7 +5,9 @@ import type { ThemePalette } from '@/styles/theme';
 
 import {
   Container,
+  CrossAxisAlignment,
   MainAxisAlignment,
+  MainAxisSize,
   Row,
   StatefulWidget,
   Text,
@@ -14,6 +16,7 @@ import {
   type InkwellEvent,
   type WidgetProps,
 } from '@/core';
+import { colorToString, lerpColor, parseColor } from '@/core/helper/color';
 
 export type ButtonType = 'default' | 'primary' | 'dashed' | 'text' | 'link';
 
@@ -36,6 +39,12 @@ interface ButtonState {
 
 export class Button extends StatefulWidget<ButtonProps, ButtonState> {
   protected state: ButtonState = { hovered: false, active: false };
+
+  private mixColor(base: string, target: string, t: number): string {
+    const a = parseColor(base);
+    const b = parseColor(target);
+    return colorToString(lerpColor(a, b, Math.max(0, Math.min(1, t))));
+  }
 
   onClick(e: InkwellEvent): void {
     if (this.props.disabled) {
@@ -92,6 +101,9 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
     let border: typeof baseBorder | undefined = baseBorder;
     let textColor = theme.text.primary;
 
+    const primaryHoverColor = this.mixColor(primaryColor, '#ffffff', 0.16);
+    const primaryActiveColor = this.mixColor(primaryColor, '#000000', 0.14);
+
     if (btnType === 'primary') {
       color = primaryColor;
       border = { width: tokens.borderWidth, color: primaryColor };
@@ -112,7 +124,8 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
 
     if (hovered && !disabled) {
       if (btnType === 'primary') {
-        color = theme.state.hover;
+        color = primaryHoverColor;
+        border = { width: tokens.borderWidth, color: primaryHoverColor };
       } else if (btnType === 'default' || btnType === 'dashed') {
         border = { width: tokens.borderWidth, color: primaryColor };
       } else {
@@ -122,9 +135,13 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
 
     if (active && !disabled) {
       if (btnType === 'primary') {
-        color = theme.state.active;
+        color = primaryActiveColor;
+        border = { width: tokens.borderWidth, color: primaryActiveColor };
       } else {
         color = theme.state.active;
+        if (btnType === 'default' || btnType === 'dashed') {
+          border = { width: tokens.borderWidth, color: primaryColor };
+        }
       }
     }
 
@@ -145,7 +162,6 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
         color={color}
         border={border}
         borderRadius={tokens.borderRadius}
-        alignment="center"
         cursor={disabled ? 'not-allowed' : 'pointer'}
         pointerEvent="auto"
         onPointerEnter={this.handlePointerEnter}
@@ -153,7 +169,12 @@ export class Button extends StatefulWidget<ButtonProps, ButtonState> {
         onPointerDown={this.handlePointerDown}
         onPointerUp={this.handlePointerUp}
       >
-        <Row mainAxisAlignment={MainAxisAlignment.Center} spacing={8}>
+        <Row
+          mainAxisSize={MainAxisSize.Min}
+          mainAxisAlignment={MainAxisAlignment.Center}
+          crossAxisAlignment={CrossAxisAlignment.Center}
+          spacing={8}
+        >
           {loadingText ? (
             <Text
               text={loadingText}

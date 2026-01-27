@@ -16,7 +16,13 @@ title: RadioGroup
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <Stack allowOverflowPositioned={true}>
-  <Container width={520} height={180} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
+  <Container
+    width={520}
+    height={180}
+    color={getCurrentTheme().background.container}
+    border={{ width: 1, color: getCurrentTheme().border.secondary }}
+    borderRadius={8}
+  />
   <Positioned left={16} top={16}>
     <RadioGroup
       direction="vertical"

@@ -14,22 +14,32 @@ title: SizedBox
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<SizedBox width={120} height={48}>
-  <Container color="#e6f4ff" />
-</SizedBox>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <SizedBox width={120} height={48}>
+      <Container color={theme.state.selected} />
+    </SizedBox>
+  );
+})()
 ```
 
 ### 用作间距（空盒）
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Container width={320} height={100}>
-  <Column spacing={0}>
-    <Container height={20} color="#f6ffed" />
-    <SizedBox height={12} />
-    <Container height={20} color="#fff7e6" />
-  </Column>
-</Container>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Container width={320} height={100} color={theme.background.container}>
+      <Column spacing={0}>
+        <Container height={20} color={theme.background.surface} />
+        <SizedBox height={12} />
+        <Container height={20} color={theme.state.selected} />
+      </Column>
+    </Container>
+  );
+})()
 ```
 
 ## 属性

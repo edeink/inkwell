@@ -31,7 +31,7 @@ export function FunctionalButton(props: {
           key="functional-btn-text"
           text="Functional Btn"
           fontSize={16}
-          color="#ffffff" // Always white on primary button
+          color={props.theme.text.inverse}
           textAlign={TextAlign.Center}
           textAlignVertical={TextAlignVertical.Center}
         />

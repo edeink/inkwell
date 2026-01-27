@@ -15,35 +15,51 @@ title: Popconfirm
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Stack allowOverflowPositioned={true}>
-  <Container width={520} height={200} color="#ffffff" border={{ width: 1, color: '#e5e7eb' }} borderRadius={8} />
-  <Positioned left={16} top={16}>
-    <Popconfirm
-      title="确认删除？"
-      description="删除后无法恢复，请谨慎操作。"
-      okText="删除"
-      cancelText="取消"
-      triggerHeight={32}
-      onConfirm={() => message.success('已删除')}
-      onCancel={() => message.info('已取消')}
-    >
-      <Button danger={true}>
-        <Text text="删除" pointerEvent="none" />
-      </Button>
-    </Popconfirm>
-  </Positioned>
-</Stack>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Stack allowOverflowPositioned={true}>
+      <Container
+        width={520}
+        height={200}
+        color={theme.background.container}
+        border={{ width: 1, color: theme.border.secondary }}
+        borderRadius={8}
+      />
+      <Positioned left={16} top={16}>
+        <Popconfirm
+          title="确认删除？"
+          description="删除后无法恢复，请谨慎操作。"
+          okText="删除"
+          cancelText="取消"
+          triggerHeight={32}
+          onConfirm={() => message.success('已删除')}
+          onCancel={() => message.info('已取消')}
+        >
+          <Button danger={true} btnType="default">
+            <Text text="删除" color={theme.danger} pointerEvent="none" />
+          </Button>
+        </Popconfirm>
+      </Positioned>
+    </Stack>
+  );
+})()
 ```
 
 ### 禁用
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<Popconfirm title="不会弹出" disabled={true} onConfirm={() => message.info('不会触发')}>
-  <Button disabled={true}>
-    <Text text="禁用" pointerEvent="none" />
-  </Button>
-</Popconfirm>
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Popconfirm title="不会弹出" disabled={true} onConfirm={() => message.info('不会触发')}>
+      <Button disabled={true}>
+        <Text text="禁用" color={theme.text.placeholder} pointerEvent="none" />
+      </Button>
+    </Popconfirm>
+  );
+})()
 ```
 
 ## 属性

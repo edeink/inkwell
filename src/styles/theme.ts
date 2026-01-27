@@ -27,6 +27,11 @@ export interface ThemePalette {
     secondary: string;
   };
 
+  shadow: {
+    sm: string;
+    md: string;
+  };
+
   component: {
     gridLine: string;
     headerBg: string;
@@ -66,6 +71,10 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       base: '#d9d9d9',
       secondary: '#f0f0f0',
     },
+    shadow: {
+      sm: 'rgba(0, 0, 0, 0.08)',
+      md: 'rgba(0, 0, 0, 0.12)',
+    },
     component: {
       gridLine: '#e0e0e0',
       headerBg: '#f8f9fa',
@@ -100,6 +109,10 @@ export const Themes: Record<ThemeMode, ThemePalette> = {
       base: '#434343',
       secondary: '#303030',
     },
+    shadow: {
+      sm: 'rgba(0, 0, 0, 0.55)',
+      md: 'rgba(0, 0, 0, 0.7)',
+    },
     component: {
       gridLine: '#424242',
       headerBg: '#2c2c2e',
@@ -123,6 +136,10 @@ export function getCurrentThemeMode(): ThemeMode {
     return 'light';
   }
   return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+export function getCurrentTheme(): ThemePalette {
+  return Themes[getCurrentThemeMode()];
 }
 
 type ThemeChangeListener = (theme: ThemePalette, mode: ThemeMode) => void;
@@ -150,7 +167,7 @@ function notifyThemeChange() {
 }
 
 // 监听 html 标签的 data-theme 属性变化
-if (typeof MutationObserver !== 'undefined') {
+if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
@@ -167,16 +184,43 @@ if (typeof MutationObserver !== 'undefined') {
   }
 }
 
+export function setThemeMode(mode: ThemeMode): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  document.documentElement.setAttribute('data-theme', mode);
+  notifyThemeChange();
+}
+
+export function registerTheme(mode: ThemeMode, theme: ThemePalette): void {
+  Themes[mode] = theme;
+  notifyThemeChange();
+}
+
+export function mergeTheme(mode: ThemeMode, patch: Partial<ThemePalette>): void {
+  Themes[mode] = {
+    ...Themes[mode],
+    ...patch,
+    background: { ...Themes[mode].background, ...patch.background },
+    text: { ...Themes[mode].text, ...patch.text },
+    border: { ...Themes[mode].border, ...patch.border },
+    shadow: { ...Themes[mode].shadow, ...patch.shadow },
+    component: { ...Themes[mode].component, ...patch.component },
+    state: { ...Themes[mode].state, ...patch.state },
+  };
+  notifyThemeChange();
+}
+
 /**
  * React Hook for using theme
  * 返回当前的主题调色板
  */
 export function useTheme(): ThemePalette {
-  const [theme, setTheme] = useState<ThemePalette>(Themes[getCurrentThemeMode()]);
+  const [theme, setTheme] = useState<ThemePalette>(getCurrentTheme());
 
   useEffect(() => {
     // 确保初始化正确
-    setTheme(Themes[getCurrentThemeMode()]);
+    setTheme(getCurrentTheme());
 
     return subscribeTheme((newTheme) => {
       setTheme(newTheme);

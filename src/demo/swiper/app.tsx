@@ -46,7 +46,12 @@ export class SwiperDemoApp extends StatelessWidget<SwiperDemoAppProps> {
         return (
           <Container key={`${prefix}-page-${i}`} color={colors[i % colors.length]}>
             <Center>
-              <Text text={`Page ${i + 1}`} color="#FFFFFF" fontSize={24} fontWeight="bold" />
+              <Text
+                text={`Page ${i + 1}`}
+                color={theme.text.inverse}
+                fontSize={24}
+                fontWeight="bold"
+              />
             </Center>
           </Container>
         );

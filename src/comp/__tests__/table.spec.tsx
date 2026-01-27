@@ -8,6 +8,7 @@ import { Container, Text } from '@/core';
 import { createBoxConstraints } from '@/core/base';
 import { findWidget } from '@/core/helper/widget-selector';
 import { WidgetRegistry } from '@/core/registry';
+import { Themes } from '@/styles/theme';
 import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 type RowData = {
@@ -40,7 +41,11 @@ function buildColumnsWithWidgetRender(): ReadonlyArray<TableColumn<RowData>> {
       key: 'action',
       width: 120,
       render: (_value, record) => (
-        <Container key={`act-${record.key}`} padding={{ left: 4, right: 4 }} color="#FF0000">
+        <Container
+          key={`act-${record.key}`}
+          padding={{ left: 4, right: 4 }}
+          color={Themes.light.danger}
+        >
           <Text text="查看" />
         </Container>
       ),

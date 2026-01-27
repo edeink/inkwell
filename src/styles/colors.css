@@ -15,6 +15,7 @@
   --ink-demo-text-primary: #1f1f1f;
   --ink-demo-text-secondary: #8c8c8c;
   --ink-demo-text-placeholder: #bfbfbf;
+  --ink-demo-text-inverse: #fff;
 
   /* 边框色 */
   --ink-demo-border: #d9d9d9;
@@ -36,6 +37,7 @@ html[data-theme='dark'] {
   --ink-demo-text-primary: #e6f4ff;
   --ink-demo-text-secondary: #bfbfbf;
   --ink-demo-text-placeholder: #5c5c5c;
+  --ink-demo-text-inverse: #fff;
 
   /* 边框色 */
   --ink-demo-border: #434343;

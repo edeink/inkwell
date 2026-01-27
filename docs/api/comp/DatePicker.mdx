@@ -15,7 +15,23 @@ title: DatePicker
 
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
-<DatePicker width={220} placeholder="请选择日期" onChange={(d) => console.log('选择日期', d)} />
+(() => {
+  const theme = getCurrentTheme();
+  return (
+    <Stack allowOverflowPositioned={true}>
+      <Container
+        width={520}
+        height={380}
+        color={theme.background.container}
+        border={{ width: 1, color: theme.border.secondary }}
+        borderRadius={8}
+      />
+      <Positioned left={150} top={24}>
+        <DatePicker width={220} placeholder="请选择日期" onChange={(d) => console.log('选择日期', d)} />
+      </Positioned>
+    </Stack>
+  );
+})()
 ```
 
 ## 属性

@@ -1,4 +1,4 @@
-import { getCurrentThemeMode, Themes, type ThemePalette } from '@/styles/theme';
+import { getCurrentTheme, type ThemePalette } from '@/styles/theme';
 
 export type CompSize = 'small' | 'middle' | 'large';
 
@@ -22,10 +22,11 @@ export function getDefaultTheme(theme?: ThemePalette): ThemePalette {
   if (theme) {
     return theme;
   }
-  return Themes[getCurrentThemeMode()];
+  return getCurrentTheme();
 }
 
-export function getDefaultTokens(): CompTokens {
+export function getDefaultTokens(theme?: ThemePalette): CompTokens {
+  const resolvedTheme = getDefaultTheme(theme);
   return {
     fontSize: 14,
     lineHeight: 22,
@@ -35,8 +36,8 @@ export function getDefaultTokens(): CompTokens {
     controlPaddingX: { small: 8, middle: 12, large: 16 },
     controlFontSize: { small: 12, middle: 14, large: 16 },
     shadow: {
-      sm: { color: 'rgba(0, 0, 0, 0.08)', blur: 8, offset: { x: 0, y: 2 } },
-      md: { color: 'rgba(0, 0, 0, 0.12)', blur: 16, offset: { x: 0, y: 6 } },
+      sm: { color: resolvedTheme.shadow.sm, blur: 8, offset: { x: 0, y: 2 } },
+      md: { color: resolvedTheme.shadow.md, blur: 16, offset: { x: 0, y: 6 } },
     },
   };
 }

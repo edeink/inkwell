@@ -18,6 +18,8 @@ import {
   type Widget,
   type WidgetProps,
 } from '@/core';
+import { applyAlpha } from '@/core/helper/color';
+import { Themes } from '@/styles/theme';
 
 export interface SwiperProps extends WidgetProps {
   items: Widget[];
@@ -232,13 +234,13 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
   render() {
     const { items, width, height } = this.props;
     const { currentIndex, offset } = this.state;
+    const theme = this.props.theme ?? Themes.light;
 
     if (!items || items.length === 0) {
-      const { theme } = this.props;
       return (
-        <Container width={width} height={height} color={theme?.background?.surface ?? '#f0f0f0'}>
+        <Container width={width} height={height} color={theme.background.surface}>
           <Center>
-            <Text text="No Items" color={theme?.text?.primary ?? '#000000'} />
+            <Text text="No Items" color={theme.text.primary} />
           </Center>
         </Container>
       );
@@ -300,7 +302,11 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
                       width={i === currentIndex ? 20 : 8}
                       height={8}
                       borderRadius={4}
-                      color={i === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+                      color={
+                        i === currentIndex
+                          ? theme.text.inverse
+                          : applyAlpha(theme.text.inverse, 0.5)
+                      }
                       margin={{ left: 2, right: 4 }}
                       onClick={() => this.handleIndicatorClick(i)}
                       cursor="pointer"
@@ -313,11 +319,15 @@ export class Swiper extends StatefulWidget<SwiperProps, SwiperState> {
             {/* 数字指示器 */}
             <Positioned top={10} right={10}>
               <Container
-                color="rgba(0,0,0,0.5)"
+                color={applyAlpha(theme.background.base, 0.72)}
                 borderRadius={12}
                 padding={{ left: 8, right: 8, top: 4, bottom: 4 }}
               >
-                <Text text={`${currentIndex + 1} / ${count}`} color="#fff" fontSize={12} />
+                <Text
+                  text={`${currentIndex + 1} / ${count}`}
+                  color={theme.text.primary}
+                  fontSize={12}
+                />
               </Container>
             </Positioned>
           </Stack>

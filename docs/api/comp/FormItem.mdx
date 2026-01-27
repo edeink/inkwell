@@ -16,7 +16,12 @@ title: FormItem
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <FormItem label="用户名" required={true} help="请输入 2-20 个字符" validateStatus="warning">
-  <Container width={240} height={32} border={{ width: 1, color: '#d9d9d9' }} borderRadius={6} />
+  <Container
+    width={240}
+    height={32}
+    border={{ width: 1, color: getCurrentTheme().border.base }}
+    borderRadius={6}
+  />
 </FormItem>
 ```
 
@@ -25,7 +30,12 @@ title: FormItem
 ```tsx mode:edit
 /** @jsxImportSource @/utils/compiler */
 <FormItem label="备注" layout="vertical" help="可选填写" validateStatus="success">
-  <Container width={360} height={64} border={{ width: 1, color: '#d9d9d9' }} borderRadius={6} />
+  <Container
+    width={360}
+    height={64}
+    border={{ width: 1, color: getCurrentTheme().border.base }}
+    borderRadius={6}
+  />
 </FormItem>
 ```
 

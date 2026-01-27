@@ -113,7 +113,7 @@ export const WidgetGalleryDemo = ({
                         key="basic-text"
                         text="盒子"
                         fontSize={16}
-                        color="#FFFFFF"
+                        color={currentTheme.text.inverse}
                         fontWeight="bold"
                       />
                     </Center>
@@ -135,7 +135,7 @@ export const WidgetGalleryDemo = ({
                         key="rounded-text"
                         text="圆角"
                         fontSize={16}
-                        color="#FFFFFF"
+                        color={currentTheme.text.inverse}
                         fontWeight="bold"
                       />
                     </Center>
@@ -171,7 +171,7 @@ export const WidgetGalleryDemo = ({
                           borderRadius={4}
                         >
                           <Center>
-                            <Text key={`t-${i}`} text={`${i}`} color="#FFFFFF" />
+                            <Text key={`t-${i}`} text={`${i}`} color={currentTheme.text.inverse} />
                           </Center>
                         </Container>
                       ))}
@@ -203,7 +203,11 @@ export const WidgetGalleryDemo = ({
                           borderRadius={4}
                         >
                           <Center>
-                            <Text key={`tc-${i}`} text={`项目 ${i}`} color="#FFFFFF" />
+                            <Text
+                              key={`tc-${i}`}
+                              text={`项目 ${i}`}
+                              color={currentTheme.text.inverse}
+                            />
                           </Center>
                         </Container>
                       ))}
@@ -241,14 +245,14 @@ export const WidgetGalleryDemo = ({
                         height={24}
                         color={currentTheme.danger}
                         borderRadius={12}
-                        border={{ width: 2, color: '#FFFFFF' }}
+                        border={{ width: 2, color: currentTheme.text.inverse }}
                       >
                         <Center>
                           <Text
                             key="badge-text"
                             text="1"
                             fontSize={12}
-                            color="#FFFFFF"
+                            color={currentTheme.text.inverse}
                             fontWeight="bold"
                           />
                         </Center>
@@ -320,7 +324,7 @@ export const WidgetGalleryDemo = ({
                     <Expanded key="expanded-middle" flex={{ flex: 1 }}>
                       <Container key="flex-content" height={50} color={currentTheme.success}>
                         <Center>
-                          <Text key="flex-text" text="Flex: 1" color="#FFFFFF" />
+                          <Text key="flex-text" text="Flex: 1" color={currentTheme.text.inverse} />
                         </Center>
                       </Container>
                     </Expanded>
@@ -357,7 +361,7 @@ export const WidgetGalleryDemo = ({
                           <Text
                             key={`wrap-text-${i}`}
                             text={`项目 ${i}`}
-                            color="#FFFFFF"
+                            color={currentTheme.text.inverse}
                             fontSize={12}
                           />
                         </Center>
@@ -463,7 +467,7 @@ export const WidgetGalleryDemo = ({
                             <Text
                               key={`scroll-text-${i}`}
                               text={`滚动项目 ${i}`}
-                              color="#FFFFFF"
+                              color={currentTheme.text.inverse}
                               fontSize={12}
                             />
                           </Center>
@@ -490,7 +494,7 @@ export const WidgetGalleryDemo = ({
                       onClick={() => console.log('点击了按钮')}
                     >
                       <Center>
-                        <Text key="btn-text" text="点击我" color="#FFFFFF" />
+                        <Text key="btn-text" text="点击我" color={currentTheme.text.inverse} />
                       </Center>
                     </Container>
 
@@ -503,7 +507,7 @@ export const WidgetGalleryDemo = ({
                       cursor="not-allowed"
                     >
                       <Center>
-                        <Text key="hover-text" text="禁止点击" color="#FFFFFF" />
+                        <Text key="hover-text" text="禁止点击" color={currentTheme.text.inverse} />
                       </Center>
                     </Container>
                   </Row>

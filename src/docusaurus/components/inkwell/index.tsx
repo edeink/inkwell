@@ -16,6 +16,7 @@ import { Swiper } from '@/demo/swiper/widgets/swiper';
 import { WidgetGalleryDemo } from '@/demo/widget-gallery/app';
 import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
+import * as Theme from '@/styles/theme';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
 
 // Mock Scene if not available
@@ -73,6 +74,7 @@ export default function Inkwell({
   const previewRef = React.useRef<HTMLDivElement | null>(null);
   const debounceTimerRef = React.useRef<number | null>(null);
   const lastSizeRef = React.useRef<{ w: number; h: number } | null>(null);
+  const lastThemeRef = React.useRef<string | null>(null);
 
   const cleanup = React.useCallback(() => {
     if (debounceTimerRef.current) {
@@ -148,6 +150,7 @@ export default function Inkwell({
           'SwiperDemoApp',
           ...Object.keys(Comp),
           ...Object.keys(Core),
+          ...Object.keys(Theme),
           `${compiled}; return Template;`,
         );
         const ink = window.InkConsole;
@@ -166,6 +169,7 @@ export default function Inkwell({
           Swiper,
           ...Object.values(Comp),
           ...Object.values(Core),
+          ...Object.values(Theme),
         );
         await runtime.renderTemplate(tplFn as () => JSXElement);
         onSuccess?.();
@@ -178,6 +182,23 @@ export default function Inkwell({
 
   React.useEffect(() => {
     void renderData(data);
+  }, [data, renderData]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    lastThemeRef.current = root.getAttribute('data-theme');
+    const mo = new MutationObserver(() => {
+      const next = root.getAttribute('data-theme');
+      if (next === lastThemeRef.current) {
+        return;
+      }
+      lastThemeRef.current = next;
+      void renderData(data);
+    });
+    mo.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => {
+      mo.disconnect();
+    };
   }, [data, renderData]);
 
   React.useEffect(() => {

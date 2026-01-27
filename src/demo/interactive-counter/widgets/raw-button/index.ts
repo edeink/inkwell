@@ -69,7 +69,7 @@ export class RawButton extends Widget<RawButtonProps> {
       text,
       x: textX,
       y: textY,
-      color: '#ffffff',
+      color: theme.text.inverse,
       fontSize,
       textAlign: 'center',
       textBaseline: 'top',
