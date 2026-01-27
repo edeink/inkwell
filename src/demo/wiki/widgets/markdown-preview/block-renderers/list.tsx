@@ -59,7 +59,11 @@ export const unorderedListRenderer: BlockRenderer = {
             );
 
             return (
-              <Column key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={0}>
+              <Column
+                key={String(i)}
+                crossAxisAlignment={CrossAxisAlignment.Start}
+                spacing={ctx.style.list.columnSpacing}
+              >
                 <Row
                   crossAxisAlignment={CrossAxisAlignment.Start}
                   spacing={ctx.style.list.rowSpacing}

@@ -246,6 +246,46 @@ describe('MarkdownPreview 渲染稳定性', () => {
     }
   });
 
+  it('嵌套列表应与父级条目内容保持一致的分隔间距', () => {
+    const parser = new MarkdownParser();
+    const cases = [
+      {
+        md: ['- A', '  - B'].join('\n'),
+        type: NodeType.List,
+        itemSpacing: defaultMarkdownRenderStyle.list.columnSpacing,
+      },
+      {
+        md: ['1. A', '  1. B'].join('\n'),
+        type: NodeType.OrderedList,
+        itemSpacing: defaultMarkdownRenderStyle.orderedList.columnSpacing,
+      },
+      {
+        md: ['- [ ] A', '  - [ ] B'].join('\n'),
+        type: NodeType.TaskList,
+        itemSpacing: defaultMarkdownRenderStyle.taskList.columnSpacing,
+      },
+    ];
+
+    for (const c of cases) {
+      const ast = parser.parse(c.md);
+      const node = ast.children?.[0];
+      expect(node?.type).toBe(c.type);
+
+      const root = compileElement(
+        BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 0, key: 'root' }) as any,
+      ) as any;
+      expect(root.type).toBe('Padding');
+
+      const listColumn = root.children?.[0] as any;
+      expect(listColumn?.type).toBe('Column');
+
+      const firstItem = listColumn.children?.[0] as any;
+      expect(firstItem?.type).toBe('Column');
+      expect(firstItem.spacing).toBe(c.itemSpacing);
+      expect(firstItem.children?.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('重建时子节点顺序应保持一致，表格不应置顶', async () => {
     class TestMarkdownHost extends StatefulWidget<{
       width: number;

@@ -60,7 +60,11 @@ export const taskListRenderer: BlockRenderer = {
             );
 
             return (
-              <Column key={String(i)} crossAxisAlignment={CrossAxisAlignment.Start} spacing={0}>
+              <Column
+                key={String(i)}
+                crossAxisAlignment={CrossAxisAlignment.Start}
+                spacing={ctx.style.taskList.columnSpacing}
+              >
                 <Row
                   crossAxisAlignment={CrossAxisAlignment.Start}
                   spacing={ctx.style.taskList.rowSpacing}
