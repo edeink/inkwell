@@ -263,7 +263,12 @@ export default defineConfig({
   description: '基于 Canvas 的高性能 UI 系统，友好的 JSX 体验',
   lang: 'zh-CN',
   head: [
-    ['link', { rel: 'icon', href: '/linear-gradient.svg' }],
+    ['link', { rel: 'icon', href: '/favicon.ico' }],
+    [
+      'script',
+      {},
+      `(()=>{try{var p=localStorage.getItem('ink-theme-preset');if(p==='antd'||p==='material'||p==='glass'||p==='vitepress'){document.documentElement.setAttribute('data-ink-preset',p);}}catch(e){}})();`,
+    ],
     [
       'link',
       {

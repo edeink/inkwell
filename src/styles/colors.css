@@ -1,10 +1,10 @@
 :root {
   /* 基础语义色 - 与 src/styles/theme.ts 保持一致 */
-  --ink-demo-primary: #1677ff;
-  --ink-demo-secondary: #8c8c8c;
-  --ink-demo-success: #52c41a;
-  --ink-demo-warning: #faad14;
-  --ink-demo-danger: #ff4d4f;
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #8e8e93;
+  --ink-demo-success: #34c759;
+  --ink-demo-warning: #ff9f0a;
+  --ink-demo-danger: #ff3b30;
 
   /* 背景色 */
   --ink-demo-bg-base: #fff;
@@ -13,8 +13,8 @@
 
   /* 文本色 */
   --ink-demo-text-primary: #1f1f1f;
-  --ink-demo-text-secondary: #8c8c8c;
-  --ink-demo-text-placeholder: #bfbfbf;
+  --ink-demo-text-secondary: #595959;
+  --ink-demo-text-placeholder: #8c8c8c;
   --ink-demo-text-inverse: #fff;
 
   /* 边框色 */
@@ -22,36 +22,161 @@
   --ink-demo-border-secondary: #f0f0f0;
 
   /* 组件特定 */
-  --ink-demo-grid-line: #e0e0e0;
-  --ink-demo-header-bg: #f8f9fa;
-  --ink-demo-header-bg-active: #e8eaed;
+  --ink-demo-grid-line: #f0f0f0;
+  --ink-demo-header-bg: #fafafa;
+  --ink-demo-header-bg-active: #e6f4ff;
+}
+
+:root[data-ink-preset='antd'] {
+  --ink-demo-primary: #1677ff;
+  --ink-demo-secondary: #595959;
+  --ink-demo-success: #52c41a;
+  --ink-demo-warning: #faad14;
+  --ink-demo-danger: #ff4d4f;
+}
+
+:root[data-ink-preset='material'] {
+  --ink-demo-primary: #00838f;
+  --ink-demo-secondary: #546e7a;
+  --ink-demo-success: #2e7d32;
+  --ink-demo-warning: #ed6c02;
+  --ink-demo-danger: #d32f2f;
+}
+
+:root[data-ink-preset='glass'] {
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #8e8e93;
+  --ink-demo-success: #34c759;
+  --ink-demo-warning: #ff9f0a;
+  --ink-demo-danger: #ff3b30;
+}
+
+:root[data-ink-preset='vitepress'] {
+  --ink-demo-primary: #646cff;
+  --ink-demo-secondary: #4b5563;
+  --ink-demo-success: #10b981;
+  --ink-demo-warning: #f59e0b;
+  --ink-demo-danger: #ef4444;
 }
 
 html[data-theme='dark'] {
   /* 基础语义色 - 与 src/styles/theme.ts 保持一致 */
-  --ink-demo-primary: #1677ff;
-  --ink-demo-secondary: #bfbfbf;
-  --ink-demo-success: #52c41a;
-  --ink-demo-warning: #faad14;
-  --ink-demo-danger: #ff4d4f;
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #aeaeb2;
+  --ink-demo-success: #30d158;
+  --ink-demo-warning: #ffd60a;
+  --ink-demo-danger: #ff453a;
 
   /* 背景色 */
-  --ink-demo-bg-base: #1b1b1d;
-  --ink-demo-bg-surface: #242526;
-  --ink-demo-bg-container: #242526;
+  --ink-demo-bg-base: #141414;
+  --ink-demo-bg-surface: #1f1f1f;
+  --ink-demo-bg-container: #1f1f1f;
 
   /* 文本色 */
-  --ink-demo-text-primary: #e6f4ff;
-  --ink-demo-text-secondary: #bfbfbf;
-  --ink-demo-text-placeholder: #5c5c5c;
+  --ink-demo-text-primary: #f0f0f0;
+  --ink-demo-text-secondary: #a6a6a6;
+  --ink-demo-text-placeholder: #6b6b6b;
   --ink-demo-text-inverse: #fff;
 
   /* 边框色 */
-  --ink-demo-border: #434343;
-  --ink-demo-border-secondary: #303030;
+  --ink-demo-border: #303030;
+  --ink-demo-border-secondary: #262626;
 
   /* 组件特定 */
-  --ink-demo-grid-line: #424242;
-  --ink-demo-header-bg: #2c2c2e;
-  --ink-demo-header-bg-active: #3a3a3c;
+  --ink-demo-grid-line: #262626;
+  --ink-demo-header-bg: #1f1f1f;
+  --ink-demo-header-bg-active: #111b26;
+}
+
+html[data-theme='dark'][data-ink-preset='antd'] {
+  --ink-demo-primary: #177ddc;
+  --ink-demo-secondary: #a6a6a6;
+  --ink-demo-success: #49aa19;
+  --ink-demo-warning: #d89614;
+  --ink-demo-danger: #ff4d4f;
+}
+
+html[data-theme='dark'][data-ink-preset='material'] {
+  --ink-demo-primary: #80deea;
+  --ink-demo-secondary: #b0bec5;
+  --ink-demo-success: #81c784;
+  --ink-demo-warning: #ffb74d;
+  --ink-demo-danger: #ef9a9a;
+}
+
+html[data-theme='dark'][data-ink-preset='glass'] {
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #aeaeb2;
+  --ink-demo-success: #30d158;
+  --ink-demo-warning: #ffd60a;
+  --ink-demo-danger: #ff453a;
+}
+
+html[data-theme='dark'][data-ink-preset='vitepress'] {
+  --ink-demo-primary: #a8b1ff;
+  --ink-demo-secondary: #a1a1aa;
+  --ink-demo-success: #34d399;
+  --ink-demo-warning: #fbbf24;
+  --ink-demo-danger: #f87171;
+}
+
+html.dark {
+  /* 基础语义色 - 与 src/styles/theme.ts 保持一致 */
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #aeaeb2;
+  --ink-demo-success: #30d158;
+  --ink-demo-warning: #ffd60a;
+  --ink-demo-danger: #ff453a;
+
+  /* 背景色 */
+  --ink-demo-bg-base: #141414;
+  --ink-demo-bg-surface: #1f1f1f;
+  --ink-demo-bg-container: #1f1f1f;
+
+  /* 文本色 */
+  --ink-demo-text-primary: #f0f0f0;
+  --ink-demo-text-secondary: #a6a6a6;
+  --ink-demo-text-placeholder: #6b6b6b;
+  --ink-demo-text-inverse: #fff;
+
+  /* 边框色 */
+  --ink-demo-border: #303030;
+  --ink-demo-border-secondary: #262626;
+
+  /* 组件特定 */
+  --ink-demo-grid-line: #262626;
+  --ink-demo-header-bg: #1f1f1f;
+  --ink-demo-header-bg-active: #111b26;
+}
+
+html.dark[data-ink-preset='antd'] {
+  --ink-demo-primary: #177ddc;
+  --ink-demo-secondary: #a6a6a6;
+  --ink-demo-success: #49aa19;
+  --ink-demo-warning: #d89614;
+  --ink-demo-danger: #ff4d4f;
+}
+
+html.dark[data-ink-preset='material'] {
+  --ink-demo-primary: #80deea;
+  --ink-demo-secondary: #b0bec5;
+  --ink-demo-success: #81c784;
+  --ink-demo-warning: #ffb74d;
+  --ink-demo-danger: #ef9a9a;
+}
+
+html.dark[data-ink-preset='glass'] {
+  --ink-demo-primary: #0a84ff;
+  --ink-demo-secondary: #aeaeb2;
+  --ink-demo-success: #30d158;
+  --ink-demo-warning: #ffd60a;
+  --ink-demo-danger: #ff453a;
+}
+
+html.dark[data-ink-preset='vitepress'] {
+  --ink-demo-primary: #a8b1ff;
+  --ink-demo-secondary: #a1a1aa;
+  --ink-demo-success: #34d399;
+  --ink-demo-warning: #fbbf24;
+  --ink-demo-danger: #f87171;
 }

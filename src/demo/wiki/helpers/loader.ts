@@ -22,6 +22,12 @@ function unwrapMarkdownModule(value: unknown): string {
     if (typeof d === 'string') {
       return d;
     }
+    if (d && typeof d === 'object' && 'default' in d) {
+      const dd = (d as { default?: unknown }).default;
+      if (typeof dd === 'string') {
+        return dd;
+      }
+    }
   }
   return '';
 }

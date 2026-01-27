@@ -23,6 +23,39 @@ export default {
     app.component('InkDemoPage', InkDemoPage);
     app.component('InkBenchmarkPage', InkBenchmarkPage);
 
+    if (typeof window !== 'undefined') {
+      const w = window as unknown as { __INK_VP_PINCH_BLOCKED__?: boolean };
+      if (!w.__INK_VP_PINCH_BLOCKED__) {
+        w.__INK_VP_PINCH_BLOCKED__ = true;
+        const allowPinch = (target: EventTarget | null) => {
+          const el = target instanceof Element ? target : null;
+          return !!el?.closest?.('[data-ink-allow-pinch="true"]');
+        };
+        window.addEventListener(
+          'wheel',
+          (e) => {
+            if (!e.ctrlKey) {
+              return;
+            }
+            if (allowPinch(e.target)) {
+              return;
+            }
+            e.preventDefault();
+          },
+          { capture: true, passive: false },
+        );
+        const preventGesture = (e: Event) => {
+          if (allowPinch(e.target)) {
+            return;
+          }
+          e.preventDefault();
+        };
+        window.addEventListener('gesturestart', preventGesture, { passive: false });
+        window.addEventListener('gesturechange', preventGesture, { passive: false });
+        window.addEventListener('gestureend', preventGesture, { passive: false });
+      }
+    }
+
     if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
       const sync = () => {
         setThemeMode(document.documentElement.classList.contains('dark') ? 'dark' : 'light');

@@ -11,7 +11,7 @@ Inkwell 的组件生命周期参考了常见的 UI 框架模型，整体可以�
 ## 生命周期流程图
 
 ```mermaid
-graph TD
+graph LR
     subgraph Mount["挂载阶段"]
         A["constructor"] --> B["initWidget"]
     end

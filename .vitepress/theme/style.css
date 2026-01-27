@@ -32,11 +32,36 @@ body {
   touch-action: pan-y;
 }
 
+.VPFooter {
+  display: none;
+  padding: 8px 4px !important;
+  font-size: 12px;
+}
+
+.VPFooter .message,
+.VPFooter .copyright {
+  margin: 0 !important;
+  line-height: 16px;
+}
+
+.ink-demo-page .VPContent {
+  padding-bottom: 0 !important;
+}
+
 .ink-react-mount {
   width: 100%;
 }
 
 .ink-react-mount[data-fullscreen='true'] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--vp-nav-height);
   height: calc(100vh - var(--vp-nav-height));
   overflow: hidden;
+}
+
+canvas:focus,
+canvas:focus-visible {
+  outline: none;
 }

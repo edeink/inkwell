@@ -90,7 +90,7 @@ class ResizableBox extends Widget {
 #### 更新传播示意图
 
 ```mermaid
-graph TD
+graph LR
     A[Child Node] -- markNeedsPaint --> B{isRepaintBoundary?}
     B -- No --> C[Parent Node]
     C -- markNeedsPaint --> D{isRepaintBoundary?}

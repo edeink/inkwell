@@ -37,6 +37,11 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<Runtime | null>(null);
+  const lastSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const resizeRafRef = useRef<number | null>(null);
+  const [canvasVisible, setCanvasVisible] = useState(false);
+  const canvasVisibleRef = useRef(false);
+  canvasVisibleRef.current = canvasVisible;
   const onRuntimeReadyRef = useRef(onRuntimeReady);
   onRuntimeReadyRef.current = onRuntimeReady;
   const onResizeRef = useRef(onResize);
@@ -61,8 +66,34 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
     el.innerHTML = ''; // 清除任何先前的内容
 
     let isActive = true;
+    setCanvasVisible(false);
+
+    const notifyResize = (width: number, height: number) => {
+      if (!isActive) {
+        return;
+      }
+      const runtime = runtimeRef.current;
+      if (!runtime || !onResizeRef.current) {
+        return;
+      }
+      onResizeRef.current(width, height, runtime);
+    };
 
     const initRuntime = async () => {
+      while (isActive) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          break;
+        }
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      }
+
+      if (!isActive) {
+        return;
+      }
+
       const runtime = await Runtime.create(containerId, {
         renderer: 'canvas2d',
         background: finalBackground,
@@ -79,12 +110,73 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
       if (onRuntimeReadyRef.current) {
         await onRuntimeReadyRef.current(runtime);
       }
+
+      const rect = el.getBoundingClientRect();
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      if (width > 0 && height > 0) {
+        lastSizeRef.current = { width, height };
+        notifyResize(width, height);
+      } else if (lastSizeRef.current.width > 0 && lastSizeRef.current.height > 0) {
+        notifyResize(lastSizeRef.current.width, lastSizeRef.current.height);
+      }
+
+      let rafId = 0;
+      let shown = false;
+      let dispose: (() => void) | null = null;
+
+      const show = () => {
+        if (shown || !isActive) {
+          return;
+        }
+        shown = true;
+        setCanvasVisible(true);
+        if (dispose) {
+          dispose();
+          dispose = null;
+        }
+        if (rafId) {
+          window.cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      };
+
+      const tryShow = () => {
+        if (!isActive || shown) {
+          return;
+        }
+        const isSizeLike = (v: unknown): v is { width: number; height: number } => {
+          if (!v || typeof v !== 'object') {
+            return false;
+          }
+          const o = v as Record<string, unknown>;
+          return typeof o.width === 'number' && typeof o.height === 'number';
+        };
+
+        const root = runtime.getRootWidget?.() as unknown;
+        const size = (root as { renderObject?: { size?: unknown } } | null)?.renderObject?.size;
+        if (isSizeLike(size) && size.width > 0 && size.height > 0) {
+          show();
+          return;
+        }
+        rafId = window.requestAnimationFrame(tryShow);
+      };
+
+      dispose = runtime.addTickListener(() => {
+        tryShow();
+      });
+
+      tryShow();
     };
 
     initRuntime();
 
     return () => {
       isActive = false;
+      if (resizeRafRef.current != null) {
+        window.cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = null;
+      }
       if (runtimeRef.current) {
         runtimeRef.current.destroy();
         runtimeRef.current = null;
@@ -108,16 +200,33 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
         }
 
         const entry = entries[0];
-        const { width, height } = entry.contentRect;
+        const width = Math.round(entry.contentRect.width);
+        const height = Math.round(entry.contentRect.height);
 
         // 确保尺寸有效
         if (width === 0 || height === 0) {
           return;
         }
 
-        if (runtimeRef.current && onResizeRef.current) {
-          onResizeRef.current(width, height, runtimeRef.current);
+        const prev = lastSizeRef.current;
+        if (prev.width === width && prev.height === height) {
+          return;
         }
+        lastSizeRef.current = { width, height };
+
+        if (!runtimeRef.current || !onResizeRef.current) {
+          return;
+        }
+
+        if (resizeRafRef.current != null) {
+          window.cancelAnimationFrame(resizeRafRef.current);
+        }
+        resizeRafRef.current = window.requestAnimationFrame(() => {
+          resizeRafRef.current = null;
+          if (runtimeRef.current && onResizeRef.current) {
+            onResizeRef.current(width, height, runtimeRef.current);
+          }
+        });
       });
     });
 
@@ -148,6 +257,7 @@ export const InkwellCanvas: React.FC<InkwellCanvasProps> = ({
           height: '100%',
           overflow: 'hidden',
           position: 'relative',
+          visibility: canvasVisible ? 'visible' : 'hidden',
         }}
       />
     </div>

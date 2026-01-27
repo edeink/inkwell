@@ -16,7 +16,7 @@ Inkwell 的 Widget 是构建界面的基础单元，采用 Flutter 风格的声�
 
 ## 分类与对应组件
 
-Inkwell 提供了丰富的内置组件，涵盖布局、绘制、交互等多个方面。详细 API 请参考 [API 文档](../api/)。
+Inkwell 提供了丰富的内置组件，涵盖布局、绘制、交互等多个方面。详细 API 请参考 [API 文档](../api/preview)。
 
 ### 1. 基础布局
 - **弹性布局**: [`Row`](../api/widgets/Row) (水平)、[`Column`](../api/widgets/Column) (垂直)、[`Expanded`](../api/widgets/Expanded) (填充剩余空间)

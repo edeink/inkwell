@@ -8,6 +8,7 @@ import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 
 describe('MindMap 选择与交互', async () => {
   beforeEach(() => {
@@ -186,10 +187,10 @@ describe('MindMap 选择与交互', async () => {
     // 检查活动节点的渲染输出
     const rendered1 = node1.render();
     const container1 = rendered1 as any;
-    // 激活样式：边框宽度 2，颜色 #1677ff，背景 rgba(22, 119, 255, 0.1)
+    const theme = Themes.light;
     expect(container1.props.border.width).toBe(2);
-    expect(container1.props.border.color).toBe('#1677ff');
-    expect(container1.props.color).toBe('rgba(22, 119, 255, 0.1)');
+    expect(container1.props.border.color).toBe(theme.primary);
+    expect(container1.props.color).toBe(theme.state.selected);
 
     // 通过 Viewport 将 n2 设置为选中
     const vp = findWidget(root, '#v') as MindMapViewport;
@@ -201,9 +202,9 @@ describe('MindMap 选择与交互', async () => {
     const rendered2 = node2.render();
     const container2 = rendered2 as any;
 
-    // 选中样式：虚线边框 #d9d9d9，背景 rgba(22, 119, 255, 0.1)
+    // 选中样式：虚线边框 + 主题选中背景
     expect(container2.props.border.style).toBe('dashed');
-    expect(container2.props.border.color).toBe('#d9d9d9');
-    expect(container2.props.color).toBe('rgba(22, 119, 255, 0.1)');
+    expect(container2.props.border.color).toBe(theme.border.base);
+    expect(container2.props.color).toBe(theme.state.selected);
   });
 });

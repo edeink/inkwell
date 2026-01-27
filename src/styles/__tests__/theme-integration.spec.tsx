@@ -1,7 +1,13 @@
 /** @jsxImportSource @/utils/compiler */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getCurrentThemeMode, subscribeTheme, Themes, type ThemePalette } from '../theme';
+import {
+  getCurrentThemeMode,
+  setThemePreset,
+  subscribeTheme,
+  Themes,
+  type ThemePalette,
+} from '../theme';
 
 import { Center, Container, StatelessWidget, Text, type Widget } from '@/core';
 
@@ -72,6 +78,7 @@ describe('Theme Switching Integration', () => {
     document.body.appendChild(container);
     // Reset theme
     document.documentElement.setAttribute('data-theme', 'light');
+    setThemePreset('glass');
   });
 
   afterEach(() => {
@@ -100,5 +107,18 @@ describe('Theme Switching Integration', () => {
   it('should provide correct initial theme', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     expect(getCurrentThemeMode()).toBe('dark');
+  });
+
+  it('切换配色时应通知订阅者并更新主题主色', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeTheme(listener);
+
+    setThemePreset('material');
+
+    expect(listener).toHaveBeenCalled();
+    expect(Themes.light.primary).toBe('#00838f');
+
+    setThemePreset('glass');
+    unsubscribe();
   });
 });

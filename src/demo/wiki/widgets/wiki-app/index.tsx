@@ -441,6 +441,9 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
     if (doc) {
       this.ensureDocLoaded(doc.key);
     }
+    const docContent = doc ? this.getDocContent(doc) : '';
+    const docLoaded = !!doc && (this.docContentCache.has(doc.key) || doc.content.length > 0);
+    const parsedDoc = doc && docLoaded ? this.getParsedDoc(doc) : null;
     const docMetas: WikiDocMeta[] = docs.map((d) => ({
       key: d.key,
       title: d.title,
@@ -450,13 +453,14 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
       this.props.sidebarItems && this.props.sidebarItems.length
         ? buildNavNodesFromSidebarItems(this.props.sidebarItems, docMetas)
         : buildNavNodesFromDocs(docMetas);
-    const tocNodes: WikiNavNode[] = this.getDocContent(doc)
-      ? this.getParsedDoc(doc).toc.map((item) => ({
-          key: item.key,
-          text: item.text,
-          indentLevel: Math.max(0, item.level - 1),
-        }))
-      : [];
+    const tocNodes: WikiNavNode[] =
+      parsedDoc && docContent
+        ? parsedDoc.toc.map((item) => ({
+            key: item.key,
+            text: item.text,
+            indentLevel: Math.max(0, item.level - 1),
+          }))
+        : [];
 
     return (
       <Container width={width} height={height} color={theme.background.surface}>
@@ -490,7 +494,7 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
             <Expanded flex={{ flex: 1 }}>
               <Container width={contentW} height={height} color={theme.background.surface}>
                 <Padding padding={24}>
-                  {this.getDocContent(doc) ? (
+                  {docLoaded ? (
                     <ScrollView
                       key={`md-${doc.key}-sv`}
                       ref={this.setScrollViewRef}
@@ -516,9 +520,9 @@ export class WikiApp extends FStateWidget<WikiAppProps, State> {
                               <MarkdownPreview
                                 key={`md-${doc.key}`}
                                 theme={theme}
-                                content={this.getDocContent(doc)}
-                                ast={this.getParsedDoc(doc).ast}
-                                headerKeyPrefix={this.getParsedDoc(doc).tocKeyPrefix}
+                                content={docContent}
+                                ast={parsedDoc?.ast}
+                                headerKeyPrefix={parsedDoc?.tocKeyPrefix}
                               />
                             </Container>
                           </Padding>

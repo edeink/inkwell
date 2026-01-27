@@ -1,4 +1,4 @@
-import { theme as antTheme, ConfigProvider, Tabs } from 'antd';
+import { theme as antTheme, ConfigProvider, Select, Tabs } from 'antd';
 import cn from 'classnames';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -16,7 +16,14 @@ import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 import Wiki, { meta as WikiMeta } from './wiki';
 
 import { DevTools } from '@/devtools';
-import { getCurrentThemeMode, subscribeToThemeChange } from '@/styles/theme';
+import {
+  getCurrentThemeMode,
+  getCurrentThemePreset,
+  setThemePreset,
+  subscribeTheme,
+  ThemePresetLabels,
+  type ThemePresetKey,
+} from '@/styles/theme';
 
 export default function UnifiedDemo() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -32,6 +39,10 @@ export default function UnifiedDemo() {
   const [theme, setTheme] = useState<ThemeType>(() => {
     return getCurrentThemeMode() === 'dark' ? ThemeType.Dark : ThemeType.Light;
   });
+
+  const [themePreset, setThemePresetState] = useState<ThemePresetKey>(() =>
+    getCurrentThemePreset(),
+  );
 
   const handleTabChange = (key: string) => {
     setActiveKey(key);
@@ -98,10 +109,10 @@ export default function UnifiedDemo() {
 
   useEffect(() => {
     // 监听主题变化
-    const unsubscribe = subscribeToThemeChange((mode) => {
+    return subscribeTheme((_theme, mode) => {
       setTheme(mode === 'dark' ? ThemeType.Dark : ThemeType.Light);
+      setThemePresetState(getCurrentThemePreset());
     });
-    return unsubscribe;
   }, []);
 
   const demos = useMemo(
@@ -124,34 +135,71 @@ export default function UnifiedDemo() {
     <ConfigProvider
       theme={{
         algorithm: theme === ThemeType.Dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: 'var(--ink-demo-primary)',
+          colorSuccess: 'var(--ink-demo-success)',
+          colorWarning: 'var(--ink-demo-warning)',
+          colorError: 'var(--ink-demo-danger)',
+          colorText: 'var(--ink-demo-text-primary)',
+          colorTextSecondary: 'var(--ink-demo-text-secondary)',
+          colorBgBase: 'var(--ink-demo-bg-base)',
+          colorBgContainer: 'var(--ink-demo-bg-container)',
+          colorBorder: 'var(--ink-demo-border)',
+        },
       }}
     >
       <div
         ref={containerRef}
         className={cn(styles.container, { [styles.dark]: theme === ThemeType.Dark })}
       >
-        <Tabs
-          className={styles.tabs}
-          activeKey={activeKey}
-          onChange={handleTabChange}
-          destroyOnHidden
-          items={demos.map((demo) => ({
-            key: demo.key,
-            label: demo.label,
-            children: (
-              <>
-                <div className={styles.description}>
-                  <h3>{demo.label}</h3>
-                  <p>{demo.description}</p>
+        <div className={styles.frame}>
+          <Tabs
+            className={styles.tabs}
+            activeKey={activeKey}
+            onChange={handleTabChange}
+            destroyOnHidden
+            tabBarExtraContent={{
+              right: (
+                <div className={styles.tabExtra}>
+                  <span className={styles.tabExtraLabel}>配色</span>
+                  <Select
+                    size="small"
+                    bordered={false}
+                    value={themePreset}
+                    onChange={(v) => {
+                      const next = v as ThemePresetKey;
+                      setThemePresetState(next);
+                      setThemePreset(next);
+                    }}
+                    options={(Object.keys(ThemePresetLabels) as ThemePresetKey[]).map((k) => ({
+                      label: ThemePresetLabels[k],
+                      value: k,
+                    }))}
+                    className={styles.presetSelect}
+                    classNames={{ popup: { root: styles.presetSelectPopup } }}
+                    popupMatchSelectWidth={false}
+                  />
                 </div>
-                <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
-                  <demo.Component />
-                  <DevTools />
-                </div>
-              </>
-            ),
-          }))}
-        />
+              ),
+            }}
+            items={demos.map((demo) => ({
+              key: demo.key,
+              label: demo.label,
+              children: (
+                <>
+                  <div className={styles.description}>
+                    <h3>{demo.label}</h3>
+                    <p>{demo.description}</p>
+                  </div>
+                  <div className={styles.demoWrap}>
+                    <demo.Component />
+                    <DevTools />
+                  </div>
+                </>
+              ),
+            }))}
+          />
+        </div>
       </div>
     </ConfigProvider>
   );

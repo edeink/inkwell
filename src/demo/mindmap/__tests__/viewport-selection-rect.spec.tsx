@@ -5,6 +5,7 @@ import { MindMapNode } from '../widgets/mindmap-node';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import Runtime from '@/runtime';
+import { Themes } from '@/styles/theme';
 // 模拟 Canvas2DRenderer
 const mockDrawRect = vi.fn();
 const mockSave = vi.fn();
@@ -135,8 +136,8 @@ describe('Viewport 选区矩形测试', () => {
         y: 100,
         width: 100,
         height: 100,
-        fill: 'rgba(22, 119, 255, 0.2)',
-        stroke: '#1677ff',
+        fill: Themes.light.state.focus,
+        stroke: Themes.light.primary,
         strokeWidth: 1,
       }),
     );

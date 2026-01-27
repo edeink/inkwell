@@ -14,12 +14,7 @@ import { MindMapViewport } from './widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import Runtime from '@/runtime';
-import {
-  getCurrentThemeMode,
-  subscribeToThemeChange,
-  Themes,
-  type ThemeMode,
-} from '@/styles/theme';
+import { useTheme } from '@/styles/theme';
 
 export const meta = {
   key: 'mindmap',
@@ -32,20 +27,13 @@ export default function MindmapDemo() {
   const [context, setContext] = useState<MindmapController | null>(null);
   // 使用 ref 存储尺寸，避免闭包问题
   const sizeRef = useRef({ width: 0, height: 0 });
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getCurrentThemeMode());
-
-  // 监听主题变化并重新渲染
-  useEffect(() => {
-    return subscribeToThemeChange((mode) => {
-      setThemeMode(mode);
-    });
-  }, []);
+  const theme = useTheme();
 
   useEffect(() => {
     if (runtime && sizeRef.current.width > 0 && sizeRef.current.height > 0) {
-      runApp(runtime, sizeRef.current.width, sizeRef.current.height, Themes[themeMode]);
+      runApp(runtime, sizeRef.current.width, sizeRef.current.height, theme);
     }
-  }, [themeMode, runtime]);
+  }, [theme, runtime]);
 
   const initController = useCallback(
     (rt: Runtime) => {
@@ -77,17 +65,17 @@ export default function MindmapDemo() {
       if (rt.container) {
         const { width, height } = rt.container.getBoundingClientRect();
         sizeRef.current = { width, height };
-        runApp(rt, width, height, Themes[themeMode]);
+        runApp(rt, width, height, theme);
         initController(rt);
       }
     },
-    [initController, themeMode],
+    [initController, theme],
   );
 
   const handleResize = useCallback(
     (width: number, height: number, rt: Runtime) => {
       sizeRef.current = { width, height };
-      runApp(rt, width, height, Themes[themeMode]);
+      runApp(rt, width, height, theme);
 
       // 重新渲染后 Viewport 组件可能已更新，需要同步到控制器
       const ctrl = MindmapController.byRuntime.get(rt);
@@ -104,7 +92,7 @@ export default function MindmapDemo() {
         initController(rt);
       }
     },
-    [initController, themeMode],
+    [initController, theme],
   );
 
   return (

@@ -15,6 +15,12 @@ export const meta = {
   description: '基于 Inkwell 的多文档 Markdown Wiki。',
 };
 
+const rawModules = import.meta.glob('./raw/**/*.markdown', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
 export default function WikiDemo() {
   const theme = useTheme();
   const runtimeRef = useRef<Runtime | null>(null);
@@ -22,18 +28,20 @@ export default function WikiDemo() {
 
   const handleRuntimeReady = (runtime: Runtime) => {
     runtimeRef.current = runtime;
-    runApp(runtime, sizeRef.current.width, sizeRef.current.height, theme);
+    runApp(runtime, sizeRef.current.width, sizeRef.current.height, theme, { rawModules });
   };
 
   const handleResize = (width: number, height: number, runtime: Runtime) => {
     sizeRef.current = { width, height };
     runtimeRef.current = runtime;
-    runApp(runtime, width, height, theme);
+    runApp(runtime, width, height, theme, { rawModules });
   };
 
   useEffect(() => {
     if (runtimeRef.current) {
-      runApp(runtimeRef.current, sizeRef.current.width, sizeRef.current.height, theme);
+      runApp(runtimeRef.current, sizeRef.current.width, sizeRef.current.height, theme, {
+        rawModules,
+      });
     }
   }, [theme]);
 

@@ -3,6 +3,11 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Benchmark 页面容器：
+ * - 在 VitePress 中挂载 React BenchmarkApp
+ * - SSR 阶段跳过挂载，避免访问 DOM API
+ */
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
@@ -29,4 +34,3 @@ onBeforeUnmount(() => {
   rootRef.value = null;
 });
 </script>
-

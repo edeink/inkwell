@@ -3,7 +3,7 @@ import path from 'path';
 
 import { describe, expect, it } from 'vitest';
 
-import { Themes } from '../theme';
+import { ThemePresets, Themes, type ThemeMode, type ThemePresetKey } from '../theme';
 
 // 提取 CSS 变量的辅助函数
 function parseCssVariables(css: string, selector: string) {
@@ -111,5 +111,31 @@ describe('主题颜色同步测试', () => {
     expect(normalizeHex(cssVars['ink-demo-header-bg-active'])).toBe(
       normalizeHex(theme.component.headerBgActive),
     );
+  });
+
+  it('应当同步主题预设的语义色', () => {
+    const presets: ThemePresetKey[] = ['antd', 'material', 'glass', 'vitepress'];
+    const modes: ThemeMode[] = ['light', 'dark'];
+
+    const selectorFor = (preset: ThemePresetKey, mode: ThemeMode) => {
+      if (mode === 'light') {
+        return `:root[data-ink-preset='${preset}']`;
+      }
+      return `html[data-theme='dark'][data-ink-preset='${preset}']`;
+    };
+
+    for (const preset of presets) {
+      for (const mode of modes) {
+        const selector = selectorFor(preset, mode);
+        const cssVars = parseCssVariables(cssContent, selector);
+        const theme = ThemePresets[preset][mode];
+
+        expect(normalizeHex(cssVars['ink-demo-primary'])).toBe(normalizeHex(theme.primary));
+        expect(normalizeHex(cssVars['ink-demo-secondary'])).toBe(normalizeHex(theme.secondary));
+        expect(normalizeHex(cssVars['ink-demo-success'])).toBe(normalizeHex(theme.success));
+        expect(normalizeHex(cssVars['ink-demo-warning'])).toBe(normalizeHex(theme.warning));
+        expect(normalizeHex(cssVars['ink-demo-danger'])).toBe(normalizeHex(theme.danger));
+      }
+    }
   });
 });

@@ -247,6 +247,8 @@ html[data-theme='dark'] {
       border-radius: 25px;
       overflow: hidden;
       position: relative;
+      background: var(--ifm-color-emphasis-100, rgb(0 0 0 / 6%));
+      border: 1px solid var(--ifm-color-emphasis-200, rgb(0 0 0 / 8%));
     }
 
     .fill {
@@ -264,7 +266,8 @@ html[data-theme='dark'] {
 
     &.dom .fill {
       width: 45%;
-      background: var(--ifm-color-emphasis-400);
+      background: var(--ifm-color-emphasis-400, rgb(0 0 0 / 22%));
+      color: #fff;
     }
 
     &.ink .fill {

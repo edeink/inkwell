@@ -6,6 +6,12 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 代码块增强组件：
+ * - SSR：回退为纯文本，确保静态构建可用
+ * - CSR：挂载 React Playground（支持渲染/编辑等模式）
+ * - 代码内容通过 base64 传入，避免 VitePress 对特殊字符的转义影响
+ */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { createRoot, type Root } from 'react-dom/client';
 import React from 'react';
