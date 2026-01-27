@@ -111,22 +111,22 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
 
   private calculateState(value: string): { value: string; width: number; height: number } {
     const { minWidth, minHeight, maxWidth, fontSize = 14 } = this.props;
+    const lineHeight = minHeight;
 
     // 测量文本尺寸
     const layout = TextLayout.layout(
       value,
-      { text: value, fontSize, fontFamily: 'Arial' }, // 补全 TextProps
+      { text: value, fontSize, lineHeight, fontFamily: 'Arial' }, // 补全 TextProps
       {
         minWidth: 0,
-        maxWidth: maxWidth - 10, // 减去 padding
+        maxWidth,
         minHeight: 0,
         maxHeight: Infinity,
       },
     );
 
-    // 计算所需宽高，增加一点 padding
-    const contentWidth = layout.width + 10;
-    const contentHeight = layout.height + 6;
+    const contentWidth = layout.width;
+    const contentHeight = layout.height;
 
     return {
       value,
@@ -208,19 +208,28 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
   };
 
   render() {
-    const { x, y, maxWidth, maxHeight, theme, fontSize = 14, color, visible = true } = this.props;
+    const {
+      x,
+      y,
+      minHeight,
+      maxWidth,
+      maxHeight,
+      theme,
+      fontSize = 14,
+      color,
+      visible = true,
+    } = this.props;
     const { value, width, height } = this.state;
     const scrollBarTrackColor = applyAlpha(theme.text.primary, 0.06);
     const scrollBarColor = applyAlpha(theme.text.primary, 0.22);
     const scrollBarHoverColor = applyAlpha(theme.text.primary, 0.32);
     const scrollBarActiveColor = applyAlpha(theme.text.primary, 0.44);
 
-    // 限制最终显示尺寸不超过 max
     const displayWidth = Math.min(width, maxWidth);
     const displayHeight = Math.min(height, maxHeight);
 
     // 是否需要滚动
-    const needScroll = width > maxWidth || height > maxHeight;
+    const needScroll = width > displayWidth || height > displayHeight;
 
     // 渲染内容
     const editor = (
@@ -233,6 +242,7 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
           ref={(r) => (this.textAreaRef = r as TextArea)}
           value={value}
           fontSize={fontSize}
+          lineHeight={minHeight}
           color={color || theme.text.primary}
           cursorColor={color || theme.text.primary}
           autoFocus={visible}
@@ -269,6 +279,37 @@ export class SpreadsheetEditableText extends StatefulWidget<SpreadsheetEditableT
           ) : (
             editor
           )}
+        </Positioned>
+        <Positioned
+          pointerEvent="none"
+          left={x}
+          top={y}
+          width={visible ? displayWidth : 0}
+          height={visible ? displayHeight : 0}
+        >
+          <Container
+            pointerEvent="none"
+            width={displayWidth}
+            height={displayHeight}
+            color="transparent"
+            border={{ width: 2, color: visible ? theme.primary : 'transparent' }}
+          />
+        </Positioned>
+        <Positioned
+          pointerEvent="none"
+          left={x + displayWidth - 5}
+          top={y + displayHeight - 5}
+          width={visible ? 10 : 0}
+          height={visible ? 10 : 0}
+          zIndex={2}
+        >
+          <Container
+            pointerEvent="none"
+            width={10}
+            height={10}
+            color={visible ? theme.primary : 'transparent'}
+            border={{ width: 1, color: visible ? theme.background.base : 'transparent' }}
+          />
         </Positioned>
       </Stack>
     );

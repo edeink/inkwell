@@ -138,6 +138,7 @@ export class SpreadsheetGrid extends StatefulWidget<SpreadsheetGridProps> {
                 pointerEvent="none"
                 text={model.getDisplayValue(r, c)}
                 fontSize={14}
+                lineHeight={rowHeight}
                 color={textColor}
                 textAlign={(style.textAlign as TextAlign) || TextAlign.Left}
                 textAlignVertical={TextAlignVertical.Center}

@@ -17,6 +17,7 @@ import type { CellData, SheetConfig } from './types';
 class SizeManager {
   private defaultSize: number;
   private customSizes: Map<number, number> = new Map();
+  private hashCache: string | null = null;
   // 缓存总大小，每次修改时更新（如果需要）
   // 对于百万级，我们不缓存所有位置的 offset，而是实时计算。
   // 为了加速 getOffset，我们可以维护一个 "Changes List" 并排序。
@@ -30,12 +31,17 @@ class SizeManager {
   }
 
   getHash(): string {
+    if (this.hashCache) {
+      return this.hashCache;
+    }
     const entries = Array.from(this.customSizes.entries()).sort((a, b) => a[0] - b[0]);
-    return JSON.stringify(entries) + `:${this.defaultSize}`;
+    this.hashCache = JSON.stringify(entries) + `:${this.defaultSize}`;
+    return this.hashCache;
   }
 
   setSize(index: number, size: number) {
     this.customSizes.set(index, size);
+    this.hashCache = null;
   }
 
   /**
@@ -106,6 +112,13 @@ class SizeManager {
  * 使用稀疏矩阵存储数据
  */
 export class SpreadsheetModel {
+  private static readonly ROW_BUFFER = 100;
+  private static readonly COL_BUFFER = 26;
+  private static readonly EDGE_THRESHOLD_ROWS = 20;
+  private static readonly EDGE_THRESHOLD_COLS = 10;
+  private static readonly EXTEND_CHUNK_ROWS = 200;
+  private static readonly EXTEND_CHUNK_COLS = 50;
+
   private cells: Map<string, CellData> = new Map();
   private rowManager: SizeManager;
   private colManager: SizeManager;
@@ -114,17 +127,41 @@ export class SpreadsheetModel {
   // 追踪数据边界
   private maxRow: number = 0;
   private maxCol: number = 0;
+  private cellsRevision: number = 0;
+  private sizeRevision: number = 0;
+  private boundsRevision: number = 0;
   private _hash: string = '';
 
   constructor(config: SheetConfig = DEFAULT_CONFIG) {
     this.config = config;
     this.rowManager = new SizeManager(config.defaultRowHeight);
     this.colManager = new SizeManager(config.defaultColWidth);
+    this.seedDemoData();
     this.updateHash();
   }
 
   get hash(): string {
     return this._hash;
+  }
+
+  private seedDemoData() {
+    if (this.config.rowCount !== undefined || this.config.colCount !== undefined) {
+      return;
+    }
+
+    const seedRows = 300;
+    const seedCols = 30;
+    if (seedRows <= 0 || seedCols <= 0) {
+      return;
+    }
+
+    for (let r = 0; r < seedRows; r++) {
+      for (let c = 0; c < seedCols; c++) {
+        const value = `${r + 1}-${c + 1}`;
+        this.cells.set(this.getKey(r, c), { value });
+      }
+    }
+    this.cellsRevision++;
   }
 
   private simpleHash(str: string): string {
@@ -138,13 +175,12 @@ export class SpreadsheetModel {
   }
 
   private updateHash() {
-    const cellEntries = Array.from(this.cells.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    // 为了性能，我们不需要对值进行完整 stringify，只需要 key 和 value 的简单组合
-    // 假设 CellData 的 value 是决定性的
-    const cellsStr = JSON.stringify(cellEntries);
-
     const content =
-      cellsStr +
+      this.cellsRevision +
+      '|' +
+      this.sizeRevision +
+      '|' +
+      this.boundsRevision +
       '|' +
       this.rowManager.getHash() +
       '|' +
@@ -226,22 +262,36 @@ export class SpreadsheetModel {
   setCell(row: number, col: number, data: CellData | undefined) {
     const key = this.getKey(row, col);
     if (!data || (!data.value && !data.style)) {
-      this.cells.delete(key);
-      this.updateHash();
+      if (this.cells.has(key)) {
+        this.cells.delete(key);
+        this.cellsRevision++;
+        this.updateHash();
+      }
+      return;
+    }
+    const prev = this.cells.get(key);
+    if (prev && prev.value === data.value && prev.style === data.style) {
       return;
     }
     this.cells.set(key, data);
     this.maxRow = Math.max(this.maxRow, row);
     this.maxCol = Math.max(this.maxCol, col);
+    this.cellsRevision++;
     this.updateHash();
   }
 
   getRowCount(): number {
-    return this.config.rowCount ?? Math.max(this.maxRow + 100, 100);
+    return (
+      this.config.rowCount ??
+      Math.max(this.maxRow + SpreadsheetModel.ROW_BUFFER, SpreadsheetModel.ROW_BUFFER)
+    );
   }
 
   getColCount(): number {
-    return this.config.colCount ?? Math.max(this.maxCol + 26, 26);
+    return (
+      this.config.colCount ??
+      Math.max(this.maxCol + SpreadsheetModel.COL_BUFFER, SpreadsheetModel.COL_BUFFER)
+    );
   }
 
   getRowHeight(row: number): number {
@@ -250,6 +300,7 @@ export class SpreadsheetModel {
 
   setRowHeight(row: number, height: number) {
     this.rowManager.setSize(row, height);
+    this.sizeRevision++;
     this.updateHash();
   }
 
@@ -259,6 +310,7 @@ export class SpreadsheetModel {
 
   setColWidth(col: number, width: number) {
     this.colManager.setSize(col, width);
+    this.sizeRevision++;
     this.updateHash();
   }
 
@@ -301,15 +353,34 @@ export class SpreadsheetModel {
   // 扩展边界以支持无限滚动
   ensureVisible(row: number, col: number) {
     let changed = false;
-    if (this.config.rowCount === undefined && row > this.maxRow) {
-      this.maxRow = row;
-      changed = true;
+    if (this.config.rowCount === undefined) {
+      const currentRowCount = Math.max(
+        this.maxRow + SpreadsheetModel.ROW_BUFFER,
+        SpreadsheetModel.ROW_BUFFER,
+      );
+      if (row >= currentRowCount - 1 - SpreadsheetModel.EDGE_THRESHOLD_ROWS) {
+        const nextMaxRow = Math.max(this.maxRow, row + SpreadsheetModel.EXTEND_CHUNK_ROWS);
+        if (nextMaxRow !== this.maxRow) {
+          this.maxRow = nextMaxRow;
+          changed = true;
+        }
+      }
     }
-    if (this.config.colCount === undefined && col > this.maxCol) {
-      this.maxCol = col;
-      changed = true;
+    if (this.config.colCount === undefined) {
+      const currentColCount = Math.max(
+        this.maxCol + SpreadsheetModel.COL_BUFFER,
+        SpreadsheetModel.COL_BUFFER,
+      );
+      if (col >= currentColCount - 1 - SpreadsheetModel.EDGE_THRESHOLD_COLS) {
+        const nextMaxCol = Math.max(this.maxCol, col + SpreadsheetModel.EXTEND_CHUNK_COLS);
+        if (nextMaxCol !== this.maxCol) {
+          this.maxCol = nextMaxCol;
+          changed = true;
+        }
+      }
     }
     if (changed) {
+      this.boundsRevision++;
       this.updateHash();
     }
     return changed;

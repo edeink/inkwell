@@ -620,10 +620,12 @@ export class Spreadsheet extends StatefulWidget<SpreadsheetProps, SpreadsheetSta
         value={cell?.value || ''}
         theme={theme}
         fontSize={14}
+        lineHeight={cellHeight}
         color={style.color || theme.text.primary}
         onFinish={(value) => this.handleEditFinish(row, col, value)}
         onCancel={() => this.setState({ editingCell: null })}
-        visible={!!editingCell}
+        visible={editingCell !== null}
+        opacity={editingCell ? 1 : 0}
       />
     );
 
