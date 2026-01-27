@@ -95,13 +95,18 @@ export class Devtools implements IDevtools {
     if (!this.isMounted()) {
       this.mount();
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('INKWELL_DEVTOOLS_OPEN'));
+    }
   }
 
   /**
    * 主动隐藏面板（当前实现保持组件内部控制，此处不卸载以保留状态）
    */
   hide(): void {
-    // 保持挂载，显示/隐藏由面板热键与操作控制
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('INKWELL_DEVTOOLS_CLOSE'));
+    }
   }
 
   /**

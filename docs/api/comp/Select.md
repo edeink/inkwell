@@ -60,7 +60,9 @@ title: Select
 | `size` | 尺寸 | `'small' \| 'middle' \| 'large'` | `'middle'` |
 | `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
 | `onChange` | 变化回调 | `(value: T) => void` | 无 |
+| `onOpen` | 打开回调 | `() => void` | 无 |
+| `onClose` | 关闭回调 | `() => void` | 无 |
 
 ## Tips
 
-- 下拉面板在 pointer 离开时会自动关闭；如需更复杂的关闭策略，可在外层自行做事件隔离。
+- 下拉面板通过 Overlay 渲染；点击触发器切换打开/关闭，点击遮罩关闭。

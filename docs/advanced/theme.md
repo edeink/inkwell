@@ -6,11 +6,15 @@ sidebar_position: 10
 
 # 主题定制
 
-Inkwell 框架和工具链内置了完整的主题系统，支持明暗色模式切换和自定义主题配置。本通过介绍如何在项目中使用和扩展主题系统。
+Inkwell 框架和工具链内置了主题系统，支持明暗色模式切换与自定义主题配置。本文将介绍如何在项目中使用和扩展主题能力。
 
 ## 核心机制
 
-主题系统基于 CSS Variables (CSS 自定义属性) 实现。通过在 `<html>` 根元素上设置 `data-theme` 属性 (`light` | `dark`) 来切换主题。
+主题切换基于 `<html>` 根元素的 `data-theme` 属性（`light` | `dark`）。
+
+在工程内存在两套“同源”的主题表示：
+- **Canvas 侧（Widget）**：使用 `ThemePalette`（`src/styles/theme.ts`）作为调色板对象，并通过 `theme` 属性向下传递。
+- **DOM/React 侧（如 DevTools）**：使用 `src/styles/colors.css` 中的 CSS 变量；其值与 `ThemePalette` 保持同步（仓库内有同步测试）。
 
 ```html
 <html data-theme="dark">
@@ -26,27 +30,30 @@ Inkwell 框架和工具链内置了完整的主题系统，支持明暗色模式
 
 | 变量名 | 描述 | 默认值 (Light) | 默认值 (Dark) |
 | :--- | :--- | :--- | :--- |
-| `--ink-demo-primary` | 主色调 | `#1677ff` | `#177ddc` |
-| `--ink-demo-success` | 成功色 | `#52c41a` | `#49aa19` |
-| `--ink-demo-warning` | 警告色 | `#faad14` | `#d89614` |
-| `--ink-demo-error` | 错误色 | `#ff4d4f` | `#a61d24` |
-| `--ink-demo-danger` | 危险色 | `#ff4d4f` | `#a61d24` |
+| `--ink-demo-primary` | 主色调 | `#1677ff` | `#1677ff` |
+| `--ink-demo-secondary` | 次要色 | `#8c8c8c` | `#bfbfbf` |
+| `--ink-demo-success` | 成功色 | `#52c41a` | `#52c41a` |
+| `--ink-demo-warning` | 警告色 | `#faad14` | `#faad14` |
+| `--ink-demo-danger` | 危险色 | `#ff4d4f` | `#ff4d4f` |
 
 ### 背景色
 
 | 变量名 | 描述 | 默认值 (Light) | 默认值 (Dark) |
 | :--- | :--- | :--- | :--- |
-| `--ink-demo-bg-base` | 基础背景 | `#ffffff` | `#141414` |
-| `--ink-demo-bg-surface` | 表面背景 | `#fafafa` | `#1f1f1f` |
-| `--ink-demo-header-bg` | 头部/侧边栏背景 | `#f0f2f5` | `#1f1f1f` |
+| `--ink-demo-bg-base` | 基础背景 | `#ffffff` | `#1b1b1d` |
+| `--ink-demo-bg-surface` | 表面背景 | `#f5f5f5` | `#242526` |
+| `--ink-demo-bg-container` | 容器背景 | `#ffffff` | `#242526` |
+| `--ink-demo-header-bg` | 头部/侧边栏背景 | `#f8f9fa` | `#2c2c2e` |
 
 ### 文本与边框
 
 | 变量名 | 描述 | 默认值 (Light) | 默认值 (Dark) |
 | :--- | :--- | :--- | :--- |
-| `--ink-demo-text-primary` | 主要文本 | `#000000e0` | `#ffffffd9` |
-| `--ink-demo-text-secondary` | 次要文本 | `#00000073` | `#ffffff73` |
-| `--ink-demo-border` | 边框颜色 | `#d9d9d9` | `#424242` |
+| `--ink-demo-text-primary` | 主要文本 | `#1f1f1f` | `#e6f4ff` |
+| `--ink-demo-text-secondary` | 次要文本 | `#8c8c8c` | `#bfbfbf` |
+| `--ink-demo-text-placeholder` | 占位文本 | `#bfbfbf` | `#5c5c5c` |
+| `--ink-demo-border` | 边框颜色 | `#d9d9d9` | `#434343` |
+| `--ink-demo-border-secondary` | 次级边框 | `#f0f0f0` | `#303030` |
 
 ## 使用指南
 
@@ -69,26 +76,31 @@ Inkwell 框架和工具链内置了完整的主题系统，支持明暗色模式
 ```
 
 ### 2. 在 React/TypeScript 中使用
+#### 2.1 Canvas 组件（Widget）中使用
 
-如果需要在 JS 逻辑中获取主题颜色（例如 Canvas 绘图），可以使用我们提供的工具函数：
+Canvas 组件推荐使用 `ThemePalette` 对象，而不是在绘制路径中频繁读取 CSS 变量。
+
+```typescript
+import { Themes, getCurrentThemeMode } from '@/styles/theme';
+
+const mode = getCurrentThemeMode();
+const theme = Themes[mode];
+// 将 theme 通过 props 传入你的组件树（示例略）
+```
+
+#### 2.2 读取 CSS 变量（DOM/React 或 Benchmark 场景）
+
+如果你需要在 DOM/React 逻辑中读取 CSS 变量值，可以使用工具函数：
 
 ```typescript
 import { getThemeColor } from '@/benchmark/utils/theme';
 
-function MyCanvasComponent() {
-  const draw = (ctx: CanvasRenderingContext2D) => {
-    // 获取当前主题下的主色调
-    ctx.fillStyle = getThemeColor('--ink-demo-primary');
-    ctx.fillRect(0, 0, 100, 100);
-  };
-  
-  // ...
-}
+const primary = getThemeColor('--ink-demo-primary');
 ```
 
-### 3. 配置 Ant Design 主题
+### 3. 配置 Ant Design 主题（可选）
 
-项目集成了 Ant Design 的 ConfigProvider。在切换主题时，需要同步更新 Ant Design 的算法：
+如果你的 React 侧 UI 使用 Ant Design（如 DevTools 面板），可通过 `ConfigProvider` 同步算法与 token：
 
 ```typescript
 import { ConfigProvider, theme } from 'antd';

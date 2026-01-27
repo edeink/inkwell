@@ -87,7 +87,7 @@ y' = b \cdot x + d \cdot y + ty
 
 ## 3. 源码解析
 
-以下代码摘录自核心库，展示了变换逻辑的具体实现。
+以下代码用于说明变换逻辑的关键步骤（为便于阅读做了简化）。真实实现请以 [base.ts](file:///Users/edeink/Documents/inkwell/src/core/base.ts) 与 [viewport.ts](file:///Users/edeink/Documents/inkwell/src/core/viewport/viewport.ts) 为准。
 
 ### 3.1 Widget.paint (base.ts)
 
@@ -101,9 +101,8 @@ paint(context: BuildContext): void {
   const steps = this.getSelfTransformSteps(); // [{ t: 'translate', x: offset.dx, y: offset.dy }]
   
   // 2. 计算当前节点的世界矩阵
-  const local = composeSteps(steps);
   const prev = context.worldMatrix ?? IDENTITY_MATRIX;
-  const next = multiply(prev, local);
+  const next = multiply(prev, composeSteps(steps));
   this._worldMatrix = next; // 缓存矩阵供 HitTest 使用
 
   // 3. 应用变换到渲染器 (Canvas Context)
@@ -132,7 +131,7 @@ paint(context: BuildContext): void {
 
 public hitTest(x: number, y: number): boolean {
   if (this._worldMatrix) {
-    // 1. 计算逆矩阵
+    // 1. 计算逆矩阵（并可缓存以减少重复计算）
     const inv = invert(this._worldMatrix);
     // 2. 将全局坐标转换为局部坐标
     const local = transformPoint(inv, { x, y });
@@ -146,9 +145,9 @@ public hitTest(x: number, y: number): boolean {
 }
 ```
 
-## 4. 视口变换实战 (MindMapViewport)
+## 4. 视口变换实战（Viewport）
 
-`MindMapViewport` 是一个典型的自定义变换组件，它在标准布局偏移之外，额外引入了“视口变换”（缩放和平移）。
+`Viewport` 是一个典型的自定义变换组件，它在标准布局偏移之外，额外引入了“视口变换”（缩放和平移）。
 
 ### 4.1 变换逻辑
 
@@ -164,9 +163,9 @@ public hitTest(x: number, y: number): boolean {
 paint(context: BuildContext): void {
   // ... (省略自身绘制代码) ...
 
-  // 定义视口变换步骤：先平移 (Tx, Ty)，后缩放 (Scale)
-  // 注意：Canvas API 的调用顺序决定了变换矩阵的乘法顺序
-  // 这里的物理含义是：以 (tx, ty) 为原点，进行 scale 缩放
+  // 定义视口变换步骤
+  // 注意：Inkwell 的矩阵组合采用“后乘”（m = m * stepMatrix），因此 steps 数组中后面的变换会更早作用于点。
+  // 例如：viewSteps = [translate, scale] 组合矩阵是 T * S，对点的效果是“先缩放，再平移”。
   const viewSteps: TransformStep[] = [
     { t: 'translate', x: this._tx, y: this._ty },
     { t: 'scale', sx: this._scale, sy: this._scale },
@@ -225,4 +224,4 @@ $$
 1.  **缓存矩阵**: `_worldMatrix` 应在每一帧绘制时更新并缓存，避免在 `hitTest` 等高频操作中重复计算矩阵乘法。
 2.  **减少嵌套**: 过深的组件嵌套会导致矩阵乘法链过长，虽然计算开销尚可，但可能引入浮点数精度误差。
 3.  **使用 `save/restore`**: 修改渲染器变换状态前务必调用 `save()`，操作结束后调用 `restore()`，防止污染兄弟组件的渲染上下文。
-4.  **变换顺序**: 牢记变换是不可交换的（Non-commutative）。`Translate * Scale` 不等于 `Scale * Translate`。在 Inkwell 中，推荐顺序通常是先平移后缩放（对于视口操作）。
+4.  **变换顺序**: 牢记变换是不可交换的，并注意 steps 的“后乘”规则：steps 中后面的变换会更早作用于点。要得到“先缩放再平移”的效果，steps 通常写成 `[translate, scale]`。

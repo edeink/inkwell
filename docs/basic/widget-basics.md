@@ -4,6 +4,8 @@ title: Widget 基础
 sidebar_position: 4
 ---
 
+# Widget 基础
+
 Inkwell 的 Widget 是构建界面的基础单元，采用 Flutter 风格的声明式布局与约束模型。你通过组合不同类型的 Widget 构建出层次清晰的布局树。
 
 ## Widget 有哪些作用
@@ -19,7 +21,7 @@ Inkwell 提供了丰富的内置组件，涵盖布局、绘制、交互等多个
 ### 1. 基础布局
 - **弹性布局**: [`Row`](../api/widgets/Row) (水平)、[`Column`](../api/widgets/Column) (垂直)、[`Expanded`](../api/widgets/Expanded) (填充剩余空间)
 - **层叠布局**: [`Stack`](../api/widgets/Stack)、[`Positioned`](../api/widgets/Positioned)
-- **对齐与定位**: [`Center`](../api/widgets/Center)、`Align` (暂未文档化)
+- **对齐与定位**: [`Center`](../api/widgets/Center)；更灵活的对齐通常通过 `Stack` + `Positioned` 组合实现
 - **流式布局**: [`Wrap`](../api/widgets/Wrap)
 
 ### 2. 容器与绘制

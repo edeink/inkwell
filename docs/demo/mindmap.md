@@ -57,13 +57,20 @@ graph TD
     *   `src/demo/mindmap/app.tsx`：`MindmapDemo`（`StatefulWidget`），维护图数据、选中与编辑态，并渲染 `MindMapViewport` / `MindMapLayout` / `MindMapNode` / `Connector` 等。
     *   `src/demo/mindmap/widgets/*`：节点、连接线、布局容器、视口，以及编辑器覆盖层等组件。
 
-2.  **算法与基础能力**
+2.  **Controller 层（交互/视图/布局编排）**
+    *   `src/demo/mindmap/controller/index.ts`：`MindmapController`，将交互与渲染解耦为模块化能力。
+    *   `src/demo/mindmap/controller/modules/*`：例如视图同步（ViewModule）、交互处理等模块。
+
+3.  **算法与基础能力**
     *   `src/demo/mindmap/helpers/layout-engine/*`：树形/平衡树等布局算法。
     *   `src/demo/mindmap/helpers/shortcut/*`：快捷键与历史记录（撤销/重做）。
     *   `src/demo/mindmap/helpers/connection-drawer.ts`：连接线路径与样式计算。
     *   `src/demo/mindmap/helpers/state-helper.ts`：图状态初始化与更新辅助。
 
-3.  **React 入口（仅负责挂载画布）**
+4.  **React 组件层（UI 外围能力）**
+    *   `src/demo/mindmap/components/*`：缩略图、工具栏、缩放条、错误边界等（主要是 DOM/UI 侧，负责调用 Widget 层能力）。
+
+5.  **React 入口（仅负责挂载画布）**
     *   `src/demo/mindmap/index.tsx`：挂载 `InkwellCanvas`，创建 `Runtime` 并调用 `runApp`。
 
 ## Inkwell 最佳实践
@@ -98,5 +105,7 @@ graph TD
 
 *   `src/demo/mindmap/index.tsx`: React 挂载入口（创建 Runtime 并调用 `runApp`）。
 *   `src/demo/mindmap/app.tsx`: 画布场景（`StatefulWidget`）与核心状态管理。
+*   `src/demo/mindmap/controller/`: Controller 与功能模块（交互、视图、布局编排）。
+*   `src/demo/mindmap/components/`: DOM/UI 组件（工具栏、缩略图、缩放条等）。
 *   `src/demo/mindmap/widgets/`: Viewport、Layout、Node、Connector、编辑器覆盖层等渲染组件。
 *   `src/demo/mindmap/helpers/`: 布局引擎、快捷键、连接线绘制、状态辅助等。

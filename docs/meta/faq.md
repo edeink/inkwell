@@ -24,21 +24,21 @@ sidebar_position: 1
 ### Q: 为什么我的组件没有显示？
 **A**: 请检查以下几点：
 1.  **尺寸约束**：父组件是否提供了有效的尺寸约束？如果父组件是 `unbounded`（如 `Row` 的水平方向），子组件必须有明确宽度。
-2.  **绘制方法**：如果是自定义 Widget，确保 `paint` 方法已被正确实现且 `context` 操作在可视区域内。
+2.  **绘制方法**：如果是自定义 Widget，确保 `paintSelf/performLayout` 等核心方法已按契约实现。
 3.  **层级关系**：检查 `z-index` 或绘制顺序，可能被其他组件覆盖。
 
 ### Q: 如何给组件添加点击事件？
 ```tsx
-  <Container color="blue" width={100} height={100} onClick={() => console.log('Container Clicked')} />
+  <Container color="blue" width={100} height={100} onClick={() => console.log('点击 Container')} />
 ```
-注意：Widget 需要实现 `hitTest` 方法才能响应事件。
+注意：组件需要具备有效的布局尺寸（`width/height` 或可推导出的 size），并处于可命中的区域内；事件会通过命中测试找到目标节点并按捕获/冒泡阶段分发。
 
 ## 布局与样式
 
 ### Q: `Row` 或 `Column` 内容溢出怎么办？
 **A**: 
-1.  使用 `Expanded` 或 `Flexible` 包裹子组件，使其自动填充剩余空间。
-2.  如果内容确实超出屏幕，考虑使用 `ScrollView` 或 `ListView` 替代 `Column`。
+1.  使用 `Expanded` 包裹子组件，使其按 `flex` 分配剩余空间（必要时给子组件明确尺寸）。
+2.  如果内容确实超出屏幕，考虑使用 `ScrollView` 包裹内容区域。
 
 ### Q: 如何实现绝对定位？
 **A**: 使用 `Stack` + `Positioned` 组合：
@@ -46,7 +46,7 @@ sidebar_position: 1
 <Stack>
   <Container width={200} height={200} color="red" />
   <Positioned left={10} top={10}>
-    <Text content="Overlay" />
+    <Text text="Overlay" />
   </Positioned>
 </Stack>
 ```
@@ -70,5 +70,4 @@ sidebar_position: 1
 ### Q: 如何查看组件树结构？
 **A**: 
 1.  使用 Inkwell DevTools (参阅 [开发者工具](../advanced/devtools))。
-2.  在控制台挂载了全局变量 `__INKWELL_DEVTOOLS_HOOK__`。
-3.  直接在代码中打印 `this` 查看当前节点树。
+2.  在控制台挂载了全局变量 `window.__INKWELL_DEVTOOLS_HOOK__`（仅用于 DevTools 内部通信）。

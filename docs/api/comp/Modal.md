@@ -111,7 +111,7 @@ title: Modal
 | `onOk` | 点击确认回调 | `(e: InkwellEvent) => void` | 无 |
 | `onCancel` | 点击取消/遮罩回调 | `(e: InkwellEvent) => void` | 无 |
 
-- children 支持类型：`Multi`
+- children 支持类型：`Multiple`
 
 ## Tips
 

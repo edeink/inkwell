@@ -6,56 +6,58 @@ sidebar_position: 1
 
 # 生命周期
 
-Inkwell 的组件生命周期设计借鉴了 Flutter 和 React 的核心思想，分为四个主要阶段：**Mount（挂载/初始化）**、**Update（更新/构建）**、**Layout（布局）** 和 **Paint（绘制）**。
+Inkwell 的组件生命周期参考了常见的 UI 框架模型，整体可以拆分为四个主要阶段：**Mount（挂载/初始化）**、**Update（更新）**、**Layout（布局）** 和 **Paint（绘制）**。
 
 ## 生命周期流程图
 
 ```mermaid
 graph TD
-    subgraph Mount [挂载阶段]
-        A[constructor] --> B[initState]
+    subgraph Mount["挂载阶段"]
+        A["constructor"] --> B["initWidget"]
     end
 
-    subgraph Update [更新阶段]
-        B --> C[build / render]
-        C --> D{Dirty?}
-        D -- Yes --> E[rebuild]
-        E --> F[diff & patch]
+    subgraph Update["更新阶段"]
+        B --> C["createElement(props)"]
+        C --> D["render() 编译子树"]
+        D --> E{"dirty?"}
+        E -- "是" --> F["rebuild"]
+        F --> G["子节点复用/增删"]
     end
 
-    subgraph Layout [布局阶段]
-        F --> G[markNeedsLayout]
-        G --> H[performLayout]
-        H --> I[positionChildren]
+    subgraph Layout["布局阶段"]
+        G --> H["markNeedsLayout"]
+        H --> I["layout"]
+        I --> J["performLayout"]
+        J --> K["positionChildren"]
     end
 
-    subgraph Paint [绘制阶段]
-        I --> J[paint]
-        J --> K[paintSelf]
-        K --> L[paintChildren]
+    subgraph Paint["绘制阶段"]
+        K --> L["markNeedsPaint"]
+        L --> M["paint"]
+        M --> N["paintSelf"]
+        N --> O["递归绘制子节点"]
     end
 
-    subgraph Unmount [卸载阶段]
-        M[dispose]
+    subgraph Unmount["卸载阶段"]
+        P["dispose"]
     end
 
-    L --> M
+    O --> P
 ```
 
 ## 核心阶段详解
 
 ### 1. Mount (挂载)
 
-组件被首次创建并插入到 Widget 树中。Inkwell 实现了安全的初始化流程，确保组件在未完全挂载前（即没有 owner/parent 时）修改属性不会导致布局系统的异常。
+组件被首次创建并插入到 Widget 树中。
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
-| `constructor` | 组件实例化 | 初始化默认属性、Flex 配置、事件绑定 |
-| `initState` | 状态初始化 (StatefulWidget) | 初始化 State，订阅事件，启动定时器 |
-| `isMounted` | 挂载状态检查 | **v0.8.0 新增**。检查组件是否已连接到 PipelineOwner。用于防止游离组件触发不必要的布局更新。 |
+| `constructor` | 组件实例化 | 初始化字段、缓存、订阅句柄等 |
+| `initWidget` | 一次性初始化钩子 | 初始化状态、订阅事件、启动定时器等（只会调用一次） |
+| `isMounted` | 挂载状态检查 | 判断当前节点是否已经接入 `PipelineOwner`（具备布局/绘制调度能力） |
 
-> **初始化安全机制**：
-> 当在 `constructor` 或初始化阶段修改属性（如 Text 组件设置初始文本）触发 `markNeedsLayout` 时，框架会自动检测 `isMounted` 状态。如果组件尚未挂载，布局请求会被安全抑制或延迟，直到组件接入组件树，避免了"Trying to mark layout on a detached node"类警告。
+`initWidget` 是 Inkwell 的“一次性初始化”入口。`StatelessWidget/StatefulWidget` 会在首次 `createElement` 时确保调用它。
 
 ### 2. Update (更新)
 
@@ -63,9 +65,10 @@ graph TD
 
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
-| `build` / `render` | 构建 UI 结构 | 组合子组件，返回新的 Widget 树 |
-| `didUpdateWidget` | 响应属性变更 | **v0.9.0 新增**。当组件接收到新的 Props 时触发。用于比较新旧 Props，同步内部 State 或执行副作用。在 `render` 之前调用。 |
-| `rebuild` | 框架内部机制 | 对比新旧数据 (Diff)，决定是否需要更新子树 |
+| `createElement` | 接收新 Props 并更新 | 框架更新入口（数据更新、子节点复用、必要时触发生命周期） |
+| `render` | 返回声明式子树 | `StatelessWidget/StatefulWidget` 通过 `render()` 返回 JSX（或等价元素），由编译器转为 `ComponentData` |
+| `didUpdateWidget` | 响应 Props 变更 | 对比新旧 Props，同步内部状态或处理副作用；默认行为是 `markNeedsLayout()` |
+| `rebuild` | 脏节点重建 | 由 Runtime 批量消费脏节点，驱动子树更新 |
 | `markDirty` | 标记脏节点 | **核心方法**。用于触发更新流程，并会级联触发 `markNeedsLayout`。对 `StatefulWidget` 通常应使用 `setState` 触发更新。 |
 
 #### API 详解: `didUpdateWidget`
@@ -78,8 +81,8 @@ graph TD
 protected didUpdateWidget(oldProps: TData): void
 ```
 
-- **触发条件**: 父组件重建导致当前组件接收到新的 Props，且 Key 相同（或无 Key 且类型相同）被复用时。
-- **执行时机**: 在 `render` 之前调用。
+- **触发条件**: 同一节点（type 匹配且 key 匹配，或无 key 且可复用）收到新 Props 时触发。
+- **执行时机**: `Widget.createElement` 更新完 `props/data` 后调用；对于 `StatefulWidget`，会在 `render` 编译子树之前先调用一次，便于先同步 `state` 再渲染。
 - **典型场景**:
     - **State 同步**: 当外部 Props 变化时（如 `value`），更新内部 State。
     - **副作用重置**: 比如重置动画控制器、定时器或滚动位置。
@@ -92,7 +95,7 @@ class MyInput extends StatefulWidget<MyProps, MyState> {
     // 只有当 value 真正改变时才更新 state
     if (this.props.value !== oldProps.value) {
       this.setState({
-        value: this.props.value
+        value: this.props.value,
       });
     }
     super.didUpdateWidget(oldProps);
@@ -110,7 +113,7 @@ class MyInput extends StatefulWidget<MyProps, MyState> {
 public markDirty(): void
 ```
 
-- **触发条件**: 状态改变，需要重新运行 `build` 逻辑。
+- **触发条件**: 状态改变，需要重新运行子树计算与重建逻辑（`computeNextChildrenData` / 复合组件的 `render()` 编译）。
 - **执行流程**:
     1. 设置 `_dirty = true`。
     2. 调用 `runtime.scheduleUpdate(this)` 将自身加入 Runtime 的全局脏节点列表。
@@ -123,9 +126,10 @@ public markDirty(): void
 | 方法 | 描述 | 典型用途 |
 |------|------|----------|
 | `markNeedsLayout` | 标记脏布局 | **核心方法**。通知框架当前节点布局失效。会自动向上寻找最近的**重布局边界 (Relayout Boundary)**，从而避免全树重新布局。 |
-| `performLayout` | 执行布局计算 | **核心方法**。接收父级约束，计算自身 Size，并决定子节点尺寸 |
-| `layoutChildren` | 布局子节点 | 将约束传递给子节点，获取子节点尺寸 |
-| `positionChildren` | 定位子节点 | 在自身尺寸确定后，设置子节点的相对偏移量 (Offset) |
+| `layout` | 布局入口 | 基类统一入口：缓存约束、布局子节点、调用 `performLayout`、再定位子节点 |
+| `performLayout` | 执行布局计算 | 子类覆写：接收父级约束与子节点尺寸，返回自身 `Size` |
+| `getConstraintsForChild` | 子节点约束 | 子类可覆写：为不同子节点生成不同约束 |
+| `positionChild` | 子节点定位 | 子类可覆写：在自身尺寸确定后为子节点计算 `Offset` |
 
 #### API 详解: `markNeedsLayout`
 
@@ -151,7 +155,6 @@ public markNeedsLayout(): void
 | `markNeedsPaint` | 标记脏绘制 | **核心方法**。通知框架当前节点外观已改变。会自动向上寻找最近的**重绘边界 (Repaint Boundary)**，实现局部重绘。 |
 | `paint` | 绘制入口 | 处理变换矩阵 (Transform)，保存/恢复 Canvas 上下文 |
 | `paintSelf` | 绘制自身内容 | **核心方法**。使用 `context.renderer` 绘制形状、文本、图片等 |
-| `paintChildren` | 绘制子节点 | 按 z-index 顺序递归绘制子组件 |
 | `isRepaintBoundary` | 重绘边界属性 | **核心属性**。设置为 `true` 时，该组件及其子树将形成独立的绘制层。子组件重绘不会污染父组件，父组件重绘也不必重绘子组件。 |
 | `updateLayer` | 更新渲染层 | 当 `isRepaintBoundary` 为 true 时，用于管理缓存的 Layer 对象。 |
 
@@ -187,7 +190,7 @@ public markNeedsPaint(): void
 1.  合并新旧 State。
 2.  调用 `markDirty()` 标记当前节点为脏节点。
 3.  调度器 (Runtime) 在下一帧触发 `rebuild`。
-4.  触发 `build` -> `Layout` -> `Paint` 流程。
+4.  触发 `rebuild`（编译/复用子树）-> `Layout` -> `Paint` 流程。
 
 ```typescript
 this.setState({ count: this.state.count + 1 });
@@ -202,7 +205,8 @@ this.setState({ count: this.state.count + 1 });
 
 ## 最佳实践
 
-1.  **避免在 `build` 中执行耗时操作**：`build` 方法可能会频繁调用，应保持纯净和快速。
-2.  **合理使用 `paintSelf`**：仅在需要自定义绘制（如绘制图表、特殊形状）时实现 `paintSelf`，普通 UI 组合请使用 `build`。
+1.  **避免在子树计算阶段执行耗时操作**：`rebuild` 可能会频繁触发，应保持纯净和快速，避免分配大量临时对象。
+2.  **避免在 `render` 中执行耗时操作**：`render()` 可能会频繁执行，应保持纯净与快速，避免分配大量临时对象。
+3.  **合理使用 `paintSelf`**：仅在需要自定义绘制（如绘制图表、特殊形状）时实现 `paintSelf`，普通 UI 组合优先使用 `StatelessWidget/StatefulWidget` 的声明式 `render()`。
 3.  **Layout 边界**：如果你实现了一个自定义 Layout 组件，确保正确处理 `BoxConstraints`，特别是无界约束 (Unbounded Constraints)。
 4.  **及时清理**：在 `dispose` 中务必清理手动添加的全局监听器或定时器，防止内存泄漏。

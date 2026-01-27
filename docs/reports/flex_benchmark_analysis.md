@@ -1,10 +1,10 @@
 # Flex 布局性能分析与优化报告
 
 ## 1. 概述
-本报告旨在分析 `@edeink/inkwell` 框架中 Flex 布局（主要涉及 `Row`, `Column`, `Wrap`, `Container`）的性能表现，并与原生 DOM Flex 布局进行对比。重点关注节点创建、布局计算及更新（Reflow/Repaint）的耗时，并通过实施节点复用和局部更新优化，确保 InkWell 性能指标超越 DOM 实现。
+本报告旨在分析 `@edeink/inkwell` 框架中 Flex 布局（主要涉及 `Row`, `Column`, `Wrap`, `Container`）的性能表现，并与原生 DOM Flex 布局进行对比。重点关注节点创建、布局计算及更新（Reflow/Repaint）的耗时，并通过实施节点复用和局部更新优化，确保 Inkwell 性能指标超越 DOM 实现。
 
 ## 2. 性能基准测试方法
-我们建立了 `src/benchmark/tester/flex` 测试套件，分别针对 DOM 和 InkWell Widget 场景进行测试。
+我们建立了 `src/benchmark/tester/flex` 测试套件，分别针对 DOM 和 Inkwell Widget 场景进行测试。
 
 ### 测试环境
 - **运行环境**: Vitest (JSDOM + Mock Canvas)
@@ -50,27 +50,26 @@ if (type) {
 ```
 
 ### 4.2 局部重排与重绘优化 (Reflow/Repaint Optimization)
-在 `src/core/container.ts` 中，我们重写了 `didUpdateWidget` 方法，实现了智能的脏标记更新：
-- **Diff 策略**: 深度比较 Layout 相关属性（如 `width`, `height`, `padding`, `margin`）。
-- **优化逻辑**:
-  - 如果仅背景色、边框颜色变化 -> 仅调用 `markNeedsPaint()`。
-  - 只有当尺寸或间距变化时 -> 才调用 `markNeedsLayout()`。
-- **效果**: 在颜色更新场景下，**Layout 耗时降为 0ms**，因为父级 Flex 容器（如 Wrap）无需重新计算布局。
+在 `src/core/container.ts` 中，我们重写了 `didUpdateWidget` 方法，实现了“按字段区分布局变更与绘制变更”的更新策略：
+- **Diff 策略**：不做通用深比较，而是对会影响布局的字段做显式比较（如 `width/height/min*/max*`、`alignment`，以及 `padding/margin` 的解析后值对比）。
+- **优化逻辑**：
+  - 布局字段变更 -> 调用 `super.didUpdateWidget`（触发 `markNeedsLayout`，并按边界传播）。
+  - 仅绘制字段变更（如 `color/border/borderRadius/cursor`）-> 仅调用 `markNeedsPaint`。
+- **效果**：在“仅颜色更新”等场景中可以稳定跳过布局阶段，避免父级 Flex 容器（如 `Wrap`）重复布局计算。
 
 ```typescript
 // src/core/container.ts
 protected didUpdateWidget(oldProps: ContainerProps): void {
-  // ... 属性比对 ...
-  if (layoutChanged) {
-    super.didUpdateWidget(oldProps); // 触发 Layout
-  } else {
-    this.markNeedsPaint(); // 仅触发 Paint
-  }
+  // 1) 先解析并对比 padding/margin（仅在引用变化时解析，避免额外分配）
+  // 2) layoutChanged：仅对布局相关字段做显式比较
+  // 3) paintChanged：仅对绘制相关字段做显式比较
+  if (layoutChanged) super.didUpdateWidget(oldProps);
+  else if (paintChanged) this.markNeedsPaint();
 }
 ```
 
 ## 5. 结论
-经过深入分析与针对性优化，InkWell 的 Flex 布局性能已达到企业级渲染引擎标准：
+经过深入分析与针对性优化，Inkwell 的 Flex 布局性能已达到企业级渲染引擎标准：
 1.  **构建性能**: 利用节点复用机制，大批量节点创建/更新几乎无 GC 压力，速度远超 DOM 操作。
 2.  **更新性能**: 智能 Diff 策略确保了“改什么更什么”，避免了全量 Reflow。
 3.  **FPS 达标**: 5000 个动态节点的更新维持在 12ms 左右，稳定满足 60FPS (16ms) 的要求。

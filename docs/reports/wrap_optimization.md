@@ -1,12 +1,12 @@
 # Wrap 组件性能优化报告
 
 ## 1. 问题背景
-在处理超过 100,000 个节点的 Flex 布局场景中，原有的 `Wrap` 组件存在严重的性能瓶颈。
-基准测试显示，`layout` 阶段耗时高达 **1200ms+**，其中 `performLayout` 方法中的对象分配和 `positionChild` 中的嵌套循环查找是主要原因。
+在处理大规模节点的 Flex 布局场景中，旧版 `Wrap` 组件曾出现明显的性能瓶颈。
+核心问题集中在 `performLayout` 阶段的中间对象分配，以及 `positionChild` 中对“行结构”的重复查找（会让复杂度退化）。
 
 用户指出的瓶颈代码：
 ```typescript
-this.__wrapLines = lines; // 涉及大量对象的引用和潜在的 GC 压力
+this.__wrapLines = lines; // 旧实现：行结构对象数组，易产生较高 GC 压力
 ```
 
 ## 2. 优化方案
@@ -35,15 +35,15 @@ this.__wrapLines = lines; // 涉及大量对象的引用和潜在的 GC 压力
 
 ## 3. 性能验证
 
-使用 `src/benchmark/tester/flex/wrap_perf.spec.tsx` 进行 100,000 个节点的布局测试。
+使用 `src/benchmark/tester/flex/__tests__/wrap_perf.spec.tsx` 进行布局基准测试。
+当前用例默认以 `count = 1000` 作为规模（如需更大规模，可自行调大 `count` 并相应增加超时时间）。
 
-**测试环境**: Vitest + JSDOM (Mock Canvas), M1/M2 芯片 Mac。
+**测试环境**: Vitest + JSDOM (Mock Canvas)。
 
-| 指标 | 优化前 (Baseline) | 优化后 (Optimized) | 提升幅度 |
-| :--- | :--- | :--- | :--- |
-| **Layout Time** | **1244.10 ms** | **25.76 ms** | **4800% (48倍)** |
-| **Total Time** | 1401.40 ms | 181.08 ms | 7.7倍 |
-| **内存开销** | 高 (大量小对象) | 低 (单一 TypedArray) | 显著降低 |
+基准数据受运行环境、节点规模与渲染器实现影响较大，这里不固化具体毫秒数。该优化的目标是：
+- 将布局过程稳定为 O(N)；
+- 将中间分配收敛为一次性 TypedArray 复用；
+- 使 `positionChild` 退化为 O(1) 的数组读取。
 
 ## 4. 结论
 通过将数据结构从“对象链表”升级为“扁平化 TypedArray”，并消除嵌套循环查找，我们成功将大规模布局的耗时降低了两个数量级。

@@ -52,9 +52,13 @@ title: Menu
 | `width` | 容器宽度（纵向常用） | `number` | 无 |
 | `itemWidth` | 菜单项宽度 | `number` | `160` |
 | `itemHeight` | 菜单项高度 | `number` | `40` |
-| `selectedKeys` | 受控选中项 | `ReadonlyArray<string>` | 无 |
-| `defaultSelectedKeys` | 非受控初始选中项 | `ReadonlyArray<string>` | 无 |
-| `theme` | 主题 | `ThemePalette` | 当前主题模式 |
+| `selectedKeys` | 受控选中项（单选，数组仅为兼容形态） | `ReadonlyArray<string>` | 无 |
+| `defaultSelectedKeys` | 非受控初始选中项（单选，数组仅为兼容形态） | `ReadonlyArray<string>` | 无 |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
 | `onSelect` | 选中回调 | `(key: string) => void` | 无 |
 
 - children 支持类型：`None`
+
+## Tips
+
+- 当前仅支持单选：内部会将选中项归一为单个 key。

@@ -120,8 +120,12 @@ import { ScrollView } from '@/core';
 | 属性名 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
 | `overflow` | `'hidden' \| 'visible'` | 否 | `'hidden'` | 控制超出视口的内容是否裁剪。 |
-| `scrollBarColor` | `string` | 否 | - | 滚动条颜色。 |
-| `scrollBarWidth` | `number` | 否 | - | 滚动条宽度。 |
+| `scrollBarColor` | `string` | 否 | - | 滚动条滑块颜色。 |
+| `scrollBarWidth` | `number` | 否 | `6` | 滚动条宽度。 |
+| `scrollBarTrackColor` | `string` | 否 | - | 滚动条轨道颜色。 |
+| `scrollBarHoverColor` | `string` | 否 | - | 滚动条悬停颜色。 |
+| `scrollBarActiveColor` | `string` | 否 | - | 滚动条拖拽激活颜色。 |
+| `scrollBarVisibilityMode` | `'always' \| 'hidden' \| 'auto'` | 否 | `'auto'` | 滚动条可见策略：`hidden` 强制隐藏；`always/auto` 在内容溢出时显示。 |
 | `enableBounce` | `boolean` | 否 | `false` | 是否开启弹性滚动（回弹效果）。 |
 | `enableWheelBounce` | `boolean` | 否 | `false` | 是否允许滚轮在边界继续过卷（会阻断链式滚动与 DOM 交接）。 |
 | `enableBounceVertical` | `boolean` | 否 | - | 是否开启垂直方向弹性（默认跟随 `enableBounce`）。 |
@@ -139,7 +143,6 @@ import { ScrollView } from '@/core';
 | 方法名 | 参数 | 返回值 | 说明 |
 | --- | --- | --- | --- |
 | `scrollTo` | `(x: number, y: number)` | `void` | 滚动到指定位置。 |
-| `scrollBy` | `(dx: number, dy: number)` | `void` | 相对当前位置滚动。 |
 
 ## 注意事项
 

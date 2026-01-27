@@ -6,7 +6,7 @@ sidebar_position: 4
 
 # 开发者工具
 
-Inkwell 配备了强大的开发者工具 (DevTools)，旨在帮助开发者实时检查 Widget 树、调试布局、修改属性以及监控性能。
+Inkwell 配备了开发者工具 (DevTools)，用于实时检查 Widget 树、拾取高亮节点、查看与修改属性，帮助快速定位布局与交互问题。
 
 ## 启动与集成
 
@@ -34,50 +34,57 @@ function App() {
 ```
 
 ### 快捷键
-- **切换显示/隐藏**：`Cmd + Shift + D` (Mac) 或 `Ctrl + Shift + D` (Windows)。
+- **切换显示/隐藏**：`CmdOrCtrl + Shift + D`。
+- **自定义快捷键**：可通过 `localStorage.setItem('INKWELL_DEVTOOLS_HOTKEY', 'CmdOrCtrl+Shift+D')` 覆盖默认组合键。
+- **指定快捷键动作**：可将快捷键用于切换拾取模式（不传 `action` 默认用于显示/隐藏面板）。
+  ```tsx
+  <DevTools shortcut={{ combo: 'CmdOrCtrl+Shift+D', action: 'inspect' }} />
+  ```
 
 ### 尝试一下
 
 ```tsx mode:render
 /** @jsxImportSource @/utils/compiler */
-<Container color="#f6ffed" borderRadius={12} padding={16}>
-  <Column spacing={12}>
-    <Text text="DevTools · Inspect / Overlay / Props" fontSize={18} color="#1677ff" />
-    <Row spacing={12}>
-      <Container width={160} height={96} color="#e6f4ff" borderRadius={12}>
-        <Center>
-          <Text text="Box A" fontSize={16} color="#2467c0" />
-        </Center>
-      </Container>
-      <Container width={160} height={96} color="#fff1f0" borderRadius={12}>
-        <Center>
-          <Text text="Box B" fontSize={16} color="#d4380d" />
-        </Center>
-      </Container>
-    </Row>
-  </Column>
-</Container>
-```
+(() => {
+  const theme = getCurrentTheme();
+  const height = 32;
 
-```tsx mode:render
-/** @jsxImportSource @/utils/compiler */
-<Container color="#f6ffed" borderRadius={12} padding={16}>
-  <Column spacing={12}>
-    <Text text="DevTools · Inspect / Overlay / Props" fontSize={18} color="#1677ff" />
-    <Row spacing={12}>
-      <Container width={160} height={96} color="#e6f4ff" borderRadius={12}>
-        <Center>
-          <Text text="Anthor Box A" fontSize={16} color="#2467c0" />
-        </Center>
-      </Container>
-      <Container width={160} height={96} color="#fff1f0" borderRadius={12}>
-        <Center>
-          <Text text="Anthor Box B" fontSize={16} color="#d4380d" />
-        </Center>
-      </Container>
-    </Row>
-  </Column>
-</Container>
+  return (
+    <Container color="#f6ffed" borderRadius={12} padding={16}>
+      <Column spacing={12}>
+        <Text text="DevTools · Inspect / Overlay / Props" fontSize={18} color="#1677ff" />
+        <Row spacing={12} mainAxisSize="min">
+          <Button
+            theme={theme}
+            btnType="primary"
+            onClick={() => window.dispatchEvent(new Event('INKWELL_DEVTOOLS_TOGGLE'))}
+          >
+            <Text
+              text="打开/关闭 DevTools"
+              fontSize={14}
+              lineHeight={height}
+              color={theme.text.inverse}
+              textAlignVertical={TextAlignVertical.Center}
+              pointerEvent="none"
+            />
+          </Button>
+        </Row>
+        <Row spacing={12}>
+          <Container width={160} height={96} color="#e6f4ff" borderRadius={12}>
+            <Center>
+              <Text text="Box A" fontSize={16} color="#2467c0" />
+            </Center>
+          </Container>
+          <Container width={160} height={96} color="#fff1f0" borderRadius={12}>
+            <Center>
+              <Text text="Box B" fontSize={16} color="#d4380d" />
+            </Center>
+          </Container>
+        </Row>
+      </Column>
+    </Container>
+  );
+})()
 ```
 
 ## 核心功能
@@ -97,3 +104,24 @@ function App() {
 - **Layout**：显示组件的盒模型数据（Position, Size, Padding, Margin）。
 
 ### 3. 元素选取 (Inspect Mode)
+
+拾取模式用于在画布上直接点选节点并联动到树视图与属性面板：
+
+- 点击面板左上角的「拾取」按钮进入拾取模式。
+- 鼠标悬浮在画布上时，会高亮当前指针下命中的节点。
+- 点击后会选中该节点，并自动：
+  - 在树视图中展开到该节点路径；
+  - 将树滚动到可见区域；
+  - 在右侧面板展示该节点的 Props / State / Layout 信息。
+
+## 机制说明（便于排查问题）
+
+- **命中测试**：拾取依赖运行时的命中测试结果（等价于对根节点做递归命中测试），因此会受到节点尺寸、位移/缩放等世界矩阵以及 `pointerEvent` 等属性影响。
+- **高亮覆盖层**：高亮框通过一个 DOM Overlay 覆盖在 Canvas 之上绘制，不会拦截你的业务交互（仅用于提示）。
+- **树数据构建**：面板展示的树由运行时 Widget 树转换得到；在面板可见且页面处于激活状态时，会按节流策略刷新以降低开销。
+
+## 快捷键补充
+
+- 默认快捷键为 `CmdOrCtrl + Shift + D`。
+- 通过 `localStorage.setItem('INKWELL_DEVTOOLS_HOTKEY', '...')` 可以覆盖当前组合键（按下后立即生效）。
+- 若你在集成时将 `DevTools` 的 `shortcut` 配置为 `{ combo, action: 'inspect' }`，同一组合键将用于切换拾取模式；否则默认用于切换面板显示/隐藏。

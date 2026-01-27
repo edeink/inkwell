@@ -22,35 +22,45 @@ Inkwell 提供了两种主要的方式来创建自定义 Widget：**组合 (Comp
 
 ### 代码示例：Button 组件
 
-参考 `src/test/components/counter-tab/button.tsx`：
+参考 `src/demo/interactive-counter/widgets/class-button/index.tsx`：
 
 ```tsx
-import { StatefulWidget, WidgetProps } from '@/core/base';
-import { Container, Row, Text } from '@/core';
-import { EventHandler } from '@/core/events';
-import { TextAlign, TextAlignVertical } from '@/core/text';
+/** @jsxImportSource @/utils/compiler */
+import type { ThemePalette } from '@/styles/theme';
+
+import {
+  Container,
+  MainAxisAlignment,
+  Row,
+  StatefulWidget,
+  Text,
+  TextAlign,
+  TextAlignVertical,
+  type InkwellEvent,
+  type WidgetProps,
+} from '@/core';
 
 interface ButtonProps extends WidgetProps {
-  onClick?: EventHandler;
-  label?: string;
+  onClick?: (e: InkwellEvent) => void;
+  theme: ThemePalette;
 }
 
 export class Button extends StatefulWidget<ButtonProps> {
   render() {
     return (
       <Container
-        key="btn"
+        key="counter-btn"
         width={180}
         height={48}
-        color={'#1677ff'}
+        color={this.props.theme.primary}
         borderRadius={8}
-        onClick={this.props.onClick}
       >
-        <Row>
+        <Row mainAxisAlignment={MainAxisAlignment.Center}>
           <Text
-            text={this.props.label || "点击"}
+            key="counter-btn-text-01"
+            text="点击"
             fontSize={16}
-            color="#ffffff"
+            color={this.props.theme.text.inverse}
             textAlign={TextAlign.Center}
             textAlignVertical={TextAlignVertical.Center}
           />
@@ -118,7 +128,13 @@ const Section = ({ title, children }: { title: string; children: any }) => (
 ### 代码示例：Circle 组件
 
 ```tsx
-import { Widget, type WidgetProps, type BuildContext, type BoxConstraints, type Size } from '@/core/base';
+import {
+  Widget,
+  type BoxConstraints,
+  type BuildContext,
+  type Size,
+  type WidgetProps,
+} from '@/core/base';
 
 interface CircleProps extends WidgetProps {
   radius: number;
@@ -131,7 +147,7 @@ export class Circle extends Widget<CircleProps> {
   }
 
   // 1. 必须实现布局逻辑，告诉父组件自己多大
-  protected performLayout(constraints: BoxConstraints): Size {
+  protected performLayout(constraints: BoxConstraints, _childrenSizes: Size[]): Size {
     const diameter = this.props.radius * 2;
     // 确保尺寸不超过父组件约束
     return {
@@ -145,14 +161,15 @@ export class Circle extends Widget<CircleProps> {
     const { renderer } = context;
     const { width, height } = this.renderObject.size;
     const radius = Math.min(width, height) / 2;
-    
-    // 使用 Canvas2D 接口绘制
-    renderer.drawCircle({
-      x: width / 2, // 相对坐标中心
-      y: height / 2,
-      radius: radius,
-      fill: this.props.color,
-    });
+    const ctx = renderer.getRawInstance() as CanvasRenderingContext2D | null;
+    if (!ctx) {
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+    ctx.fillStyle = this.props.color;
+    ctx.fill();
   }
 }
 ```
@@ -189,19 +206,15 @@ export class Circle extends Widget<CircleProps> {
 
 ## 5. 注意事项：事件绑定的双重触发
 
-在开发自定义 `Raw Widget`（直接继承 `Widget`）时，需要特别注意事件处理的实现方式，否则可能导致事件回调被重复执行。
+在开发自定义组件（尤其是“外层是复合组件、内层用基础组件组合”的场景）时，需要注意事件绑定位置，否则可能出现同一个回调被触发多次。
 
 ### 现象
-如果在组件类中定义了 `onClick` 等事件处理方法，并且在该方法中手动调用了 `this.props.onClick`，会导致回调函数被执行两次。
+如果外层组件绑定了 `onClick`，同时又把同一个 `onClick` 继续传给内部可命中的子组件（例如 `Container`），在冒泡阶段可能会触发两次：先命中内层，再冒泡到外层。
 
 ### 原因
-Inkwell 的事件分发机制 (`dispatcher`) 和自动绑定机制 (`bindEventsIfNeeded`) 会协同工作，导致潜在的冲突：
+Inkwell 的事件系统支持捕获/冒泡。一次点击命中目标节点后，会沿着祖先链路继续分发（冒泡阶段）。当同一回调同时绑定在多层节点上时，就会出现重复调用。
 
-1.  **自动绑定**：基类 `Widget` 会自动扫描 `props` 中的 `on[Event]` 属性（如 `onClick`），并将其注册到事件系统 (`EventRegistry`)。
-2.  **方法优先**：事件分发时，系统会优先查找并调用组件实例上定义的同名方法（如 `onClick(e)`）。
-3.  **双重执行**：
-    *   第一步：系统调用实例方法 `onClick(e)`。如果该方法内手动调用了 `this.props.onClick(e)`，则回调第一次执行。
-    *   第二步：系统继续处理注册表中的监听器，自动注册的 `this.props.onClick` 会被再次调用，导致回调第二次执行。
+同时也需要注意：事件分发时“类方法优先”。如果你在组件实例上实现了 `onClick/onClickCapture` 等同名方法，那么通过 JSX 属性注册到事件系统的处理器会被忽略；此时若你仍希望外部传入的 `props.onClick` 生效，需要在类方法中自行转发。
 
 ### 示例代码
 
@@ -209,53 +222,21 @@ Inkwell 的事件分发机制 (`dispatcher`) 和自动绑定机制 (`bindEventsI
 export class RawButton extends Widget<RawButtonProps> {
   // ...
 
-  // ❌ 错误示范：会导致双重触发
+  // ✅ 类方法优先：如果你实现了 onClick，JSX 属性注册的处理器将被忽略
   onClick(e: InkwellEvent) {
     // 可以在这里执行内部逻辑
-    console.log('Internal logic');
-    
-    // 警告：手动调用 props 回调会导致重复！
-    // 因为基类已经自动为你注册了这个回调
-    this.props.onClick?.(e); 
+    // 如果你希望外部传入的 onClick 生效，需要手动转发
+    this.props.onClick?.(e);
   }
-  
-  // 结果：this.props.onClick 被执行了两次
 }
 ```
 
 ### 最佳实践建议
 
-1.  **推荐：完全依赖自动绑定**
-    *   不要在组件类中定义 `onClick` 等事件方法。
-    *   直接依靠基类的自动机制，将 `props.onClick` 注册为事件处理函数。
-    
-    ```typescript
-    // ✅ 推荐做法
-    export class RawButton extends Widget<RawButtonProps> {
-      // 不定义 onClick 方法
-    }
-    ```
+1.  **一个回调只绑定一层**
+    - 外层组件需要响应点击时，不要再把同一个 `onClick` 继续传给内部 `Container`/`Row` 等子节点。
+    - 如果确实需要内层节点处理事件，则外层避免再绑定相同回调，或在外层根据 event.target 做过滤。
 
-2.  **仅处理内部逻辑**
-    *   如果确实需要定义 `onClick` 来执行组件内部逻辑（如改变内部状态），请勿调用 `this.props.onClick`。
-    
-    ```typescript
-    // ✅ 仅处理内部逻辑
-    onClick(e: InkwellEvent) {
-       this._active = true;
-       this.markNeedsPaint();
-       // 不要调用 this.props.onClick，让事件系统自动去调用它
-    }
-    ```
-
-3.  **添加开发警告**
-    *   如果在开发底层组件时担心误用，可以参考 `RawButton` 的实现，添加检测逻辑：
-
-    ```typescript
-    onClick(e: InkwellEvent) {
-      if (this.props.onClick) {
-        console.warn('检测到双重事件绑定，建议仅保留一种实现方式');
-      }
-      this.props.onClick?.(e);
-    }
-    ```
+2.  **明确类方法与 JSX 属性的优先级**
+    - 你实现了 `onClick` 类方法时，JSX 属性注册的处理器会被忽略。
+    - 因此“外部回调是否触发”由你的类方法决定：需要则转发，不需要则不转发。

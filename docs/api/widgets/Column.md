@@ -18,7 +18,11 @@ title: Column
   const theme = getCurrentTheme();
   return (
     <Container width={300} height={160} color={theme.background.container}>
-      <Column spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
+      <Column
+        spacing={8}
+        mainAxisAlignment={MainAxisAlignment.Start}
+        crossAxisAlignment={CrossAxisAlignment.Center}
+      >
         <Container width={180} height={28} color={theme.state.selected} />
         <Container width={200} height={28} color={theme.state.focus} />
         <Container width={160} height={28} color={theme.state.hover} />
@@ -36,7 +40,7 @@ title: Column
   const theme = getCurrentTheme();
   return (
     <Container width={360} height={140} color={theme.background.container}>
-      <Column crossAxisAlignment="stretch" spacing={8}>
+      <Column crossAxisAlignment={CrossAxisAlignment.Stretch} spacing={8}>
         <Container height={28} color={theme.state.selected} />
         <Container height={28} color={theme.state.focus} />
       </Column>
@@ -53,7 +57,7 @@ title: Column
   const theme = getCurrentTheme();
   return (
     <Container width={360} height={180} color={theme.background.container}>
-      <Column spacing={8} mainAxisSize="max">
+      <Column spacing={8} mainAxisSize={MainAxisSize.Max}>
         <Container color={theme.state.selected} flex={{ flex: 1, fit: 'tight' }}>
           <Text text="flex: 1" color={theme.text.primary} />
         </Container>

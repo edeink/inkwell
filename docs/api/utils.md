@@ -1,5 +1,4 @@
 ---
-id: utils
 title: 工具函数
 sidebar_position: 2
 ---

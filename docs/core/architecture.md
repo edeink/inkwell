@@ -14,38 +14,67 @@ Inkwell 采用分层架构设计，自底向上分为：**渲染层**、**运行
 
 ```mermaid
 graph TD
-    subgraph Application ["应用层 (src/demo)"]
-        Mindmap[Mindmap Demo]
-        Gallery[Widget Gallery]
+    ApplicationLayer["应用层 (src/demo)"]
+    FrameworkLayer["核心框架层 (src/core)"]
+    RuntimeLayer["运行时层 (src/runtime)"]
+    UtilsLayer["工具层 (src/utils)"]
+    RendererLayer["渲染层 (src/renderer)"]
+
+    subgraph app["应用层 (src/demo)"]
+        Mindmap["思维导图 (mindmap)"]
+        Spreadsheet["电子表格 (spreadsheet)"]
+        Wiki["Wiki (wiki)"]
+        WidgetGallery["部件画廊 (widget-gallery)"]
+        CompGallery["组件画廊 (comp-gallery)"]
     end
 
-    subgraph Framework ["核心框架层 (src/core)"]
-        Widget[Widget System]
-        Events[Event System]
-        Pipeline[Pipeline Owner]
-        Base[Base Definitions]
+    subgraph framework["核心框架层 (src/core)"]
+        Widget["Widget System"]
+        Events["Event System"]
+        Pipeline["Pipeline Owner"]
+        Base["Base Definitions"]
     end
 
-    subgraph Runtime ["运行时层 (src/runtime)"]
-        RT[Runtime Engine]
-        Scheduler[Scheduler / Tick]
-        ComponentData[ComponentData]
+    subgraph runtime["运行时层 (src/runtime)"]
+        RT["Runtime Engine"]
+        Scheduler["Scheduler / Tick"]
+        ComponentData["ComponentData"]
     end
 
-    subgraph Utils ["工具层 (src/utils)"]
-        Compiler[JSX Compiler]
+    subgraph utils["工具层 (src/utils)"]
+        Compiler["JSX Compiler"]
     end
 
-    subgraph Renderer ["渲染层 (src/renderer)"]
-        Canvas2D[Canvas2D Renderer]
-        IRenderer[IRenderer Interface]
+    subgraph renderer["渲染层 (src/renderer)"]
+        Canvas2D["Canvas2D Renderer"]
+        IRenderer["IRenderer Interface"]
     end
 
-    Application -->|JSX| Compiler
-    Compiler -->|JSON| Runtime
-    Runtime -->|Manages| Framework
-    Framework -->|Draws| Renderer
-    Runtime -->|Controls| Renderer
+    ApplicationLayer -->|包含| Mindmap
+    ApplicationLayer -->|包含| Spreadsheet
+    ApplicationLayer -->|包含| Wiki
+    ApplicationLayer -->|包含| WidgetGallery
+    ApplicationLayer -->|包含| CompGallery
+
+    FrameworkLayer -->|包含| Widget
+    FrameworkLayer -->|包含| Events
+    FrameworkLayer -->|包含| Pipeline
+    FrameworkLayer -->|包含| Base
+
+    RuntimeLayer -->|包含| RT
+    RuntimeLayer -->|包含| Scheduler
+    RuntimeLayer -->|包含| ComponentData
+
+    UtilsLayer -->|包含| Compiler
+
+    RendererLayer -->|包含| Canvas2D
+    RendererLayer -->|包含| IRenderer
+
+    ApplicationLayer -->|JSX| Compiler
+    Compiler -->|JSON| RuntimeLayer
+    RuntimeLayer -->|管理| FrameworkLayer
+    FrameworkLayer -->|绘制| RendererLayer
+    RuntimeLayer -->|控制| RendererLayer
 ```
 
 ## 2. 核心模块划分
@@ -61,7 +90,7 @@ graph TD
 ### 2.2 Core (核心框架) - `src/core`
 构建 UI 的基础构件。
 - **Widget Base** (`src/core/base.ts`): 定义了 `Widget` 抽象基类。
-    - **统一树结构**: Inkwell 的 Widget 实例同时包含配置信息、状态（`State`）和布局渲染逻辑（类似 Flutter 的 `RenderObject`）。
+    - **统一树结构**: Inkwell 采用单棵 Widget 树。每个 Widget 实例持有配置数据（`data/props`）、渲染对象（`renderObject`）以及布局/绘制相关的方法；有状态组件通过 `StatefulWidget` 扩展维护 `state`。
 - **Pipeline** (`src/core/pipeline`): `PipelineOwner` 负责管理布局和绘制的脏列表 (`_nodesNeedingLayout`, `_nodesNeedingPaint`)，并执行 `flushLayout` 和 `flushPaint`。
 - **Events** (`src/core/events`): 实现了类似 DOM 的事件冒泡机制。`Dispatcher` 负责将原生 Canvas 事件转换为 Inkwell 事件。
 
@@ -105,15 +134,19 @@ export function runApp(runtime: Runtime, width: number, height: number): void {
 > **Constraints go down. Sizes go up. Parent sets position.**
 
 ```typescript
-// src/core/base.ts (简化)
-abstract class Widget {
-  // 父级传递 constraints，返回自身 size
-  abstract layout(constraints: BoxConstraints): Size;
-  
-  // 渲染自身
-  abstract paint(context: BuildContext): void;
+// src/core/base.ts（简化后的方法签名）
+class Widget {
+  layout(constraints: BoxConstraints): Size;
+  protected performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size;
+
+  paint(context: BuildContext): void;
+  protected paintSelf(context: BuildContext): void;
 }
 ```
+
+这里的关键点是：
+- `layout/paint` 是基类提供的统一入口；自定义 Widget 通常覆写 `performLayout/paintSelf`。
+- 组合型组件（`StatelessWidget/StatefulWidget`）通常覆写 `render()`，由框架在 `rebuild` 时编译其子树并进入同一套 `layout/paint` 管线。
 
 ## 4. 与 Flutter 的主要差异
 

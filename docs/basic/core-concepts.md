@@ -27,4 +27,4 @@ Inkwell 严格遵循 **"Constraints go down. Sizes go up. Parent sets position."
 ### 4. JSX DSL
 Inkwell 使用标准的 **React JSX** 语法作为描述语言。
 - **编译**: 编译器 (`src/utils/compiler`) 将 JSX 转换为中间格式 (`ComponentData`)。
-- **开发体验**: 开发者可以使用熟悉的 React 模式（Hooks、组件组合）开发 Canvas 应用，无需学习新语言。
+- **开发体验**: 在 React 宿主（如 Demo/Playground）中可以用组件组合与状态管理组织业务；在 Inkwell Widget 内部则以 `render()` 返回 JSX 描述 UI 树。

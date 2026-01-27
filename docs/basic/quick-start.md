@@ -18,16 +18,9 @@ pnpm install
 
 ## 启动开发环境
 
-### 1. 运行 Mindmap Demo
-这是最常用的开发方式，可以实时预览 Widget 的效果。
+### 1. 运行本项目
 
-```bash
-pnpm dev
-```
-这将启动 Vite 服务器，打开浏览器访问 `http://localhost:5173`。
-
-### 2. 运行文档
-如果你在编写文档或查看组件示例：
+通过运行以下命令了解项目本身的文档、组件、Demo等。
 
 ```bash
 pnpm doc
@@ -64,7 +57,7 @@ export class Counter extends StatefulWidget<CounterProps, CounterState> {
 
 ### 2. 更新 State (setState)
 
-使用 `setState` 更新状态，这将触发组件的 `build` (对于 StatelessWidget 是 `render`) 方法重新执行。
+使用 `setState` 更新状态，这将触发组件的 `render` 方法重新执行，并在下一轮调度中更新布局与绘制。
 
 ```tsx
 handleIncrement = () => {

@@ -131,6 +131,30 @@ export function DevToolsPanel(props: DevToolsProps) {
   const helpContent = useMemo(() => <DevtoolsHelpContent combo={combo} />, [combo]);
 
   useEffect(() => {
+    const handleToggle = () => setVisible((v) => !v);
+    const handleOpen = () => setVisible(true);
+    const handleClose = () => {
+      setVisible(false);
+      setActiveInspect(false);
+    };
+    const handleInspectToggle = () => {
+      setVisible(true);
+      setActiveInspect((v) => !v);
+    };
+
+    window.addEventListener('INKWELL_DEVTOOLS_TOGGLE', handleToggle);
+    window.addEventListener('INKWELL_DEVTOOLS_OPEN', handleOpen);
+    window.addEventListener('INKWELL_DEVTOOLS_CLOSE', handleClose);
+    window.addEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', handleInspectToggle);
+    return () => {
+      window.removeEventListener('INKWELL_DEVTOOLS_TOGGLE', handleToggle);
+      window.removeEventListener('INKWELL_DEVTOOLS_OPEN', handleOpen);
+      window.removeEventListener('INKWELL_DEVTOOLS_CLOSE', handleClose);
+      window.removeEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', handleInspectToggle);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!runtime) {
       return;
     }

@@ -70,7 +70,7 @@ title: Stack
 | `fit` | `'loose' \| 'expand' \| 'passthrough'` | 否 | `'loose'` | Stack 尺寸策略：`expand` 填满约束；`loose` 取子元素最大；`passthrough` 传递约束 |
 | `flex` | `{ flex?: number; fit?: 'tight' \| 'loose' }` | 否 | 无 | 放入上层容器时的扩展布局属性 |
 
-- children 支持类型：`Single`
+- children 支持类型：`Multiple`
 
 ## Tips
 - `fit='expand'` 会尝试填满父约束；在无界约束下将退化为使用子元素最大尺寸。

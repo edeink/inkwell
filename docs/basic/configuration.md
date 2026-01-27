@@ -1,82 +1,66 @@
-# 配置指南 (Configuration Guide)
+---
+id: configuration
+title: 配置指南
+sidebar_position: 5
+---
 
-InkWell 运行时 (Runtime) 提供了灵活的配置选项，允许开发者根据应用场景调整渲染行为和性能参数。
+# 配置指南
+
+Inkwell 的运行时（Runtime）提供了少量但关键的参数，用于控制渲染器类型、清晰度、背景以及离屏渲染等行为。
 
 ## RuntimeOptions
 
-在调用 `Runtime.create(containerId, options)` 时，可以通过 `options` 参数传入配置。
+在调用 `Runtime.create(containerId, options)` 时可以传入配置：
 
-```typescript
+```ts
 interface RuntimeOptions {
-  /**
-   * 初始宽度
-   * 如果未指定，将尝试获取容器元素的 clientWidth
-   */
-  width?: number;
-
-  /**
-   * 初始高度
-   * 如果未指定，将尝试获取容器元素的 clientHeight
-   */
-  height?: number;
-
-  /**
-   * 背景颜色
-   * @default 'transparent'
-   */
-  backgroundColor?: string;
-
-  /**
-   * 像素比率 (Device Pixel Ratio)
-   * 用于高清屏渲染优化。
-   * @default window.devicePixelRatio
-   */
-  dpr?: number;
-
-  /**
-   * 是否开启调试模式
-   * 开启后可能会显示布局边界、重绘区域等辅助信息。
-   * @default false
-   */
-  debug?: boolean;
+  renderer?: 'canvas2d' | string;
+  antialias?: boolean;
+  resolution?: number;
+  background?: string | number;
+  backgroundAlpha?: number;
+  enableOffscreenRendering?: boolean;
 }
 ```
 
+### 字段说明
+
+- `renderer`：渲染器类型，当前内置为 `canvas2d`。
+- `antialias`：是否开启抗锯齿，默认开启。
+- `resolution`：渲染分辨率倍率（越大越清晰，开销也越高）。用于替代传统 “dpr” 的概念，并允许在同一设备上按需调节。
+- `background`：背景色，支持 `'#ffffff'` 或 `0xffffff` 两种写法。
+- `backgroundAlpha`：背景透明度（0~1），默认 0（透明）。
+- `enableOffscreenRendering`：是否开启离屏渲染（主要影响 `RepaintBoundary` 等隔离绘制策略），默认关闭。
+
 ## 常用配置示例
 
-### 1. 基础全屏应用
+### 1. 使用默认配置创建运行时
 
-```typescript
-import { Runtime } from '@edeink/inkwell';
+```ts
+import Runtime from '@/runtime';
+
+const runtime = await Runtime.create('root');
+```
+
+### 2. 设置白色不透明背景
+
+```ts
+import Runtime from '@/runtime';
 
 const runtime = await Runtime.create('root', {
-  // 自动适配容器大小
+  background: '#ffffff',
+  backgroundAlpha: 1,
 });
 ```
 
-### 2. 固定尺寸画布
+### 3. 降低分辨率以换取更高性能
 
-```typescript
+在性能敏感的场景中，可以降低 `resolution` 以减少像素处理量：
+
+```ts
+import Runtime from '@/runtime';
+
 const runtime = await Runtime.create('root', {
-  width: 800,
-  height: 600,
-  backgroundColor: '#ffffff'
+  resolution: 2,
 });
 ```
-
-### 3. 高性能模式 (禁用高 DPI)
-
-在某些性能敏感的低端设备上，可以强制 dpr 为 1 以减少像素处理量。
-
-```typescript
-const runtime = await Runtime.create('root', {
-  dpr: 1
-});
-```
-
-## 环境变量
-
-InkWell 也支持通过环境变量控制部分行为（主要用于开发阶段）。
-
-- `INKWELL_DEBUG=true`: 开启全局调试日志。
-- `INKWELL_PERF_MONITOR=true`: 开启内置性能监控面板。

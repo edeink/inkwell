@@ -68,23 +68,26 @@ export default function InkPlayground({
 
   if (effectiveMode === 'render') {
     return (
-      <div className={styles.readOnly} data-mode="render">
-        <Inkwell
-          instanceId={uniqId}
-          data={initial}
-          width={width}
-          height={height}
-          readonly
-          onError={(e) => {
-            setError(e);
-            setRunning(false);
-          }}
-          onSuccess={() => {
-            setError(null);
-            setRunning(false);
-          }}
-        />
-      </div>
+      <>
+        <div className={styles.readOnly} data-mode="render">
+          <Inkwell
+            instanceId={uniqId}
+            data={initial}
+            width={width}
+            height={height}
+            readonly
+            onError={(e) => {
+              setError(e);
+              setRunning(false);
+            }}
+            onSuccess={() => {
+              setError(null);
+              setRunning(false);
+            }}
+          />
+        </div>
+        <DevTools />
+      </>
     );
   }
 
@@ -94,7 +97,7 @@ export default function InkPlayground({
         <button
           className={styles.copyBtn}
           onClick={() => {
-            navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => {});
+            navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => undefined);
           }}
           aria-label="复制代码"
         >
@@ -107,28 +110,31 @@ export default function InkPlayground({
 
   if (effectiveMode === 'readonly') {
     return (
-      <div className={styles.rootHorital}>
-        <div className={styles.codePane}>
-          <EditorPane readOnly value={localCode} collapsedHeight={280} />
+      <>
+        <div className={styles.rootHorital}>
+          <div className={styles.codePane}>
+            <EditorPane readOnly value={localCode} collapsedHeight={280} />
+          </div>
+          <div className={styles.previewPane}>
+            <Inkwell
+              instanceId={uniqId}
+              data={committedCode}
+              width={width}
+              height={height}
+              readonly={true}
+              onError={(e) => {
+                setError(e);
+                setRunning(false);
+              }}
+              onSuccess={() => {
+                setError(null);
+                setRunning(false);
+              }}
+            />
+          </div>
         </div>
-        <div className={styles.previewPane}>
-          <Inkwell
-            instanceId={uniqId}
-            data={committedCode}
-            width={width}
-            height={height}
-            readonly={true}
-            onError={(e) => {
-              setError(e);
-              setRunning(false);
-            }}
-            onSuccess={() => {
-              setError(null);
-              setRunning(false);
-            }}
-          />
-        </div>
-      </div>
+        <DevTools />
+      </>
     );
   }
 

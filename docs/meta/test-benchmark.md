@@ -2,12 +2,12 @@
 id: test-benchmark
 title: 性能基准测试
 sidebar_position: 10
-description: InkWell 与 DOM 的交互式性能基准对比
+description: Inkwell 与 DOM 的交互式性能基准对比
 ---
 
 # 性能基准测试
 
-本页提供 InkWell 与 DOM 的交互式性能基准对比，支持不同节点规模与场景（文本、Flex、绝对定位）。
+本页提供 Inkwell 与 DOM 的交互式性能基准对比，支持不同节点规模与场景（文本、Flex、绝对定位）。
 
 <div>
   <details>

@@ -35,10 +35,37 @@
 }
 
 .toolbar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.toolbarLeft {
+  width: 100%;
+  display: flex;
+}
+
+.toolbarRight {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (width >= 900px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .toolbarLeft {
+    flex: 0 0 420px;
+  }
+
+  .toolbarRight {
+    flex: 1;
+  }
 }
 
 .modalHeader {

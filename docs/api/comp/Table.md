@@ -114,7 +114,7 @@ title: Table
 | `title` | 表头标题 | `string` |
 | `dataIndex` | 取值字段（可选） | `keyof T & string` |
 | `key` | 列唯一 key | `string` |
-| `width` | 列宽 | `number` |
+| `width` | 列宽（可选） | `number` |
 | `fixed` | 固定列（可选） | `'left' \| 'right'` |
 | `render` | 单元格渲染 | `(value: unknown, record: T, rowIndex: number) => WidgetProps \| JSXElement \| string \| number \| null \| undefined` |
 

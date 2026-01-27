@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # 事件系统
 
-Inkwell 实现了一套完整的、符合 W3C 标准的事件传播机制，支持从 Canvas 接收原生事件并将其分发到 Widget 树中的特定节点。
+Inkwell 实现了一套参考 DOM 事件流的事件传播机制，支持从 Canvas 接收原生事件并将其分发到 Widget 树中的目标节点。
 
 ## 事件类型分类
 
@@ -31,7 +31,8 @@ Inkwell 支持多种交互事件，涵盖鼠标、触控和指针交互。
 | `pointerdown` | 指针按下 |
 | `pointermove` | 指针移动 |
 | `pointerup` | 指针抬起 |
-| `pointerenter` / `pointerleave` | 指针进入 / 离开 |
+| `pointerover` / `pointerout` | 指针进入 / 离开（冒泡） |
+| `pointerenter` / `pointerleave` | 指针进入 / 离开（不冒泡） |
 
 ### 3. 触控事件 (Touch Events)
 | 事件名 | 描述 |
@@ -50,7 +51,13 @@ Inkwell 支持多种交互事件，涵盖鼠标、触控和指针交互。
 
 > **注意**：
 > 1. 键盘事件通常分发给**根节点 (Root Widget)** 或当前的**焦点节点**（如果实现了焦点管理）。
-> 2. 键盘事件的接收依赖于 Canvas 元素的焦点状态。Inkwell 会在用户点击 Canvas 时尝试自动获取焦点，但在某些场景下（如页面刚加载时），用户可能需要先点击一次 Canvas 区域才能激活快捷键。
+> 2. 键盘事件的接收依赖于 Canvas 的焦点状态。框架会为 Canvas 设置可聚焦能力（例如 `tabIndex=0`），但在某些场景下仍可能需要先点击一次画布区域才能激活快捷键。
+
+### 5. 焦点事件 (Focus Events)
+| 事件名 | 描述 |
+|--------|------|
+| `focus` | 获得焦点 |
+| `blur` | 失去焦点 |
 
 ## 事件传播机制
 
@@ -70,9 +77,9 @@ class MyButton extends StatefulWidget {
     return (
       <Container
         // 冒泡阶段触发
-        onClick={(e) => console.log('Button Clicked', e)}
+        onClick={(e) => console.log('按钮点击', e)}
         // 捕获阶段触发
-        onClickCapture={(e) => console.log('Capture Phase', e)}
+        onClickCapture={(e) => console.log('捕获阶段', e)}
       >
         <Text text="Click Me" />
       </Container>
@@ -84,6 +91,7 @@ class MyButton extends StatefulWidget {
 ### 阻止传播
 
 在事件处理函数中调用 `e.stopPropagation()` 可阻止事件继续传播（包括捕获和冒泡的后续节点）。
+此外，处理器返回 `false` 也会终止后续传播。
 
 ```typescript
 const handleEvent = (e: InkwellEvent) => {
@@ -106,15 +114,17 @@ const handleEvent = (e: InkwellEvent) => {
 class MyComponent extends Widget {
   // 自动绑定到 click 事件
   onClick(e: InkwellEvent) {
-    console.log('Clicked via class method');
+    console.log('通过类方法收到点击', e);
   }
   
   // 自动绑定到 capture 阶段
   onClickCapture(e: InkwellEvent) {
-    console.log('Capture via class method');
+    console.log('通过类方法收到捕获阶段事件', e);
   }
 }
 ```
+
+事件系统中涉及的常见字符串（事件类型、阶段、后缀等）集中定义在 [constants.ts](file:///Users/edeink/Documents/inkwell/src/core/events/constants.ts)，以保持一致性与可维护性。
 
 ## 常见问题排查指南
 

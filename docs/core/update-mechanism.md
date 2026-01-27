@@ -19,20 +19,19 @@ sidebar_position: 2
 1.  **合并状态**: 新状态合并入当前状态。
 2.  **标记脏节点**: 调用 `markDirty()`，将当前组件加入全局 `Runtime` 的脏节点列表 (`dirtyWidgets`)。
 3.  **调度更新**: `Runtime` 请求下一帧动画帧 (`requestAnimationFrame`)。
-4.  **批量刷新**: 在下一帧开始时，`Runtime` 执行 `flushUpdates()`，遍历脏节点列表进行重建。
+4.  **批量刷新**: 在下一帧开始时，`Runtime` 执行更新消费（内部会循环调用 `rebuild()` 并刷新 Layout/Paint）。
 
 ### 1.2 Props 变化
 
-当父组件重建（Rebuild）时，会重新构建子组件树：
+Props 变化通常来自两类来源：
+1.  **外部重新渲染**：再次调用 `runtime.render(...)` 传入新的 JSX（或模板函数），Runtime 会重新编译为 `ComponentData` 并更新根节点（可能复用根节点）。
+2.  **树内重建传播**：某个节点被标记为脏后，Runtime 在 `rebuild()` 中会对该节点执行子树更新，过程中会触发子节点的 `createElement(...)`，从而把新的 Props/childrenData 下发到子节点。
 
-1.  **父组件 Build**: 父组件执行 `build()` 方法，生成新的 Widget 配置数据。
-2.  **子组件更新**: 框架对比新旧 Widget 配置。
-3.  **Widget 更新**: 调用子组件的 `update()` 方法，传入新的 Props。
-4.  **重建**: 子组件被标记为需要重建，并在当前遍历中立即执行 `rebuild`（递归过程）。
+Props 的落地入口是 `Widget.createElement(...)`：框架在此对比新旧数据，必要时触发 `didUpdateWidget(oldProps)`，并在子节点层面执行“复用/增删/更新”的结构调整。
 
 ## 2. 核心更新 API 详解
 
-为了支持更细粒度的性能优化，框架在 `v0.8.0` 引入了以下核心 API。
+以下是更新链路中最关键的几组 API。
 
 ### 2.1 markDirty()
 
@@ -70,9 +69,9 @@ class InteractiveBox extends StatefulWidget<WidgetProps, { highlight: boolean }>
 ```typescript
 class ResizableBox extends Widget {
   setSize(w, h) {
-    this.width = w;
-    this.height = h;
-    this.markNeedsLayout(); // 仅触发布局，跳过 Build 阶段
+    this._width = w;
+    this._height = h;
+    this.markNeedsLayout(); // 仅触发布局与绘制，跳过子树重建
   }
 }
 ```
@@ -129,7 +128,6 @@ class ColorBox extends Widget {
 class Stopwatch extends StatefulWidget {
   constructor(props) {
     super(props);
-    this.type = 'Stopwatch'; // 确保 WidgetRegistry 能正确识别
     this.isRepaintBoundary = true; // 开启重绘边界
   }
   // ...
@@ -154,12 +152,13 @@ class Stopwatch extends StatefulWidget {
 ## 4. 脏检查与调度
 
 ### 脏检查 (Dirty Checking)
-Inkwell 维护了两个主要的脏列表：
-1.  **Layout Dirty List**: 需要重新布局的节点。
-2.  **Paint Dirty List**: 需要重新绘制的节点（通常是 Repaint Boundary）。
+Inkwell 的更新调度涉及三类集合/列表：
+1.  **Runtime.dirtyWidgets**：需要执行 `rebuild()` 的节点集合（由 `markDirty()` 或 `scheduleUpdate()` 进入）。
+2.  **PipelineOwner 的布局脏集合**：需要重新布局的节点集合（由 `markNeedsLayout()` 调度到 Relayout Boundary）。
+3.  **PipelineOwner 的绘制脏集合**：需要重绘的节点集合（由 `markNeedsPaint()` 调度到 Repaint Boundary 或相关边界节点）。
 
 ### 调度流程 (Pipeline)
-每一帧 (`flushUpdates`) 的执行顺序：
+一次 Tick 的典型顺序：
 
 1.  **Flush Layout**: 按深度 **从小到大** (浅 -> 深) 处理脏布局节点。确保父节点先计算约束，传递给子节点。
 2.  **Flush Paint**: 按深度 **从大到小** (深 -> 浅) 处理脏绘制节点。确保子节点先更新 Layer，父节点合成时能取到最新内容。

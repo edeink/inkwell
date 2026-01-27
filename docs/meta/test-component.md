@@ -47,7 +47,7 @@ title: 自定义代码块
 /** @jsxImportSource @/utils/compiler */
 <Container width={300} height={120} color="#e6f4ff">
   <Center>
-    <Text text="edit" />
+    <Text text="readonly" />
   </Center>
 </Container>
 ```

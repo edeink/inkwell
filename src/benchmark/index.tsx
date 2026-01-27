@@ -468,23 +468,27 @@ function App() {
   return (
     <div className={styles.page}>
       <div className={styles.toolbar}>
-        <EnvPanel />
-        <StatusPanel items={progressItems} current={currentTask} />
-        <ControlPanel
-          setNodeCounts={setNodeCounts}
-          repeat={repeat}
-          setRepeat={setRepeat}
-          start={start}
-          pause={pause}
-          resume={resume}
-          stop={stop}
-          loading={loading}
-          paused={paused}
-          caseType={caseType}
-          setCaseType={setCaseType}
-          testMode={testMode}
-          setTestMode={setTestMode}
-        />
+        <div className={styles.toolbarLeft}>
+          <EnvPanel />
+        </div>
+        <div className={styles.toolbarRight}>
+          <StatusPanel items={progressItems} current={currentTask} />
+          <ControlPanel
+            setNodeCounts={setNodeCounts}
+            repeat={repeat}
+            setRepeat={setRepeat}
+            start={start}
+            pause={pause}
+            resume={resume}
+            stop={stop}
+            loading={loading}
+            paused={paused}
+            caseType={caseType}
+            setCaseType={setCaseType}
+            testMode={testMode}
+            setTestMode={setTestMode}
+          />
+        </div>
       </div>
       {testMode === 'canvas' ? (
         <CanvasReport results={results} />

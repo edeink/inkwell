@@ -51,6 +51,6 @@ title: FormItem
 | `colon` | 是否显示冒号 | `boolean` | `true` |
 | `layout` | 布局方式 | `'horizontal' \| 'vertical'` | `'horizontal'` |
 | `gap` | 标签与控件间距 | `number` | `8` |
-| `theme` | 主题 | `ThemePalette` | 当前主题模式 |
+| `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
 
-- children 支持类型：`Multi`
+- children 支持类型：`Multiple`

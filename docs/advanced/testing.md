@@ -25,8 +25,8 @@ Inkwell 使用 Vitest 进行单元测试。确保你的代码具有高可测试�
 import { describe, it, expect } from 'vitest';
 import { Container } from '@/core';
 
-describe('Container', () => {
-  it('should initialize with correct color', () => {
+describe('Container 组件', () => {
+  it('应以正确的颜色初始化', () => {
     const container = new Container({ color: 'red' });
     expect(container.props.color).toBe('red');
   });
@@ -50,7 +50,7 @@ describe('Container', () => {
     ```typescript
     import { testLogger } from '@/utils/test-logger';
 
-    it('should log debug info', () => {
-      testLogger.log('This will only show when TEST_DEBUG=1');
+    it('应在调试模式下输出调试信息', () => {
+      testLogger.log('仅在 TEST_DEBUG=1 时输出');
     });
     ```

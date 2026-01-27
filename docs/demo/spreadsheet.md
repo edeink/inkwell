@@ -7,7 +7,7 @@ import { SpreadsheetDemoApp } from '@demo/spreadsheet/app';
 
 # 电子表格
 
-这是一个基于 Inkwell 框架实现的高性能电子表格示例，展示了如何处理大量数据、复杂交互以及自定义布局逻辑。
+这是一个基于 Inkwell 框架实现的高性能电子表格示例，展示了如何处理大规模数据、复杂交互以及自定义布局逻辑。
 
 ## 在线演示
 
@@ -46,9 +46,8 @@ graph TD
 该示例实现了电子表格的核心功能，包括：
 
 1.  **高性能渲染 (Virtualization)**
-    *   支持百万级行数据的虚拟滚动。
-    *   只渲染视口（Viewport）内的单元格，确保极低的内存占用和流畅的滚动体验。
-    *   使用 `ScrollView` 组件处理滚动逻辑，配合 `SpreadsheetGrid` 进行按需渲染。
+    *   采用虚拟滚动：只渲染视口（Viewport）内的单元格，避免随数据规模线性增长的节点数量。
+    *   使用 `ScrollView` 处理滚动逻辑，配合 `SpreadsheetGrid` 按需渲染可见区域。
 
 2.  **数据模型 (Data Model)**
     *   **稀疏矩阵存储**: 使用 `Map<string, CellData>` 存储单元格数据，避免为空白单元格分配内存。

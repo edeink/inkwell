@@ -2,7 +2,7 @@
 title: Form
 ---
 
-核心用途：表单布局容器，负责组织 `FormItem` 的间距与排列方式。
+核心用途：表单布局容器，负责组织表单项的垂直间距与整体对齐。
 
 ## 如何引入
 
@@ -37,10 +37,10 @@ title: Form
 
 | 属性名 | 说明 | 类型 | 默认值 |
 | --- | --- | --- | --- |
-| `labelWidth` | 标签宽度（默认影响 FormItem） | `number` | 无 |
-| `colon` | 是否显示冒号（默认影响 FormItem） | `boolean` | `true` |
-| `layout` | 布局方式 | `'horizontal' \| 'vertical'` | `'horizontal'` |
+| `labelWidth` | 预留：不在 `Form` 内部处理（需要在 `FormItem` 上设置） | `number` | 无 |
+| `colon` | 预留：不在 `Form` 内部处理（需要在 `FormItem` 上设置） | `boolean` | 无 |
+| `layout` | 预留：不在 `Form` 内部处理（需要在 `FormItem` 上设置） | `'horizontal' \| 'vertical'` | 无 |
 | `gap` | FormItem 间距 | `number` | `12` |
 | `theme` | 主题（预留） | `ThemePalette` | 无 |
 
-- children 支持类型：`Multi`
+- children 支持类型：`Multiple`

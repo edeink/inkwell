@@ -88,4 +88,4 @@ title: Drawer
 | `theme` | 主题（可选） | `ThemePalette` | 当前主题模式 |
 | `onClose` | 关闭回调 | `(e: InkwellEvent) => void` | 无 |
 
-- children 支持类型：`Multi`
+- children 支持类型：`Multiple`

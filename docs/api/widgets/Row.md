@@ -18,10 +18,14 @@ title: Row
   const theme = getCurrentTheme();
   return (
     <Container width={360} height={100} color={theme.background.container}>
-      <Row spacing={8} mainAxisAlignment="start" crossAxisAlignment="center">
-        <Container width={60} height={32} color={theme.background.surface} />
-        <Container width={60} height={32} color={theme.background.surface} />
-        <Container width={60} height={32} color={theme.background.surface} />
+      <Row
+        spacing={8}
+        mainAxisAlignment={MainAxisAlignment.Start}
+        crossAxisAlignment={CrossAxisAlignment.Center}
+      >
+        <Container width={60} height={32} color={theme.state.focus} />
+        <Container width={60} height={32} color={theme.state.focus} />
+        <Container width={60} height={32} color={theme.state.focus} />
       </Row>
     </Container>
   );
@@ -36,10 +40,10 @@ title: Row
   const theme = getCurrentTheme();
   return (
     <Container width={360} height={100} color={theme.background.container}>
-      <Row mainAxisAlignment="spaceBetween" spacing={8}>
-        <Container width={60} height={32} color={theme.state.selected} />
-        <Container width={60} height={32} color={theme.state.selected} />
-        <Container width={60} height={32} color={theme.state.selected} />
+      <Row mainAxisAlignment={MainAxisAlignment.SpaceBetween} spacing={8}>
+        <Container width={60} height={32} color={theme.state.focus} />
+        <Container width={60} height={32} color={theme.state.focus} />
+        <Container width={60} height={32} color={theme.state.focus} />
       </Row>
     </Container>
   );
@@ -54,7 +58,7 @@ title: Row
   const theme = getCurrentTheme();
   return (
     <Container width={360} height={80} color={theme.background.container}>
-      <Row crossAxisAlignment="stretch" spacing={8}>
+      <Row crossAxisAlignment={CrossAxisAlignment.Stretch} spacing={8}>
         <Container width={60} color={theme.state.focus} />
         <Container width={60} color={theme.state.focus} />
         <Container width={60} color={theme.state.focus} />
