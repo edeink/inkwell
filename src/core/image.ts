@@ -91,6 +91,7 @@ export class Image extends Widget<ImageProps> {
   // 图片加载状态
   private imageLoaded: boolean = false;
   private imageElement: HTMLImageElement | null = null;
+  private _loadSeq: number = 0;
   private naturalWidth: number = 0;
   private naturalHeight: number = 0;
 
@@ -112,7 +113,7 @@ export class Image extends Widget<ImageProps> {
 
     super(imageData as ImageProps);
     this.initImageProperties(imageData as ImageProps);
-    this.loadImage();
+    this.startLoadImage(this.src, false);
   }
 
   /**
@@ -136,31 +137,68 @@ export class Image extends Widget<ImageProps> {
   /**
    * 加载图片
    */
-  private loadImage(): void {
-    if (!this.src) {
+  private startLoadImage(src: string, keepOldImage: boolean): void {
+    if (!src) {
       return;
     }
 
-    this.imageElement = new window.Image();
-    this.imageElement.onload = () => {
-      this.naturalWidth = this.imageElement!.naturalWidth;
-      this.naturalHeight = this.imageElement!.naturalHeight;
+    const seq = ++this._loadSeq;
+    const img = new window.Image();
+
+    if (!keepOldImage) {
+      this.imageLoaded = false;
+      this.imageElement = img;
+      this.naturalWidth = 0;
+      this.naturalHeight = 0;
+    }
+
+    img.onload = () => {
+      if (seq !== this._loadSeq || this.src !== src) {
+        return;
+      }
+      this.imageElement = img;
+      this.naturalWidth = img.naturalWidth;
+      this.naturalHeight = img.naturalHeight;
       this.imageLoaded = true;
-      // 触发重新布局和渲染
       this.markDirty();
     };
-    this.imageElement.onerror = () => {
+    img.onerror = () => {
+      if (seq !== this._loadSeq || this.src !== src) {
+        return;
+      }
       console.error(`Failed to load image: ${this.src}`);
-      this.imageLoaded = false;
+      if (!keepOldImage) {
+        this.imageLoaded = false;
+        this.imageElement = null;
+        this.markDirty();
+      }
     };
-    this.imageElement.src = this.src;
+    img.src = src;
   }
 
-  /**
-   * 创建组件实例
-   */
   createElement(data: ImageProps): Widget<ImageProps> {
-    return new Image(data);
+    super.createElement(data);
+    return this;
+  }
+
+  protected didUpdateWidget(oldProps: ImageProps): void {
+    const newProps = this.data;
+
+    const nextSrc = newProps.src || '';
+    const srcChanged = oldProps.src !== nextSrc;
+
+    if (srcChanged) {
+      this.src = nextSrc;
+      const keepOldImage = this.imageLoaded && this.imageElement != null;
+      this.startLoadImage(nextSrc, keepOldImage);
+    }
+
+    this.imageWidth = newProps.width;
+    this.imageHeight = newProps.height;
+    this.fit = newProps.fit || ImageFit.Contain;
+    this.alignment = newProps.alignment || ImageAlignment.Center;
+
+    super.didUpdateWidget(oldProps);
   }
 
   /**
@@ -355,17 +393,6 @@ export class Image extends Widget<ImageProps> {
         fill: '#f0f0f0',
         stroke: '#cccccc',
         strokeWidth: 1,
-      });
-
-      // 绘制加载提示文本
-      context.renderer.drawText({
-        text: this.src ? 'Loading...' : 'No Image',
-        x: size.width / 2, // 相对于组件内部的中心位置
-        y: size.height / 2, // 相对于组件内部的中心位置
-        fontSize: 12,
-        color: '#666666',
-        textAlign: 'center',
-        textBaseline: 'middle',
       });
       return;
     }

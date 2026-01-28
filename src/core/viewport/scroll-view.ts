@@ -3,7 +3,7 @@ import { expose } from '../decorators';
 import { ScrollBar, type ScrollBarProps } from './scroll-bar';
 import { Viewport, type ViewportProps } from './viewport';
 
-import type { BoxConstraints, BuildContext, Size } from '../base';
+import type { BoxConstraints, BuildContext, Size } from '@/core/base';
 import type { InkwellEvent } from '@/core/events/types';
 
 import {
@@ -437,8 +437,9 @@ export class ScrollView extends Viewport {
 
   // 必须重写此方法以允许子节点超出视口
   protected getConstraintsForChild(constraints: BoxConstraints): BoxConstraints {
-    const bounceH = this.data.enableBounceHorizontal;
-    const bounceV = this.data.enableBounceVertical;
+    const enableBounce = this.data.enableBounce ?? false;
+    const bounceH = this.data.enableBounceHorizontal ?? enableBounce;
+    const bounceV = this.data.enableBounceVertical ?? enableBounce;
 
     const maxW = constraints.maxWidth;
     const maxH = constraints.maxHeight;
@@ -447,7 +448,7 @@ export class ScrollView extends Viewport {
 
     if (bounceH === false && bounceV === true) {
       return {
-        minWidth: finiteW ? maxW : 0,
+        minWidth: finiteW ? constraints.minWidth : 0,
         maxWidth: finiteW ? maxW : Infinity,
         minHeight: 0,
         maxHeight: Infinity,
@@ -458,7 +459,7 @@ export class ScrollView extends Viewport {
       return {
         minWidth: 0,
         maxWidth: Infinity,
-        minHeight: finiteH ? maxH : 0,
+        minHeight: 0,
         maxHeight: finiteH ? maxH : Infinity,
       };
     }
@@ -473,26 +474,49 @@ export class ScrollView extends Viewport {
 
   // 这里的 performLayout 实际上会接收到基于 getConstraintsForChild 计算出的子节点尺寸
   protected override performLayout(constraints: BoxConstraints, childrenSizes: Size[]): Size {
-    const width =
-      constraints.maxWidth !== Infinity
-        ? constraints.maxWidth
-        : Math.max(constraints.minWidth, this.data.width || 0);
-    const height =
-      constraints.maxHeight !== Infinity
-        ? constraints.maxHeight
-        : Math.max(constraints.minHeight, this.data.height || 0);
-
     if (childrenSizes.length > 0) {
       this._contentSize = childrenSizes[0];
     } else {
       this._contentSize = { width: 0, height: 0 };
     }
 
+    const enableBounce = this.data.enableBounce ?? false;
+    const bounceH = this.data.enableBounceHorizontal ?? enableBounce;
+    const bounceV = this.data.enableBounceVertical ?? enableBounce;
+
+    const isHorizontalOnly = bounceV === false && bounceH === true;
+
+    const contentW = this._contentSize.width;
+    const contentH = this._contentSize.height;
+
+    const rawWidth =
+      this.data.width !== undefined
+        ? this.data.width
+        : constraints.maxWidth !== Infinity
+          ? constraints.maxWidth
+          : Math.max(constraints.minWidth, contentW);
+
+    const rawHeight =
+      this.data.height !== undefined
+        ? this.data.height
+        : isHorizontalOnly
+          ? contentH
+          : constraints.maxHeight !== Infinity
+            ? constraints.maxHeight
+            : Math.max(constraints.minHeight, contentH);
+
+    const width = Math.max(constraints.minWidth, Math.min(rawWidth, constraints.maxWidth));
+    const minHeight =
+      this.data.height !== undefined
+        ? constraints.minHeight
+        : isHorizontalOnly
+          ? 0
+          : constraints.minHeight;
+    const height = Math.max(minHeight, Math.min(rawHeight, constraints.maxHeight));
+
     // 修正滚动位置（防止内容缩小后滚动位置越界）
     const maxScrollX = Math.max(0, this._contentSize.width - width);
     const maxScrollY = Math.max(0, this._contentSize.height - height);
-
-    const enableBounce = this.data.enableBounce ?? false;
 
     // 如果未开启弹性，则严格限制边界
     if (!enableBounce) {

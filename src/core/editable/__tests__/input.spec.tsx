@@ -46,6 +46,42 @@ function findFirstContainerColor(
   return findFirstContainerColor(children, predicate);
 }
 
+function findFirstNode(node: any, predicate: (node: any) => boolean): any | null {
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+  if (predicate(node)) {
+    return node;
+  }
+  const children = node.props?.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      const found = findFirstNode(child, predicate);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+  return findFirstNode(children, predicate);
+}
+
+function findFirstText(node: any): string | undefined {
+  const found = findFirstNode(node, (n) => {
+    const typeName = typeof n.type === 'string' ? n.type : n.type?.name;
+    return typeName === 'Text' && typeof n.props?.text === 'string';
+  });
+  return found?.props?.text;
+}
+
+function findFirstIconSvg(node: any): string | undefined {
+  const found = findFirstNode(node, (n) => {
+    const typeName = typeof n.type === 'string' ? n.type : n.type?.name;
+    return typeName === 'Icon' && typeof n.props?.svg === 'string';
+  });
+  return found?.props?.svg;
+}
+
 describe('Input 组件', () => {
   let inputComponent: Input;
   let props: any;
@@ -152,5 +188,85 @@ describe('Input 组件', () => {
     const tree = inputComponent.render() as any;
     const cursorColor = findFirstContainerColor(tree, (p) => p.width === 2);
     expect(cursorColor).toBeUndefined();
+  });
+
+  it('password 模式默认应使用 ※ 进行遮罩', () => {
+    const passwordInput = new Input({
+      type: 'Input',
+      value: 'Hello',
+      inputType: 'password',
+    } as any);
+    try {
+      const tree = passwordInput.render() as any;
+      expect(findFirstText(tree)).toBe('※※※※※');
+    } finally {
+      passwordInput.dispose();
+    }
+  });
+
+  it('password 模式点击眼睛图标应切换明文显示', () => {
+    const passwordInput = new Input({
+      type: 'Input',
+      value: 'Hello',
+      inputType: 'password',
+    } as any);
+    try {
+      const tree1 = passwordInput.render() as any;
+      expect(findFirstText(tree1)).toBe('※※※※※');
+      const iconSvg1 = findFirstIconSvg(tree1);
+      expect(iconSvg1).toBeTruthy();
+      expect(iconSvg1).toContain('M4 20 20 4');
+
+      const iconBtn = findFirstNode(tree1, (n) => {
+        const typeName = typeof n.type === 'string' ? n.type : n.type?.name;
+        return (
+          typeName === 'Container' &&
+          typeof n.props?.onPointerDown === 'function' &&
+          n.props?.cursor === 'pointer'
+        );
+      });
+      expect(iconBtn).not.toBeNull();
+      iconBtn.props.onPointerDown({ stopPropagation: vi.fn() } as any);
+
+      const tree2 = passwordInput.render() as any;
+      expect(findFirstText(tree2)).toBe('Hello');
+      const iconSvg2 = findFirstIconSvg(tree2);
+      expect(iconSvg2).toBeTruthy();
+      expect(iconSvg2).not.toBe(iconSvg1);
+      expect(iconSvg2).not.toContain('M4 20 20 4');
+
+      const iconBtn2 = findFirstNode(tree2, (n) => {
+        const typeName = typeof n.type === 'string' ? n.type : n.type?.name;
+        return (
+          typeName === 'Container' &&
+          typeof n.props?.onPointerDown === 'function' &&
+          n.props?.cursor === 'pointer'
+        );
+      });
+      iconBtn2.props.onPointerDown({ stopPropagation: vi.fn() } as any);
+
+      const tree3 = passwordInput.render() as any;
+      expect(findFirstText(tree3)).toBe('※※※※※');
+      const iconSvg3 = findFirstIconSvg(tree3);
+      expect(iconSvg3).toBeTruthy();
+      expect(iconSvg3).toBe(iconSvg1);
+    } finally {
+      passwordInput.dispose();
+    }
+  });
+
+  it('password 模式空值时应优先显示 placeholder', () => {
+    const passwordInput = new Input({
+      type: 'Input',
+      value: '',
+      inputType: 'password',
+      placeholder: '密码',
+    } as any);
+    try {
+      const tree = passwordInput.render() as any;
+      expect(findFirstText(tree)).toBe('密码');
+    } finally {
+      passwordInput.dispose();
+    }
   });
 });

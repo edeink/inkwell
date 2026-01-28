@@ -190,6 +190,140 @@ describe('ScrollView', () => {
     expect(sv.scrollY).toBeLessThan(0);
   });
 
+  it('水平滚动时不应强制子节点撑满视口高度', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      enableBounceVertical: false,
+      enableBounceHorizontal: true,
+    });
+
+    let received: BoxConstraints | null = null;
+    const child = {
+      layout: vi.fn((c: BoxConstraints) => {
+        received = c;
+        return { width: 100, height: 21 };
+      }),
+      renderObject: { size: { width: 0, height: 0 }, offset: { dx: 0, dy: 0 } },
+      isLayoutDirty: () => false,
+      isDirty: () => false,
+      children: [],
+      data: {},
+      type: 'MockChild',
+      key: 'mock-child',
+    } as any;
+
+    sv.children = [child];
+    sv.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 716 });
+
+    expect(received).not.toBeNull();
+    expect(received!.minHeight).toBe(0);
+    expect(received!.maxHeight).toBe(716);
+  });
+
+  it('仅水平滚动且未显式指定高度时应由内容高度决定视口高度', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      enableBounceVertical: false,
+      enableBounceHorizontal: true,
+    });
+
+    const child = {
+      layout: vi.fn(() => ({ width: 100, height: 21 })),
+      renderObject: { size: { width: 0, height: 0 }, offset: { dx: 0, dy: 0 } },
+      isLayoutDirty: () => false,
+      isDirty: () => false,
+      children: [],
+      data: {},
+      type: 'MockChild',
+      key: 'mock-child',
+    } as any;
+
+    sv.children = [child];
+    sv.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 716 });
+
+    expect(sv.renderObject.size.width).toBe(200);
+    expect(sv.renderObject.size.height).toBe(21);
+  });
+
+  it('仅水平滚动时即使父级提供紧高度约束也应按内容高度收缩', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      enableBounceVertical: false,
+      enableBounceHorizontal: true,
+    });
+
+    const child = {
+      layout: vi.fn(() => ({ width: 100, height: 21 })),
+      renderObject: { size: { width: 0, height: 0 }, offset: { dx: 0, dy: 0 } },
+      isLayoutDirty: () => false,
+      isDirty: () => false,
+      children: [],
+      data: {},
+      type: 'MockChild',
+      key: 'mock-child',
+    } as any;
+
+    sv.children = [child];
+    sv.layout({ minWidth: 0, maxWidth: 200, minHeight: 716, maxHeight: 716 });
+
+    expect(sv.renderObject.size.width).toBe(200);
+    expect(sv.renderObject.size.height).toBe(21);
+  });
+
+  it('仅设置 enableBounceHorizontal=true 时应视为仅水平滚动', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      enableBounceHorizontal: true,
+    });
+
+    const child = {
+      layout: vi.fn(() => ({ width: 100, height: 21 })),
+      renderObject: { size: { width: 0, height: 0 }, offset: { dx: 0, dy: 0 } },
+      isLayoutDirty: () => false,
+      isDirty: () => false,
+      children: [],
+      data: {},
+      type: 'MockChild',
+      key: 'mock-child',
+    } as any;
+
+    sv.children = [child];
+    sv.layout({ minWidth: 0, maxWidth: 200, minHeight: 0, maxHeight: 716 });
+
+    expect(sv.renderObject.size.width).toBe(200);
+    expect(sv.renderObject.size.height).toBe(21);
+  });
+
+  it('垂直滚动时不应强制子节点撑满视口宽度', () => {
+    const sv = new TestScrollView({
+      type: 'ScrollView',
+      enableBounceVertical: true,
+      enableBounceHorizontal: false,
+    });
+
+    let received: BoxConstraints | null = null;
+    const child = {
+      layout: vi.fn((c: BoxConstraints) => {
+        received = c;
+        return { width: 100, height: 300 };
+      }),
+      renderObject: { size: { width: 0, height: 0 }, offset: { dx: 0, dy: 0 } },
+      isLayoutDirty: () => false,
+      isDirty: () => false,
+      children: [],
+      data: {},
+      type: 'MockChild',
+      key: 'mock-child',
+    } as any;
+
+    sv.children = [child];
+    sv.layout({ minWidth: 50, maxWidth: 200, minHeight: 0, maxHeight: 100 });
+
+    expect(received).not.toBeNull();
+    expect(received!.minWidth).toBe(50);
+    expect(received!.maxWidth).toBe(200);
+  });
+
   it('应当限制最大回弹距离', () => {
     const maxBounce = 50;
     const sv = new TestScrollView({
