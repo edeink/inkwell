@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getCurrentThemeMode, useTheme } from '../../styles/theme';
+import { useTheme } from '../../styles/theme';
 import { InkwellCanvas } from '../common/inkwell-canvas';
 import { DemoKey } from '../type';
 
 import { RESUME_PAGE_WIDTH, runApp, runExportApp } from './app';
 import avatarUrl from './assets/avator.jpeg?url';
+import { ExportActions } from './components/export-actions';
+import { RESUME_UNLOCK_EVENT, RESUME_UNLOCK_STORAGE_KEY } from './helpers/constants';
 import resumeMarkdown from './raw/resume.markdown?raw';
 
 import type { Widget } from '@/core/base';
@@ -259,6 +261,44 @@ export default function ResumeDemo() {
   const runtimeRef = useRef<Runtime | null>(null);
   const sizeRef = useRef({ width: 0, height: 0 });
   const [exporting, setExporting] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    const readUnlocked = () => {
+      if (typeof window === 'undefined') {
+        return false;
+      }
+      try {
+        return window.localStorage.getItem(RESUME_UNLOCK_STORAGE_KEY) === '1';
+      } catch {
+        return false;
+      }
+    };
+
+    setUnlocked(readUnlocked());
+
+    const onUnlock = () => {
+      setUnlocked(readUnlocked());
+    };
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.addEventListener(RESUME_UNLOCK_EVENT, onUnlock as EventListener);
+      } catch {
+        void 0;
+      }
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        try {
+          window.removeEventListener(RESUME_UNLOCK_EVENT, onUnlock as EventListener);
+        } catch {
+          void 0;
+        }
+      }
+    };
+  }, []);
 
   const handleRuntimeReady = (runtime: Runtime) => {
     runtimeRef.current = runtime;
@@ -379,23 +419,6 @@ export default function ResumeDemo() {
     [exporting, theme],
   );
 
-  const buttonStyle = (disabled: boolean) => {
-    const mode = getCurrentThemeMode();
-    const background = theme.background.container;
-    const shadow =
-      mode === 'dark' ? '0 12px 28px rgba(0,0,0,0.55)' : '0 12px 28px rgba(0,0,0,0.18)';
-    return {
-      padding: '10px 12px',
-      borderRadius: 10,
-      border: `1px solid ${theme.border.base}`,
-      background,
-      color: theme.text.primary,
-      boxShadow: shadow,
-      opacity: disabled ? 0.6 : 1,
-      cursor: disabled ? 'not-allowed' : 'pointer',
-    } as const;
-  };
-
   return (
     <>
       <InkwellCanvas
@@ -403,26 +426,9 @@ export default function ResumeDemo() {
         onRuntimeReady={handleRuntimeReady}
         onResize={handleResize}
       />
-      <div
-        style={{ position: 'fixed', right: 24, bottom: 24, display: 'flex', gap: 10, zIndex: 1000 }}
-      >
-        <button
-          type="button"
-          disabled={exporting}
-          onClick={() => handleExport('png')}
-          style={buttonStyle(exporting)}
-        >
-          导出 PNG
-        </button>
-        <button
-          type="button"
-          disabled={exporting}
-          onClick={() => handleExport('pdf')}
-          style={buttonStyle(exporting)}
-        >
-          导出 PDF
-        </button>
-      </div>
+      {unlocked ? (
+        <ExportActions exporting={exporting} theme={theme} onExport={handleExport} />
+      ) : null}
     </>
   );
 }

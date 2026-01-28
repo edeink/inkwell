@@ -18,6 +18,13 @@ High-perf canvas UI framework. Stack: Vite, Less, Vitest, Docusaurus.
 - **File**: `kebab-case/index.{tsx,module.less}`.
 - **Style**: `classnames`, CSS Modules, Strict TS (enums).
 
+### Demo 代码组织（Widget / React）
+- **入口文件**：每个 Demo 目录仅允许 `index.tsx`（React 入口）与 `app.tsx`（Widget 入口）位于目录根部。
+- **Widget 文件**：除 `app.tsx` 外，新的 Widget 必须放在 `widgets/<name>/index.tsx`，且一个文件仅一个 Widget。
+- **React 文件**：除 `index.tsx` 外，新的 React 组件必须放在 `components/<name>/index.tsx`，且一个文件仅一个 React 组件。
+- **Helpers**：可复用的辅助函数/工具逻辑必须放在 `helpers/`。
+- **README**：每个 Demo 子目录必须包含 `README.md`，用于简单介绍该 Demo，便于快速理解。
+
 ### Framework Core
 - **Inheritance**: `StatelessWidget` | `StatefulWidget` | `RenderObjectWidget`.
 - **Naming**: PascalCase.
