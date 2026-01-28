@@ -24,8 +24,8 @@ class TestWidget extends Widget {
 }
 
 function buildTree(): { root: TestWidget; child: TestWidget } {
-  const root = new TestWidget({ type: 'Root' });
-  const child = new TestWidget({ type: 'Child' });
+  const root = new TestWidget({});
+  const child = new TestWidget({});
   root.children = [child];
   child.parent = root;
 

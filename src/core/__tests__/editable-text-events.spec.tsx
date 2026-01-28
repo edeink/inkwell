@@ -14,7 +14,7 @@ describe('TextArea 键盘事件', () => {
   });
 
   it('disabled=true 时应阻止默认按键行为', () => {
-    editor = new TextArea({ type: 'TextArea', value: 'hello', disabled: true });
+    editor = new TextArea({ value: 'hello', disabled: true });
     const input = document.querySelector('textarea');
     if (!input) {
       throw new Error('找不到 textarea 元素');
@@ -26,7 +26,7 @@ describe('TextArea 键盘事件', () => {
 
   it('onKeyDown 返回 false 时应阻止默认行为', () => {
     const onKeyDown = vi.fn(() => false);
-    editor = new TextArea({ type: 'TextArea', value: 'hello', onKeyDown });
+    editor = new TextArea({ value: 'hello', onKeyDown });
     const input = document.querySelector('textarea');
     if (!input) {
       throw new Error('找不到 textarea 元素');

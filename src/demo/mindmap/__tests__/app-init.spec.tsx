@@ -50,7 +50,7 @@ function findFirstByType(root: Widget | null | undefined, type: string): Widget 
 describe('Mindmap App 初始化流程', () => {
   it('MindmapDemo 应正确初始化并挂载', () => {
     const runtime = createMockRuntime();
-    const app = new MindmapDemo({ type: 'MindmapDemo', width: 800, height: 600 });
+    const app = new MindmapDemo({ width: 800, height: 600 });
 
     // Set root widget for the mock
     (runtime as any).setRootWidget(app);
@@ -89,7 +89,7 @@ describe('Mindmap App 初始化流程', () => {
     // 此时它没有 parent，也没有 owner (未挂载)
     class TestWidget extends Widget {
       constructor() {
-        super({ type: 'Test' });
+        super({});
         // 模拟在构造函数中修改属性触发 layout
         this.markNeedsLayout();
       }

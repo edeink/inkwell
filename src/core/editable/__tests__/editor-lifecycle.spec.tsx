@@ -45,7 +45,7 @@ describe('可编辑组件生命周期', () => {
   });
 
   it('初始化时应创建隐藏 input 元素', () => {
-    const input = new Input({ type: 'Input', value: 'init' });
+    const input = new Input({ value: 'init' } as any);
     try {
       vi.advanceTimersByTime(100);
 
@@ -58,7 +58,7 @@ describe('可编辑组件生命周期', () => {
   });
 
   it('销毁时应清理资源并移除监听', () => {
-    const input = new Input({ type: 'Input', value: 'init' });
+    const input = new Input({ value: 'init' } as any);
     vi.advanceTimersByTime(100);
 
     const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
@@ -70,7 +70,7 @@ describe('可编辑组件生命周期', () => {
   });
 
   it('当 props.value 变化时应同步到隐藏 input', () => {
-    const input = new Input({ type: 'Input', value: 'old' });
+    const input = new Input({ value: 'old' } as any);
     try {
       vi.advanceTimersByTime(100);
 
@@ -87,7 +87,7 @@ describe('可编辑组件生命周期', () => {
   });
 
   it('聚焦与失焦时应正确更新 focused 状态', () => {
-    const input = new Input({ type: 'Input', value: '' });
+    const input = new Input({ value: '' } as any);
     try {
       vi.advanceTimersByTime(100);
       const hiddenInput = (input as any).input as HTMLInputElement;

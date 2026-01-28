@@ -10,7 +10,8 @@ import { Widget } from '@/core/base';
 // 模拟依赖项
 class MockNode extends Widget {
   constructor(key: string, x: number, y: number, w: number, h: number) {
-    super({ type: CustomComponentType.MindMapNode, key });
+    super({ key } as any);
+    this.type = CustomComponentType.MindMapNode;
     this.renderObject.offset = { dx: x, dy: y };
     this.renderObject.size = { width: w, height: h };
   }
@@ -20,7 +21,6 @@ function createViewport(props: Partial<MindMapViewportProps> = {}) {
   const vp = new MindMapViewport({
     width: 800,
     height: 600,
-    type: 'MindMapViewport',
     ...props,
   });
   // 布局以确保尺寸正确
@@ -199,14 +199,13 @@ describe('MindMapViewport 选区精度测试', () => {
 
   class MockContainer extends Widget {
     constructor(key: string) {
-      super({ type: 'Container', key });
+      super({ key });
       this.renderObject.size = { width: 0, height: 0 };
     }
   }
 
   it('应该在滚动 (Scroll) 后正确选中节点', () => {
     const vp = new MindMapViewport({
-      type: CustomComponentType.MindMapViewport,
       width: 800,
       height: 600,
       scrollX: 50,
@@ -243,7 +242,6 @@ describe('MindMapViewport 选区精度测试', () => {
 
   it('应该在复合变换 (缩放+平移+滚动) 下正确选中节点', () => {
     const vp = new MindMapViewport({
-      type: CustomComponentType.MindMapViewport,
       width: 800,
       height: 600,
       scale: 2.0,

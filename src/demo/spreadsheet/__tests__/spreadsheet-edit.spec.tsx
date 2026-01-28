@@ -38,7 +38,6 @@ describe('Spreadsheet Edit Race Condition', () => {
     });
 
     const spreadsheet = new Spreadsheet({
-      type: 'Spreadsheet',
       width: 800,
       height: 600,
       theme: Themes.light,

@@ -23,7 +23,7 @@ describe('模块解析与事件系统（路径别名验证）', () => {
       </Container>
     );
     const data = compileElement(el);
-    expect(data.type).toBe('Container');
+    expect(data.__inkwellType).toBe('Container');
 
     const root = WidgetRegistry.createWidget(data)!;
     root.createElement(data);

@@ -22,7 +22,7 @@ class TestContainer extends Widget {
   public layoutCount = 0;
 
   constructor(props: any = {}) {
-    super({ ...props, type: 'TestContainer' });
+    super({ ...props });
     this.width = props.width;
     this.height = props.height;
     this.color = props.color;
@@ -47,7 +47,7 @@ class TestContainer extends Widget {
 
 class TestExpandToMaxWidthIfBounded extends Widget {
   constructor(props: any = {}) {
-    super({ ...props, type: 'TestExpandToMaxWidthIfBounded' });
+    super({ ...props });
   }
 
   protected performLayout(constraints: BoxConstraints, _childrenSizes: Size[]): Size {
@@ -58,7 +58,7 @@ class TestExpandToMaxWidthIfBounded extends Widget {
 
 describe('Flex Layout Unit Tests', () => {
   it('Row 非 Flex 子组件主轴应接收无界约束', () => {
-    const row = new Row({ type: 'Row', mainAxisSize: MainAxisSize.Min });
+    const row = new Row({ mainAxisSize: MainAxisSize.Min });
     const child = new TestExpandToMaxWidthIfBounded();
 
     row.children = [child];
@@ -76,7 +76,6 @@ describe('Flex Layout Unit Tests', () => {
   it('当非Flex子元素尺寸变化时，应触发父容器(Row/Wrap)重新布局', () => {
     // Setup: Row with MainAxisSize.Min (wraps content)
     const row = new Row({
-      type: 'Row',
       mainAxisSize: MainAxisSize.Min,
     });
     const child1 = new TestContainer({ width: 50, height: 50 });
@@ -122,7 +121,6 @@ describe('Flex Layout Unit Tests', () => {
   it('当Flex子元素(Tight fit)仅发生内部非布局变更时，不应触发父容器重新布局', () => {
     // Setup: Row with fixed width
     const row = new Row({
-      type: 'Row',
       mainAxisSize: MainAxisSize.Max,
     });
     // Child with flex: 1 (Tight fit)
@@ -169,7 +167,7 @@ describe('Flex Layout Unit Tests', () => {
 
   // 3. 性能验证测试
   it('性能测试：高频子元素变更下的布局传播与耗时', () => {
-    const row = new Row({ type: 'Row', mainAxisSize: MainAxisSize.Min });
+    const row = new Row({ mainAxisSize: MainAxisSize.Min });
     const children: TestContainer[] = [];
     const count = 100;
 
@@ -211,13 +209,13 @@ describe('Flex Layout Unit Tests', () => {
   // 4. 边界条件测试
   it('边界条件：空容器、嵌套容器与动态增删', () => {
     // 4.1 Empty Container
-    const emptyCol = new Column({ type: 'Column', mainAxisSize: MainAxisSize.Min });
+    const emptyCol = new Column({ mainAxisSize: MainAxisSize.Min });
     emptyCol.layout(createBoxConstraints({}));
     expect(emptyCol.renderObject.size.height).toBe(0);
 
     // 4.2 Nested Flex
-    const rootRow = new Row({ type: 'Row', mainAxisSize: MainAxisSize.Min });
-    const subCol = new Column({ type: 'Column', mainAxisSize: MainAxisSize.Min });
+    const rootRow = new Row({ mainAxisSize: MainAxisSize.Min });
+    const subCol = new Column({ mainAxisSize: MainAxisSize.Min });
     const item = new TestContainer({ width: 50, height: 50 });
 
     subCol.children = [item];

@@ -24,7 +24,7 @@ describe('JSX 编译器', () => {
   it('应该能够编译标准 Widget 组件', () => {
     const el = jsx(Text, { text: 'Hello' }) as AnyElement;
     const data = compileElement(el);
-    expect(data.type).toBe('Text');
+    expect(data.__inkwellType).toBe('Text');
     expect((data as any).text).toBe('Hello');
   });
 
@@ -41,7 +41,7 @@ describe('JSX 编译器', () => {
     const data = compileElement(el);
 
     // 期望结果：函数组件被展开，最终得到 Text 组件的数据
-    expect(data.type).toBe('Text');
+    expect(data.__inkwellType).toBe('Text');
     expect((data as any).text).toBe('World');
   });
 
@@ -52,7 +52,7 @@ describe('JSX 编译器', () => {
     const el = jsx(Parent, { name: 'Nested' }) as AnyElement;
     const data = compileElement(el);
 
-    expect(data.type).toBe('Text');
+    expect(data.__inkwellType).toBe('Text');
     expect((data as any).text).toBe('Nested');
   });
 
@@ -67,9 +67,9 @@ describe('JSX 编译器', () => {
 
     const data = compileElement(el);
 
-    expect(data.type).toBe('Column');
+    expect(data.__inkwellType).toBe('Column');
     expect(data.children).toHaveLength(2);
-    expect(data.children?.[0].type).toBe('Text');
+    expect(data.children?.[0].__inkwellType).toBe('Text');
     expect((data.children?.[0] as any).text).toBe('Child 1');
   });
 });

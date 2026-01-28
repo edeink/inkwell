@@ -78,20 +78,19 @@ describe('MarkdownPreview 顺序问题回归', () => {
     const ast = parser.parse(md);
     const nodes = ast.children ?? [];
 
-    const columnData: WidgetProps = {
-      type: 'Column',
-      crossAxisAlignment: CrossAxisAlignment.Start,
-      mainAxisAlignment: MainAxisAlignment.Start,
-      mainAxisSize: MainAxisSize.Min,
-      children: nodes.map((node, index) =>
-        compileElement(BlockNodeRenderer({ node, theme: Themes.light, key: String(index) }) as any),
-      ),
-    };
-
-    const scrollViewData: WidgetProps = {
-      type: 'ScrollView',
-      children: [columnData],
-    };
+    const scrollViewData: WidgetProps = compileElement(
+      <ScrollView>
+        <Column
+          crossAxisAlignment={CrossAxisAlignment.Start}
+          mainAxisAlignment={MainAxisAlignment.Start}
+          mainAxisSize={MainAxisSize.Min}
+        >
+          {nodes.map((node, index) => (
+            <BlockNodeRenderer key={String(index)} node={node} theme={Themes.light} />
+          ))}
+        </Column>
+      </ScrollView>,
+    ) as WidgetProps;
 
     const scrollView = WidgetRegistry.createWidget(scrollViewData)!;
     scrollView.createElement(scrollViewData);
@@ -136,20 +135,19 @@ describe('MarkdownPreview 顺序问题回归', () => {
     const ast = parser.parse(md);
     const nodes = ast.children ?? [];
 
-    const columnData: WidgetProps = {
-      type: 'Column',
-      crossAxisAlignment: CrossAxisAlignment.Start,
-      mainAxisAlignment: MainAxisAlignment.Start,
-      mainAxisSize: MainAxisSize.Min,
-      children: nodes.map((node, index) =>
-        compileElement(BlockNodeRenderer({ node, theme: Themes.light, key: String(index) }) as any),
-      ),
-    };
-
-    const scrollViewData: WidgetProps = {
-      type: 'ScrollView',
-      children: [columnData],
-    };
+    const scrollViewData: WidgetProps = compileElement(
+      <ScrollView>
+        <Column
+          crossAxisAlignment={CrossAxisAlignment.Start}
+          mainAxisAlignment={MainAxisAlignment.Start}
+          mainAxisSize={MainAxisSize.Min}
+        >
+          {nodes.map((node, index) => (
+            <BlockNodeRenderer key={String(index)} node={node} theme={Themes.light} />
+          ))}
+        </Column>
+      </ScrollView>,
+    ) as WidgetProps;
 
     const scrollView = WidgetRegistry.createWidget(scrollViewData)!;
     scrollView.createElement(scrollViewData);
@@ -181,12 +179,12 @@ describe('Widget.buildChildren 顺序处理', () => {
       }
     }
 
-    const host = new Host({ type: 'Column', key: 'host' } as any);
-    host.createElement({ type: 'Column', key: 'host', children: [] } as any);
+    const host = new Host({ key: 'host' } as any);
+    host.createElement({ key: 'host', children: [] } as any);
 
-    const a = { type: 'Container', key: 'a' } as any;
-    const b = { type: 'Container', key: 'b' } as any;
-    const c = { type: 'Container', key: 'c' } as any;
+    const a = compileElement(<Container key="a" />);
+    const b = compileElement(<Container key="b" />);
+    const c = compileElement(<Container key="c" />);
 
     host.exposeBuild([a, b, c]);
     expect(host.children.map((w) => w.key)).toEqual(['a', 'b', 'c']);

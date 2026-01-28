@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CustomComponentType } from '../type';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import type { InkwellEvent } from '@/core/events';
 
 function createVP() {
   return new MindMapViewport({
-    type: CustomComponentType.MindMapViewport,
     key: 'v',
     scale: 1,
     tx: 0,
@@ -32,7 +30,7 @@ describe('触控板交互', () => {
 
   it('双指滚轮滚动应通过 rAF 实现平滑对角平移', () => {
     const spy = vi.fn();
-    vp.createElement({ type: CustomComponentType.MindMapViewport, key: 'v', onScroll: spy } as any);
+    vp.createElement({ key: 'v', onScroll: spy } as any);
     const raf = globalThis.requestAnimationFrame;
     globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
       cb(0);

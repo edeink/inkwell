@@ -28,7 +28,7 @@ function findFirstByType(node: any, type: string): any | null {
   if (!node) {
     return null;
   }
-  if (node.type === type) {
+  if (node.__inkwellType === type) {
     return node;
   }
   const children = node.children ?? [];
@@ -48,7 +48,6 @@ describe('RichTextPanel 浮动工具栏', () => {
     vi.useFakeTimers();
     const onChange = vi.fn();
     const panel = new RichTextPanel({
-      type: 'RichTextPanel',
       theme,
       value: {
         text: 'abc',
@@ -73,7 +72,6 @@ describe('RichTextPanel 浮动工具栏', () => {
   it('浮动工具栏应展示选区格式激活态', () => {
     const onChange = vi.fn();
     const panel = new RichTextPanel({
-      type: 'RichTextPanel',
       theme,
       value: 'abc',
       onChange,
@@ -108,7 +106,6 @@ describe('RichTextPanel 浮动工具栏', () => {
     expect(toolbarElement).toBeTruthy();
 
     const toolbar = new RichTextToolbar({
-      type: 'RichTextToolbar',
       theme: (toolbarElement as any).theme,
       editor: (toolbarElement as any).editor,
       variant: (toolbarElement as any).variant,
@@ -124,10 +121,9 @@ describe('RichTextPanel 浮动工具栏', () => {
 
     const colorPickerElement = findByKey(toolbarTree, 'rt-btn-color');
     expect(colorPickerElement).toBeTruthy();
-    expect((colorPickerElement as any).type).toBe('ColorPicker');
+    expect((colorPickerElement as any).__inkwellType).toBe('ColorPicker');
 
     const colorPicker = new ColorPicker({
-      type: 'ColorPicker',
       widgetKey: (colorPickerElement as any).widgetKey,
       theme: (colorPickerElement as any).theme,
       width: (colorPickerElement as any).width,
@@ -158,7 +154,6 @@ describe('RichTextPanel 浮动工具栏', () => {
   it('失焦后仍应保持浮动工具栏可见', () => {
     const onChange = vi.fn();
     const panel = new RichTextPanel({
-      type: 'RichTextPanel',
       theme,
       value: 'abc',
       onChange,
@@ -183,7 +178,6 @@ describe('RichTextPanel 浮动工具栏', () => {
   it('编辑器 blur 不应清空 selectionFromDrag', () => {
     const onChange = vi.fn();
     const panel = new RichTextPanel({
-      type: 'RichTextPanel',
       theme,
       value: 'abc',
       onChange,
@@ -214,7 +208,6 @@ describe('RichTextPanel 浮动工具栏', () => {
     const onChange = vi.fn();
     const onSelectionInfo = vi.fn();
     const panel = new RichTextPanel({
-      type: 'RichTextPanel',
       theme,
       value: 'abc',
       onChange,

@@ -15,7 +15,6 @@ describe('SpreadsheetGrid 编辑交互', () => {
   it('双击单元格应触发 onCellDoubleClick 回调', () => {
     const onCellDoubleClick = vi.fn();
     const grid = new SpreadsheetGrid({
-      type: 'SpreadsheetGrid',
       model,
       theme,
       scrollX: 0,
@@ -61,7 +60,6 @@ describe('SpreadsheetGrid 编辑交互', () => {
 
   it('渲染选区时应包含填充手柄 (Fill Handle)', () => {
     const grid = new SpreadsheetGrid({
-      type: 'SpreadsheetGrid',
       model,
       theme,
       scrollX: 0,

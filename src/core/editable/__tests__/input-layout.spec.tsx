@@ -20,9 +20,9 @@ describe('Input 布局', () => {
   });
 
   it('password 模式高度自适应且 Stack 宽度应撑满', () => {
-    const input = new Input({ type: 'Input', value: 'Hello', inputType: 'password' } as any);
+    const input = new Input({ value: 'Hello', type: 'password' } as any);
     try {
-      input.createElement({ type: 'Input', value: 'Hello', inputType: 'password' } as any);
+      input.createElement({ value: 'Hello', type: 'password' } as any);
       input.layout(
         createBoxConstraints({ minWidth: 384, maxWidth: 384, minHeight: 0, maxHeight: 716 }),
       );

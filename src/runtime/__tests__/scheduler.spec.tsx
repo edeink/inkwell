@@ -95,7 +95,7 @@ describe('Runtime Scheduler (调度器)', () => {
 
     // 注入模拟渲染器
     (runtime as any).renderer = mockRenderer;
-    const root = new TestWidget({ type: 'TestWidget' });
+    const root = new TestWidget({});
     root.createElement(root.data);
     (runtime as any).rootWidget = root;
     if ((runtime as any).rootWidget) {
@@ -114,7 +114,7 @@ describe('Runtime Scheduler (调度器)', () => {
     const rebuildSpy = vi.spyOn(runtime, 'rebuild').mockImplementation(async () => {
       (runtime as any).dirtyWidgets.clear();
     });
-    const widget = new TestWidget({ type: 'TestWidget' });
+    const widget = new TestWidget({});
     widget.createElement(widget.data);
 
     runtime.scheduleUpdate(widget);
@@ -132,9 +132,9 @@ describe('Runtime Scheduler (调度器)', () => {
     const rebuildSpy = vi.spyOn(runtime, 'rebuild').mockImplementation(async () => {
       (runtime as any).dirtyWidgets.clear();
     });
-    const widget1 = new TestWidget({ type: 'TestWidget' });
+    const widget1 = new TestWidget({});
     widget1.createElement(widget1.data);
-    const widget2 = new TestWidget({ type: 'TestWidget' });
+    const widget2 = new TestWidget({});
     widget2.createElement(widget2.data);
 
     runtime.scheduleUpdate(widget1);
@@ -153,7 +153,7 @@ describe('Runtime Scheduler (调度器)', () => {
     const rebuildSpy = vi.spyOn(runtime, 'rebuild').mockImplementation(async () => {
       (runtime as any).dirtyWidgets.clear();
     });
-    const widget = new TestWidget({ type: 'TestWidget' });
+    const widget = new TestWidget({});
     widget.createElement(widget.data);
 
     runtime.scheduleUpdate(widget);
@@ -177,13 +177,13 @@ describe('Runtime Scheduler (调度器)', () => {
       if (callCount === 1) {
         // 模拟在构建过程中产生了新的脏节点
         // 例如：子组件在 build 时触发了状态更新
-        const w = new TestWidget({ type: 'TestWidget' });
+        const w = new TestWidget({});
         w.createElement(w.data);
         runtime.scheduleUpdate(w);
       }
     });
 
-    const w = new TestWidget({ type: 'TestWidget' });
+    const w = new TestWidget({});
     w.createElement(w.data);
     runtime.scheduleUpdate(w);
 
@@ -201,13 +201,13 @@ describe('Runtime Scheduler (调度器)', () => {
       // 每次重建都产生新的脏节点，模拟死循环
       // 限制产生脏节点的次数，防止测试环境真的无限循环（虽然 runtime 有保护，但在某些 mock 场景下更安全）
       if (count < 20) {
-        const w = new TestWidget({ type: 'TestWidget' });
+        const w = new TestWidget({});
         w.createElement(w.data);
         runtime.scheduleUpdate(w);
       }
     });
 
-    const w = new TestWidget({ type: 'TestWidget' });
+    const w = new TestWidget({});
     w.createElement(w.data);
     runtime.scheduleUpdate(w);
 
@@ -224,7 +224,7 @@ describe('Runtime Scheduler (调度器)', () => {
       throw new Error('Fail');
     });
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const widget = new TestWidget({ type: 'TestWidget' });
+    const widget = new TestWidget({});
     widget.createElement(widget.data);
 
     runtime.scheduleUpdate(widget);
@@ -252,7 +252,7 @@ describe('Runtime Scheduler (调度器)', () => {
   });
 
   it('destroy 应清理可编辑组件的隐藏输入框', async () => {
-    const root = new TestEditableWidget({ type: 'TestEditableWidget' });
+    const root = new TestEditableWidget({});
     root.createElement(root.data);
     (runtime as any).rootWidget = root;
     (runtime as any).rootWidget.runtime = runtime;

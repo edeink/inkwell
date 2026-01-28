@@ -14,7 +14,7 @@ class SizeReporter extends Widget {
     public width: number,
     public height: number,
   ) {
-    super({ type: 'SizeReporter' });
+    super({});
   }
   protected performLayout(constraints: BoxConstraints): Size {
     // 确保宽度在约束范围内
@@ -31,7 +31,6 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
     // 预期 Expanded 宽度: 300
 
     const row = new Row({
-      type: 'Row',
       mainAxisSize: MainAxisSize.Max,
     });
 
@@ -40,7 +39,6 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
     const expandedChild = new SizeReporter(10, 50); // 固有尺寸很小
 
     const expanded = new Expanded({
-      type: 'Expanded',
       flex: { flex: 1 },
     });
     // 手动设置 children (模拟 build 过程)
@@ -81,15 +79,15 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
     // 父容器宽度: 300
     // 预期: 100 + 200
 
-    const row = new Row({ type: 'Row' });
+    const row = new Row({});
 
     const child1 = new SizeReporter(10, 50);
-    const expanded1 = new Expanded({ type: 'Expanded', flex: { flex: 1 } });
+    const expanded1 = new Expanded({ flex: { flex: 1 } });
     (expanded1 as any).children = [child1];
     child1.parent = expanded1;
 
     const child2 = new SizeReporter(10, 50);
-    const expanded2 = new Expanded({ type: 'Expanded', flex: { flex: 2 } });
+    const expanded2 = new Expanded({ flex: { flex: 2 } });
     (expanded2 as any).children = [child2];
     child2.parent = expanded2;
 
@@ -111,10 +109,10 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
     // 初始宽度: 150 -> Expanded: 100
     // 调整宽度: 250 -> Expanded: 200
 
-    const row = new Row({ type: 'Row' });
+    const row = new Row({});
     const fixed = new SizeReporter(50, 50);
     const child = new SizeReporter(10, 50);
-    const expanded = new Expanded({ type: 'Expanded', flex: { flex: 1 } });
+    const expanded = new Expanded({ flex: { flex: 1 } });
     (expanded as any).children = [child];
     child.parent = expanded;
 
@@ -134,8 +132,8 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
   });
 
   it('极端情况：父容器宽度为 0', () => {
-    const row = new Row({ type: 'Row' });
-    const expanded = new Expanded({ type: 'Expanded', flex: { flex: 1 } });
+    const row = new Row({});
+    const expanded = new Expanded({ flex: { flex: 1 } });
     const child = new SizeReporter(10, 50);
     (expanded as any).children = [child];
     child.parent = expanded;
@@ -152,8 +150,8 @@ describe('Row with Expanded (自动伸缩布局测试)', () => {
 
   it('极端情况：父容器宽度无限 (Infinity)', () => {
     // 如果宽度无限，Expanded 无法计算，应回退到 0
-    const row = new Row({ type: 'Row' });
-    const expanded = new Expanded({ type: 'Expanded', flex: { flex: 1 } });
+    const row = new Row({});
+    const expanded = new Expanded({ flex: { flex: 1 } });
     const child = new SizeReporter(10, 50);
     (expanded as any).children = [child];
     child.parent = expanded;

@@ -49,7 +49,7 @@ function findFirstCompiledContainerColor(
   if (!node || typeof node !== 'object') {
     return undefined;
   }
-  if (node.type === 'Container' && typeof node.color === 'string' && predicate(node)) {
+  if (node.__inkwellType === 'Container' && typeof node.color === 'string' && predicate(node)) {
     return node.color;
   }
   const children = node.children;
@@ -79,7 +79,6 @@ describe('TextArea 组件', () => {
     document.body.innerHTML = '';
 
     props = {
-      type: 'TextArea',
       value: '第一行\n第二行',
       onChange: vi.fn(),
     };
@@ -120,7 +119,7 @@ describe('TextArea 组件', () => {
 
   it('拖拽选区时应阻止事件冒泡并更新选区', () => {
     const element = compileElement(textareaComponent.render()) as any;
-    expect(element.type, '根节点应为 Container').toBe('Container');
+    expect(element.__inkwellType, '根节点应为 Container').toBe('Container');
 
     const stopPropagation = vi.fn();
 

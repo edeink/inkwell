@@ -9,13 +9,13 @@ import { compileElement } from '@/utils/compiler/jsx-compiler';
 // 测试用的具体 Widget 类，用于验证基类逻辑
 class TestWidget extends Widget {
   constructor(key?: string) {
-    super({ type: 'TestWidget', key } as any);
+    super({ key } as any);
   }
 }
 
 class AnotherWidget extends Widget {
   constructor(key?: string) {
-    super({ type: 'AnotherWidget', key } as any);
+    super({ key } as any);
   }
 }
 

@@ -67,7 +67,6 @@ describe('FrostedGlassCard', () => {
     } as any;
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -95,7 +94,6 @@ describe('FrostedGlassCard', () => {
     } as any;
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -125,7 +123,6 @@ describe('FrostedGlassCard', () => {
     const createEl = vi.spyOn(document, 'createElement');
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -152,7 +149,6 @@ describe('FrostedGlassCard', () => {
     } as any;
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -188,7 +184,6 @@ describe('FrostedGlassCard', () => {
     } as any;
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -219,7 +214,6 @@ describe('FrostedGlassCard', () => {
     WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -242,7 +236,6 @@ describe('FrostedGlassCard', () => {
     WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -280,7 +273,6 @@ describe('FrostedGlassCard', () => {
     vi.stubGlobal('cancelAnimationFrame', caf);
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,
@@ -309,7 +301,6 @@ describe('FrostedGlassCard', () => {
     vi.stubGlobal('requestAnimationFrame', raf);
 
     const w = new FrostedGlassCard({
-      type: 'FrostedGlassCard',
       width: 420,
       height: 240,
       theme: Themes.light,

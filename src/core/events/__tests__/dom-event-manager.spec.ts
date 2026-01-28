@@ -8,14 +8,14 @@ import { EventRegistry } from '../registry';
 // 模拟 Widget
 class TestWidget extends Widget {
   constructor(props: any) {
-    super({ ...props, type: 'TestWidget' });
+    super({ ...props });
   }
 }
 
 // 模拟复合 Widget
 class CompositeWidget extends Widget {
   constructor(props: any) {
-    super({ ...props, type: 'CompositeWidget' });
+    super({ ...props });
   }
 }
 

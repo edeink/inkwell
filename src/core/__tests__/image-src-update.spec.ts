@@ -56,7 +56,7 @@ describe('Image 组件', () => {
       getRawInstance: () => null,
     } as any;
 
-    const img = new Image({ type: 'image', src: 'a', width: 20, height: 20 } as any);
+    const img = new Image({ src: 'a', width: 20, height: 20 } as any);
     img.createElement(img.data);
     img.layout(createBoxConstraints({ minWidth: 20, maxWidth: 20, minHeight: 20, maxHeight: 20 }));
 

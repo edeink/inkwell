@@ -233,7 +233,7 @@ export interface Ref<T = unknown> {
 export interface WidgetProps extends WidgetEventHandler {
   key?: string;
   ref?: Ref<unknown> | ((instance: unknown) => void);
-  type?: string; // TODO 此方法需要移除？
+  __inkwellType?: string;
   flex?: FlexProperties;
   zIndex?: number;
   opacity?: number;

@@ -38,7 +38,6 @@ describe('嵌套 ScrollView', () => {
 
     // 1. 创建 Inner ScrollView
     const innerScrollView = new ScrollView({
-      type: 'ScrollView',
       enableBounce: false,
       width: 100,
       height: 50,
@@ -82,7 +81,6 @@ describe('嵌套 ScrollView', () => {
 
   it('当内部 ScrollView 开启回弹且到达边界时，不应消费事件', () => {
     const innerScrollView = new ScrollView({
-      type: 'ScrollView',
       enableBounce: true,
       width: 100,
       height: 50,
@@ -117,14 +115,12 @@ describe('嵌套 ScrollView', () => {
 
   it('嵌套场景：内层到底后应让外层消费并阻止默认滚动', () => {
     const outer = new ScrollView({
-      type: 'ScrollView',
       enableBounce: false,
       width: 100,
       height: 100,
     });
     const inner = new ScrollView({
-      type: 'ScrollView',
-      enableBounce: true,
+      enableBounce: false,
       width: 100,
       height: 50,
     });
@@ -152,13 +148,11 @@ describe('嵌套 ScrollView', () => {
 
   it('DOM 互操作：所有 ScrollView 都无法继续滚动时不应阻止默认滚动', () => {
     const outer = new ScrollView({
-      type: 'ScrollView',
       enableBounce: true,
       width: 100,
       height: 100,
     });
     const inner = new ScrollView({
-      type: 'ScrollView',
       enableBounce: true,
       width: 100,
       height: 50,
@@ -187,13 +181,11 @@ describe('嵌套 ScrollView', () => {
 
   it('DOM 互操作：自下而上滚动到顶后应允许交给 DOM 默认滚动', () => {
     const outer = new ScrollView({
-      type: 'ScrollView',
       enableBounce: true,
       width: 100,
       height: 100,
     });
     const inner = new ScrollView({
-      type: 'ScrollView',
       enableBounce: true,
       width: 100,
       height: 50,
@@ -222,19 +214,15 @@ describe('嵌套 ScrollView', () => {
 
   it('不同方向嵌套：内层可滚动时外层不应收到滚动', () => {
     const outer = new ScrollView({
-      type: 'ScrollView',
       enableBounce: false,
       width: 100,
       height: 100,
     });
     const inner = new ScrollView({
-      type: 'ScrollView',
       enableBounce: false,
       width: 100,
       height: 50,
     });
-
-    (outer as any).children = [inner];
     inner.parent = outer;
 
     (outer as any)._contentSize = { width: 100, height: 300 };

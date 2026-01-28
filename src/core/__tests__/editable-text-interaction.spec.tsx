@@ -9,7 +9,11 @@ describe('TextArea 交互', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     vi.useFakeTimers();
-    editor = new TextArea({ type: 'TextArea', value: 'Hello', onFocus: vi.fn(), onBlur: vi.fn() });
+    editor = new TextArea({
+      value: 'Hello',
+      onFocus: vi.fn(),
+      onBlur: vi.fn(),
+    });
   });
 
   afterEach(() => {

@@ -63,14 +63,14 @@ describe('RichTextToolbar - 可复用组件', () => {
       </ToolbarButton>,
     );
 
-    expect(data.type).toBe('Container');
+    expect(data.__inkwellType).toBe('Container');
     expect(data.key).toBe('rt-test-btn');
     expect((data as any).cursor).toBe('pointer');
     expect((data as any).width).toBe(28);
     expect((data as any).height).toBe(28);
     expect((data as any).color).toBe(theme.background.container);
     expect((data as any).border?.color).toBe(theme.border.base);
-    expect(data.children?.[0].type).toBe('Text');
+    expect(data.children?.[0].__inkwellType).toBe('Text');
     expect((data.children?.[0] as any).text).toBe('X');
   });
 
@@ -81,7 +81,6 @@ describe('RichTextToolbar - 可复用组件', () => {
     const onClose = vi.fn();
 
     const widget = new Select<number>({
-      type: 'Select',
       key: 'rt-test-select',
       widgetKey: 'rt-test-select',
       theme,
@@ -145,10 +144,10 @@ describe('RichTextToolbar - 可复用组件', () => {
       />,
     );
 
-    expect(data.type).toBe('Container');
+    expect(data.__inkwellType).toBe('Container');
     expect(data.key).toBe('rt-test-color-trigger');
     expect((data as any).color).toBe(theme.state.hover);
-    expect(data.children?.[0].type).toBe('Icon');
+    expect(data.children?.[0].__inkwellType).toBe('Icon');
   });
 
   it('ToolbarColorPickerDropdown：色块点击应触发 onPick，并阻止冒泡', () => {
@@ -190,7 +189,6 @@ describe('RichTextToolbar - 可复用组件', () => {
     const onClose = vi.fn();
 
     const widget = new ColorPicker({
-      type: 'ColorPicker',
       key: 'rt-test-cp',
       widgetKey: 'rt-test-cp',
       theme,

@@ -85,7 +85,7 @@ export function compileElement(element: AnyElement): ComponentData {
   if (
     maybeData &&
     typeof maybeData === 'object' &&
-    typeof maybeData.type === 'string' &&
+    typeof maybeData.__inkwellType === 'string' &&
     !('props' in (element as unknown as Record<string, unknown>))
   ) {
     return maybeData;
@@ -117,7 +117,7 @@ export function compileElement(element: AnyElement): ComponentData {
         console.error(`Error rendering functional component ${resolveTypeName(type)}:`, e);
         // 返回一个错误占位或空对象
         return {
-          type: 'Container' as ComponentType,
+          __inkwellType: 'Container' as ComponentType,
           children: [],
         } as unknown as ComponentData;
       }
@@ -132,7 +132,7 @@ export function compileElement(element: AnyElement): ComponentData {
     : (typeName as unknown as ComponentType);
 
   const data: ComponentData = {
-    type: componentType,
+    __inkwellType: componentType,
     key: key,
   } as ComponentData;
 
@@ -146,7 +146,7 @@ export function compileElement(element: AnyElement): ComponentData {
 
   // 优化：使用 for...in 替代 Object.entries 以减少数组分配
   for (const k in p) {
-    if (k === 'children' || k === 'key' || k === 'type') {
+    if (k === 'children' || k === 'key' || k === '__inkwellType') {
       continue;
     }
     const v = p[k];

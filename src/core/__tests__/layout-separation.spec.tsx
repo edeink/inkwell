@@ -1,7 +1,10 @@
+/** @jsxImportSource @/utils/compiler */
 import { describe, expect, it } from 'vitest';
 
 import { Widget, createBoxConstraints, type WidgetProps } from '../base';
 import { WidgetRegistry } from '../registry';
+
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 class TestContainer extends Widget {
   protected performLayout(constraints: any, childrenSizes: any[]) {
@@ -20,13 +23,12 @@ WidgetRegistry.registerType('TestChild', TestChild);
 
 describe('布局分离逻辑', () => {
   it('如果在布局前未构建子节点则应抛出错误', () => {
-    const rootData: WidgetProps = {
-      type: 'TestContainer',
-      children: [{ type: 'TestChild' }],
-    };
-
-    // 创建 Widget 但未构建子节点（未调用 createElement）
-    const root = WidgetRegistry.createWidget(rootData)!;
+    const data = compileElement(
+      <TestContainer>
+        <TestChild />
+      </TestContainer>,
+    ) as unknown as WidgetProps;
+    const root = WidgetRegistry.createWidget(data)!;
 
     expect(root.children.length).toBe(0);
 
@@ -38,13 +40,13 @@ describe('布局分离逻辑', () => {
   });
 
   it('如果在布局前已构建子节点则应通过', () => {
-    const rootData: WidgetProps = {
-      type: 'TestContainer',
-      children: [{ type: 'TestChild' }],
-    };
-
-    const root = WidgetRegistry.createWidget(rootData)!;
-    root.createElement(rootData); // 显式构建子节点
+    const data = compileElement(
+      <TestContainer>
+        <TestChild />
+      </TestContainer>,
+    ) as unknown as WidgetProps;
+    const root = WidgetRegistry.createWidget(data)!;
+    root.createElement(data); // 显式构建子节点
 
     expect(root.children.length).toBe(1);
 
@@ -55,13 +57,9 @@ describe('布局分离逻辑', () => {
   });
 
   it('应正确处理空子树', () => {
-    const rootData: WidgetProps = {
-      type: 'TestContainer',
-      children: [], // 显式设置空子节点
-    };
-
-    const root = WidgetRegistry.createWidget(rootData)!;
-    root.createElement(rootData);
+    const data = compileElement(<TestContainer />) as unknown as WidgetProps;
+    const root = WidgetRegistry.createWidget(data)!;
+    root.createElement(data);
 
     expect(root.children.length).toBe(0);
 
@@ -73,13 +71,9 @@ describe('布局分离逻辑', () => {
   });
 
   it('应正确处理单节点', () => {
-    const rootData: WidgetProps = {
-      type: 'TestContainer',
-      // 无 children 属性意味着为空或叶节点
-    };
-
-    const root = WidgetRegistry.createWidget(rootData)!;
-    root.createElement(rootData);
+    const data = compileElement(<TestContainer />) as unknown as WidgetProps;
+    const root = WidgetRegistry.createWidget(data)!;
+    root.createElement(data);
 
     expect(root.children.length).toBe(0);
 

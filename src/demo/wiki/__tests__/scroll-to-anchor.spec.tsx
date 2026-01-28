@@ -7,14 +7,13 @@ import { Themes } from '@/styles/theme';
 
 class TestRoot extends Widget {
   constructor() {
-    super({ type: 'TestRoot', key: 'root' } as any);
+    super({ key: 'root' } as any);
   }
 }
 
 function createWikiAppForTest(opts: { viewportH: number; contentH: number }) {
   const scrollTo = vi.fn();
   const app = new WikiApp({
-    type: 'WikiApp',
     width: 800,
     height: 600,
     theme: Themes.light,

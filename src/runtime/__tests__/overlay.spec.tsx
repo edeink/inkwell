@@ -41,7 +41,7 @@ class PaintSpyWidget extends Widget<WidgetProps> {
     key: string,
     private calls: string[],
   ) {
-    super({ type: 'PaintSpyWidget', key } as any);
+    super({ key } as any);
   }
 
   layout(_constraints: unknown): Size {

@@ -39,7 +39,7 @@ export interface RuntimeOptions {
  * JSON组件数据接口
  */
 export interface ComponentData {
-  type: ComponentType;
+  __inkwellType: ComponentType;
   children?: ComponentData[];
   [key: string]: unknown;
 }
@@ -311,7 +311,7 @@ export default class Runtime {
       return this.overlayHost;
     }
     const host = new Stack({
-      type: 'Stack',
+      __inkwellType: 'Stack',
       key: '__inkwell_overlay__',
       allowOverflowPositioned: true,
       alignment: 'topLeft',
@@ -617,7 +617,7 @@ export default class Runtime {
 
       let reused = false;
       // 尝试复用根节点
-      if (this.rootWidget && this.rootWidget.type === jsonData.type) {
+      if (this.rootWidget && this.rootWidget.type === jsonData.__inkwellType) {
         // 如果提供了key，必须匹配才能复用
         // 注意：jsonData.key 可能为 null 或 undefined
         if (jsonData.key == null || jsonData.key === this.rootWidget.key) {
@@ -738,14 +738,14 @@ export default class Runtime {
    * @returns Widget实例
    */
   private parseComponentData(data: ComponentData): Widget | null {
-    if (!data || !data.type) {
+    if (!data || !data.__inkwellType) {
       console.warn('Invalid component data:', data);
       return null;
     }
 
     // 确保数据完整性
     // if (!data.key) {
-    //   console.warn('Missing key for component:', data.type);
+    //   console.warn('Missing key for component:', data.__inkwellType);
     // }
 
     // 直接使用原始数据创建Widget，让Widget构造函数处理children的递归创建
@@ -754,7 +754,7 @@ export default class Runtime {
       if (w) {
         return w;
       }
-      const ext = createExternalWidget(data.type, data);
+      const ext = createExternalWidget(data.__inkwellType, data);
       return ext;
     } catch (error) {
       console.error('创建组件失败:', error, data);

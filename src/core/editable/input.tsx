@@ -2,6 +2,7 @@
 import { Container } from '../container';
 import { Icon } from '../icon';
 import { Positioned } from '../positioned';
+import { WidgetRegistry } from '../registry';
 import { Stack } from '../stack';
 import { Text } from '../text';
 import { ScrollView } from '../viewport/scroll-view';
@@ -41,6 +42,7 @@ const PASSWORD_ICON_PADDING_RIGHT: [number, number, number, number] = [0, 28, 0,
  * 在 EditableProps 基础上补充文本颜色等展示相关参数。
  */
 export interface InputProps extends EditableProps {
+  type?: string;
   inputType?: 'text' | 'password';
   /** 文本颜色 */
   color?: string;
@@ -62,12 +64,39 @@ export class Input extends Editable<InputProps> {
   protected createDomInput(): HTMLInputElement {
     // 单行输入使用原生 input 捕获键盘与输入法事件
     const input = document.createElement('input');
-    input.type = this.isPassword() ? 'password' : 'text';
+    const t = this.getDomInputType();
+    input.type = t;
     return input;
   }
 
+  private resolveDomInputTypeFromProps(props: InputProps): string {
+    const raw = props.inputType ?? props.type;
+    if (typeof raw !== 'string' || !raw) {
+      return 'text';
+    }
+    if (raw === this.type) {
+      return 'text';
+    }
+    const dt = props.__inkwellType;
+    if (typeof dt === 'string' && dt && raw === dt) {
+      return 'text';
+    }
+    if (WidgetRegistry.hasRegisteredType(raw)) {
+      return 'text';
+    }
+    const lower = raw.toLowerCase();
+    if (lower === 'text' || lower === 'password') {
+      return lower;
+    }
+    return raw;
+  }
+
+  private getDomInputType(): string {
+    return this.resolveDomInputTypeFromProps(this.props);
+  }
+
   private isPassword(): boolean {
-    return this.props.inputType === 'password';
+    return this.getDomInputType() === 'password';
   }
 
   private getDisplayText(): string {
@@ -185,8 +214,10 @@ export class Input extends Editable<InputProps> {
   }
 
   protected override didUpdateWidget(oldProps: InputProps) {
-    if (this.input && oldProps.inputType !== this.props.inputType) {
-      (this.input as HTMLInputElement).type = this.isPassword() ? 'password' : 'text';
+    const prevType = this.resolveDomInputTypeFromProps(oldProps);
+    const nextType = this.resolveDomInputTypeFromProps(this.props);
+    if (this.input && prevType !== nextType) {
+      (this.input as HTMLInputElement).type = this.getDomInputType();
     }
     super.didUpdateWidget(oldProps);
   }

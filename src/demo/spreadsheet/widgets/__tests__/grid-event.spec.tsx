@@ -10,7 +10,6 @@ describe('Grid 事件触发', () => {
 
     // Text (子组件) - 使用 Container 模拟 Text 组件行为
     const text = new Container({
-      type: 'Text',
       width: 50,
       height: 20,
       pointerEvent: 'none',
@@ -19,7 +18,6 @@ describe('Grid 事件触发', () => {
 
     // Cell Container (单元格容器)
     const cell = new Container({
-      type: 'Container',
       width: 100,
       height: 50,
       color: 'red',
@@ -34,16 +32,13 @@ describe('Grid 事件触发', () => {
     text.parent = cell;
 
     // Stack (堆叠布局)
-    const stack = new Stack({
-      type: 'Stack',
-    });
+    const stack = new Stack({});
     stack.createElement(stack.data);
     stack.children = [cell];
     cell.parent = stack;
 
     // Root (根节点)
     const root = new Container({
-      type: 'Container',
       width: 800,
       height: 600,
     });
@@ -75,7 +70,6 @@ describe('Grid 事件触发', () => {
 
     // 带有 props 绑定的 Cell
     const cell = new Container({
-      type: 'Container',
       width: 100,
       height: 50,
       color: 'blue',
@@ -90,7 +84,6 @@ describe('Grid 事件触发', () => {
 
     // Root 设置
     const root = new Container({
-      type: 'Container',
       width: 800,
       height: 600,
     });

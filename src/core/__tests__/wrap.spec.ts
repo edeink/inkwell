@@ -13,7 +13,7 @@ class FixedSizeBox extends Widget {
     public w: number,
     public h: number,
   ) {
-    super({ type: 'FixedSizeBox' });
+    super({});
   }
 
   protected performLayout(constraints: BoxConstraints): Size {
@@ -39,7 +39,6 @@ describe('Wrap 布局', () => {
     const child3 = new FixedSizeBox(100, 100);
 
     const wrap = new Wrap({
-      type: 'Wrap',
       spacing: 10,
       runSpacing: 10,
     });
@@ -74,7 +73,7 @@ describe('Wrap 布局', () => {
 
     const child1 = new FixedSizeBox(100, 100);
     const child2 = new FixedSizeBox(100, 100);
-    const wrap = new Wrap({ type: 'Wrap', spacing: 10 });
+    const wrap = new Wrap({ spacing: 10 });
 
     (wrap as any).children = [child1, child2];
     (wrap as any)._isBuilt = true;
@@ -94,21 +93,19 @@ describe('Wrap 布局', () => {
 
   it('应当支持基线对齐（RichText）', () => {
     const normal = new Text({
-      type: 'Text',
       text: '2023、2024 为',
       fontSize: 14,
       lineHeight: 24,
       fontWeight: 'normal',
     });
     const bold = new Text({
-      type: 'Text',
       text: 'M+',
       fontSize: 14,
       lineHeight: 24,
       fontWeight: 'bold',
     });
 
-    const richText = new RichText({ type: 'RichText', spacing: 4, alignBaseline: true });
+    const richText = new RichText({ spacing: 4, alignBaseline: true });
     (richText as any).children = [normal, bold];
     (richText as any)._isBuilt = true;
     normal.parent = richText;
@@ -126,40 +123,42 @@ describe('Wrap 布局', () => {
     const lineHeight = 24;
 
     const single = new Text({
-      type: 'Text',
       text: 'AI 应用',
       fontSize,
       lineHeight,
       fontWeight: 'normal',
     });
     const splitA = new Text({
-      type: 'Text',
       text: 'AI',
       fontSize,
       lineHeight,
       fontWeight: 'normal',
     });
     const splitSpace = new Text({
-      type: 'Text',
       text: ' ',
       fontSize,
       lineHeight,
       fontWeight: 'normal',
     });
     const splitB = new Text({
-      type: 'Text',
       text: '应用',
       fontSize,
       lineHeight,
       fontWeight: 'normal',
     });
 
-    const richSingle = new RichText({ type: 'RichText', spacing: 0, alignBaseline: true });
+    const richSingle = new RichText({
+      spacing: 0,
+      alignBaseline: true,
+    });
     (richSingle as any).children = [single];
     (richSingle as any)._isBuilt = true;
     single.parent = richSingle;
 
-    const richSplit = new RichText({ type: 'RichText', spacing: 0, alignBaseline: true });
+    const richSplit = new RichText({
+      spacing: 0,
+      alignBaseline: true,
+    });
     (richSplit as any).children = [splitA, splitSpace, splitB];
     (richSplit as any)._isBuilt = true;
     splitA.parent = richSplit;

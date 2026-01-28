@@ -11,70 +11,61 @@ import { WidgetGalleryDemo } from '../widget-gallery/app';
 
 import { Widget } from '@/core/base';
 import { Themes } from '@/styles/theme';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('Demo Verification', () => {
-  it('InteractiveCounterDemo 应能正常渲染', () => {
-    const widget = new InteractiveCounterDemo({
-      theme: Themes.light,
-      type: 'InteractiveCounterDemo',
-    } as any);
+  it.each([
+    [
+      'InteractiveCounterDemo',
+      () => new InteractiveCounterDemo({ theme: Themes.light } as any),
+      true,
+    ],
+    ['SwiperDemoApp', () => new SwiperDemoApp({ theme: Themes.light } as any), true],
+    [
+      'SpreadsheetDemoApp',
+      () =>
+        new SpreadsheetDemoApp({
+          width: 800,
+          height: 600,
+          theme: Themes.light,
+        } as any),
+      true,
+    ],
+    [
+      'MindmapDemo',
+      () =>
+        new MindmapDemo({
+          width: 800,
+          height: 600,
+          theme: Themes.light,
+        } as any),
+      false,
+    ],
+    [
+      'ResumeDemoApp',
+      () =>
+        new ResumeDemoApp({
+          width: 800,
+          height: 600,
+          theme: Themes.light,
+        } as any),
+      true,
+    ],
+  ])('%s 应能正常初始化', (_name, createWidget, shouldRender) => {
+    const widget = createWidget();
     expect(widget).toBeDefined();
     expect(widget).toBeInstanceOf(Widget);
-    const result = widget.render();
-    expect(result).toBeDefined();
+    if (shouldRender) {
+      const result = widget.render();
+      expect(result).toBeDefined();
+    }
   });
 
   it('WidgetGalleryDemo 应能正常渲染', () => {
-    const result = WidgetGalleryDemo({ width: 800, height: 600, theme: Themes.light });
-    expect(result).toBeDefined();
-    // 函数组件会返回 ComponentData 对象
-    expect(result).toHaveProperty('type');
-  });
-
-  it('SwiperDemoApp 应能正常渲染', () => {
-    const widget = new SwiperDemoApp({ theme: Themes.light, type: 'SwiperDemoApp' } as any);
-    expect(widget).toBeDefined();
-    expect(widget).toBeInstanceOf(Widget);
-    const result = widget.render();
-    expect(result).toBeDefined();
-  });
-
-  it('SpreadsheetDemoApp 应能正常渲染', () => {
-    // SpreadsheetDemoApp 是 class 组件
-    const widget = new SpreadsheetDemoApp({
-      width: 800,
-      height: 600,
-      theme: Themes.light,
-      type: 'SpreadsheetDemoApp',
-    } as any);
-    expect(widget).toBeDefined();
-    expect(widget).toBeInstanceOf(Widget);
-    const result = widget.render();
-    expect(result).toBeDefined();
-  });
-
-  it('MindmapDemo 应能正常实例化', () => {
-    const widget = new MindmapDemo({
-      width: 800,
-      height: 600,
-      theme: Themes.light,
-      type: 'MindmapDemo',
-    } as any);
-    expect(widget).toBeDefined();
-    expect(widget).toBeInstanceOf(Widget);
-  });
-
-  it('ResumeDemoApp 应能正常渲染', () => {
-    const widget = new ResumeDemoApp({
-      width: 800,
-      height: 600,
-      theme: Themes.light,
-      type: 'ResumeDemoApp',
-    } as any);
-    expect(widget).toBeDefined();
-    expect(widget).toBeInstanceOf(Widget);
-    const result = widget.render();
-    expect(result).toBeDefined();
+    const el = WidgetGalleryDemo({ width: 800, height: 600, theme: Themes.light });
+    expect(el).toBeDefined();
+    const data = compileElement(el as any);
+    expect(data).toHaveProperty('__inkwellType');
   });
 
   it.each([

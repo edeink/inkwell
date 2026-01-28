@@ -174,7 +174,7 @@ export class ScrollView extends Viewport {
 
   private getScrollBarProps(orientation: 'vertical' | 'horizontal'): ScrollBarProps {
     return {
-      type: 'ScrollBar',
+      __inkwellType: 'ScrollBar',
       orientation,
       viewportSize: 0,
       contentSize: 0,

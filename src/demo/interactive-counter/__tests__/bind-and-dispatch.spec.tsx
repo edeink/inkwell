@@ -34,7 +34,6 @@ describe('Stateful Template 事件绑定', () => {
 
     // 2. 实例化模板
     const root = new InteractiveCounterDemo({
-      type: 'InteractiveCounterDemo',
       theme: Themes.light,
     });
     // 必须绑定 runtime，否则事件绑定会因为没有 runtime 而跳过注册

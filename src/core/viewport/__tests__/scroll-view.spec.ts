@@ -137,7 +137,7 @@ describe('ScrollView', () => {
   }
 
   it('应当默认关闭弹性效果', () => {
-    const sv = new TestScrollView({ type: 'ScrollView', width: 100, height: 100 });
+    const sv = new TestScrollView({ width: 100, height: 100 });
     sv.simulateLayout(100, 100, 200, 200);
 
     expect(sv.scrollX).toBe(0);
@@ -158,7 +158,6 @@ describe('ScrollView', () => {
 
   it('应当支持开启弹性效果', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -175,7 +174,6 @@ describe('ScrollView', () => {
 
   it('应当支持单独配置垂直/水平弹性', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounceVertical: true,
@@ -192,7 +190,6 @@ describe('ScrollView', () => {
 
   it('水平滚动时不应强制子节点撑满视口高度', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       enableBounceVertical: false,
       enableBounceHorizontal: true,
     });
@@ -222,7 +219,6 @@ describe('ScrollView', () => {
 
   it('仅水平滚动且未显式指定高度时应由内容高度决定视口高度', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       enableBounceVertical: false,
       enableBounceHorizontal: true,
     });
@@ -247,7 +243,6 @@ describe('ScrollView', () => {
 
   it('仅水平滚动时即使父级提供紧高度约束也应按内容高度收缩', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       enableBounceVertical: false,
       enableBounceHorizontal: true,
     });
@@ -272,7 +267,6 @@ describe('ScrollView', () => {
 
   it('仅设置 enableBounceHorizontal=true 时应视为仅水平滚动', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       enableBounceHorizontal: true,
     });
 
@@ -296,7 +290,6 @@ describe('ScrollView', () => {
 
   it('垂直滚动时不应强制子节点撑满视口宽度', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       enableBounceVertical: true,
       enableBounceHorizontal: false,
     });
@@ -327,7 +320,6 @@ describe('ScrollView', () => {
   it('应当限制最大回弹距离', () => {
     const maxBounce = 50;
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -344,7 +336,6 @@ describe('ScrollView', () => {
 
   it('应当根据视口动态限制最大回弹距离', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -361,7 +352,6 @@ describe('ScrollView', () => {
 
   it('应当应用非线性阻力', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 200,
       height: 200,
       enableBounce: true,
@@ -386,7 +376,6 @@ describe('ScrollView', () => {
   it('应当触发回弹完成回调', () => {
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -407,7 +396,6 @@ describe('ScrollView', () => {
 
   it('应当阻止 Chrome 默认的滑动返回行为 (水平滑动)', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
     });
@@ -422,7 +410,6 @@ describe('ScrollView', () => {
 
   it('垂直滚动时应阻止 DOM 默认滚动', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
     });
@@ -436,7 +423,6 @@ describe('ScrollView', () => {
 
   it('垂直到达边界且无法继续滚动时不应阻止默认行为', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: false,
@@ -451,7 +437,6 @@ describe('ScrollView', () => {
 
   it('拖动时超过边界不应回弹', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -479,7 +464,6 @@ describe('ScrollView', () => {
     const onBounceStart = vi.fn();
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -507,7 +491,6 @@ describe('ScrollView', () => {
     const onBounceStart = vi.fn();
     const onBounceComplete = vi.fn();
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -540,7 +523,6 @@ describe('ScrollView', () => {
 
   it('正向拖动超过边界应支持继续拖动', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -573,7 +555,6 @@ describe('ScrollView', () => {
 
   it('鼠标拖拽不应触发滚动', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
     });
@@ -588,7 +569,6 @@ describe('ScrollView', () => {
 
   it('布局性能优化', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
     });
@@ -612,7 +592,6 @@ describe('ScrollView', () => {
 
   it('嵌套滚动支持', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -630,7 +609,6 @@ describe('ScrollView', () => {
 
   it('默认行为：滚轮到达边界时应允许继续冒泡/交给外部处理', () => {
     const sv = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       enableBounce: true,
@@ -645,7 +623,6 @@ describe('ScrollView', () => {
 
   it('内容不足时不应显示滚动条', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 300,
       height: 400,
       alwaysShowScrollbarY: true,
@@ -660,7 +637,6 @@ describe('ScrollView', () => {
 
   it('scrollBarVisibilityMode=hidden 应当强制隐藏滚动条', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       scrollBarVisibilityMode: 'hidden',
@@ -676,7 +652,6 @@ describe('ScrollView', () => {
 
   it('scrollBarVisibilityMode=always 应当常显可滚动方向的滚动条', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 300,
       height: 400,
       scrollBarVisibilityMode: 'always',
@@ -691,7 +666,6 @@ describe('ScrollView', () => {
 
   it('scrollBarVisibilityMode=auto 应当常显可滚动方向的滚动条', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       scrollBarVisibilityMode: 'auto',
@@ -707,7 +681,6 @@ describe('ScrollView', () => {
 
   it('scrollBarVisibilityMode=auto 默认应常显垂直滚动条', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       scrollBarVisibilityMode: 'auto',
@@ -722,7 +695,6 @@ describe('ScrollView', () => {
 
   it('拖拽滚动条应当更新滚动位置', () => {
     const scrollView = new TestScrollView({
-      type: 'ScrollView',
       width: 100,
       height: 100,
       scrollBarVisibilityMode: 'auto',

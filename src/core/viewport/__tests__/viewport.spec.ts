@@ -4,7 +4,7 @@ import { Viewport } from '../viewport';
 
 describe('Viewport', () => {
   it('应使用默认值初始化', () => {
-    const viewport = new Viewport({ type: 'Viewport' });
+    const viewport = new Viewport({});
     expect(viewport.scale).toBe(1);
     expect(viewport.tx).toBe(0);
     expect(viewport.ty).toBe(0);
@@ -14,7 +14,6 @@ describe('Viewport', () => {
 
   it('应使用提供的值初始化', () => {
     const viewport = new Viewport({
-      type: 'Viewport',
       scale: 2,
       tx: 10,
       ty: 20,
@@ -30,7 +29,7 @@ describe('Viewport', () => {
 
   it('scrollTo 应更新滚动位置并通知监听器', () => {
     const onScroll = vi.fn();
-    const viewport = new Viewport({ type: 'Viewport', onScroll });
+    const viewport = new Viewport({ onScroll });
 
     viewport.scrollTo(50, 60);
 
@@ -41,7 +40,7 @@ describe('Viewport', () => {
 
   it('setTransform 应更新变换并通知监听器', () => {
     const onViewChange = vi.fn();
-    const viewport = new Viewport({ type: 'Viewport', onViewChange });
+    const viewport = new Viewport({ onViewChange });
 
     viewport.setTransform(1.5, 30, 40);
 
@@ -58,7 +57,7 @@ describe('Viewport', () => {
   });
 
   it('zoomIn 应增加缩放比例', () => {
-    const viewport = new Viewport({ type: 'Viewport', width: 800, height: 600 });
+    const viewport = new Viewport({ width: 800, height: 600 });
     const initialScale = viewport.scale;
 
     viewport.zoomIn();
@@ -67,7 +66,7 @@ describe('Viewport', () => {
   });
 
   it('zoomOut 应减小缩放比例', () => {
-    const viewport = new Viewport({ type: 'Viewport', width: 800, height: 600 });
+    const viewport = new Viewport({ width: 800, height: 600 });
     const initialScale = viewport.scale;
 
     viewport.zoomOut();
@@ -76,7 +75,7 @@ describe('Viewport', () => {
   });
 
   it('clampScale 应限制缩放范围', () => {
-    const viewport = new Viewport({ type: 'Viewport', minScale: 0.5, maxScale: 2 });
+    const viewport = new Viewport({ minScale: 0.5, maxScale: 2 });
 
     viewport.setTransform(0.1, 0, 0);
     expect(viewport.scale).toBe(0.5);

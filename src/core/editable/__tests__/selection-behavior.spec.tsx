@@ -25,7 +25,7 @@ describe('选区行为', () => {
   });
 
   it('Input：拖拽应更新选区终点', () => {
-    const input = new Input({ type: 'Input', value: '一二三四五六七八九十' });
+    const input = new Input({ value: '一二三四五六七八九十' } as any);
     try {
       const stopPropagation = vi.fn();
       const currentTarget = {};
@@ -45,7 +45,7 @@ describe('选区行为', () => {
   });
 
   it('TextArea：Shift+ArrowUp 应向上扩展选区', () => {
-    const textarea = new TextArea({ type: 'TextArea', value: '第一行\n第二行' });
+    const textarea = new TextArea({ value: '第一行\n第二行' } as any);
     try {
       (textarea as any).textWidgetRef = {
         lines: [
@@ -67,7 +67,7 @@ describe('选区行为', () => {
   });
 
   it('TextArea：Shift+ArrowDown 应向下扩展选区', () => {
-    const textarea = new TextArea({ type: 'TextArea', value: '第一行\n第二行' });
+    const textarea = new TextArea({ value: '第一行\n第二行' } as any);
     try {
       (textarea as any).textWidgetRef = {
         lines: [

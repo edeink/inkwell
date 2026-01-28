@@ -96,7 +96,6 @@ describe('Input 组件', () => {
     document.body.innerHTML = '';
 
     props = {
-      type: 'Input',
       value: 'Hello',
       onChange: vi.fn(),
     };
@@ -192,7 +191,6 @@ describe('Input 组件', () => {
 
   it('password 模式默认应使用 ※ 进行遮罩', () => {
     const passwordInput = new Input({
-      type: 'Input',
       value: 'Hello',
       inputType: 'password',
     } as any);
@@ -206,7 +204,6 @@ describe('Input 组件', () => {
 
   it('password 模式点击眼睛图标应切换明文显示', () => {
     const passwordInput = new Input({
-      type: 'Input',
       value: 'Hello',
       inputType: 'password',
     } as any);
@@ -257,7 +254,6 @@ describe('Input 组件', () => {
 
   it('password 模式空值时应优先显示 placeholder', () => {
     const passwordInput = new Input({
-      type: 'Input',
       value: '',
       inputType: 'password',
       placeholder: '密码',

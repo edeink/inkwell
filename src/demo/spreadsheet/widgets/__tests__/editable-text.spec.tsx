@@ -17,7 +17,6 @@ describe('SpreadsheetEditableText 组件', () => {
 
   beforeEach(() => {
     props = {
-      type: 'SpreadsheetEditableText',
       x: 10,
       y: 10,
       minWidth: 100,
@@ -93,6 +92,16 @@ describe('SpreadsheetEditableText 组件', () => {
     window.dispatchEvent(event);
 
     expect(props.onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it('dispose 后不应继续响应选区变化事件', () => {
+    const widget = new SpreadsheetEditableText(props);
+    widget.dispose();
+
+    const event = new Event('spreadsheet-selection-change');
+    window.dispatchEvent(event);
+
+    expect(props.onFinish).not.toHaveBeenCalled();
   });
 
   it('CoreEditableText 应该接收 visible 属性且不使用 key (复用实例)', () => {

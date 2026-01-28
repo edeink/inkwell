@@ -25,6 +25,14 @@ High-perf canvas UI framework. Stack: Vite, Less, Vitest, Docusaurus.
 - **Helpers**：可复用的辅助函数/工具逻辑必须放在 `helpers/`。
 - **README**：每个 Demo 子目录必须包含 `README.md`，用于简单介绍该 Demo，便于快速理解。
 
+### 测试代码（Widget JSX）
+- **目标**：当单测需要表达 Widget 树结构时，优先用 Widget JSX 提升可读性。
+- **文件**：优先使用 `.spec.tsx/.test.tsx` 承载 JSX（避免在 `.ts` 中塞大量手写树）。
+- **Pragma**：文件顶部使用 `/** @jsxImportSource @/utils/compiler */`。
+- **构建**：使用 `compileElement(<App />)` 生成数据，再用 `WidgetRegistry.createWidget(data)` + `root.createElement(data)` 挂载。
+- **引用**：需要拿到实例时用 `ref={(w) => { ... }}` 捕获，不要手动拼 `children`/`parent` 关系。
+- **禁止手写类型字段**：测试中避免手写 `__inkwellType`（让 JSX 编译产物注入）；仅在“测试 Registry/解析器/深层性能树”等场景下保留手写数据更合适时例外。
+
 ### Framework Core
 - **Inheritance**: `StatelessWidget` | `StatefulWidget` | `RenderObjectWidget`.
 - **Naming**: PascalCase.

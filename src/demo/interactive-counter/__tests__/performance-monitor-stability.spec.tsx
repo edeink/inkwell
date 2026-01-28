@@ -144,7 +144,6 @@ describe('PerformanceMonitor Erratic Text Reproduction', () => {
 
   it('should maintain stable Text widget identity on updates', async () => {
     const root = new InteractiveCounterDemo({
-      type: 'InteractiveCounterDemo',
       theme: Themes.light,
     });
     (runtime as any).rootWidget = root;

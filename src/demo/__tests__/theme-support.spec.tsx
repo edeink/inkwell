@@ -46,7 +46,7 @@ beforeAll(() => {
 describe('示例主题支持', () => {
   describe('EditableTextDemo', () => {
     it('默认应使用浅色主题颜色', () => {
-      const demo = new EditableTextDemo({ type: 'EditableTextDemo' });
+      const demo = new EditableTextDemo({});
       const tree = demo.render() as any;
 
       const theme = Themes.light;
@@ -66,7 +66,6 @@ describe('示例主题支持', () => {
       }
 
       const inputPanel = new InputPanel({
-        type: 'InputPanel',
         ...(inputPanelEl.props as any),
       } as any);
       const inputPanelTree = (inputPanel as any).render() as any;
@@ -83,7 +82,7 @@ describe('示例主题支持', () => {
 
     it('传入深色主题时应使用深色主题颜色', () => {
       const theme = Themes.dark;
-      const demo = new EditableTextDemo({ type: 'EditableTextDemo', theme });
+      const demo = new EditableTextDemo({ theme });
       const tree = demo.render() as any;
 
       const titleText = findElement(tree, (node) => node?.key === 'title');
@@ -101,7 +100,6 @@ describe('示例主题支持', () => {
       }
 
       const inputPanel = new InputPanel({
-        type: 'InputPanel',
         ...(inputPanelEl.props as any),
       } as any);
       const inputPanelTree = (inputPanel as any).render() as any;
@@ -120,7 +118,6 @@ describe('示例主题支持', () => {
     it('WikiContent 应使用主题背景色', () => {
       const theme = Themes.dark;
       const widget = new WikiContent({
-        type: 'WikiContent',
         width: 800,
         height: 600,
         theme,

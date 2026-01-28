@@ -111,7 +111,6 @@ describe('Wiki Demo 频繁切换文档', () => {
     const doc2 = { docPath: 'doc-2', headerKeyPrefix: 'doc-2-h' };
 
     const body = new MarkdownBody({
-      type: 'MarkdownBody',
       ast: ast1,
       theme,
       headerKeyPrefix: doc1.headerKeyPrefix,
@@ -127,7 +126,6 @@ describe('Wiki Demo 频繁切换文档', () => {
       for (let i = 0; i < 10; i++) {
         const doc = i % 2 === 0 ? doc2 : doc1;
         body.createElement({
-          type: 'MarkdownBody',
           ast: i % 2 === 0 ? ast2 : ast1,
           theme,
           headerKeyPrefix: doc.headerKeyPrefix,
@@ -136,7 +134,6 @@ describe('Wiki Demo 频繁切换文档', () => {
       }
 
       body.createElement({
-        type: 'MarkdownBody',
         ast: ast2,
         theme,
         headerKeyPrefix: doc2.headerKeyPrefix,
@@ -160,7 +157,6 @@ describe('Wiki Demo 频繁切换文档', () => {
       expectOrder(body as any, 'Content', 'Title');
 
       body.createElement({
-        type: 'MarkdownBody',
         ast: ast1,
         theme,
         headerKeyPrefix: doc1.headerKeyPrefix,

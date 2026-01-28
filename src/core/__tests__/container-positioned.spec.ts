@@ -37,12 +37,10 @@ describe('Container 在 Positioned 中的布局行为', () => {
     // 期望：Container 填满 Positioned
 
     const container = new Container({
-      type: 'Container',
       color: 'red',
     });
 
     const positioned = new Positioned({
-      type: 'Positioned',
       left: 0,
       top: 0,
       width: 100,
@@ -86,13 +84,11 @@ describe('Container 在 Positioned 中的布局行为', () => {
     // 期望：Container 尺寸为 Positioned 尺寸，内容区域减小
 
     const container = new Container({
-      type: 'Container',
       padding: { left: 10, right: 10, top: 10, bottom: 10 },
-      child: new Container({ type: 'Container', color: 'blue' }) as any, // 子组件
+      child: new Container({ color: 'blue' }) as any, // 子组件
     });
 
     const positioned = new Positioned({
-      type: 'Positioned',
       width: 100,
       height: 100,
       child: container as any,
@@ -130,13 +126,11 @@ describe('Container 在 Positioned 中的布局行为', () => {
     // Container 指定了 width/height
 
     const container = new Container({
-      type: 'Container',
       width: 50,
       height: 50,
     });
 
     const positioned = new Positioned({
-      type: 'Positioned',
       left: 10,
       top: 10,
       child: container as any,

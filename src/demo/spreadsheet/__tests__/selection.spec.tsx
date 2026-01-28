@@ -25,7 +25,6 @@ describe('Spreadsheet Selection Logic', () => {
 
     model = new SpreadsheetModel();
     spreadsheet = new Spreadsheet({
-      type: 'Spreadsheet',
       width: 800,
       height: 600,
       theme: Themes.light,

@@ -22,21 +22,30 @@ export class WidgetRegistry {
       console.error('createWidget: 组件数据为空或未定义');
       return null;
     }
-    if (!data.type) {
-      console.error('createWidget: 组件数据缺少 type 属性', data);
+    const anyData = data as unknown as Record<string, unknown>;
+    let widgetType = anyData.__inkwellType;
+    if (typeof widgetType !== 'string' || !widgetType) {
+      const legacy = anyData.type;
+      if (typeof legacy === 'string' && legacy && WidgetRegistry.hasRegisteredType(legacy)) {
+        widgetType = legacy;
+        anyData.__inkwellType = legacy;
+      }
+    }
+    if (typeof widgetType !== 'string' || !widgetType) {
+      console.error('createWidget: 组件数据缺少 __inkwellType 属性', data);
       return null;
     }
 
-    const constructor = WidgetRegistry.registry.get(data.type);
+    const constructor = WidgetRegistry.registry.get(widgetType);
     if (constructor) {
       try {
         return new constructor(data) as Widget<TData>;
       } catch (error) {
-        console.error(`Failed to create widget of type ${data.type}:`, error, data);
+        console.error(`Failed to create widget of type ${widgetType}:`, error, data);
         return null;
       }
     }
-    console.warn(`Unknown widget type: ${data.type}`);
+    console.warn(`Unknown widget type: ${widgetType}`);
     return null;
   }
 

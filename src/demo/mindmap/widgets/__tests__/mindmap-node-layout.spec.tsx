@@ -44,7 +44,7 @@ describe('MindMapNode 布局更新', () => {
 
   class MockTextArea extends Widget {
     constructor(props: any) {
-      super({ ...props, type: 'TextArea' });
+      super({ ...props });
     }
     protected performLayout(_constraints: BoxConstraints) {
       return { width: 100, height: 20 };
@@ -54,7 +54,6 @@ describe('MindMapNode 布局更新', () => {
 
   it('场景1: 编辑状态与阅读状态切换时，节点内容应保持为文本展示', () => {
     const initialProps = {
-      type: CustomComponentType.MindMapNode,
       key: 'node-edit',
       title: 'Test Node',
       isEditing: true,
@@ -88,7 +87,6 @@ describe('MindMapNode 布局更新', () => {
 
   it('场景2: 连续切换状态多次，节点内容不应渲染 TextArea', () => {
     const props = {
-      type: CustomComponentType.MindMapNode,
       key: 'node-switch',
       title: 'Switch Test',
       isEditing: false,
@@ -114,7 +112,6 @@ describe('MindMapNode 布局更新', () => {
   it('场景3: 边界情况 - 空标题节点', () => {
     // Empty title should show placeholder text
     const props = {
-      type: CustomComponentType.MindMapNode,
       key: 'node-empty',
       title: '',
       isEditing: false,

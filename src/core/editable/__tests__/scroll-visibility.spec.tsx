@@ -25,7 +25,7 @@ describe('光标可见性与滚动联动', () => {
   });
 
   it('Input：光标超出右侧可视范围时应向右滚动', () => {
-    const input = new Input({ type: 'Input', value: '01234567890123456789' });
+    const input = new Input({ value: '01234567890123456789' } as any);
     try {
       const scrollTo = vi.fn(function (this: any, x: number, y: number) {
         this.scrollX = x;
@@ -51,7 +51,7 @@ describe('光标可见性与滚动联动', () => {
   });
 
   it('Input：光标在左侧不可见时应向左滚动', () => {
-    const input = new Input({ type: 'Input', value: '01234567890123456789' });
+    const input = new Input({ value: '01234567890123456789' } as any);
     try {
       const scrollTo = vi.fn(function (this: any, x: number, y: number) {
         this.scrollX = x;
@@ -77,7 +77,7 @@ describe('光标可见性与滚动联动', () => {
   });
 
   it('Input：光标已在可视范围内时不应滚动', () => {
-    const input = new Input({ type: 'Input', value: '0123456789' });
+    const input = new Input({ value: '0123456789' } as any);
     try {
       const scrollTo = vi.fn();
       (input as any).scrollViewRef = {
@@ -98,7 +98,7 @@ describe('光标可见性与滚动联动', () => {
   });
 
   it('TextArea：光标超出下方可视范围时应向下滚动', () => {
-    const textarea = new TextArea({ type: 'TextArea', value: '第一行\n第二行\n第三行' });
+    const textarea = new TextArea({ value: '第一行\n第二行\n第三行' } as any);
     try {
       const scrollTo = vi.fn(function (this: any, x: number, y: number) {
         this.scrollX = x;

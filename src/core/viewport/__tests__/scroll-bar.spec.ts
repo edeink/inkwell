@@ -63,7 +63,6 @@ describe('ScrollBar', () => {
 
   it('应当正确初始化', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200,
@@ -79,7 +78,6 @@ describe('ScrollBar', () => {
 
   it('应当正确计算滑块位置和尺寸', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 400, // 4倍内容
@@ -114,7 +112,6 @@ describe('ScrollBar', () => {
 
   it('内容不足时不应显示滑块', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 50,
@@ -129,7 +126,6 @@ describe('ScrollBar', () => {
 
   it('应当支持十六进制颜色', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200,
@@ -164,7 +160,6 @@ describe('ScrollBar', () => {
 
   it('应当响应指针事件并更新状态', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200,
@@ -201,7 +196,6 @@ describe('ScrollBar', () => {
   it('应当通过 window 事件处理拖拽滚动', () => {
     const onScroll = vi.fn();
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200, // 比例 0.5
@@ -237,7 +231,6 @@ describe('ScrollBar', () => {
 
   it('拖拽结束应当清理监听器', () => {
     const props: ScrollBarProps = {
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200,
@@ -265,7 +258,6 @@ describe('ScrollBar', () => {
 
   it('dispose 应当清理监听器', () => {
     const sb = new TestScrollBar({
-      type: 'ScrollBar',
       orientation: 'vertical',
       viewportSize: 100,
       contentSize: 200,

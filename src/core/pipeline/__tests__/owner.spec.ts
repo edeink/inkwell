@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Widget } from '../../base';
 import { PipelineOwner } from '../owner';
@@ -7,7 +7,7 @@ import { PipelineOwner } from '../owner';
 class TestWidget extends Widget {
   constructor(key: string, depth: number = 0) {
     // @ts-ignore: 简化构造参数
-    super({ type: 'test', key });
+    super({ key });
     this.depth = depth;
     // 模拟 RepaintBoundary 行为，使得 updateLayer 可被调用
     this.isRepaintBoundary = true;

@@ -20,7 +20,6 @@ describe('TextArea 视觉与主题', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     editor = new TextArea({
-      type: 'TextArea',
       value: 'test',
       selectionColor: 'rgba(1, 1, 1, 0.5)',
     });

@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CustomComponentType } from '../type';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
@@ -10,7 +10,7 @@ import { dispatchToTree } from '@/core/events';
 // 模拟 Node
 class MockNode extends Widget {
   constructor(key: string, x: number, y: number, w: number, h: number) {
-    super({ key, type: CustomComponentType.MindMapNode });
+    super({ key } as any);
     this.key = key;
     this.type = CustomComponentType.MindMapNode;
     this.renderObject = {
@@ -28,7 +28,6 @@ describe('MindMapViewport 选区测试', () => {
     vi.useFakeTimers();
     onSetSelectedKeys = vi.fn();
     vp = new MindMapViewport({
-      type: CustomComponentType.MindMapViewport,
       width: 800,
       height: 600,
       onSetSelectedKeys,

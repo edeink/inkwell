@@ -7,7 +7,6 @@ import type { BoxConstraints, BuildContext, Size, WidgetProps } from './base';
  * 明确不支持子组件
  */
 export interface ImageProps extends WidgetProps {
-  type: 'image'; // 明确指定组件类型
   src: string; // 图片源地址
   width?: number; // 图片宽度
   height?: number; // 图片高度

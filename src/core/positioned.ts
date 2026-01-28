@@ -232,7 +232,7 @@ export class Positioned extends Widget<PositionedProps> {
 // 便捷函数：创建填充整个 Stack 的 Positioned
 export function fill(child: WidgetProps): PositionedProps {
   return {
-    type: 'Positioned',
+    __inkwellType: 'Positioned',
     left: 0,
     top: 0,
     right: 0,
@@ -250,7 +250,7 @@ export function fromLTWH(
   child: WidgetProps,
 ): PositionedProps {
   return {
-    type: 'Positioned',
+    __inkwellType: 'Positioned',
     left,
     top,
     width,

@@ -12,7 +12,7 @@ import { testLogger } from '@/utils/test-logger';
 
 class MockWidget extends Widget {
   constructor(data: any = {}) {
-    super({ ...data, type: 'MockWidget' });
+    super({ ...data });
   }
   mount() {}
   paint() {}
@@ -65,7 +65,7 @@ vi.mock('@/runtime', async (importOriginal) => {
 
 class TestViewport extends StatelessWidget {
   constructor(data: any = {}) {
-    super({ ...data, type: 'TestViewport' });
+    super({ ...data });
   }
 
   onKeyDown = vi.fn((e) => {
@@ -80,7 +80,7 @@ class TestViewport extends StatelessWidget {
 
 class TestRoot extends StatelessWidget {
   constructor() {
-    super({ type: 'TestRoot' });
+    super({});
   }
 
   private getViewport() {

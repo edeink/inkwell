@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { CustomComponentType } from '../type';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import { Widget } from '@/core/base';
@@ -8,7 +7,7 @@ import { testLogger } from '@/utils/test-logger';
 
 class MockNode extends Widget {
   constructor(key: string, x: number, y: number, w: number, h: number) {
-    super({ type: CustomComponentType.MindMapNode, key });
+    super({ key } as any);
     this.renderObject.offset = { dx: x, dy: y };
     this.renderObject.size = { width: w, height: h };
   }
@@ -17,7 +16,6 @@ class MockNode extends Widget {
 describe('MindMapViewport 选区性能测试', () => {
   it('应该高效处理大量节点 (10k)', () => {
     const vp = new MindMapViewport({
-      type: CustomComponentType.MindMapViewport,
       width: 1920,
       height: 1080,
     });

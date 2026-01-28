@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClassButton } from '../widgets/class-button';
 
+import { Text } from '@/core';
 import { dispatchAt } from '@/core/events/dispatcher';
 import Runtime from '@/runtime';
 import { Themes } from '@/styles/theme';
@@ -134,15 +135,9 @@ describe('ClassButton Event Triggering', () => {
 
     // 使用 ClassButton 包装一个 Text
     const root = new ClassButton({
-      type: 'ClassButton',
       theme: Themes.light,
       onClick,
-      children: [
-        {
-          type: 'Text',
-          text: 'Click Me',
-        } as any,
-      ],
+      children: <Text key="counter-btn-text" text="Click Me" />,
     });
 
     (runtime as any).rootWidget = root;
@@ -171,15 +166,9 @@ describe('ClassButton Event Triggering', () => {
     const onClick = vi.fn();
 
     const root = new ClassButton({
-      type: 'ClassButton',
       theme: Themes.light,
       onClick,
-      children: [
-        {
-          type: 'Text',
-          text: 'Click Me',
-        } as any,
-      ],
+      children: <Text key="counter-btn-text" text="Click Me" />,
     });
 
     (runtime as any).rootWidget = root;
@@ -205,15 +194,9 @@ describe('ClassButton Event Triggering', () => {
     const onClick = vi.fn();
 
     const root = new ClassButton({
-      type: 'ClassButton',
       theme: Themes.light,
       onClick,
-      children: [
-        {
-          type: 'Text',
-          text: 'Click Me',
-        } as any,
-      ],
+      children: <Text key="counter-btn-text" text="Click Me" />,
     });
 
     (runtime as any).rootWidget = root;
@@ -234,12 +217,7 @@ describe('ClassButton Event Triggering', () => {
     // Update props (trigger re-render)
     root.createElement({
       ...root.data,
-      children: [
-        {
-          type: 'Text',
-          text: 'Clicked!',
-        } as any,
-      ],
+      children: <Text key="counter-btn-text" text="Clicked!" />,
     });
     runtime.scheduleUpdate(root);
     await new Promise((resolve) => setTimeout(resolve, 10));

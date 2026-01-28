@@ -152,7 +152,6 @@ describe('计数器渲染计数', () => {
 
     // 挂载 Template
     const root = new InteractiveCounterDemo({
-      type: 'InteractiveCounterDemo',
       theme: Themes.light,
     });
     (runtime as any).rootWidget = root;

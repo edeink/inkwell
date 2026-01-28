@@ -33,14 +33,12 @@ const mockContext: BuildContext = {
 describe('ScrollView 坐标与命中测试', () => {
   it('滚动时子组件应具有正确的绝对位置', () => {
     const child = new Container({
-      type: 'Container',
       width: 100,
       height: 300, // 增加高度以允许滚动
       pointerEvent: 'auto', // 重要：Container 默认为 'none'
     });
 
     const scrollView = new ScrollView({
-      type: 'ScrollView',
       width: 200,
       height: 200,
     });
@@ -87,7 +85,6 @@ describe('ScrollView 坐标与命中测试', () => {
 
   it('滚动时命中测试应正确工作', () => {
     const child = new Container({
-      type: 'Container',
       width: 100,
       height: 100,
       // 添加已知属性或 key 以验证命中
@@ -96,7 +93,6 @@ describe('ScrollView 坐标与命中测试', () => {
     });
 
     const scrollView = new ScrollView({
-      type: 'ScrollView',
       width: 200,
       height: 200,
       child,

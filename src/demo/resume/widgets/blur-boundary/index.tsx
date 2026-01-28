@@ -71,7 +71,7 @@ export class BlurBoundary extends Widget<BlurBoundaryProps> {
   private blurredFromSourcePaintStamp = -1;
 
   constructor(data: BlurBoundaryProps) {
-    super({ ...data, type: 'BlurBoundary' });
+    super({ ...data, __inkwellType: 'BlurBoundary' });
   }
 
   override dispose(): void {

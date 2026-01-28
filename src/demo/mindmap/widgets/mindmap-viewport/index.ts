@@ -294,7 +294,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
         let p = t.parent;
         let container: Widget | null = null;
         while (p && p !== this) {
-          if (p.data.type === 'MindMapNodeContainer') {
+          const pt = (p.data as { __inkwellType?: unknown } | null | undefined)?.__inkwellType;
+          if (pt === 'MindMapNodeContainer') {
             container = p;
             break;
           }

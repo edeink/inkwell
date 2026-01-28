@@ -13,7 +13,6 @@ describe('SpreadsheetGrid 交互测试', () => {
     const onCellDown = vi.fn();
 
     const grid = new SpreadsheetGrid({
-      type: 'SpreadsheetGrid',
       model,
       theme: Themes.light,
       scrollX: 0,

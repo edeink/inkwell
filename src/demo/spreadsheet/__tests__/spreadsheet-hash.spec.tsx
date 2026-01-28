@@ -64,7 +64,6 @@ describe('Spreadsheet Model Hash & Grid Binding', () => {
   it('should pass hash to SpreadsheetGrid', () => {
     const model = new SpreadsheetModel();
     const spreadsheet = new Spreadsheet({
-      type: 'Spreadsheet',
       width: 800,
       height: 600,
       theme: Themes.light,

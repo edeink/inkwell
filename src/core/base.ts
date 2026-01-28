@@ -88,6 +88,39 @@ export function areConstraintsEqual(a: BoxConstraints, b: BoxConstraints): boole
   );
 }
 
+function resolveWidgetTypeForInstance(data: WidgetProps, fallbackType: string): string {
+  const anyData = data as unknown as Record<string, unknown>;
+  const next = anyData.__inkwellType;
+  if (typeof next === 'string' && next) {
+    return next;
+  }
+  const legacy = anyData.type;
+  if (
+    typeof legacy === 'string' &&
+    legacy &&
+    (legacy === fallbackType || WidgetRegistry.hasRegisteredType(legacy))
+  ) {
+    anyData.__inkwellType = legacy;
+    return legacy;
+  }
+  anyData.__inkwellType = fallbackType;
+  return fallbackType;
+}
+
+function resolveWidgetTypeForData(data: WidgetProps): string | null {
+  const anyData = data as unknown as Record<string, unknown>;
+  const next = anyData.__inkwellType;
+  if (typeof next === 'string' && next) {
+    return next;
+  }
+  const legacy = anyData.type;
+  if (typeof legacy === 'string' && legacy && WidgetRegistry.hasRegisteredType(legacy)) {
+    anyData.__inkwellType = legacy;
+    return legacy;
+  }
+  return null;
+}
+
 /**
  * 判断是否为紧约束（宽高固定）
  */
@@ -218,14 +251,12 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     if (!data) {
       throw new Error('组件数据不能为空');
     }
-    if (!data.type) {
-      throw new Error('组件数据必须包含 type 属性');
-    }
+    const widgetType = resolveWidgetTypeForInstance(data, this.constructor.name);
 
     // 如果未提供 key，则自动生成唯一且可读的 key
-    this.key = data.key || Widget._generateKey(data.type);
-    this.eventKey = Widget._generateKey(`${data.type}-evt`);
-    this.type = data.type;
+    this.key = data.key || Widget._generateKey(widgetType);
+    this.eventKey = Widget._generateKey(`${widgetType}-evt`);
+    this.type = widgetType;
     // 编译 JSX 得到的数据
     this.data = data;
     // 实际运行的 props
@@ -574,12 +605,16 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     for (; i < prev.length && i < childrenData.length; i++) {
       const prevChild = prev[i];
       const childData = childrenData[i];
+      const nextType = resolveWidgetTypeForData(childData);
+      if (!nextType) {
+        break;
+      }
 
       const prevKey = prevChild.data.key;
       const nextKey = childData.key;
 
       let match = false;
-      if (prevChild.type === childData.type) {
+      if (prevChild.type === nextType) {
         if (nextKey != null) {
           match = prevKey === nextKey;
         } else {
@@ -707,16 +742,17 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
           reuse = byKey.get(k) ?? null;
         } else {
           // 尝试复用同类型的无 key 节点
-          const type = childData.type;
-          if (type) {
-            const list = prevNoKey.get(type);
+          const nextType = resolveWidgetTypeForData(childData);
+          if (nextType) {
+            const list = prevNoKey.get(nextType);
             if (list && list.length > 0) {
               reuse = list.pop()!;
             }
           }
         }
 
-        if (reuse && reuse.type === childData.type) {
+        const nextType = resolveWidgetTypeForData(childData);
+        if (reuse && nextType && reuse.type === nextType) {
           // 复用已有节点：合并已有动态数据以保留增量更新结果
           if (!reuse._isReused) {
             reuse._isReused = true;
@@ -737,9 +773,8 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
             nextChildren.push(childWidget);
             DOMEventManager.bindEvents(childWidget, childData);
           } else {
-            console.warn(
-              `[构建警告] 创建 '${childData.type}' 类型的子组件失败。` + `可能未注册该组件。`,
-            );
+            const type = nextType ?? resolveWidgetTypeForData(childData) ?? '未知';
+            console.warn(`[构建警告] 创建 '${type}' 类型的子组件失败。` + `可能未注册该组件。`);
           }
         }
       }
@@ -793,17 +828,18 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
    * @returns 创建的 Widget 实例，如果类型未定义则返回 null
    */
   protected createChildWidget(childData: WidgetProps): Widget | null {
-    if (!childData.type) {
+    const type = resolveWidgetTypeForData(childData);
+    if (!type) {
       console.warn(`[构建警告] 创建子组件失败。` + `子组件类型未定义。`);
       return null;
     }
     // 尝试从对象池获取
-    const pool = Widget._pool.get(childData.type);
+    const pool = Widget._pool.get(type);
     if (pool && pool.length > 0) {
       const w = pool.pop()!;
       w.init(childData);
       const reused = w as unknown as Widget<WidgetProps>;
-      const resetData: WidgetProps = { type: childData.type, key: childData.key };
+      const resetData: WidgetProps = { __inkwellType: type, key: childData.key };
       const resetProps: WidgetCompactProps<WidgetProps> = { ...resetData, children: [] };
       reused.data = resetData;
       reused.props = resetProps;

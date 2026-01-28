@@ -6,7 +6,8 @@ import { MindMapNodeToolbar } from '../widgets/mindmap-node-toolbar';
 import type { InkwellEvent } from '@/core/events';
 
 import { Widget, type BoxConstraints, type Size, type WidgetProps } from '@/core/base';
-import { multiply } from '@/core/helper/transform';
+import { multiply, transformPoint } from '@/core/helper/transform';
+import { WidgetRegistry } from '@/core/registry';
 
 // 模拟 Viewport 类以模拟属性
 class MockViewport extends Widget {
@@ -17,7 +18,7 @@ class MockViewport extends Widget {
   _scrollY: number = 0;
 
   constructor(props: WidgetProps) {
-    super({ ...props, type: CustomComponentType.MindMapViewport });
+    super({ ...props });
     this.renderObject.offset = { dx: 0, dy: 0 };
     this.renderObject.size = { width: 800, height: 600 };
   }
@@ -30,7 +31,7 @@ class MockViewport extends Widget {
 // 模拟 Node 类
 class MockNode extends Widget {
   constructor(props: WidgetProps) {
-    super({ ...props, type: CustomComponentType.MindMapNode });
+    super({ ...props });
     this.renderObject.size = { width: 100, height: 50 };
   }
 
@@ -42,7 +43,7 @@ class MockNode extends Widget {
 // 模拟 Root 以保持结构
 class MockRoot extends Widget {
   constructor() {
-    super({ type: 'Root', children: [] });
+    super({ children: [] });
   }
 
   protected performLayout(constraints: BoxConstraints): Size {
@@ -60,7 +61,8 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
 
   beforeEach(() => {
     root = new MockRoot();
-    viewport = new MockViewport({ key: 'vp' });
+    WidgetRegistry.registerType(CustomComponentType.MindMapViewport, MockViewport);
+    viewport = new MockViewport({ key: 'vp', type: CustomComponentType.MindMapViewport });
     // Node 需要 active: true 以便 findWidget(':active') 查找
     node = new MockNode({ key: 'node-1', active: true });
 
@@ -69,7 +71,6 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
 
     // Toolbar 需要 activeKey 匹配 node
     toolbar = new MindMapNodeToolbar({
-      type: CustomComponentType.MindMapNodeToolbar,
       activeKey: 'node-1',
       // 模拟回调
       onAddSibling: onAddSiblingSpy,
@@ -112,18 +113,20 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
     ];
     (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
 
-    // Node 布局位置: (100, 100)
-    // 右侧按钮布局位置: 206, 115
-    // 屏幕坐标 = Matrix * Local
-    // Local (210, 120) -> Screen
-    // x = 210 * 2 + 50 = 470
-    // y = 120 * 2 + 50 = 290
+    const btnSize = 20;
+    const margin = 6;
+    const nodeRect = { x: 100, y: 100, width: 100, height: 50 };
+    const localHit = {
+      x: nodeRect.x + nodeRect.width + margin + btnSize / 2,
+      y: nodeRect.y + nodeRect.height / 2,
+    };
+    const screenHit = transformPoint(vpMatrix, localHit);
 
-    // hitTest 接收的是屏幕坐标
-    const hit = toolbar.hitTest(470, 290);
+    const hit = toolbar.hitTest(screenHit.x, screenHit.y);
     expect(hit).toBe(true);
 
-    const miss = toolbar.hitTest(200, 120); // 屏幕 200, 120 -> Local (200-50)/2=75, (120-50)/2=35. 显然不命中
+    const screenMiss = transformPoint(vpMatrix, { x: 10, y: 10 });
+    const miss = toolbar.hitTest(screenMiss.x, screenMiss.y);
     expect(miss).toBe(false);
   });
 
@@ -141,19 +144,18 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
     ];
     (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
 
-    // 右侧按钮布局位置: 206, 115
-    // 屏幕位置 (Scale=2): 412, 230
-    // 中心屏幕位置: 412 + 10*2 = 432, 230 + 10*2 = 250
-    // 注意：绘制时是 drawPlusLocal(lx, ly)。btnSize=20.
-    // 屏幕上看到的按钮是 40x40.
-    // 屏幕中心点对应 local 中心点。
-    // Local center: 206+10=216, 115+10=125.
-    // Screen center: 216*2=432, 125*2=250.
+    const btnSize = 20;
+    const margin = 6;
+    const nodeRect = { x: 100, y: 100, width: 100, height: 50 };
+    const localHit = {
+      x: nodeRect.x + nodeRect.width + margin + btnSize / 2,
+      y: nodeRect.y + nodeRect.height / 2,
+    };
+    const screenHit = transformPoint(vpMatrix, localHit);
 
-    // 模拟屏幕坐标事件
     const event = {
-      x: 432,
-      y: 250,
+      x: screenHit.x,
+      y: screenHit.y,
       stopPropagation: vi.fn(),
       target: toolbar,
     } as unknown as InkwellEvent;
@@ -176,13 +178,18 @@ describe('MindMapNodeToolbar 命中测试与交互', () => {
     ];
     (node as any)._worldMatrix = multiply(vpMatrix, nodeLocalMatrix);
 
-    // 右侧按钮布局位置: 206, 115
-    // 屏幕位置 = Layout + Tx = 256, 165
-    // 点击位置 266, 175 (中心)
+    const btnSize = 20;
+    const margin = 6;
+    const nodeRect = { x: 100, y: 100, width: 100, height: 50 };
+    const localHit = {
+      x: nodeRect.x + nodeRect.width + margin + btnSize / 2,
+      y: nodeRect.y + nodeRect.height / 2,
+    };
+    const screenHit = transformPoint(vpMatrix, localHit);
 
     const event = {
-      x: 266,
-      y: 175,
+      x: screenHit.x,
+      y: screenHit.y,
       stopPropagation: vi.fn(),
       target: toolbar,
     } as unknown as InkwellEvent;

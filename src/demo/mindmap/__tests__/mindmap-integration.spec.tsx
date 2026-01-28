@@ -84,7 +84,7 @@ describe('Mindmap Integration Event Flow', () => {
 
   it('should propagate Delete key from Canvas to MindMapViewport', async () => {
     // 1. Setup MindmapDemo
-    const demo = new MindmapDemo({ type: 'MindmapDemo', width: 800, height: 600 });
+    const demo = new MindmapDemo({ width: 800, height: 600 });
     (runtime as any).rootWidget = demo;
     demo.runtime = runtime;
 

@@ -59,7 +59,6 @@ describe('计数器标签页功能按钮', () => {
   it('点击函数式按钮应增加计数', () => {
     // 实例化模板
     const template = new InteractiveCounterDemo({
-      type: 'InteractiveCounterDemo',
       theme: Themes.light,
     });
 

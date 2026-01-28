@@ -205,7 +205,7 @@ export class RichTextPanel extends StatefulWidget<RichTextPanelProps, RichTextPa
 
     return (
       <Column spacing={10} crossAxisAlignment={CrossAxisAlignment.Start}>
-        <Text text="富文本编辑器 (RichText)" fontSize={16} color={theme.text.secondary} />
+        <Text text="富文本编辑器 (RichTextEditor)" fontSize={16} color={theme.text.secondary} />
         <Container
           key="rich-text-panel-frame"
           width={300}

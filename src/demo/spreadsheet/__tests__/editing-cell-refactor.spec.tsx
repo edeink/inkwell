@@ -68,7 +68,6 @@ describe('Spreadsheet Editing Cell Refactor', () => {
         component: { gridLine: '#eee' },
       } as any,
       model,
-      type: 'Spreadsheet',
     };
   });
 

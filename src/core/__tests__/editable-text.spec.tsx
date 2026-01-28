@@ -10,7 +10,6 @@ describe('TextArea 基础交互', () => {
     document.body.innerHTML = '';
 
     props = {
-      type: 'TextArea',
       value: 'Hello',
       onChange: vi.fn(),
       onBlur: vi.fn(),

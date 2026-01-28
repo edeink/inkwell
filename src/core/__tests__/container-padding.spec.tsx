@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 import { describe, expect, it } from 'vitest';
 
 import { Widget } from '../base';
@@ -6,11 +7,11 @@ import { WidgetRegistry } from '../registry';
 import { Text } from '../text';
 
 import '@/core/registry';
+import { compileElement } from '@/utils/compiler/jsx-compiler';
 
 describe('Container Padding/Margin 数组支持', () => {
   it('应支持 padding 为数组类型', () => {
     const props: ContainerProps = {
-      type: 'Container',
       padding: [10, 20], // [垂直, 水平]
     };
     const container = new Container(props);
@@ -19,7 +20,6 @@ describe('Container Padding/Margin 数组支持', () => {
 
   it('应支持 margin 为数组类型', () => {
     const props: ContainerProps = {
-      type: 'Container',
       margin: [5, 15, 25, 35], // [上, 右, 下, 左]
     };
     const container = new Container(props);
@@ -28,7 +28,6 @@ describe('Container Padding/Margin 数组支持', () => {
 
   it('应支持 padding 和 margin 混合类型', () => {
     const props: ContainerProps = {
-      type: 'Container',
       padding: 10,
       margin: [20],
     };
@@ -38,10 +37,10 @@ describe('Container Padding/Margin 数组支持', () => {
   });
 
   it('createElement 更新时应正确处理数组类型', () => {
-    const container = new Container({ type: 'Container', padding: [10] });
+    const container = new Container({ padding: [10] });
     expect(container.padding).toEqual({ top: 10, right: 10, bottom: 10, left: 10 });
 
-    container.createElement({ type: 'Container', padding: [10, 20, 30] });
+    container.createElement({ padding: [10, 20, 30] });
     expect(container.padding).toEqual({ top: 10, right: 20, bottom: 30, left: 20 });
   });
 
@@ -50,31 +49,32 @@ describe('Container Padding/Margin 数组支持', () => {
     WidgetRegistry.registerType('Text', Text);
     Widget._pool.delete('Container');
 
-    const root = new Container({
-      type: 'Container',
-      children: [
-        {
-          type: 'Container',
-          key: 'c1',
-          padding: 10,
-          margin: [1, 2, 3, 4],
-        },
-      ],
-    } as any);
-    root.createElement(root.data as any);
+    const initData = compileElement(
+      <Container>
+        <Container key="c1" padding={10} margin={[1, 2, 3, 4]} />
+      </Container>,
+    );
+    const root = WidgetRegistry.createWidget(initData) as Container;
+    root.createElement(initData);
 
     const c1 = root.children[0] as any;
     expect(c1.padding).toEqual({ top: 10, right: 10, bottom: 10, left: 10 });
     expect(c1.margin).toEqual({ top: 1, right: 2, bottom: 3, left: 4 });
 
-    root.createElement({
-      type: 'Container',
-      children: [{ type: 'Text', key: 't1', text: 'x' }],
-    } as any);
-    root.createElement({
-      type: 'Container',
-      children: [{ type: 'Container', key: 'c2' }],
-    } as any);
+    root.createElement(
+      compileElement(
+        <Container>
+          <Text key="t1" text="x" />
+        </Container>,
+      ),
+    );
+    root.createElement(
+      compileElement(
+        <Container>
+          <Container key="c2" />
+        </Container>,
+      ),
+    );
 
     const c2 = root.children[0] as any;
     expect(c2).toBe(c1);

@@ -57,7 +57,7 @@ function isWidgetPropsLike(v: unknown): v is WidgetProps {
     return false;
   }
   const r = v as Record<string, unknown>;
-  return typeof r.type === 'string';
+  return typeof r.__inkwellType === 'string';
 }
 
 function isJSXElementLike(v: unknown): v is JSXElement {

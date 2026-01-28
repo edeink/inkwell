@@ -13,14 +13,14 @@ describe('TextArea 布局', () => {
   });
 
   it('应在根容器上撑满父约束宽度', () => {
-    const ta = new TextArea({ type: 'TextArea', value: 'a' });
+    const ta = new TextArea({ value: 'a' });
     try {
       const json = compileElement(ta.render());
-      expect(json.type).toBe('Container');
+      expect(json.__inkwellType).toBe('Container');
       expect((json as any).alignment).toBe('topLeft');
 
       const scroll = (json.children?.[0] as any) || null;
-      expect(scroll?.type).toBe('ScrollView');
+      expect(scroll?.__inkwellType).toBe('ScrollView');
       expect(scroll?.alwaysShowScrollbarY).toBe(false);
     } finally {
       ta.dispose();
@@ -33,7 +33,7 @@ describe('TextArea 布局', () => {
         public w: number,
         public h: number,
       ) {
-        super({ type: 'FixedSize' });
+        super({});
       }
       protected performLayout(): { width: number; height: number } {
         return { width: this.w, height: this.h };
@@ -50,7 +50,7 @@ describe('TextArea 布局', () => {
     }
 
     const child = new FixedSize(100, 300);
-    const sv = new TestScrollView({ type: 'ScrollView', alwaysShowScrollbarY: false });
+    const sv = new TestScrollView({ alwaysShowScrollbarY: false });
     (sv as any).children = [child];
     child.parent = sv;
     (sv as any)._isBuilt = true;

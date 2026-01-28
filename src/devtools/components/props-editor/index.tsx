@@ -96,7 +96,9 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
       </div>
     );
   }
-  const allEntries = Object.entries(local).filter(([k]) => k !== 'type' && k !== 'children');
+  const allEntries = Object.entries(local).filter(
+    ([k]) => k !== '__inkwellType' && k !== 'children',
+  );
   const hiddenEntries = allEntries.filter(([k]) => isHiddenKey(k));
   const displayEntries = allEntries.filter(([k]) => !isHiddenKey(k));
   const isCallbackKey = (k: string) => /^on[A-Z]/.test(k);
@@ -247,28 +249,57 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
       {(() => {
         const p = widget.getAbsolutePosition();
         const s = widget.renderObject.size;
+        const c = widget.renderObject.constraints;
+        const fmt = (n: number) => (Number.isFinite(n) ? String(Math.round(n)) : String(n));
         return (
           <>
-            <div className={styles.readonlyGroup}>
-              <div className={styles.readonlyItem}>
-                <span className={styles.readonlyLabel}>x</span>
-                <span className={styles.readonlyValue}>{Math.round(p.dx)}</span>
-              </div>
-              <div className={styles.readonlyItem}>
-                <span className={styles.readonlyLabel}>y</span>
-                <span className={styles.readonlyValue}>{Math.round(p.dy)}</span>
-              </div>
-            </div>
-            <div className={styles.readonlyGroup}>
-              <div className={styles.readonlyItem}>
-                <span className={styles.readonlyLabel}>w</span>
-                <span className={styles.readonlyValue}>{Math.round(s.width)}</span>
-              </div>
-              <div className={styles.readonlyItem}>
-                <span className={styles.readonlyLabel}>h</span>
-                <span className={styles.readonlyValue}>{Math.round(s.height)}</span>
-              </div>
-            </div>
+            {renderGroup(
+              'RenderObject',
+              <>
+                <div className={styles.readonlyGroup}>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>x</span>
+                    <span className={styles.readonlyValue}>{fmt(p.dx)}</span>
+                  </div>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>y</span>
+                    <span className={styles.readonlyValue}>{fmt(p.dy)}</span>
+                  </div>
+                </div>
+                <div className={styles.readonlyGroup}>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>w</span>
+                    <span className={styles.readonlyValue}>{fmt(s.width)}</span>
+                  </div>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>h</span>
+                    <span className={styles.readonlyValue}>{fmt(s.height)}</span>
+                  </div>
+                </div>
+              </>,
+            )}
+            {c &&
+              renderGroup(
+                '约束',
+                <div className={styles.readonlyGroup}>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>minW</span>
+                    <span className={styles.readonlyValue}>{fmt(c.minWidth)}</span>
+                  </div>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>maxW</span>
+                    <span className={styles.readonlyValue}>{fmt(c.maxWidth)}</span>
+                  </div>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>minH</span>
+                    <span className={styles.readonlyValue}>{fmt(c.minHeight)}</span>
+                  </div>
+                  <div className={styles.readonlyItem}>
+                    <span className={styles.readonlyLabel}>maxH</span>
+                    <span className={styles.readonlyValue}>{fmt(c.maxHeight)}</span>
+                  </div>
+                </div>,
+              )}
           </>
         );
       })()}

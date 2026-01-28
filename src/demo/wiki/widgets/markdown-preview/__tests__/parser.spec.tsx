@@ -1,3 +1,4 @@
+/** @jsxImportSource @/utils/compiler */
 /**
  * MarkdownPreview 相关单元测试。
  *
@@ -16,6 +17,7 @@ import { MarkdownParser, NodeType } from '../parser';
 import type { ComponentType } from '@/core/type';
 
 import { Text } from '@/core';
+import { WidgetRegistry } from '@/core/registry';
 import { StatefulWidget } from '@/core/state/stateful';
 import { Canvas2DRenderer } from '@/renderer/canvas2d/canvas-2d-renderer';
 import Runtime from '@/runtime';
@@ -232,17 +234,21 @@ describe('MarkdownPreview 渲染稳定性', () => {
       const node = ast.children?.[0];
       expect(node?.type).toBe(c.type);
 
-      const top = compileElement(
+      const topData = compileElement(
         BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 0, key: 'top' }) as any,
       ) as any;
+      const top = WidgetRegistry.createWidget(topData)!;
+      top.createElement(topData);
       expect(top.type).toBe('Padding');
-      expect(top.padding?.bottom).toBe(c.marginBottom);
+      expect((top as any).padding.bottom).toBe(c.marginBottom);
 
-      const nested = compileElement(
+      const nestedData = compileElement(
         BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 1, key: 'nested' }) as any,
       ) as any;
+      const nested = WidgetRegistry.createWidget(nestedData)!;
+      nested.createElement(nestedData);
       expect(nested.type).toBe('Padding');
-      expect(nested.padding?.bottom).toBe(0);
+      expect((nested as any).padding.bottom).toBe(0);
     }
   });
 
@@ -271,9 +277,11 @@ describe('MarkdownPreview 渲染稳定性', () => {
       const node = ast.children?.[0];
       expect(node?.type).toBe(c.type);
 
-      const root = compileElement(
+      const rootData = compileElement(
         BlockNodeRenderer({ node: node!, theme: Themes.light, depth: 0, key: 'root' }) as any,
       ) as any;
+      const root = WidgetRegistry.createWidget(rootData)!;
+      root.createElement(rootData);
       expect(root.type).toBe('Padding');
 
       const listColumn = root.children?.[0] as any;
@@ -373,15 +381,19 @@ describe('文字样式渲染调用', () => {
     const drawText = vi.fn();
     const renderer = { drawText } as any;
 
-    const widget = new Text({
-      type: 'Text',
-      text: '你好',
-      fontSize: 14,
-      fontWeight: 'bold',
-      fontStyle: 'italic',
-      textDecoration: ['underline', 'line-through'],
-      color: '#111111',
-    });
+    const data = compileElement(
+      <Text
+        key="t"
+        text="你好"
+        fontSize={14}
+        fontWeight="bold"
+        fontStyle="italic"
+        textDecoration={['underline', 'line-through']}
+        color="#111111"
+      />,
+    ) as any;
+    const widget = WidgetRegistry.createWidget(data)! as unknown as Text;
+    widget.createElement(data);
 
     (widget as any).renderObject = { size: { width: 100, height: 24 } };
     (widget as any).textMetrics = {
