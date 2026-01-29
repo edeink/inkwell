@@ -6,7 +6,7 @@ import { ClipRect } from '../clip-rect';
 import { Container } from '../container';
 import { Positioned } from '../positioned';
 import { WidgetRegistry } from '../registry';
-import { Stack } from '../stack';
+import { Stack, StackFit } from '../stack';
 import { Text } from '../text';
 
 import type { ComponentType } from '@/core/type';
@@ -138,7 +138,7 @@ describe('Swiper 布局问题', () => {
     // 初始渲染: 第1页
     await runtime.render(
       <Container key="root" width={800} height={600}>
-        <Stack key="stack" fit="expand">
+        <Stack key="stack" fit={StackFit.Expand}>
           <Positioned key="pos" left={0} right={0} top={0} bottom={0}>
             <Container key="page1" color="red" />
           </Positioned>
@@ -160,7 +160,7 @@ describe('Swiper 布局问题', () => {
     // 模拟切换页面: 用 page2 替换 page1
     await runtime.render(
       <Container key="root" width={800} height={600}>
-        <Stack key="stack" fit="expand">
+        <Stack key="stack" fit={StackFit.Expand}>
           <Positioned key="pos" left={0} right={0} top={0} bottom={0}>
             <Container key="page2" color="blue" />
           </Positioned>

@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 6px;
 
+  /* 普通的 Key-Value 行 (Primitive) */
   .kvRow {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -10,25 +11,14 @@
     align-items: center;
     position: relative;
     background: var(--ink-demo-bg-surface);
-    border: 1px solid var(--ink-demo-border-secondary);
     border-radius: 6px;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 6px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--ink-demo-border-secondary);
-      border-radius: 2px;
-    }
 
     .kvLeft {
       display: flex;
       align-items: center;
       gap: 6px;
       min-width: 0;
+      padding-left: 12px;
 
       .kvKey {
         width: 100%;
@@ -38,18 +28,60 @@
     .kvRight {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 2px;
       min-width: 0;
 
       .kvValue {
         width: 100%;
         min-width: 0;
       }
+    }
+  }
 
-      .nested {
+  /* 对象类型的行 (Object) - 上下结构 */
+  .kvRowObject {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    background: var(--ink-demo-bg-surface);
+    border: 1px solid var(--ink-demo-border-secondary);
+    border-radius: 6px;
+    overflow: hidden;
+
+    .kvHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 32px;
+      padding: 0 6px 0 2px;
+      background: var(--ink-demo-bg-container);
+
+      &.expanded {
+        border-bottom-color: var(--ink-demo-border-secondary);
+      }
+
+      .kvHeaderLeft {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         flex: 1;
         min-width: 0;
       }
+
+      .kvHeaderActions {
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .kvBody {
+      padding: 4px;
+      background: var(--ink-demo-bg-surface);
+
+      /* 缩进由 ObjectEditor 的 padding 控制，或者在这里控制 */
+
+      /* 为了视觉层级，这里可以不需要额外的 padding，因为已经是新的容器了 */
     }
   }
 
@@ -62,26 +94,61 @@
   }
 }
 
+.kvField {
+  width: 100%;
+  min-width: 0;
+}
+
+.kvEditor {
+  width: 100%;
+  min-width: 0;
+}
+
+.kvDisplay {
+  padding: 0 8px;
+}
+
+.kvDisplayKey {
+  font-family: monospace;
+  color: var(--ink-demo-text-secondary);
+  font-size: 12px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kvKeyLocked {
+  font-family: monospace;
+  color: var(--ink-demo-text-secondary);
+  font-size: 12px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .lockIcon {
+    color: var(--ink-demo-text-placeholder);
+    font-size: 10px;
+  }
+}
+
+.kvDisplayValue {
+  font-family: monospace;
+  color: var(--ink-demo-primary);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 嵌套时的样式调整 */
 .nestedGroup {
-  .kvRow {
-    grid-template-columns: 1fr;
-    padding: 6px;
-  }
+  /* 移除原来的 padding，改用更自然的嵌套 */
 
-  .kvLeft {
-    width: 100%;
-  }
-
-  .kvRight {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .nested {
-    padding-left: 12px;
-    margin-left: 2px;
-    border-left: 1px solid var(--ink-demo-border-secondary);
-  }
+  /* padding-left: 12px; */
 }
 
 .addBtn {
@@ -93,6 +160,14 @@
 
   &:hover {
     color: var(--ink-demo-primary) !important;
+  }
+}
+
+.deleteBtn {
+  color: var(--ink-demo-text-secondary);
+
+  &:hover {
+    color: var(--ink-demo-error) !important;
   }
 }
 
@@ -164,44 +239,31 @@
   }
 }
 
-.arrayBracket {
-  font-family: monospace;
-  color: var(--ink-demo-text-placeholder);
-}
-
-.arrayItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.arrayComma {
-  font-family: monospace;
-  color: var(--ink-demo-text-placeholder);
-}
-
 .colorPickerWrap {
-  width: 20px;
-  height: 20px;
-  padding: 2px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 0;
-
-  :global(.ant-color-picker-trigger) {
-    width: 18px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0;
-    border-radius: 4px;
-  }
+  height: 100%;
+  margin-right: -4px;
 }
 
-.deleteBtn {
-  color: var(--ink-demo-text-secondary);
+.colorPicker {
+  :global {
+    .ant-color-picker-trigger {
+      width: 18px !important;
+      height: 18px !important;
+      padding: 0 !important;
+      border-radius: 2px !important;
+      border: 1px solid var(--ink-demo-border-secondary) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
 
-  &:hover {
-    color: var(--ink-demo-danger) !important;
+      .ant-color-picker-color-block {
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 1px !important;
+      }
+    }
   }
 }

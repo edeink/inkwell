@@ -1,22 +1,18 @@
-import { Widget } from '../core/base';
+import { Widget, type BoxConstraints } from '../core/base';
 import { EventManager } from '../core/events/manager';
 import { EventRegistry } from '../core/events/registry';
 import { clearSelectorCache } from '../core/helper/widget-selector';
 import { PipelineOwner } from '../core/pipeline/owner';
-import { Stack } from '../core/stack';
+import '../core/registry';
+import { AlignmentGeometry, Stack, StackFit, type StackProps } from '../core/stack';
+import { ComponentType, type BuildContext } from '../core/type';
 import { Canvas2DRenderer } from '../renderer/canvas2d/canvas-2d-renderer';
 import { LOCAL_RESOLUTION } from '../utils/local-storage';
 
-import type { BoxConstraints, BuildContext } from '../core/base';
-import type { StackProps } from '../core/stack';
 import type { IRenderer, RendererOptions } from '../renderer/IRenderer';
-import type { ComponentType } from '@/core/type';
-import type { AnyElement } from '@/utils/compiler/jsx-compiler';
 
 import { createWidget as createExternalWidget, WidgetRegistry } from '@/core/registry';
-import { compileElement } from '@/utils/compiler/jsx-compiler';
-
-import '../core/registry';
+import { compileElement, type AnyElement } from '@/utils/compiler/jsx-compiler';
 
 /**
  * 运行时配置接口
@@ -314,8 +310,8 @@ export default class Runtime {
       __inkwellType: 'Stack',
       key: '__inkwell_overlay__',
       allowOverflowPositioned: true,
-      alignment: 'topLeft',
-      fit: 'expand',
+      alignment: AlignmentGeometry.TopLeft,
+      fit: StackFit.Expand,
       children: [],
     } as StackProps);
     host.runtime = this;

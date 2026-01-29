@@ -1,11 +1,20 @@
-import { EyeInvisibleOutlined, InfoCircleOutlined, LockOutlined } from '@ant-design/icons';
-import { Button, ColorPicker, Input, InputNumber, Popover, Select, Space, Tooltip } from 'antd';
-import { useEffect, useState, type ReactNode } from 'react';
+import {
+  AimOutlined,
+  EyeInvisibleOutlined,
+  InfoCircleOutlined,
+  SyncOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import { Button, Input, Popover, Tabs, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
 
 import { isHiddenKey, isProtectedKey } from '../../helper/config';
 import { ObjectEditor } from '../object-editor';
 
+import { Group } from './group';
 import styles from './index.module.less';
+import { ReadonlyRows } from './readonly-rows';
+import { Section } from './section';
 
 /**
  * PropsEditor
@@ -15,67 +24,42 @@ import styles from './index.module.less';
  */
 import type { Widget } from '../../../core/base';
 
-const enumOptionsMap: Record<string, string[]> = {
-  cursor: [
-    'auto',
-    'default',
-    'pointer',
-    'move',
-    'text',
-    'not-allowed',
-    'grab',
-    'grabbing',
-    'crosshair',
-    'zoom-in',
-    'zoom-out',
-  ],
-  display: ['block', 'inline', 'inline-block', 'flex', 'grid', 'none'],
-  position: ['static', 'relative', 'absolute', 'fixed', 'sticky'],
-  overflow: ['visible', 'hidden', 'scroll', 'auto'],
-  textAlign: ['left', 'center', 'right', 'justify'],
-  flexDirection: ['row', 'row-reverse', 'column', 'column-reverse'],
-  justifyContent: [
-    'flex-start',
-    'center',
-    'flex-end',
-    'space-between',
-    'space-around',
-    'space-evenly',
-  ],
-  alignItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
-};
-
-function isNumberArray(v: unknown): v is number[] {
-  return Array.isArray(v) && v.every((x) => typeof x === 'number' && Number.isFinite(x));
-}
-
 export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
-  const [local, setLocal] = useState<Record<string, unknown>>(widget ? { ...widget.data } : {});
+  const getStateSnapshot = (target: Widget | null) => {
+    const state = (target as unknown as { state?: Record<string, unknown> } | null)?.state;
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+      return {};
+    }
+    return { ...state };
+  };
+  const [localProps, setLocalProps] = useState<Record<string, unknown>>(
+    widget ? { ...widget.data } : {},
+  );
+  const [localState, setLocalState] = useState<Record<string, unknown>>(
+    widget ? getStateSnapshot(widget) : {},
+  );
 
   useEffect(() => {
-    setLocal(widget ? { ...widget.data } : {});
+    setLocalProps(widget ? { ...widget.data } : {});
+    setLocalState(widget ? getStateSnapshot(widget) : {});
   }, [widget]);
-
-  function updateField(path: string, value: unknown) {
-    const next: Record<string, unknown> = { ...local };
-    const parts = path.split('.');
-    let obj: Record<string, unknown> = next;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const key = parts[i];
-      obj =
-        (obj[key] as Record<string, unknown> | undefined) ??
-        (obj[key] = {} as Record<string, unknown>);
-    }
-    obj[parts[parts.length - 1]] = value as unknown;
-    setLocal(next);
-  }
 
   function apply() {
     if (!widget) {
       return;
     }
-    widget.data = { ...widget.data, ...local } as typeof widget.data;
-    widget.createElement(widget.data as typeof widget.data);
+    const nextData = { ...widget.data, ...localProps } as typeof widget.data;
+    widget.createElement(nextData);
+    const stateTarget = widget as unknown as {
+      setState?: (partial: Record<string, unknown>) => void;
+      state?: Record<string, unknown>;
+    };
+    if (stateTarget.setState && Object.keys(localState).length > 0) {
+      stateTarget.setState(localState);
+    } else if (stateTarget.state && Object.keys(localState).length > 0) {
+      stateTarget.state = { ...localState };
+      widget.markDirty();
+    }
     onChange();
   }
 
@@ -87,316 +71,281 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
             <InfoCircleOutlined />
           </div>
           <div className={styles.emptyTitle}>未选择节点</div>
-          <div className={styles.emptyDesc}>在左侧 Tree 中选择节点后，这里会展示可编辑属性。</div>
+          <div className={styles.emptyDesc}>选择节点后展示可编辑属性</div>
           <div className={styles.emptySteps}>
-            <div className={styles.emptyStep}>点击左侧 Tree 节点进行选中</div>
-            <div className={styles.emptyStep}>或开启顶部拾取，在画布上点击目标节点</div>
+            <div className={styles.emptyStep}>点击左侧 Tree 节点</div>
+            <div className={styles.emptyStep}>
+              或点击顶部 <AimOutlined /> 在画布上选取
+            </div>
           </div>
         </div>
       </div>
     );
   }
-  const allEntries = Object.entries(local).filter(
-    ([k]) => k !== '__inkwellType' && k !== 'children',
+  const allEntries = Object.entries(localProps).filter(
+    ([k]) => k !== '__inkwellType' && k !== 'children' && k !== 'state',
   );
   const hiddenEntries = allEntries.filter(([k]) => isHiddenKey(k));
   const displayEntries = allEntries.filter(([k]) => !isHiddenKey(k));
   const isCallbackKey = (k: string) => /^on[A-Z]/.test(k);
   const callbackEntries = displayEntries.filter(([k]) => isCallbackKey(k));
-  const generalKeySet = new Set<string>(['key']);
-  const generalEntries = displayEntries.filter(([k]) => !isCallbackKey(k) && generalKeySet.has(k));
-  const widgetEntries = displayEntries.filter(([k]) => !isCallbackKey(k) && !generalKeySet.has(k));
-  const objectWidgetEntries = widgetEntries.filter(
-    ([, v]) => v && typeof v === 'object' && !Array.isArray(v),
-  );
-  const primitiveWidgetEntries = widgetEntries.filter(
-    ([, v]) => !(v && typeof v === 'object' && !Array.isArray(v)),
-  );
 
-  const hasNested = objectWidgetEntries.length > 0;
+  const stateEntries = Object.entries(localState);
 
-  const renderNumberArrayEditor = (k: string, v: number[]) => (
-    <div className={styles.arrayEditor}>
-      <span className={styles.arrayBracket}>[</span>
-      <Space size={4} wrap={false}>
-        {v.map((n, idx) => (
-          <span key={`${k}-${idx}`} className={styles.arrayItem}>
-            <InputNumber
-              size="small"
-              value={n}
-              onChange={(num) => {
-                const next = [...v];
-                next[idx] = Number(num ?? 0);
-                updateField(k, next);
-              }}
-              disabled={isProtectedKey(k)}
-            />
-            {idx < v.length - 1 && <span className={styles.arrayComma}>,</span>}
-          </span>
-        ))}
-      </Space>
-      <span className={styles.arrayBracket}>]</span>
-    </div>
+  // 过滤出用于 ObjectEditor 编辑的属性 (排除 callbacks 和 children/state/hidden)
+  // 注意：ObjectEditor 内部会处理 hiddenKeys，但我们在这里为了避免混淆，
+  // 且保持 callback 分离，我们先手动过滤。
+  // 实际上 ObjectEditor 接受 value，我们传递过滤后的对象给它。
+  // 但是 localProps 包含所有。
+  const isPropEditable = (k: string) =>
+    k !== '__inkwellType' && k !== 'children' && k !== 'state' && !isCallbackKey(k);
+
+  const editableProps = Object.fromEntries(
+    Object.entries(localProps).filter(([k]) => isPropEditable(k)),
   );
 
-  const renderEnumSelect = (k: string, v: unknown) => {
-    const options = enumOptionsMap[k];
-    if (!options) {
-      return null;
-    }
-    const valueStr = typeof v === 'string' ? v : undefined;
+  const onPropsChange = (newEditableProps: Record<string, unknown>) => {
+    // Merge back: keep non-editable props from localProps, add new editable props
+    const nonEditableProps = Object.fromEntries(
+      Object.entries(localProps).filter(([k]) => !isPropEditable(k)),
+    );
+    setLocalProps({ ...nonEditableProps, ...newEditableProps });
+  };
+
+  const onStateChange = (newState: Record<string, unknown>) => {
+    setLocalState(newState);
+  };
+
+  // 锁定属性：key 和受保护属性
+  const lockedPropKeys = Object.keys(editableProps).filter((k) => k === 'key' || isProtectedKey(k));
+
+  const renderDebugTab = () => {
+    const p = widget.getAbsolutePosition();
+    const s = widget.renderObject.size;
+    const c = widget.renderObject.constraints;
+    const fmt = (n: number) => (Number.isFinite(n) ? String(Math.round(n)) : String(n));
+    const isAutoKey = widget.data.key == null || widget.data.key === '';
+    const keyValue = (
+      <span className={styles.keyValue}>
+        <span className={styles.keyValueText}>{String(widget.key)}</span>
+        <Tooltip title={isAutoKey ? 'Key 由系统自动生成' : 'Key 由用户显式指定'}>
+          <span className={styles.keyIcon}>{isAutoKey ? <SyncOutlined /> : <UserOutlined />}</span>
+        </Tooltip>
+      </span>
+    );
     return (
-      <Select
-        className={styles.formInput}
-        size="small"
-        value={valueStr}
-        placeholder="请选择"
-        options={options.map((x) => ({ label: x, value: x }))}
-        onChange={(val) => updateField(k, val)}
-        disabled={isProtectedKey(k)}
-        getPopupContainer={(trigger) =>
-          (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
-        }
-      />
+      <div className={styles.tabBody}>
+        <div className={styles.tabScroll}>
+          <Group title="组件信息">
+            <ReadonlyRows
+              items={[
+                {
+                  key: 'type',
+                  label: 'type',
+                  value: widget.type,
+                },
+                {
+                  key: 'key',
+                  label: 'key',
+                  value: keyValue,
+                },
+              ]}
+            />
+          </Group>
+          <Group title="RenderObject">
+            <ReadonlyRows
+              items={[
+                { key: 'x', label: 'x', value: fmt(p.dx) },
+                { key: 'y', label: 'y', value: fmt(p.dy) },
+                { key: 'w', label: 'w', value: fmt(s.width) },
+                { key: 'h', label: 'h', value: fmt(s.height) },
+              ]}
+            />
+          </Group>
+          {c && (
+            <Group title="约束">
+              <ReadonlyRows
+                items={[
+                  { key: 'minW', label: 'minW', value: fmt(c.minWidth) },
+                  { key: 'maxW', label: 'maxW', value: fmt(c.maxWidth) },
+                  { key: 'minH', label: 'minH', value: fmt(c.minHeight) },
+                  { key: 'maxH', label: 'maxH', value: fmt(c.maxHeight) },
+                ]}
+              />
+            </Group>
+          )}
+          <Group title="其它信息">
+            <ReadonlyRows
+              items={[
+                { key: 'depth', label: 'depth', value: String(widget.depth) },
+                { key: 'zIndex', label: 'zIndex', value: String(widget.zIndex) },
+                { key: 'mounted', label: 'mounted', value: String(widget.isMounted) },
+                {
+                  key: 'repaintBoundary',
+                  label: 'repaintBoundary',
+                  value: String(widget.isRepaintBoundary),
+                },
+                {
+                  key: 'relayoutBoundary',
+                  label: 'relayoutBoundary',
+                  value: String(widget.isRelayoutBoundary),
+                },
+                { key: 'positioned', label: 'positioned', value: String(widget.isPositioned) },
+                { key: 'layoutDirty', label: 'layoutDirty', value: String(widget.isLayoutDirty()) },
+                { key: 'paintDirty', label: 'paintDirty', value: String(widget.isPaintDirty()) },
+              ]}
+            />
+          </Group>
+          {hiddenEntries.length > 0 && (
+            <div className={styles.hiddenHintRow}>
+              <Popover
+                trigger="click"
+                placement="bottom"
+                overlayClassName={styles.hiddenPopoverOverlay}
+                getPopupContainer={(trigger) =>
+                  (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                }
+                content={
+                  <div className={styles.hiddenPopover}>
+                    <div className={styles.hiddenPopoverHeader}>
+                      <EyeInvisibleOutlined />
+                      <span>内部属性</span>
+                      <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
+                    </div>
+                    <div className={styles.hiddenPopoverList}>
+                      {hiddenEntries.map(([k]) => (
+                        <div key={k} className={styles.hiddenItem}>
+                          {k}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                }
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  className={styles.hiddenHintBtn}
+                  icon={<EyeInvisibleOutlined />}
+                >
+                  已隐藏 {hiddenEntries.length} 个内部属性
+                </Button>
+              </Popover>
+            </div>
+          )}
+        </div>
+      </div>
     );
   };
 
-  const renderPrimitiveRow = (k: string, v: unknown) => (
-    <div key={k} className={styles.formRow}>
-      <div className={styles.formLeft}>
-        <label className={styles.formLabel}>
-          {k}
-          {isProtectedKey(k) && (
-            <Tooltip title={`${k}（受保护，禁止编辑）`}>
-              <LockOutlined />
-            </Tooltip>
-          )}
-        </label>
-      </div>
-      <div className={styles.formRight}>
-        {(() => {
-          if (typeof v === 'number') {
-            return (
-              <InputNumber
-                className={styles.formInput}
-                size="small"
-                value={Number(v)}
-                onChange={(num) => updateField(k, Number(num ?? 0))}
-                disabled={isProtectedKey(k)}
-              />
-            );
-          }
-          if (isNumberArray(v)) {
-            return renderNumberArrayEditor(k, v);
-          }
-          const enumSelect = renderEnumSelect(k, v);
-          if (enumSelect) {
-            return enumSelect;
-          }
-          const valStr = String(v ?? '');
-          const colorSuffix = (
-            <Space>
-              <span className={styles.colorPickerWrap}>
-                <ColorPicker
-                  value={valStr}
-                  size="small"
-                  showText={false}
-                  onChangeComplete={(c: { toHexString: () => string }) =>
-                    updateField(k, c.toHexString())
-                  }
-                  getPopupContainer={(trigger) =>
-                    (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
-                  }
-                />
-              </span>
-            </Space>
-          );
-          const isCol =
-            /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(valStr.toLowerCase()) ||
-            /^(rgb|rgba|hsl)\s*\(/.test(valStr.toLowerCase());
-          return (
-            <Input
-              className={styles.formInput}
-              size="small"
-              value={valStr}
-              disabled={isProtectedKey(k)}
-              onChange={(e) => updateField(k, e.target.value)}
-              suffix={isCol ? colorSuffix : undefined}
+  const renderEventTab = () => {
+    const eventNames = callbackEntries.map(([k]) => k);
+    return (
+      <div className={styles.tabBody}>
+        <div className={styles.tabScroll}>
+          <Group title="事件属性">
+            <ReadonlyRows
+              items={[
+                { key: 'pointerEvent', label: 'pointerEvent', value: String(widget.pointerEvent) },
+                { key: 'cursor', label: 'cursor', value: String(widget.cursor ?? '-') },
+              ]}
             />
-          );
-        })()}
-      </div>
-    </div>
-  );
-
-  const renderObjectBlock = (k: string, v: Record<string, unknown>) => (
-    <div key={k} className={styles.objectGroup}>
-      <div className={styles.objectTitle}>{k}</div>
-      <ObjectEditor value={v} onChange={(nv) => updateField(k, nv)} />
-    </div>
-  );
-
-  const renderGroup = (title: string, children: ReactNode) => (
-    <div className={styles.group}>
-      <div className={styles.groupTitle}>{title}</div>
-      <div className={styles.groupBody}>{children}</div>
-    </div>
-  );
-  return (
-    <div
-      className={[styles.propsEditor, hasNested ? styles.equalGrid : styles.ratioGrid].join(' ')}
-    >
-      {(() => {
-        const p = widget.getAbsolutePosition();
-        const s = widget.renderObject.size;
-        const c = widget.renderObject.constraints;
-        const fmt = (n: number) => (Number.isFinite(n) ? String(Math.round(n)) : String(n));
-        return (
-          <>
-            {renderGroup(
-              'RenderObject',
-              <>
-                <div className={styles.readonlyGroup}>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>x</span>
-                    <span className={styles.readonlyValue}>{fmt(p.dx)}</span>
-                  </div>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>y</span>
-                    <span className={styles.readonlyValue}>{fmt(p.dy)}</span>
-                  </div>
-                </div>
-                <div className={styles.readonlyGroup}>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>w</span>
-                    <span className={styles.readonlyValue}>{fmt(s.width)}</span>
-                  </div>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>h</span>
-                    <span className={styles.readonlyValue}>{fmt(s.height)}</span>
-                  </div>
-                </div>
-              </>,
-            )}
-            {c &&
-              renderGroup(
-                '约束',
-                <div className={styles.readonlyGroup}>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>minW</span>
-                    <span className={styles.readonlyValue}>{fmt(c.minWidth)}</span>
-                  </div>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>maxW</span>
-                    <span className={styles.readonlyValue}>{fmt(c.maxWidth)}</span>
-                  </div>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>minH</span>
-                    <span className={styles.readonlyValue}>{fmt(c.minHeight)}</span>
-                  </div>
-                  <div className={styles.readonlyItem}>
-                    <span className={styles.readonlyLabel}>maxH</span>
-                    <span className={styles.readonlyValue}>{fmt(c.maxHeight)}</span>
-                  </div>
-                </div>,
-              )}
-          </>
-        );
-      })()}
-      {hiddenEntries.length > 0 && (
-        <div className={styles.hiddenHintRow}>
-          <Popover
-            trigger="click"
-            placement="bottom"
-            overlayClassName={styles.hiddenPopoverOverlay}
-            getPopupContainer={(trigger) =>
-              (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
-            }
-            content={
-              <div className={styles.hiddenPopover}>
-                <div className={styles.hiddenPopoverHeader}>
-                  <EyeInvisibleOutlined />
-                  <span>内部属性</span>
-                  <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
-                </div>
-                <div className={styles.hiddenPopoverList}>
-                  {hiddenEntries.map(([k]) => (
-                    <div key={k} className={styles.hiddenItem}>
-                      {k}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            }
-          >
-            <Button
-              size="small"
-              type="text"
-              className={styles.hiddenHintBtn}
-              icon={<EyeInvisibleOutlined />}
-            >
-              已隐藏 {hiddenEntries.length} 个内部属性
-            </Button>
-          </Popover>
-        </div>
-      )}
-      {(generalEntries.length > 0 ||
-        primitiveWidgetEntries.length > 0 ||
-        objectWidgetEntries.length > 0) && (
-        <>
-          {generalEntries.length > 0 &&
-            renderGroup(
-              '通用属性',
-              generalEntries.map(([k, v]) => renderPrimitiveRow(k, v)),
-            )}
-          {(objectWidgetEntries.length > 0 || primitiveWidgetEntries.length > 0) &&
-            renderGroup(
-              '组件属性',
-              <>
-                {objectWidgetEntries.map(([k, v]) =>
-                  renderObjectBlock(k, v as Record<string, unknown>),
+          </Group>
+          <Group title="事件绑定">
+            <>
+              <ReadonlyRows
+                items={[
+                  { key: 'callbacks', label: '回调数', value: String(callbackEntries.length) },
+                ]}
+              />
+              <div className={styles.eventList}>
+                {eventNames.length > 0 ? (
+                  eventNames.map((name) => (
+                    <span key={name} className={styles.eventItem}>
+                      {name}
+                    </span>
+                  ))
+                ) : (
+                  <span className={styles.eventEmpty}>暂无事件绑定</span>
                 )}
-                {primitiveWidgetEntries.map(([k, v]) => renderPrimitiveRow(k, v))}
-              </>,
-            )}
-        </>
-      )}
-      {callbackEntries.length > 0 &&
-        renderGroup(
-          '事件',
-          <div className={styles.callbackGroup}>
-            {callbackEntries.map(([k, v]) => (
-              <div key={k} className={styles.formRow}>
-                <div className={styles.formLeft}>
-                  <label className={styles.formLabel}>{k}</label>
-                </div>
-                <div className={styles.formRight}>
-                  <Input
-                    className={styles.formInput}
-                    size="small"
-                    suffix={<span className={styles.callbackBadge}>[回调]</span>}
-                    value={typeof v === 'function' ? '[Function]' : String(v ?? '')}
-                    disabled
-                  />
-                </div>
               </div>
-            ))}
-          </div>,
+            </>
+          </Group>
+          {callbackEntries.length > 0 && (
+            <Group title="回调详情">
+              <div className={styles.callbackGroup}>
+                {callbackEntries.map(([k, v]) => (
+                  <div key={k} className={styles.formRow}>
+                    <div className={styles.formLeft}>
+                      <label className={styles.formLabel}>{k}</label>
+                    </div>
+                    <div className={styles.formRight}>
+                      <Input
+                        className={styles.formInput}
+                        size="small"
+                        suffix={<span className={styles.callbackBadge}>[回调]</span>}
+                        value={typeof v === 'function' ? '[Function]' : String(v ?? '')}
+                        disabled
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Group>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderEditableTab = () => (
+    <div className={styles.tabBody}>
+      <div className={styles.tabScroll}>
+        {stateEntries.length > 0 && (
+          <Section
+            title="State"
+            titleClassName={styles.sectionTitlePrimary}
+            bodyClassName={styles.singleColumnGroup}
+          >
+            <ObjectEditor value={localState} onChange={onStateChange} />
+          </Section>
         )}
+        {Object.keys(editableProps).length > 0 && (
+          <Section title="Props" titleClassName={styles.sectionTitlePrimary}>
+            <ObjectEditor
+              value={editableProps}
+              onChange={onPropsChange}
+              lockedKeys={lockedPropKeys}
+            />
+          </Section>
+        )}
+      </div>
       <div className={styles.formActions}>
         <Button
           type="primary"
           size="small"
           onClick={(e) => {
-            try {
-              e.stopPropagation();
-            } catch {}
+            e.stopPropagation?.();
             apply();
           }}
         >
           应用
         </Button>
       </div>
+    </div>
+  );
+
+  return (
+    <div className={styles.propsEditor}>
+      <Tabs
+        className={styles.tabs}
+        size="small"
+        items={[
+          { key: 'editable', label: '状态', children: renderEditableTab() },
+          { key: 'debug', label: '调试信息', children: renderDebugTab() },
+          { key: 'events', label: '事件', children: renderEventTab() },
+        ]}
+      />
     </div>
   );
 }

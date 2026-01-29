@@ -12,7 +12,7 @@ import {
 import type { WidgetProps } from '@/core/base';
 import type { ThemePalette } from '@/styles/theme';
 
-import { Container, Positioned, StatefulWidget, TextArea } from '@/core';
+import { BorderStyle, Container, Positioned, StatefulWidget, TextArea } from '@/core';
 import { getCurrentThemeMode, Themes } from '@/styles/theme';
 
 /**
@@ -169,7 +169,7 @@ export class MindMapEditorOverlay extends StatefulWidget<
       ? [nodePaddingVertical * scale, nodePaddingHorizontal * scale]
       : 0;
     const border = active
-      ? ({ color: borderColor, width: borderWidth, style: 'solid' } as const)
+      ? ({ color: borderColor, width: borderWidth, style: BorderStyle.Solid } as const)
       : undefined;
     const borderRadius = active ? nodeBorderRadius * scale : 0;
     const minWidth = active ? minNodeWidth * scale : 0;

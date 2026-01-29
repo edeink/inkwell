@@ -8,6 +8,7 @@ import { WikiNavPanel, type WikiNavNode } from '../wiki-nav-panel';
 import type { WikiContentProps } from '../types';
 
 import {
+  AlignmentGeometry,
   Container,
   Expanded,
   Padding,
@@ -441,7 +442,7 @@ export class WikiContent extends FStateWidget<WikiContentProps, State> {
 
     const overlayLayout = showOverlayTocButton ? (
       <SizedBox width={innerWidth} height={innerHeight}>
-        <Stack alignment="center">
+        <Stack alignment={AlignmentGeometry.Center}>
           {mainLayout}
           <Positioned right={0} top={0}>
             <Container

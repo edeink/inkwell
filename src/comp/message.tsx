@@ -4,6 +4,7 @@ import { getDefaultTheme, getDefaultTokens } from './theme';
 import type { ThemePalette } from '@/styles/theme';
 
 import {
+  AlignmentGeometry,
   Column,
   Container,
   CrossAxisAlignment,
@@ -202,7 +203,8 @@ function renderOverlay(
   const top = 8;
   const right = 8;
 
-  const stackAlignment = store.placement === 'center' ? 'topCenter' : 'topLeft';
+  const stackAlignment =
+    store.placement === 'center' ? AlignmentGeometry.TopCenter : AlignmentGeometry.TopLeft;
 
   const stackContent =
     store.placement === 'center' ? (

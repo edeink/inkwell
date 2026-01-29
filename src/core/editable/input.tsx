@@ -3,7 +3,7 @@ import { Container } from '../container';
 import { Icon } from '../icon';
 import { Positioned } from '../positioned';
 import { WidgetRegistry } from '../registry';
-import { Stack } from '../stack';
+import { AlignmentGeometry, Stack, StackFit } from '../stack';
 import { Text } from '../text';
 import { ScrollView } from '../viewport/scroll-view';
 
@@ -370,7 +370,7 @@ export class Input extends Editable<InputProps> {
         cursor={disabled ? 'not-allowed' : 'text'}
       >
         {isPassword ? (
-          <Stack alignment="topLeft" fit="loose">
+          <Stack alignment={AlignmentGeometry.TopLeft} fit={StackFit.Loose}>
             {paddedContent}
             <Positioned right={0} top={0} width={28} height={fontSize * 1.5}>
               <Container

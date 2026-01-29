@@ -6,6 +6,7 @@ import type { ThemePalette } from '@/styles/theme';
 import type { JSXElement } from '@/utils/compiler/jsx-runtime';
 
 import {
+  AlignmentGeometry,
   Column,
   Container,
   CrossAxisAlignment,
@@ -73,7 +74,11 @@ class ModalInner extends StatefulWidget<ModalProps, ModalState> {
 
     rt.setOverlayEntry(
       overlayKey,
-      <Stack key={`${overlayKey}-host`} allowOverflowPositioned={true} alignment="center">
+      <Stack
+        key={`${overlayKey}-host`}
+        allowOverflowPositioned={true}
+        alignment={AlignmentGeometry.Center}
+      >
         <Container
           key={`${overlayKey}-mask`}
           alignment="topLeft"

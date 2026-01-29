@@ -15,7 +15,7 @@ export { Padding } from './padding';
 export { Positioned } from './positioned';
 export { RichText } from './rich-text';
 export { SizedBox } from './sized-box';
-export { Stack } from './stack';
+export { AlignmentGeometry, Stack, StackFit } from './stack';
 export { StatefulWidget } from './state/stateful';
 export { StatelessWidget } from './state/stateless';
 export { Text, TextAlign, TextAlignVertical } from './text';

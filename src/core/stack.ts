@@ -4,17 +4,25 @@ import { StatelessWidget } from './state/stateless';
 
 import type { BoxConstraints, Offset, Size, WidgetProps } from './base';
 
-export type StackFit = 'loose' | 'expand' | 'passthrough';
-export type AlignmentGeometry =
-  | 'topLeft'
-  | 'topCenter'
-  | 'topRight'
-  | 'centerLeft'
-  | 'center'
-  | 'centerRight'
-  | 'bottomLeft'
-  | 'bottomCenter'
-  | 'bottomRight';
+export const StackFit = {
+  Loose: 'loose',
+  Expand: 'expand',
+  Passthrough: 'passthrough',
+} as const;
+export type StackFit = (typeof StackFit)[keyof typeof StackFit];
+
+export const AlignmentGeometry = {
+  TopLeft: 'topLeft',
+  TopCenter: 'topCenter',
+  TopRight: 'topRight',
+  CenterLeft: 'centerLeft',
+  Center: 'center',
+  CenterRight: 'centerRight',
+  BottomLeft: 'bottomLeft',
+  BottomCenter: 'bottomCenter',
+  BottomRight: 'bottomRight',
+} as const;
+export type AlignmentGeometry = (typeof AlignmentGeometry)[keyof typeof AlignmentGeometry];
 
 export interface StackProps extends WidgetProps {
   alignment?: AlignmentGeometry;
@@ -46,8 +54,8 @@ export interface StackProps extends WidgetProps {
  * ```
  */
 export class Stack extends Widget<StackProps> {
-  alignment: AlignmentGeometry = 'center';
-  fit: StackFit = 'loose';
+  alignment: AlignmentGeometry = AlignmentGeometry.Center;
+  fit: StackFit = StackFit.Loose;
   allowOverflowPositioned: boolean = false;
 
   // 缓存布局结果数组，减少每帧 GC 压力
@@ -81,8 +89,8 @@ export class Stack extends Widget<StackProps> {
     if (data.pointerEvent === undefined) {
       this.pointerEvent = 'none';
     }
-    this.alignment = data.alignment || 'topLeft';
-    this.fit = data.fit || 'loose';
+    this.alignment = data.alignment || AlignmentGeometry.TopLeft;
+    this.fit = data.fit || StackFit.Loose;
     this.allowOverflowPositioned = !!data.allowOverflowPositioned;
   }
 
@@ -158,14 +166,14 @@ export class Stack extends Widget<StackProps> {
     }
 
     switch (this.fit) {
-      case 'expand':
-      case 'passthrough':
+      case StackFit.Expand:
+      case StackFit.Passthrough:
         // 扩展到最大约束
         width = constraints.maxWidth === Infinity ? maxNonPosW : constraints.maxWidth;
         height = constraints.maxHeight === Infinity ? maxNonPosH : constraints.maxHeight;
         break;
 
-      case 'loose':
+      case StackFit.Loose:
       default:
         // 根据子组件的最大尺寸确定
         width = maxNonPosW;
@@ -358,14 +366,14 @@ export class Stack extends Widget<StackProps> {
     let refHeight = 0;
     if (hasNonPos) {
       switch (this.fit) {
-        case 'expand':
-        case 'passthrough':
+        case StackFit.Expand:
+        case StackFit.Passthrough:
           refWidth =
             parentConstraints.maxWidth === Infinity ? maxNonPosW : parentConstraints.maxWidth;
           refHeight =
             parentConstraints.maxHeight === Infinity ? maxNonPosH : parentConstraints.maxHeight;
           break;
-        case 'loose':
+        case StackFit.Loose:
         default:
           refWidth = maxNonPosW;
           refHeight = maxNonPosH;
@@ -447,7 +455,7 @@ export class Stack extends Widget<StackProps> {
     _childIndex: number,
   ): BoxConstraints {
     switch (this.fit) {
-      case 'expand':
+      case StackFit.Expand:
         // 强制子组件扩展到 Stack 的尺寸
         return {
           minWidth: constraints.maxWidth === Infinity ? 0 : constraints.maxWidth,
@@ -456,11 +464,11 @@ export class Stack extends Widget<StackProps> {
           maxHeight: constraints.maxHeight,
         };
 
-      case 'passthrough':
+      case StackFit.Passthrough:
         // 直接传递约束
         return constraints;
 
-      case 'loose':
+      case StackFit.Loose:
       default:
         // 宽松约束，子组件可以是任意尺寸
         return {
@@ -501,39 +509,39 @@ export class Stack extends Widget<StackProps> {
     let dy: number;
 
     switch (this.alignment) {
-      case 'topLeft':
+      case AlignmentGeometry.TopLeft:
         dx = 0;
         dy = 0;
         break;
-      case 'topCenter':
+      case AlignmentGeometry.TopCenter:
         dx = (stackSize.width - childSize.width) / 2;
         dy = 0;
         break;
-      case 'topRight':
+      case AlignmentGeometry.TopRight:
         dx = stackSize.width - childSize.width;
         dy = 0;
         break;
-      case 'centerLeft':
+      case AlignmentGeometry.CenterLeft:
         dx = 0;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case 'center':
+      case AlignmentGeometry.Center:
         dx = (stackSize.width - childSize.width) / 2;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case 'centerRight':
+      case AlignmentGeometry.CenterRight:
         dx = stackSize.width - childSize.width;
         dy = (stackSize.height - childSize.height) / 2;
         break;
-      case 'bottomLeft':
+      case AlignmentGeometry.BottomLeft:
         dx = 0;
         dy = stackSize.height - childSize.height;
         break;
-      case 'bottomCenter':
+      case AlignmentGeometry.BottomCenter:
         dx = (stackSize.width - childSize.width) / 2;
         dy = stackSize.height - childSize.height;
         break;
-      case 'bottomRight':
+      case AlignmentGeometry.BottomRight:
         dx = stackSize.width - childSize.width;
         dy = stackSize.height - childSize.height;
         break;

@@ -1,7 +1,13 @@
 .propsEditor {
   --font-size: 13px;
 
+  flex: 1;
+  min-height: 0;
   min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink-demo-text-primary);
 
   &.equalGrid {
     .formRow {
@@ -28,6 +34,7 @@
 
     .formLabel {
       font-size: var(--font-size);
+      color: var(--ink-demo-text-secondary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -47,16 +54,40 @@
     }
   }
 
+  .formField {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .formFieldEditor {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .formFieldDisplay {
+    padding: 0 8px;
+  }
+
+  .fieldDisplayText {
+    font-family: monospace;
+    color: var(--ink-demo-primary);
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .formActions {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    margin: 12px -16px -16px;
+    margin: 0 -16px;
     padding: 10px 16px;
     display: flex;
     justify-content: flex-end;
     border-top: 1px solid var(--ink-demo-border-secondary);
     background: var(--ink-demo-bg-base);
+    z-index: 1;
+    flex-shrink: 0;
   }
 
   .emptyState {
@@ -120,10 +151,116 @@
     font-size: 12px;
     line-height: 18px;
   }
+
+  .tabs {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    height: 100%;
+
+    :global(.ant-tabs-nav) {
+      margin: 0 0 8px;
+    }
+
+    :global(.ant-tabs-nav::before) {
+      border-bottom: 1px solid var(--ink-demo-border-secondary);
+    }
+
+    :global(.ant-tabs-content) {
+      flex: 1;
+      min-height: 0;
+    }
+
+    :global(.ant-tabs-content-holder) {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden auto;
+    }
+
+    :global(.ant-tabs-tab) {
+      color: var(--ink-demo-text-secondary);
+    }
+
+    :global(.ant-tabs-tab-active) {
+      color: var(--ink-demo-text-primary);
+    }
+
+    :global(.ant-tabs-tab-btn) {
+      color: inherit;
+    }
+
+    :global(.ant-tabs-ink-bar) {
+      background: var(--ink-demo-primary);
+    }
+  }
+
+  .tabBody {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .tabScroll {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+  }
+
+  .keyLabel {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .keyValue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .keyValueText {
+    font-family: monospace;
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  .keyIcon {
+    margin-left: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--ink-demo-text-secondary);
+  }
 }
 
 .callbackGroup {
   margin-bottom: 8px;
+}
+
+.eventList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 2px 2px;
+}
+
+.eventItem {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-demo-text-secondary);
+  background: var(--ink-demo-bg-container);
+  border: 1px solid var(--ink-demo-border-secondary);
+}
+
+.eventEmpty {
+  color: var(--ink-demo-text-placeholder);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .group {
@@ -152,6 +289,49 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-demo-text-secondary);
+  user-select: none;
+}
+
+.sectionTitlePrimary {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-demo-text-primary);
+  font-weight: 600;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.singleColumnGroup {
+  .formRow {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+    align-items: stretch;
+  }
+
+  .formLeft {
+    width: 100%;
+  }
+
+  .formRight {
+    width: 100%;
+  }
 }
 
 .objectGroup {
@@ -219,6 +399,7 @@
     color: var(--ink-demo-primary);
     font-family: monospace;
     font-weight: 500;
+    font-size: 12px;
   }
 }
 
@@ -327,5 +508,12 @@
     height: 18px;
     padding: 0;
     border-radius: 4px;
+  }
+
+  :global(.ant-color-picker-color-block-inner) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
   }
 }

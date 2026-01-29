@@ -115,6 +115,15 @@ export function DevToolsPanel(props: DevToolsProps) {
   const [activeInspect, setActiveInspect] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
 
+  useEffect(() => {
+    setSelected(null);
+    setSelectedNodeKey(null);
+    setExpandedKeys(new Set());
+    hoverRef.current = null;
+    overlayRef.current?.setActive(false);
+    overlayRef.current?.highlight(null);
+  }, [runtime]);
+
   const { combo } = useDevtoolsHotkeys({
     combo:
       typeof props.shortcut === 'string'

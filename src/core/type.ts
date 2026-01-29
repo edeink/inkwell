@@ -45,6 +45,12 @@ export const enum MainAxisSize {
   Max = 'max',
 }
 
+export const enum BorderStyle {
+  Solid = 'solid',
+  Dashed = 'dashed',
+  Dotted = 'dotted',
+}
+
 /**
  * Flex适应方式
  */
@@ -302,7 +308,7 @@ export interface BorderRadius {
 export interface Border {
   width: number;
   color: string;
-  style?: 'solid' | 'dashed' | 'dotted';
+  style?: BorderStyle | 'solid' | 'dashed' | 'dotted';
 }
 
 export interface RenderObject {

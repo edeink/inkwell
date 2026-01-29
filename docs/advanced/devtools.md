@@ -42,17 +42,22 @@ function App() {
   ```
 
 ### 尝试一下
-
 ```tsx mode:render
 /** @jsxImportSource @/utils/compiler */
 (() => {
   const theme = getCurrentTheme();
   const height = 32;
 
+  const cardBg = theme.background.surface;
+  const titleColor = theme.primary;
+  const accentA = theme.state.selected;
+  const accentB = theme.state.focus;
+
   return (
-    <Container color="#f6ffed" borderRadius={12} padding={16}>
+    <Container color={cardBg} borderRadius={12} padding={16}>
       <Column spacing={12}>
-        <Text text="DevTools · Inspect / Overlay / Props" fontSize={18} color="#1677ff" />
+        <Text text="DevTools 调试入口" fontSize={18} color={titleColor} />
+
         <Row spacing={12} mainAxisSize="min">
           <Button
             theme={theme}
@@ -69,15 +74,16 @@ function App() {
             />
           </Button>
         </Row>
+
         <Row spacing={12}>
-          <Container width={160} height={96} color="#e6f4ff" borderRadius={12}>
+          <Container width={160} height={96} color={accentA} borderRadius={12}>
             <Center>
-              <Text text="Box A" fontSize={16} color="#2467c0" />
+              <Text text="示例 A" fontSize={16} color={theme.text.primary} />
             </Center>
           </Container>
-          <Container width={160} height={96} color="#fff1f0" borderRadius={12}>
+          <Container width={160} height={96} color={accentB} borderRadius={12}>
             <Center>
-              <Text text="Box B" fontSize={16} color="#d4380d" />
+              <Text text="示例 B" fontSize={16} color={theme.text.primary} />
             </Center>
           </Container>
         </Row>

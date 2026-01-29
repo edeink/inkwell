@@ -6,12 +6,14 @@ import { ResumeDemoApp, type ResumeDemoAppProps } from '../resume-demo-app';
 
 import { Modal } from '@/comp';
 import {
+  AlignmentGeometry,
   Column,
   Container,
   CrossAxisAlignment,
   Input,
   MainAxisSize,
   Stack,
+  StackFit,
   StatefulWidget,
   Text,
 } from '@/core';
@@ -112,13 +114,17 @@ export class ResumeProtectedApp extends StatefulWidget<ResumeDemoAppProps, Resum
       theme.background.surface,
     ].join(':');
 
-    return (
-      <Stack fit="expand" alignment="topLeft">
-        {/* 内容始终渲染，但在 locked 时通过 BlurBoundary 做“可读性遮挡” */}
-        <BlurBoundary enabled={locked} radius={12} cacheKey={blurCacheKey}>
-          <ResumeDemoApp width={width} height={height} theme={theme || Themes.light} mode={mode} />
-        </BlurBoundary>
-        {showModal ? (
+    if (showModal) {
+      return (
+        <Stack fit={StackFit.Expand} alignment={AlignmentGeometry.TopLeft}>
+          <BlurBoundary enabled={locked} radius={12} cacheKey={blurCacheKey}>
+            <ResumeDemoApp
+              width={width}
+              height={height}
+              theme={theme || Themes.light}
+              mode={mode}
+            />
+          </BlurBoundary>
           <Modal
             key="resume-password-modal"
             theme={theme}
@@ -179,7 +185,15 @@ export class ResumeProtectedApp extends StatefulWidget<ResumeDemoAppProps, Resum
               ) : null}
             </Column>
           </Modal>
-        ) : null}
+        </Stack>
+      );
+    }
+
+    return (
+      <Stack fit={StackFit.Expand} alignment={AlignmentGeometry.TopLeft}>
+        <BlurBoundary enabled={locked} radius={12} cacheKey={blurCacheKey}>
+          <ResumeDemoApp width={width} height={height} theme={theme || Themes.light} mode={mode} />
+        </BlurBoundary>
       </Stack>
     );
   }
