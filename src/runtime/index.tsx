@@ -165,7 +165,9 @@ export default class Runtime {
   /**
    * 初始化事件
    */
-  private initEvent() {}
+  private initEvent(): void {
+    return;
+  }
 
   /**
    * 初始化容器
@@ -839,6 +841,7 @@ export default class Runtime {
       }
 
       if (overlayRoot) {
+        const overlayContext = dirtyRect ? { ...context, dirtyRect: undefined } : context;
         this.renderer.save();
         try {
           const vw = this.renderer.getWidth?.() ?? this.rootWidget.renderObject.size.width;
@@ -849,7 +852,7 @@ export default class Runtime {
             minHeight: vh,
             maxHeight: vh,
           });
-          overlayRoot.paint(context);
+          overlayRoot.paint(overlayContext);
         } finally {
           this.renderer.restore();
         }
@@ -924,16 +927,31 @@ export default class Runtime {
       // 实际上 initRenderer 和 update() 会更新尺寸
       // 如果尺寸变化，通常需要全量重绘
       // 暂时假设 update() 处理调整大小，我们可以标记它
+      const prevCanvasW = this._canvas?.width ?? 0;
+      const prevCanvasH = this._canvas?.height ?? 0;
+
       this.renderer.update({
         width: totalSize.width,
         height: totalSize.height,
       });
       // 如果能检测到调整大小，设置 fullRepaint = true
       // 简单检查:
-      if (
-        this._canvas &&
-        (this._canvas.width !== totalSize.width || this._canvas.height !== totalSize.height)
-      ) {
+      const rawResolution = this.renderer.getResolution?.() ?? 1;
+      const resolution =
+        typeof rawResolution === 'number' && Number.isFinite(rawResolution) && rawResolution > 0
+          ? rawResolution
+          : 1;
+      const expectedCanvasW = Math.max(1, Math.round(totalSize.width * resolution));
+      const expectedCanvasH = Math.max(1, Math.round(totalSize.height * resolution));
+
+      if (this._canvas) {
+        const sizeChanged = prevCanvasW !== expectedCanvasW || prevCanvasH !== expectedCanvasH;
+        const sizeMismatch =
+          this._canvas.width !== expectedCanvasW || this._canvas.height !== expectedCanvasH;
+        if (sizeChanged || sizeMismatch) {
+          fullRepaint = true;
+        }
+      } else {
         fullRepaint = true;
       }
     }
@@ -988,12 +1006,20 @@ export default class Runtime {
             height: Math.ceil(maxY - minY + padding * 2),
           };
 
-          // 限制在画布尺寸范围内
-          if (this._canvas) {
+          // 限制在画布尺寸范围内（使用逻辑尺寸，避免 Retina 等缩放导致判断不一致）
+          if (this._canvas && this.renderer) {
+            const rawResolution = this.renderer.getResolution?.() ?? 1;
+            const isValidResolution =
+              typeof rawResolution === 'number' &&
+              Number.isFinite(rawResolution) &&
+              rawResolution > 0;
+            const resolution = isValidResolution ? rawResolution : 1;
+            const logicalW = this._canvas.width / resolution;
+            const logicalH = this._canvas.height / resolution;
             dirtyRect.x = Math.max(0, dirtyRect.x);
             dirtyRect.y = Math.max(0, dirtyRect.y);
-            dirtyRect.width = Math.min(this._canvas.width - dirtyRect.x, dirtyRect.width);
-            dirtyRect.height = Math.min(this._canvas.height - dirtyRect.y, dirtyRect.height);
+            dirtyRect.width = Math.min(logicalW - dirtyRect.x, dirtyRect.width);
+            dirtyRect.height = Math.min(logicalH - dirtyRect.y, dirtyRect.height);
           }
         } else {
           // 未找到有效的脏矩形，回退到全量重绘还是跳过？
@@ -1010,10 +1036,6 @@ export default class Runtime {
     }
 
     if (fullRepaint) {
-      dirtyRect = undefined;
-    }
-
-    if (this.getOverlayRootWidget()) {
       dirtyRect = undefined;
     }
 

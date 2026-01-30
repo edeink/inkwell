@@ -373,13 +373,7 @@ export function ObjectEditor({
                     onChange={(nv) => setKV(k, k, nv)}
                     depth={depth + 1}
                     readOnly={readOnly}
-                    lockedKeys={lockedKeys} // 传递 lockedKeys 到子组件，虽然通常子属性不一定被锁，但视需求而定。如果只是顶层 key 锁了，子对象通常是可编辑的。这里假设 lockedKeys 仅针对当前层级。
-                    // 但是递归传递 lockedKeys 可能会导致子对象的同名 key 也被锁。
-                    // 实际上 lockedKeys 通常是针对根对象的路径。
-                    // 为了简化，我们暂时不传递 lockedKeys 给子对象，或者清空它。
-                    // 除非 lockedKeys 是 path 列表。目前看 PropsEditor 里 locked 的只有 'key'。
-                    // 简单起见，lockedKeys 只作用于当前层。
-                    // 但如果 'key' 出现在子对象里呢？通常不会。
+                    lockedKeys={lockedKeys}
                   />
                 </div>
               )}

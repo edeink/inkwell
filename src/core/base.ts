@@ -271,7 +271,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
 
     this.cursor = data.cursor;
     // RepaintBoundary 相关
-    this.isRepaintBoundary = !!data.isRepaintBoundary;
+    if (typeof (data as { isRepaintBoundary?: unknown }).isRepaintBoundary !== 'undefined') {
+      this.isRepaintBoundary = !!(data as { isRepaintBoundary?: unknown }).isRepaintBoundary;
+    }
     this.ref = data.ref;
 
     // 重置状态
@@ -433,20 +435,23 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     }
     this._needsPaint = true;
 
-    // 通知 Runtime 调度更新（如果需要）
-    if (this.runtime) {
-      this.runtime.scheduleUpdate(this);
-    }
-
     // 如果是绘制边界，则无需向上传播
     // 因为父级只需要绘制缓存的 Layer，不需要重绘自身内容
     if (this.isRepaintBoundary) {
       this.owner?.schedulePaintFor(this);
+      if (this.runtime) {
+        this.runtime.scheduleUpdate(this);
+      }
       return;
     }
 
     if (this.parent) {
       this.parent.markNeedsPaint();
+      return;
+    }
+
+    if (this.runtime) {
+      this.runtime.scheduleUpdate(this);
     }
   }
 
@@ -922,7 +927,9 @@ export abstract class Widget<TData extends WidgetProps = WidgetProps> {
     this.cursor = nextData.cursor;
 
     // RepaintBoundary 相关
-    this.isRepaintBoundary = !!nextData.isRepaintBoundary;
+    if (typeof (nextData as { isRepaintBoundary?: unknown }).isRepaintBoundary !== 'undefined') {
+      this.isRepaintBoundary = !!(nextData as { isRepaintBoundary?: unknown }).isRepaintBoundary;
+    }
 
     const isComposite = WidgetRegistry.isCompositeType(this.type);
     if (!isComposite) {

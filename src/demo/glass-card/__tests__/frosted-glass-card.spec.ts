@@ -138,6 +138,17 @@ describe('FrostedGlassCard', () => {
     expect(canvasCreates).toBe(1);
   });
 
+  it('默认应为 RepaintBoundary，避免动画标记导致父链脏化', () => {
+    const w = new FrostedGlassCard({
+      width: 420,
+      height: 240,
+      theme: Themes.light,
+      animate: false,
+    });
+    w.createElement(w.data as any);
+    expect(w.isRepaintBoundary).toBe(true);
+  });
+
   it('windowRatio 改变时应刷新底图缓存 key，但复用 canvas', () => {
     WidgetRegistry.registerType('FrostedGlassCard', FrostedGlassCard as any);
 

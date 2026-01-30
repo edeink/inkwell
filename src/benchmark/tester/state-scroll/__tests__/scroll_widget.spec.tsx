@@ -39,30 +39,32 @@ describe('滚动 Widget 基准测试', () => {
     const originalDurationFactor = BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR;
     const originalMinDuration = BENCHMARK_CONFIG.SCROLL.MIN_DURATION;
 
-    BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR = 0.01;
-    BENCHMARK_CONFIG.SCROLL.MIN_DURATION = 50;
+    try {
+      BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR = 0.01;
+      BENCHMARK_CONFIG.SCROLL.MIN_DURATION = 50;
 
-    const count = 20;
+      const count = 20;
 
-    const result = await buildScrollWidgetScene(stage, mockRuntime, count);
+      const result = await buildScrollWidgetScene(stage, mockRuntime, count);
 
-    expect(result.scrollMetrics.durationMs).toBeGreaterThan(0);
-    expect(result.scrollMetrics.totalFrames).toBeGreaterThan(0);
+      expect(result.scrollMetrics.durationMs).toBeGreaterThan(0);
+      expect(result.scrollMetrics.totalFrames).toBeGreaterThan(0);
 
-    expect(mockRuntime.render).toHaveBeenCalled();
-    const calls = mockRuntime.render.mock.calls;
-    expect(calls.length).toBeGreaterThan(5);
+      expect(mockRuntime.render).toHaveBeenCalled();
+      const calls = mockRuntime.render.mock.calls;
+      expect(calls.length).toBeGreaterThanOrEqual(result.scrollMetrics.totalFrames + 2);
 
-    const firstRender = calls[0][0];
-    const lastRender = calls[calls.length - 1][0];
+      const firstRender = calls[0][0];
+      const lastRender = calls[calls.length - 1][0];
 
-    const getScrollY = (vdom: any) => vdom.props.scrollY;
+      const getScrollY = (vdom: any) => vdom.props.scrollY;
 
-    expect(getScrollY(firstRender)).toBe(0);
-    expect(getScrollY(lastRender)).toBeGreaterThan(0);
-    expect(getScrollY(lastRender)).toBeCloseTo(400, -1);
-
-    BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR = originalDurationFactor;
-    BENCHMARK_CONFIG.SCROLL.MIN_DURATION = originalMinDuration;
+      expect(getScrollY(firstRender)).toBe(0);
+      expect(getScrollY(lastRender)).toBeGreaterThan(0);
+      expect(getScrollY(lastRender)).toBeCloseTo(400, -1);
+    } finally {
+      BENCHMARK_CONFIG.SCROLL.DURATION_FACTOR = originalDurationFactor;
+      BENCHMARK_CONFIG.SCROLL.MIN_DURATION = originalMinDuration;
+    }
   });
 });

@@ -2,6 +2,7 @@
 
 import demo00ImageUrl from './assets/demo-00.jpeg?url';
 import demo01ImageUrl from './assets/demo-01.jpeg?url';
+import { GlassCalendar } from './widgets/glass-calendar';
 import { GlassCardComposite } from './widgets/glass-card-composite';
 
 import {
@@ -99,7 +100,7 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                       blurPx={24}
                       glassAlpha={theme === Themes.dark ? 0.14 : 0.18}
                       windowRatio={0.32}
-                      animate={true}
+                      animate={false}
                       windowRect={{
                         x: 150,
                         y: 10,
@@ -141,6 +142,20 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                   </Center>
                 </Container>
               </Row>
+
+              <Column spacing={12} mainAxisSize={MainAxisSize.Min}>
+                <Text text="日历卡片" fontSize={18} fontWeight="bold" color={theme.text.primary} />
+                <Container
+                  width={cardW}
+                  height={Math.min(360, (height ?? 640) - 140)}
+                  color="transparent"
+                  isRepaintBoundary={true}
+                >
+                  <Center>
+                    <GlassCalendar width={Math.min(520, cardW)} height={320} theme={theme} />
+                  </Center>
+                </Container>
+              </Column>
 
               <Padding padding={{ top: 8 }}>
                 <Text

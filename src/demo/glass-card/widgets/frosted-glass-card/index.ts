@@ -58,15 +58,7 @@ export interface FrostedGlassCardProps extends WidgetProps {
    */
   windowRatio?: number;
 
-  windowRect?:
-    | false
-    | {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        radius?: number;
-      };
+  windowRect?: false | { x: number; y: number; width: number; height: number; radius?: number };
 
   textSampleRect?: { x: number; y: number; width: number; height: number };
 
@@ -190,7 +182,11 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
         ? data.onSuggestedTextStyleChange
         : undefined;
     this.syncBackgroundImage(data.backgroundImageSrc);
-    return super.createElement(data);
+    const el = super.createElement(data);
+    if (data.isRepaintBoundary == null) {
+      this.isRepaintBoundary = true;
+    }
+    return el;
   }
 
   /**
@@ -803,14 +799,16 @@ export class FrostedGlassCard extends Widget<FrostedGlassCardProps> {
     const ctx = this.baseLayer.ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    const bgImage =
+    let bgImage: CanvasImageSource | null = null;
+    if (
       !!this.backgroundImageSrc &&
       this.bgImageLoaded &&
       !!this.bgImage &&
       this.bgImageNaturalW > 0 &&
       this.bgImageNaturalH > 0
-        ? (this.bgImage as unknown as CanvasImageSource)
-        : null;
+    ) {
+      bgImage = this.bgImage as unknown as CanvasImageSource;
+    }
     renderBaseLayer(
       ctx,
       key,
