@@ -8,7 +8,6 @@ import {
 } from '@ant-design/icons';
 
 import InkPlayground from '@/site/components/ink-playground';
-import { industryBenchmarks, performanceDisclaimer } from '@/site/data/benchmarks';
 import styles from '@/site/pages/index.module.less';
 
 export const showcaseCode = `
@@ -33,6 +32,33 @@ export const showcaseCode = `
     </Wrap>
   </Column>
 </Container>`;
+
+const industryBenchmarks = [
+  {
+    id: 'pixijs-v8',
+    source: {
+      url: 'https://pixijs.com/blog/particlecontainer-v8',
+    },
+  },
+  {
+    id: 'electron-size',
+    source: {
+      url:
+        'https://medium.com/gowombat/' +
+        'how-to-reduce-the-size-of-an-electron-app-installer-a2bc88a37732',
+    },
+  },
+  {
+    id: 'cef-minimal',
+    source: {
+      url: 'https://magpcss.org/ceforum/viewtopic.php?f=6&t=15213',
+    },
+  },
+] as const;
+
+const performanceDisclaimer = `
+* 声明：以上内容用于说明“纯渲染管线”带来的性能潜力，引用来自公开资料，仅供参考。
+* 口径：同一指标会随平台、打包与业务复杂度变化。`;
 
 export default function VitePressHome() {
   return (
@@ -136,69 +162,85 @@ export default function VitePressHome() {
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
             <div className={styles.statHeader}>
-              <span className={styles.statValue}>~60%</span>
-              <span className={styles.statTrend}>↓</span>
+              <span className={styles.statValue}>100万+</span>
+              <span className={styles.statTrend}>↑</span>
             </div>
-            <span className={styles.statLabel}>包体积</span>
+            <span className={styles.statLabel}>元素吞吐</span>
             <p className={styles.statDesc}>
-              剥离 WebKit 冗余，
+              批量绘制与合批渲染，
               <br />
-              实现轻量化部署
+              支撑高密度画面与交互
             </p>
             <div className={styles.statSource}>
               <span className={styles.sourceLabel}>参考：</span>
               <a
-                href={industryBenchmarks.find((b) => b.id === 'kuaishou-kwaijs')?.source.url}
+                href={industryBenchmarks.find((b) => b.id === 'pixijs-v8')?.source.url}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                快手 KwaiJS
+                PixiJS v8
               </a>
             </div>
           </div>
 
           <div className={styles.statCard}>
             <div className={styles.statHeader}>
-              <span className={styles.statValue}>~40%</span>
+              <span className={styles.statValue}>2000+→1</span>
               <span className={styles.statTrend}>↓</span>
             </div>
             <span className={styles.statLabel}>内存占用</span>
             <p className={styles.statDesc}>
-              去 DOM 树化，
+              将 2000+ 节点收敛到 1 个 Canvas，
               <br />
-              降低复杂页面开销
+              减少样式/布局链路，冷启动与首帧绘制更快
             </p>
             <div className={styles.statSource}>
               <span className={styles.sourceLabel}>参考：</span>
               <a
-                href={industryBenchmarks.find((b) => b.id === 'alibaba-kraken')?.source.url}
+                href="https://web.dev/articles/critical-rendering-path"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                阿里 Kraken
+                web.dev
+              </a>
+              <span>/</span>
+              <a
+                href="https://docs.flutter.dev/resources/architectural-overview"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Flutter
               </a>
             </div>
           </div>
 
           <div className={styles.statCard}>
             <div className={styles.statHeader}>
-              <span className={styles.statValue}>30%+</span>
-              <span className={styles.statTrend}>↑</span>
+              <span className={styles.statValue}>↓25MB</span>
+              <span className={styles.statTrend}>↓</span>
             </div>
-            <span className={styles.statLabel}>启动速度</span>
+            <span className={styles.statLabel}>包体积</span>
             <p className={styles.statDesc}>
-              消除解析耗时，
+              对比携带 Chromium 的方案，
               <br />
-              实现秒开体验
+              115MB→90MB（示例口径）
             </p>
             <div className={styles.statSource}>
               <span className={styles.sourceLabel}>参考：</span>
               <a
-                href={industryBenchmarks.find((b) => b.id === 'tencent-pag')?.source.url}
+                href={industryBenchmarks.find((b) => b.id === 'electron-size')?.source.url}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                腾讯 PAG
+                Electron
+              </a>
+              <span>/</span>
+              <a
+                href={industryBenchmarks.find((b) => b.id === 'cef-minimal')?.source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                CEF
               </a>
             </div>
           </div>

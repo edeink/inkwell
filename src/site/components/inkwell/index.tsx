@@ -186,16 +186,25 @@ export default function Inkwell({
 
   React.useEffect(() => {
     const root = document.documentElement;
-    lastThemeRef.current = root.getAttribute('data-theme');
+    const getThemeKey = () => {
+      const mode = root.getAttribute('data-theme') ?? '';
+      const className = root.className ?? '';
+      const preset = root.getAttribute('data-ink-preset') ?? '';
+      return `${mode}|${className}|${preset}`;
+    };
+    lastThemeRef.current = getThemeKey();
     const mo = new MutationObserver(() => {
-      const next = root.getAttribute('data-theme');
+      const next = getThemeKey();
       if (next === lastThemeRef.current) {
         return;
       }
       lastThemeRef.current = next;
       void renderData(data);
     });
-    mo.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    mo.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class', 'data-ink-preset'],
+    });
     return () => {
       mo.disconnect();
     };

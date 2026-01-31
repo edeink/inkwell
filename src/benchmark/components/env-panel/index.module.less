@@ -35,8 +35,9 @@
 }
 
 .item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 6px;
   align-items: center;
   line-height: 1.8;
 }

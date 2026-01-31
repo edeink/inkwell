@@ -2,6 +2,7 @@
   display: grid;
   gap: var(--ink-space-2);
   width: 100%;
+  color: var(--ink-demo-text-primary);
 }
 
 .controlBar {
@@ -15,6 +16,7 @@
 
 .status {
   margin-left: auto;
+  margin-right: 12px;
   font-size: 12px;
   color: var(--ink-text-muted);
 }
@@ -94,6 +96,15 @@
     background: var(--ink-demo-header-bg-active);
   }
 
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ink-demo-primary);
+  }
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -101,16 +112,16 @@
 }
 
 .iconBtn[data-active='true'] {
-  background: var(--ink-bg-active, #e6f7ff);
   color: var(--ink-primary, #1677ff);
 }
 
 .iconWrapper {
   position: relative;
   display: inline-flex;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 2px;
   flex-shrink: 0;
 }
 

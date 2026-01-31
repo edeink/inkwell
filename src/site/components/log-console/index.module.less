@@ -31,6 +31,15 @@
   cursor: pointer;
 }
 
+.levelBtn:active {
+  transform: scale(0.96);
+}
+
+.levelBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ink-demo-primary);
+}
+
 .levelBtn[data-active='true'] {
   background: var(--ink-demo-header-bg-active);
 }
@@ -85,6 +94,15 @@
   cursor: pointer;
 }
 
+.iconOnly:active {
+  transform: scale(0.96);
+}
+
+.iconOnly:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ink-demo-primary);
+}
+
 .btn {
   appearance: none;
   display: inline-flex;
@@ -100,6 +118,15 @@
 
 .btn:hover {
   background: var(--ifm-toc-border-color);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ink-demo-primary);
 }
 
 .logList {
@@ -150,6 +177,15 @@
   border: none;
   background: transparent;
   cursor: pointer;
+}
+
+.entryBtn:active {
+  transform: scale(0.96);
+}
+
+.entryBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ink-demo-primary);
 }
 
 .entry + .entry {

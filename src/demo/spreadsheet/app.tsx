@@ -8,7 +8,7 @@ import type Runtime from '@/runtime';
 
 import { Container } from '@/core';
 import { StatefulWidget } from '@/core/state/stateful';
-import { Themes, type ThemePalette } from '@/styles/theme';
+import { getCurrentTheme, type ThemePalette } from '@/styles/theme';
 
 export interface SpreadsheetDemoAppProps extends WidgetProps {
   width?: number;
@@ -66,7 +66,8 @@ export class SpreadsheetDemoApp extends StatefulWidget<SpreadsheetDemoAppProps> 
   }
 
   render() {
-    const { width = 600, height = 400, theme = Themes.light } = this.props;
+    const { width = 600, height = 400 } = this.props;
+    const theme = this.props.theme ?? getCurrentTheme();
 
     return (
       <Container width={width} height={height} color={theme.background.base}>

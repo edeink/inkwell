@@ -69,22 +69,26 @@ export default function InkPlayground({
   if (effectiveMode === 'render') {
     return (
       <>
-        <div className={styles.readOnly} data-mode="render">
-          <Inkwell
-            instanceId={uniqId}
-            data={initial}
-            width={width}
-            height={height}
-            readonly
-            onError={(e) => {
-              setError(e);
-              setRunning(false);
-            }}
-            onSuccess={() => {
-              setError(null);
-              setRunning(false);
-            }}
-          />
+        <div className={styles.scope} data-mode="render">
+          <div className={styles.card}>
+            <div className={styles.cardInner}>
+              <Inkwell
+                instanceId={uniqId}
+                data={initial}
+                width={width}
+                height={height}
+                readonly
+                onError={(e) => {
+                  setError(e);
+                  setRunning(false);
+                }}
+                onSuccess={() => {
+                  setError(null);
+                  setRunning(false);
+                }}
+              />
+            </div>
+          </div>
         </div>
         <DevTools />
       </>
@@ -93,17 +97,25 @@ export default function InkPlayground({
 
   if (effectiveMode === 'code') {
     return (
-      <div className={styles.readOnly} data-mode="code">
-        <button
-          className={styles.copyBtn}
-          onClick={() => {
-            navigator.clipboard.writeText(stripJsxImportSource(localCode)).catch(() => undefined);
-          }}
-          aria-label="复制代码"
-        >
-          <CopyOutlined /> 复制
-        </button>
-        <EditorPane readOnly value={localCode} />
+      <div className={styles.scope} data-mode="code">
+        <div className={styles.card}>
+          <div className={styles.cardInner}>
+            <div className={styles.section}>
+              <button
+                className={styles.copyBtn}
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(stripJsxImportSource(localCode))
+                    .catch(() => undefined);
+                }}
+                aria-label="复制代码"
+              >
+                <CopyOutlined /> 复制
+              </button>
+              <EditorPane readOnly value={localCode} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -111,26 +123,30 @@ export default function InkPlayground({
   if (effectiveMode === 'readonly') {
     return (
       <>
-        <div className={styles.rootHorital}>
-          <div className={styles.codePane}>
-            <EditorPane readOnly value={localCode} collapsedHeight={280} />
-          </div>
-          <div className={styles.previewPane}>
-            <Inkwell
-              instanceId={uniqId}
-              data={committedCode}
-              width={width}
-              height={height}
-              readonly={true}
-              onError={(e) => {
-                setError(e);
-                setRunning(false);
-              }}
-              onSuccess={() => {
-                setError(null);
-                setRunning(false);
-              }}
-            />
+        <div className={styles.scope} data-mode="readonly">
+          <div className={styles.card}>
+            <div className={`${styles.cardInner} ${styles.split}`}>
+              <div className={`${styles.section} ${styles.splitLeft}`}>
+                <EditorPane readOnly value={localCode} collapsedHeight={280} />
+              </div>
+              <div className={`${styles.section} ${styles.splitRight}`}>
+                <Inkwell
+                  instanceId={uniqId}
+                  data={committedCode}
+                  width={width}
+                  height={height}
+                  readonly={true}
+                  onError={(e) => {
+                    setError(e);
+                    setRunning(false);
+                  }}
+                  onSuccess={() => {
+                    setError(null);
+                    setRunning(false);
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
         <DevTools />
@@ -140,30 +156,40 @@ export default function InkPlayground({
 
   return (
     <>
-      <div className={styles.rootVertical}>
-        <Inkwell
-          instanceId={uniqId}
-          data={committedCode}
-          width={width}
-          height={height}
-          readonly={false}
-          onError={(e) => {
-            setError(e);
-            setRunning(false);
-          }}
-          onSuccess={() => {
-            setError(null);
-            setRunning(false);
-          }}
-        />
-        <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
-        <ControlPanel
-          instanceId={uniqId}
-          running={running}
-          error={error}
-          onRun={onRun}
-          onClear={onClear}
-        />
+      <div className={styles.scope} data-mode="edit">
+        <div className={styles.card}>
+          <div className={styles.cardInner}>
+            <div className={`${styles.section} ${styles.previewSection}`}>
+              <Inkwell
+                instanceId={uniqId}
+                data={committedCode}
+                width={width}
+                height={height}
+                readonly={false}
+                onError={(e) => {
+                  setError(e);
+                  setRunning(false);
+                }}
+                onSuccess={() => {
+                  setError(null);
+                  setRunning(false);
+                }}
+              />
+            </div>
+            <div className={`${styles.section} ${styles.codeSection}`}>
+              <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
+            </div>
+            <div className={`${styles.section} ${styles.controlSection}`}>
+              <ControlPanel
+                instanceId={uniqId}
+                running={running}
+                error={error}
+                onRun={onRun}
+                onClear={onClear}
+              />
+            </div>
+          </div>
+        </div>
       </div>
       <DevTools />
     </>
