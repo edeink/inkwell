@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { FrostedGlassCard } from '../widgets/frosted-glass-card';
+import { FrostedGlassCard } from '../widgets/glass-card';
 
 import { createBoxConstraints } from '@/core/base';
 import { WidgetRegistry } from '@/core/registry';

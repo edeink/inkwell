@@ -3,9 +3,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { GlassCardDemoApp } from '../app';
-import { FrostedGlassCard } from '../widgets/frosted-glass-card';
-import { GlassCalendarCard } from '../widgets/glass-calendar-card';
-import { GlassCardComposite } from '../widgets/glass-card-composite';
+import { GlassCalendarCard } from '../widgets/glass-calendar';
+import { FrostedGlassCard, GlassCardComposite } from '../widgets/glass-card';
 
 import type { Widget } from '@/core';
 

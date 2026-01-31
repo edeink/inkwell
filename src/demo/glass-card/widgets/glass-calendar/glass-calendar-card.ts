@@ -1,218 +1,35 @@
-import type { BoxConstraints, BuildContext, Size, WidgetProps } from '@/core';
+import { ATMOSPHERE_THEMES } from './atmosphere-themes';
+import { AtmosphereKind, type GlassCalendarCardProps } from './calendar-types';
+import {
+  WEEKDAY_LABELS,
+  addDays,
+  clamp,
+  easeOutCubic,
+  lerp,
+  mixRgb,
+  normalizeAngle,
+  rgba,
+  sampleDiagonalGradientColor,
+  shortestAngleDiff,
+  startOfDay,
+} from './calendar-utils';
+
+import type { BoxConstraints, BuildContext, Size } from '@/core';
 import type { ThemePalette } from '@/styles/theme';
 
 import { Widget } from '@/core';
 import { Themes } from '@/styles/theme';
 
-/*
- * GlassCalendarCard：玻璃日历卡片的“特效层”。
- * - 只做绘制：背景渐变、圆弧带、裁剪与边缘渐隐、放大镜高亮等
- * - 外层 GlassCalendar 负责状态与布局，只把时间轴/天气主题等数据传进来
- *
- * 性能说明：
- * paintSelf 高频调用，尽量复用离屏 layer（text/lens/wheel）减少滤镜与重复绘制开销。
- */
-export interface GlassCalendarCardProps extends WidgetProps {
-  width?: number;
-  height?: number;
-  theme?: ThemePalette;
-  currentTime?: number;
-  timelineStartTime?: number;
-  timelineSelectedIndex?: number;
-  timelineSegmentCount?: number;
-  weatherThemeFrom?: WeatherKind;
-  weatherThemeTo?: WeatherKind;
-  weatherThemeT?: number;
-}
-
 type TextLayer = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D };
-
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-export enum WeatherKind {
-  Sunny = 'sunny',
-  Rainy = 'rainy',
-  Snowy = 'snowy',
-  Night = 'night',
-}
-
-export type WeatherThemePalette = {
-  bgTop: string;
-  bgBottom: string;
-  highlight: string;
-  textPrimary: string;
-  textSecondary: string;
-  textMuted: string;
-  accent: string;
-  iconStroke: string;
-};
-
-export const WEATHER_THEMES: Record<WeatherKind, WeatherThemePalette> = {
-  [WeatherKind.Sunny]: {
-    bgTop: '#9dddf9',
-    bgBottom: '#5aa7d9',
-    highlight: '#e8fbff',
-    textPrimary: '#ffffff',
-    textSecondary: '#e3f5ff',
-    textMuted: '#cfe9f6',
-    accent: '#7ed0ff',
-    iconStroke: '#2f4a5a',
-  },
-  [WeatherKind.Rainy]: {
-    bgTop: '#c9cdd2',
-    bgBottom: '#8e949b',
-    highlight: '#f1f3f5',
-    textPrimary: '#1f2a33',
-    textSecondary: '#2d3742',
-    textMuted: '#6a747d',
-    accent: '#9aa1a8',
-    iconStroke: '#2c3136',
-  },
-  [WeatherKind.Snowy]: {
-    bgTop: '#e6f2ff',
-    bgBottom: '#89a4c8',
-    highlight: '#f6fbff',
-    textPrimary: '#ffffff',
-    textSecondary: '#edf6ff',
-    textMuted: '#d5e5f3',
-    accent: '#c8e7ff',
-    iconStroke: '#283a49',
-  },
-  [WeatherKind.Night]: {
-    bgTop: '#142a4f',
-    bgBottom: '#07152c',
-    highlight: '#eaf2ff',
-    textPrimary: '#ffffff',
-    textSecondary: '#e3eeff',
-    textMuted: '#b9cbe4',
-    accent: '#7ea7ff',
-    iconStroke: '#d8e8ff',
-  },
-};
-
-function startOfDay(d: Date): Date {
-  const nd = new Date(d.getTime());
-  nd.setHours(0, 0, 0, 0);
-  return nd;
-}
-
-function addDays(d: Date, delta: number): Date {
-  const nd = startOfDay(d);
-  nd.setDate(nd.getDate() + delta);
-  return nd;
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-function easeOutCubic(t: number): number {
-  const p = 1 - t;
-  return 1 - p * p * p;
-}
-
-function normalizeAngle(a: number): number {
-  const tau = Math.PI * 2;
-  let v = a % tau;
-  if (v < 0) {
-    v += tau;
-  }
-  return v;
-}
-
-function shortestAngleDiff(a: number, b: number): number {
-  const tau = Math.PI * 2;
-  let d = normalizeAngle(a) - normalizeAngle(b);
-  if (d > Math.PI) {
-    d -= tau;
-  }
-  if (d < -Math.PI) {
-    d += tau;
-  }
-  return d;
-}
-
-function parseHex(hex: string): { r: number; g: number; b: number } {
-  const raw = hex.replace('#', '').trim();
-  if (raw.length === 3) {
-    const r = parseInt(raw[0] + raw[0], 16);
-    const g = parseInt(raw[1] + raw[1], 16);
-    const b = parseInt(raw[2] + raw[2], 16);
-    return { r, g, b };
-  }
-  const num = parseInt(raw, 16);
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
-
-function parseColor(raw: string): { r: number; g: number; b: number } {
-  const v = raw.trim();
-  if (v.startsWith('rgb(')) {
-    const m = v.match(/rgb\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)/);
-    if (m) {
-      return { r: parseInt(m[1], 10), g: parseInt(m[2], 10), b: parseInt(m[3], 10) };
-    }
-  }
-  if (v.startsWith('rgba(')) {
-    const m = v.match(/rgba\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9.]+)\s*\)/);
-    if (m) {
-      return { r: parseInt(m[1], 10), g: parseInt(m[2], 10), b: parseInt(m[3], 10) };
-    }
-  }
-  return parseHex(v);
-}
-
-function mixRgb(a: string, b: string, t: number): string {
-  const c1 = parseColor(a);
-  const c2 = parseColor(b);
-  const r = Math.round(lerp(c1.r, c2.r, t));
-  const g = Math.round(lerp(c1.g, c2.g, t));
-  const b2 = Math.round(lerp(c1.b, c2.b, t));
-  return `rgb(${r}, ${g}, ${b2})`;
-}
-
-function sampleDiagonalGradientColor(
-  width: number,
-  height: number,
-  x: number,
-  y: number,
-  c0: string,
-  c1: string,
-): string {
-  const w = Math.max(1, width);
-  const h = Math.max(1, height);
-  const denom = w * w + h * h;
-  const t = denom > 0 ? clamp((x * w + y * h) / denom, 0, 1) : 0;
-  return mixRgb(c0, c1, t);
-}
-
-function rgba(hex: string, alpha: number): string {
-  const raw = hex.trim();
-  if (raw.startsWith('rgba(')) {
-    return raw;
-  }
-  if (raw.startsWith('rgb(')) {
-    const m = raw.match(/rgb\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)/);
-    if (!m) {
-      return raw;
-    }
-    return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
-  }
-  const c = parseHex(raw);
-  return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
-}
 
 export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
   private cardW?: number;
   private cardH?: number;
   private theme?: ThemePalette;
   private currentTime: number = startOfDay(new Date()).getTime();
-  private weatherThemeFrom: WeatherKind = WeatherKind.Sunny;
-  private weatherThemeTo: WeatherKind = WeatherKind.Sunny;
-  private weatherThemeT: number = 0;
+  private atmosphereFrom: AtmosphereKind = AtmosphereKind.DaySunny;
+  private atmosphereTo: AtmosphereKind = AtmosphereKind.DaySunny;
+  private atmosphereT: number = 0;
   private wheelRotation: number = 0;
   private wheelRotationFrom: number = 0;
   private wheelRotationTo: number = 0;
@@ -316,13 +133,13 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
         : this.timelineStartTime;
     this.timelineStartTime = nextStartTime;
 
-    this.weatherThemeFrom = data.weatherThemeFrom ?? this.weatherThemeFrom;
-    this.weatherThemeTo = data.weatherThemeTo ?? this.weatherThemeTo;
-    const nextWeatherThemeT =
-      typeof data.weatherThemeT === 'number' && Number.isFinite(data.weatherThemeT)
-        ? data.weatherThemeT
-        : this.weatherThemeT;
-    this.weatherThemeT = clamp(nextWeatherThemeT, 0, 1);
+    this.atmosphereFrom = data.atmosphereFrom ?? this.atmosphereFrom;
+    this.atmosphereTo = data.atmosphereTo ?? this.atmosphereTo;
+    const nextAtmosphereT =
+      typeof data.atmosphereT === 'number' && Number.isFinite(data.atmosphereT)
+        ? data.atmosphereT
+        : this.atmosphereT;
+    this.atmosphereT = clamp(nextAtmosphereT, 0, 1);
 
     const dayMs = 24 * 60 * 60 * 1000;
     const deltaDays =
@@ -355,9 +172,9 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
       oldProps.timelineStartTime !== next.timelineStartTime ||
       oldProps.timelineSelectedIndex !== next.timelineSelectedIndex ||
       oldProps.timelineSegmentCount !== next.timelineSegmentCount ||
-      oldProps.weatherThemeFrom !== next.weatherThemeFrom ||
-      oldProps.weatherThemeTo !== next.weatherThemeTo ||
-      oldProps.weatherThemeT !== next.weatherThemeT
+      oldProps.atmosphereFrom !== next.atmosphereFrom ||
+      oldProps.atmosphereTo !== next.atmosphereTo ||
+      oldProps.atmosphereT !== next.atmosphereT
     ) {
       this.scaleKey = '';
       this.scaleCache = null;
@@ -462,13 +279,13 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
     this.wheelSpinRaf = requestAnimationFrame(loop);
   }
 
-  private getPalette(from: WeatherKind, to: WeatherKind, t: number) {
+  private getPalette(from: AtmosphereKind, to: AtmosphereKind, t: number) {
     const key = `${from}:${to}:${t.toFixed(3)}`;
     if (this.cachedPalette && this.paletteKey === key) {
       return this.cachedPalette;
     }
-    const a = WEATHER_THEMES[from] ?? WEATHER_THEMES[WeatherKind.Sunny];
-    const b = WEATHER_THEMES[to] ?? WEATHER_THEMES[WeatherKind.Sunny];
+    const a = ATMOSPHERE_THEMES[from] ?? ATMOSPHERE_THEMES[AtmosphereKind.DaySunny];
+    const b = ATMOSPHERE_THEMES[to] ?? ATMOSPHERE_THEMES[AtmosphereKind.DaySunny];
     const palette = {
       bgTop: mixRgb(a.bgTop, b.bgTop, t),
       bgBottom: mixRgb(a.bgBottom, b.bgBottom, t),
@@ -937,8 +754,8 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
     }
 
     const radius = Math.min(26, height * 0.12);
-    const mix = clamp(this.weatherThemeT, 0, 1);
-    const palette = this.getPalette(this.weatherThemeFrom, this.weatherThemeTo, mix);
+    const mix = clamp(this.atmosphereT, 0, 1);
+    const palette = this.getPalette(this.atmosphereFrom, this.atmosphereTo, mix);
     const bgTop = palette.bgTop;
     const bgBottom = palette.bgBottom;
     const textPrimary = palette.textPrimary;

@@ -13,7 +13,7 @@ import {
   Text,
   TextAlign,
 } from '@/core';
-import { FrostedGlassCard } from '@/demo/glass-card/widgets/frosted-glass-card';
+import { FrostedGlassCard } from '@/demo/glass-card/widgets/glass-card';
 import { Themes } from '@/styles/theme';
 
 export const GlassPanel = ({
