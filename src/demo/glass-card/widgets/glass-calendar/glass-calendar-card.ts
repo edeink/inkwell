@@ -309,7 +309,20 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
   ): TextLayer | null {
     const w = Math.max(1, Math.round(width));
     const h = Math.max(1, Math.round(height));
-    if (layer && layer.canvas.width === w && layer.canvas.height === h) {
+    const baseCanvas = baseCtx.canvas as unknown as { width?: number; height?: number } | null;
+    const rawDprX =
+      baseCanvas && typeof baseCanvas.width === 'number' && width > 0
+        ? baseCanvas.width / width
+        : 1;
+    const rawDprY =
+      baseCanvas && typeof baseCanvas.height === 'number' && height > 0
+        ? baseCanvas.height / height
+        : rawDprX;
+    const dpr = clamp(Math.min(rawDprX, rawDprY), 1, 4);
+    const wPx = Math.max(1, Math.round(w * dpr));
+    const hPx = Math.max(1, Math.round(h * dpr));
+
+    if (layer && layer.canvas.width === wPx && layer.canvas.height === hPx) {
       return layer;
     }
 
@@ -325,11 +338,16 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
     if (!canvas) {
       return null;
     }
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = wPx;
+    canvas.height = hPx;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       return null;
+    }
+    if (typeof ctx.setTransform === 'function') {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    } else {
+      ctx.scale(dpr, dpr);
     }
     return { canvas, ctx };
   }
@@ -673,6 +691,8 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
   private drawMagnifier(
     ctx: CanvasRenderingContext2D,
     source: HTMLCanvasElement,
+    sourceWidth: number,
+    sourceHeight: number,
     cx: number,
     cy: number,
     r: number,
@@ -712,7 +732,7 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
     ctx.scale(scale, scale);
     ctx.translate(-cx, -cy);
     ctx.globalAlpha = 0.96;
-    ctx.drawImage(source, 0, 0);
+    ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight);
     ctx.restore();
 
     ctx.strokeStyle = rgba('#ffffff', 0.42);
@@ -770,8 +790,8 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
 
     const arcCenterX = width / 2;
     const arcRadius = width * 1.72;
-    const bandYOffset = clamp(height * 0.04, 10, 18);
-    const bandY = height * 0.575 + bandYOffset;
+    const bandYOffset = clamp(height * 0.1, 32, 32);
+    const bandY = height * 0.6 + bandYOffset;
     const arcCenterY = bandY + arcRadius;
     const bandThickness = clamp(height * 0.18, 52, 74) * 1.2;
     const startAngle = Math.PI * 1.04;
@@ -817,7 +837,7 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
       const viewportH = clamp(bandThickness * 2.24, 120, height - viewportY - radius - 6);
 
       const wCtx = this.wheelLayer.ctx;
-      wCtx.clearRect(0, 0, this.wheelLayer.canvas.width, this.wheelLayer.canvas.height);
+      wCtx.clearRect(0, 0, width, height);
       wCtx.save();
       wCtx.beginPath();
       wCtx.rect(viewportX, viewportY, viewportW, viewportH);
@@ -837,7 +857,7 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
       );
 
       const tCtx = this.textLayer.ctx;
-      tCtx.clearRect(0, 0, this.textLayer.canvas.width, this.textLayer.canvas.height);
+      tCtx.clearRect(0, 0, width, height);
       this.drawWheelTextLayer(
         tCtx,
         arcCenterX,
@@ -852,10 +872,10 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
         textSecondary,
         true,
       );
-      wCtx.drawImage(this.textLayer.canvas, 0, 0);
+      wCtx.drawImage(this.textLayer.canvas, 0, 0, width, height);
 
       const lCtx = this.lensLayer.ctx;
-      lCtx.clearRect(0, 0, this.lensLayer.canvas.width, this.lensLayer.canvas.height);
+      lCtx.clearRect(0, 0, width, height);
       this.drawWheelTextLayer(
         lCtx,
         arcCenterX,
@@ -873,6 +893,8 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
       this.drawMagnifier(
         wCtx,
         this.lensLayer.canvas,
+        width,
+        height,
         highlightX,
         lensCy,
         highlightR,
@@ -885,7 +907,7 @@ export class GlassCalendarCard extends Widget<GlassCalendarCardProps> {
       const fadeY = clamp(viewportH * 0.12, 10, 32);
       this.applyViewportFade(wCtx, viewportX, viewportY, viewportW, viewportH, fadeX, fadeY);
       wCtx.restore();
-      ctx.drawImage(this.wheelLayer.canvas, 0, 0);
+      ctx.drawImage(this.wheelLayer.canvas, 0, 0, width, height);
     } else {
       this.drawBand(
         ctx,

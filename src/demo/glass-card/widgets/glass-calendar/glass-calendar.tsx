@@ -293,7 +293,7 @@ export class GlassCalendar extends StatefulWidget<
     const textPrimary = mixRgb(fromTheme.textPrimary, toTheme.textPrimary, atmosphereT);
     const accent = mixRgb(fromTheme.accent, toTheme.accent, atmosphereT);
 
-    const inset = clamp(Math.min(width, height) * 0.06, 16, 24);
+    const inset = clamp(Math.min(width, height) * 0.12, 32, 32);
     const headerTop = inset;
     const titleTopY = headerTop;
     const actionSize = clamp(height * 0.12, 34, 42);

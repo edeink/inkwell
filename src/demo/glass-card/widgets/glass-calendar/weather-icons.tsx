@@ -17,12 +17,14 @@ export const SunnyWeatherSvg = [
 export const RainyWeatherSvg = [
   '<svg width="24" height="24" viewBox="0 0 24 24"',
   ' fill="none" xmlns="http://www.w3.org/2000/svg">',
+  '<g transform="translate(-1 2)">',
   '<path d="M7.6 12.6C6.2 12.6 5 11.5 5 10.1c0-1.2.8-2.2 1.9-2.5',
   ' .3-2.3 2.3-4.1 4.8-4.1 2 0 3.7 1.1 4.5 2.7 .2 0 .4-.1',
   ' .7-.1 1.8 0 3.2 1.4 3.2 3.2 0 1.8-1.4 3.2-3.2 3.2H7.6Z"',
   ' fill="currentColor"/>',
   '<path d="M9 14.6L7.8 17.2M13 14.6L11.8 17.2M17 14.6L15.8 17.2"',
-  ' stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  ' stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  '</g></svg>',
 ].join('');
 
 export const NightTimeSvg = [
@@ -39,31 +41,33 @@ export const NightTimeSvg = [
 export const CloudyWeatherSvg = [
   '<svg width="24" height="24" viewBox="0 0 24 24"',
   ' fill="none" xmlns="http://www.w3.org/2000/svg">',
+  '<g transform="translate(-1 2)">',
   '<path d="M7.2 14.4C5.4 14.4 4 13 4 11.2c0-1.5 1-2.7 2.4-3.1',
   ' .5-2.8 2.9-4.9 5.9-4.9 2.3 0 4.4 1.2 5.4 3.1 .2 0 .5-.1 .8-.1',
   ' 2.2 0 4 1.8 4 4s-1.8 4-4 4H7.2Z" fill="currentColor"/>',
-  '</svg>',
+  '</g></svg>',
 ].join('');
 
 export const StormyWeatherSvg = [
   '<svg width="24" height="24" viewBox="0 0 24 24"',
   ' fill="none" xmlns="http://www.w3.org/2000/svg">',
+  '<g transform="translate(-1 2)">',
   '<path d="M7.2 12.8C5.4 12.8 4 11.4 4 9.6c0-1.5 1-2.7 2.4-3.1',
   ' .5-2.8 2.9-4.9 5.9-4.9 2.3 0 4.4 1.2 5.4 3.1 .2 0 .5-.1 .8-.1',
   ' 2.2 0 4 1.8 4 4 0 2.2-1.8 4-4 4H7.2Z" fill="currentColor"/>',
   '<path d="M12.3 13.6l-2.2 4.2h2.4l-1.3 3.2 4.7-5.9h-2.6l1-1.5"',
   ' fill="currentColor" opacity="0.95"/>',
-  '</svg>',
+  '</g></svg>',
 ].join('');
 
 export const FoggyWeatherSvg = [
   '<svg width="24" height="24" viewBox="0 0 24 24"',
   ' fill="none" xmlns="http://www.w3.org/2000/svg">',
   '<path d="M5 8.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  '<path d="M3.8 12h16.4" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" opacity="0.9"/>',
-  '<path d="M5.6 15.5h12.8" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" opacity="0.8"/>',
+  '<path d="M3.8 12h16.4" stroke="currentColor" stroke-width="2" ',
+  'stroke-linecap="round" opacity="0.9"/>',
+  '<path d="M5.6 15.5h12.8" stroke="currentColor" stroke-width="2" ',
+  'stroke-linecap="round" opacity="0.8"/>',
   '</svg>',
 ].join('');
 
