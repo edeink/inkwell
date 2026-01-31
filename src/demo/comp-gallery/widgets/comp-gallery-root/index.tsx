@@ -173,7 +173,7 @@ export class CompGalleryRoot extends StatefulWidget<CompGalleryRootProps, CompGa
                     />
                     <Text
                       key="demo-subtitle"
-                      text="以 Liquid Glass 风格展示组件在不同主题下的外观与交互。"
+                      text="常规组件外观与交互。"
                       fontSize={13}
                       color={currentTheme.text.secondary}
                       lineHeight={18}

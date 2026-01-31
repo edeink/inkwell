@@ -12,6 +12,9 @@ export default defineConfig({
       'wiki-app': fileURLToPath(new URL('./src/demo/wiki/app.tsx', import.meta.url)),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 2000,
+  },
   test: {
     watch: false,
     environment: 'jsdom',

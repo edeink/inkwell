@@ -10,8 +10,8 @@ import type Runtime from '@/runtime';
 
 export const meta = {
   key: DemoKey.GlassCard,
-  label: '磨砂卡片',
-  description: 'Canvas2D 自绘磨砂玻璃卡片组件，带右侧清晰窗口与 60fps 动画。',
+  label: '玻璃组件',
+  description: 'Canvas2D 自绘玻璃拟态组件合集：磨砂卡片、磨砂弧带日历、磨砂图表、磨砂按钮。',
 };
 
 export default function GlassCardDemo() {

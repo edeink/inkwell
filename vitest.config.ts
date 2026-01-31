@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
@@ -14,5 +14,6 @@ export default defineConfig({
     reporters: 'default',
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 1000,
+    exclude: [...configDefaults.exclude, 'src/benchmark/__tests__/perf.spec.tsx'],
   },
 });

@@ -28,8 +28,8 @@ export class SizedBox extends Widget<SizedBoxProps> {
    * 初始化SizedBox特有属性
    */
   private initSizedBoxProperties(data: SizedBoxProps): void {
-    this.fixedWidth = data.width;
-    this.fixedHeight = data.height;
+    this.fixedWidth = typeof data.width === 'number' ? Math.max(0, data.width) : data.width;
+    this.fixedHeight = typeof data.height === 'number' ? Math.max(0, data.height) : data.height;
   }
 
   /**
@@ -82,15 +82,23 @@ export class SizedBox extends Widget<SizedBoxProps> {
       };
     }
 
-    // 为子组件提供固定尺寸约束
-    const childWidth = this.fixedWidth ?? constraints.maxWidth;
-    const childHeight = this.fixedHeight ?? constraints.maxHeight;
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max));
+
+    const hasWidth = typeof this.fixedWidth === 'number';
+    const hasHeight = typeof this.fixedHeight === 'number';
+
+    const width = hasWidth
+      ? clamp(this.fixedWidth!, constraints.minWidth, constraints.maxWidth)
+      : 0;
+    const height = hasHeight
+      ? clamp(this.fixedHeight!, constraints.minHeight, constraints.maxHeight)
+      : 0;
 
     return {
-      minWidth: this.fixedWidth ?? 0,
-      maxWidth: childWidth,
-      minHeight: this.fixedHeight ?? 0,
-      maxHeight: childHeight,
+      minWidth: hasWidth ? width : 0,
+      maxWidth: hasWidth ? width : constraints.maxWidth,
+      minHeight: hasHeight ? height : 0,
+      maxHeight: hasHeight ? height : constraints.maxHeight,
     };
   }
 

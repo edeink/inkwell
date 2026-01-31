@@ -322,8 +322,8 @@ export class GlassCalendar extends StatefulWidget<
       now.getMonth() === selectedDate.getMonth() &&
       now.getDate() === selectedDate.getDate();
 
-    const monthFontSize = clamp(height * 0.07, 16, 26);
-    const dayFontSize = clamp(height * 0.2, 52, 94);
+    const monthFontSize = clamp(height * 0.16, 32, 56);
+    const dayFontSize = clamp(height * 0.12, 16, 32);
     const chipFontSize = clamp(height * 0.04, 12, 16);
     const chipPadX = clamp(height * 0.02, 8, 12);
     const chipPadY = clamp(height * 0.015, 6, 10);

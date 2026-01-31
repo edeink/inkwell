@@ -7,10 +7,11 @@ export default mergeConfig(
   defineConfig({
     test: {
       testTimeout: 1000, // Enforce 1 second timeout per test
+      setupFiles: ['src/benchmark/setup-canvas-mock.ts'],
       include: [
         'src/benchmark/metrics/__tests__/dom.spec.ts',
         'src/benchmark/tester/pipeline/__tests__/pipeline.spec.ts',
-        'src/benchmark/perf.spec.tsx',
+        'src/benchmark/__tests__/perf.spec.tsx',
       ],
     },
   }),

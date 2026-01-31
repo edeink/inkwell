@@ -9,6 +9,7 @@
 - `widgets/`
   - `frosted-glass-card/index.ts`：核心绘制组件（磨砂层 + 清晰窗口 + 底图缓存 + 文本采样回调）。
   - `glass-card-composite/index.tsx`：组合示例组件（底层 `FrostedGlassCard` + 上层文本内容），并使用采样结果更新文字样式。
+  - `glass-button/index.tsx`：玻璃按钮组件（交互状态 + 特效调度），特效实现拆分在 `glass-button/effects/`。
 - `helpers/`
   - `canvas.ts`：少量 Canvas 相关工具（圆角路径、可复现伪随机）。
   - `color-sampling.ts`：颜色采样与推荐文字样式（fast 1x1 缩放采样 + getImageData 回退）。
@@ -44,6 +45,32 @@
 - 可选对指定区域做一次颜色采样，并回调推荐文字样式
 
 对应实现：[index.ts](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/frosted-glass-card/index.ts)
+
+### GlassButton（交互 + 特效调度）
+
+`GlassButton` 是同一套磨砂玻璃视觉语言下的“按钮组件”，支持 hover/press 动画，并把特效实现拆成独立模块统一调度：
+
+- 入口：[index.tsx](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/index.tsx)
+- 特效目录：[effects](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/effects)
+- 测试文件：[glass-button.effects.test.ts](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/__tests__/glass-button.effects.test.ts)
+
+内置特效（`activeVariant`）：
+
+- `rim`：边缘光晕与高光描边
+- `wave`：指针锚点的扩散波纹
+- `prism`：棱镜折射的彩色带状高光
+- `rhythm`：音律闪烁 + 可选音乐频谱柱（支持 `musicSpectrum`/`musicConfig`）
+- `pulse`：呼吸/心跳式脉冲高光
+- `glitch`：数字噪声/切片错位的故障感
+- `frost`：霜雾凝结的颗粒纹理
+
+#### 新增一种特效（5 步内）
+
+1. 在 `widgets/glass-button/effects/` 新建 `<name>-effect.ts`，导出 `create<Name>Effect(): GlassButtonEffect`。
+2. 在 [effect-types.ts](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/effects/effect-types.ts) 的 `GlassButtonEffectName` 中加入新名称字面量。
+3. 在 [effects/index.ts](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/effects/index.ts) 里导出新文件。
+4. 在 [glass-button/index.tsx](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/index.tsx) 更新 `GlassButtonActiveVariant` 与 `ensureEffects()` 映射。
+5. 在 [glass-button.effects.test.ts](file:///Users/edeink/Documents/inkwell/src/demo/glass-card/widgets/glass-button/__tests__/glass-button.effects.test.ts) 补一条覆盖用例（至少覆盖 `paint`）。
 
 ## 底图缓存（baseLayer）
 
@@ -118,4 +145,3 @@ key 的构成要点（高层描述）：
 - 调整玻璃雾化：`glassAlpha`
 - 调整窗口布局：`windowRect` 或 `windowRatio`
 - 接入业务文本：优先通过 `GlassCardComposite` 在上层叠加，避免文本被磨砂影响
-

@@ -11,7 +11,7 @@ import type Runtime from '@/runtime';
 export const meta = {
   key: DemoKey.CompGallery,
   label: '组件画廊',
-  description: '以 Liquid Glass 风格展示 src/comp 的组件外观与交互。',
+  description: '常规组件外观与交互。',
 };
 
 export default function CompGalleryDemo() {
