@@ -1,0 +1,1 @@
+import{_ as o,c,o as d,ai as i}from"./chunks/framework.Ckc8SVM3.js";const x=JSON.parse('{"title":"项目协作提示（供 AI 助手）","description":"","frontmatter":{},"headers":[],"relativePath":"prompt.md","filePath":"prompt.md"}'),l={name:"prompt.md"};function r(t,e,a,s,n,u){return d(),c("div",null,[...e[0]||(e[0]=[i("",23)])])}const h=o(l,[["render",r]]);export{x as __pageData,h as default};
