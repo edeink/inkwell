@@ -8,7 +8,7 @@
 
   /* 背景色 */
   --ink-demo-bg-base: #fff;
-  --ink-demo-bg-surface: #f5f5f5;
+  --ink-demo-bg-surface: #f6f6f7;
   --ink-demo-bg-container: #fff;
 
   /* 文本色 */
@@ -68,9 +68,9 @@ html[data-theme='dark'] {
   --ink-demo-danger: #ff453a;
 
   /* 背景色 */
-  --ink-demo-bg-base: #141414;
-  --ink-demo-bg-surface: #1f1f1f;
-  --ink-demo-bg-container: #1f1f1f;
+  --ink-demo-bg-base: #1b1b1f;
+  --ink-demo-bg-surface: #161618;
+  --ink-demo-bg-container: #202127;
 
   /* 文本色 */
   --ink-demo-text-primary: #f0f0f0;
@@ -129,9 +129,9 @@ html.dark {
   --ink-demo-danger: #ff453a;
 
   /* 背景色 */
-  --ink-demo-bg-base: #141414;
-  --ink-demo-bg-surface: #1f1f1f;
-  --ink-demo-bg-container: #1f1f1f;
+  --ink-demo-bg-base: #1b1b1f;
+  --ink-demo-bg-surface: #161618;
+  --ink-demo-bg-container: #202127;
 
   /* 文本色 */
   --ink-demo-text-primary: #f0f0f0;

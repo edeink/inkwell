@@ -124,7 +124,7 @@ const AntdThemes: Record<ThemeMode, ThemePalette> = {
     danger: '#ff4d4f',
     background: {
       base: '#ffffff',
-      surface: '#f5f5f5',
+      surface: '#f6f6f7',
       container: '#ffffff',
     },
     text: {
@@ -161,9 +161,9 @@ const AntdThemes: Record<ThemeMode, ThemePalette> = {
     warning: '#d89614',
     danger: '#ff4d4f',
     background: {
-      base: '#141414',
-      surface: '#1f1f1f',
-      container: '#1f1f1f',
+      base: '#1b1b1f',
+      surface: '#161618',
+      container: '#202127',
     },
     text: {
       primary: '#f0f0f0',
