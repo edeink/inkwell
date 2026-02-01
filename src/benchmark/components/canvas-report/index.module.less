@@ -38,6 +38,12 @@
   padding-bottom: 16px;
 }
 
+.title {
+  margin: 0;
+  font-size: 18px;
+  color: @text-default;
+}
+
 .nodeCount {
   font-size: 16px;
   font-weight: 600;
@@ -47,6 +53,32 @@
   border-radius: 6px;
   color: @color-primary;
   box-shadow: 0 2px 0 rgb(0 0 0 / 2%);
+}
+
+.card {
+  border: 1px solid @color-border;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: @color-bg;
+}
+
+.cardTitle {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: @text-default;
+}
+
+.cardsGrid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cardsGrid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .cardTotal {
@@ -69,6 +101,23 @@
   font-weight: bold;
 }
 
+.statTitle {
+  font-size: 12px;
+  color: @text-muted;
+  margin-bottom: 6px;
+}
+
+.statValueRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.statSuffix {
+  font-size: 12px;
+  color: @text-muted;
+}
+
 .statValueBuild {
   color: @color-primary !important;
 }
@@ -87,13 +136,12 @@
   font-size: 12px;
 }
 
-.cardTotal,
-.cardBuild,
-.cardLayout,
-.cardPaint {
-  :global {
-    .ant-statistic-title {
-      color: var(--ink-demo-text-secondary);
-    }
+@media (width <= 960px) {
+  .cardsGrid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardsGrid2 {
+    grid-template-columns: 1fr;
   }
 }

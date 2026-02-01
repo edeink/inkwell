@@ -1,9 +1,9 @@
-import { CloseOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { Button, Popover, Tooltip } from 'antd';
-
 import styles from './index.module.less';
 
 import type { ReactNode } from 'react';
+
+import { Button, Popover, Tooltip } from '@/ui';
+import { CloseOutlined, QuestionCircleOutlined } from '@/ui/icons';
 
 export function DevtoolsHeaderRight({
   helpContent,
@@ -16,7 +16,7 @@ export function DevtoolsHeaderRight({
     <>
       <Popover
         trigger="click"
-        placement="bottomRight"
+        placement="bottom"
         overlayClassName={styles.helpOverlay}
         content={helpContent}
       >

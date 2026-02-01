@@ -1,5 +1,3 @@
-import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { InputNumber, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SCALE_CONFIG } from '../../constants';
@@ -11,6 +9,8 @@ import { quantize } from './helper';
 import styles from './index.module.less';
 
 import { findWidget } from '@/core/helper/widget-selector';
+import { InputNumber, Tooltip } from '@/ui';
+import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@/ui/icons';
 
 interface ZoomBarProps {
   min?: number;
@@ -164,8 +164,8 @@ export default function ZoomBar({
           step={10}
           value={percent}
           precision={0}
-          formatter={(v) => `${v}%`}
-          parser={(v) => Number(String(v ?? '').replace(/%/g, ''))}
+          formatter={(v?: string | number) => `${v ?? ''}%`}
+          parser={(v: string) => Number(String(v ?? '').replace(/%/g, ''))}
           onChange={onPercentChange}
         />
         <Tooltip title="增加 10%">

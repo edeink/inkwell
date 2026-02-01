@@ -1,4 +1,3 @@
-import { CopyOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect } from 'react';
 
 import ControlPanel from '../control-panel';
@@ -11,6 +10,7 @@ import type { InkPlaygroundProps } from './types';
 
 import { DevTools } from '@/devtools';
 import { stripJsxImportSource } from '@/site/utils/strip-jsx';
+import { CopyOutlined } from '@/ui/icons';
 
 /**
  * InkPlayground 组件，用于展示和编辑代码

@@ -24,6 +24,7 @@
 .actions {
   display: inline-flex;
   align-items: center;
+  position: relative;
 }
 
 .list {
@@ -62,6 +63,32 @@
 
 .copyBtn:hover {
   color: var(--ink-demo-text-primary, #4b5563);
+}
+
+.copyToast {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  z-index: 2;
+  background: var(--ink-card);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: var(--ink-radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.copyToastSuccess {
+  color: #2e7d32;
+  border-color: #81c784;
+}
+
+.copyToastError {
+  color: #c62828;
+  border-color: #ef9a9a;
 }
 
 @media (width <=640px) {

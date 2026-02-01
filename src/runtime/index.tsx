@@ -776,18 +776,17 @@ export default class Runtime {
     }
 
     // 创建约束条件
+    const containerW = this._container?.clientWidth ?? 0;
+    const containerH = this._container?.clientHeight ?? 0;
     const constraints: BoxConstraints = {
       minWidth: 0,
-      maxWidth: widget.width ?? Infinity,
+      maxWidth: containerW > 0 ? containerW : (widget.width ?? Infinity),
       minHeight: 0,
-      maxHeight: widget.height ?? Infinity,
+      maxHeight: containerH > 0 ? containerH : (widget.height ?? Infinity),
     };
 
     // 执行布局计算
     const size = widget.layout(constraints);
-
-    const containerW = this._container?.clientWidth ?? 0;
-    const containerH = this._container?.clientHeight ?? 0;
 
     let w = size.width;
     let h = size.height;

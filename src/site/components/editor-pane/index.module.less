@@ -49,10 +49,6 @@
 }
 
 .copyBtn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
   appearance: none;
   background: var(--ink-card);
   border: 1px solid var(--ifm-toc-border-color);
@@ -71,6 +67,16 @@
     color 0.15s ease;
   opacity: 0;
   pointer-events: none;
+}
+
+.copyDock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .editorPane:hover .copyBtn,
@@ -98,8 +104,9 @@
 
 .copyToast {
   position: absolute;
-  top: 44px;
-  right: 8px;
+  top: 50%;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
   z-index: 3;
   background: var(--ink-card);
   border: 1px solid var(--ifm-toc-border-color);
@@ -107,6 +114,8 @@
   padding: 6px 10px;
   font-size: 12px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .copyToastSuccess {

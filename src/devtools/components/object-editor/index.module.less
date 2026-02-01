@@ -96,6 +96,7 @@
 
 .kvField {
   width: 100%;
+  flex: 1;
   min-width: 0;
 }
 
@@ -180,9 +181,7 @@
 }
 
 .hiddenPopoverOverlay {
-  :global(.ant-popover-inner) {
-    min-width: 220px;
-  }
+  min-width: 220px;
 }
 
 .hiddenPopover {
@@ -232,11 +231,11 @@
   background: var(--ink-demo-bg-container);
   border: 1px solid var(--ink-demo-border);
   border-radius: 6px;
+}
 
-  :global(.ant-input-number) {
-    width: 54px;
-    min-width: 54px;
-  }
+.arrayEditor input {
+  width: 54px;
+  min-width: 54px;
 }
 
 .colorPickerWrap {
@@ -248,22 +247,5 @@
 }
 
 .colorPicker {
-  :global {
-    .ant-color-picker-trigger {
-      width: 18px !important;
-      height: 18px !important;
-      padding: 0 !important;
-      border-radius: 2px !important;
-      border: 1px solid var(--ink-demo-border-secondary) !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-
-      .ant-color-picker-color-block {
-        width: 14px !important;
-        height: 14px !important;
-        border-radius: 1px !important;
-      }
-    }
-  }
+  display: flex;
 }

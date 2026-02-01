@@ -1,4 +1,3 @@
-import { Card, Col, Row, Statistic, Typography } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
 
@@ -7,8 +6,6 @@ import { getThemeColor } from '../../utils/theme';
 import styles from './index.module.less';
 
 import type { TestResult } from '../../index.types';
-
-const { Title } = Typography;
 
 type Props = {
   results: TestResult[];
@@ -156,74 +153,60 @@ export default function CanvasReport({ results }: Props) {
   return (
     <div className={styles.report}>
       <div className={styles.header}>
-        <Title level={4} style={{ margin: 0, color: 'var(--ink-demo-text-primary)' }}>
-          性能测试报告
-        </Title>
+        <h3 className={styles.title}>性能测试报告</h3>
         <div className={styles.nodeCount}>节点数量: {metrics.nodes}</div>
       </div>
 
-      <Row gutter={16}>
-        <Col span={6}>
-          <Card bordered={false} className={styles.cardTotal}>
-            <Statistic
-              title="Total Duration"
-              value={metrics.totalTime}
-              precision={1}
-              suffix="ms"
-              valueStyle={{ fontWeight: 'bold', color: 'var(--ink-demo-text-primary)' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card bordered={false} className={styles.cardBuild}>
-            <Statistic
-              title="Build"
-              value={metrics.buildPct}
-              precision={1}
-              suffix="%"
-              valueStyle={{ color: 'var(--ink-demo-primary)' }}
-            />
-            <div className={styles.statLabel}>耗时: {metrics.build.toFixed(1)}ms</div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card bordered={false} className={styles.cardLayout}>
-            <Statistic
-              title="Layout"
-              value={metrics.layoutPct}
-              precision={1}
-              suffix="%"
-              valueStyle={{ color: 'var(--ink-demo-success)' }}
-            />
-            <div className={styles.statLabel}>耗时: {metrics.layout.toFixed(1)}ms</div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card bordered={false} className={styles.cardPaint}>
-            <Statistic
-              title="Paint"
-              value={metrics.paintPct}
-              precision={1}
-              suffix="%"
-              valueStyle={{ color: 'var(--ink-demo-warning)' }}
-            />
-            <div className={styles.statLabel}>耗时: {metrics.paint.toFixed(1)}ms</div>
-          </Card>
-        </Col>
-      </Row>
+      <div className={styles.cardsGrid4}>
+        <div className={`${styles.card} ${styles.cardTotal}`}>
+          <div className={styles.statTitle}>Total Duration</div>
+          <div className={styles.statValueRow}>
+            <span className={styles.statValue}>{metrics.totalTime.toFixed(1)}</span>
+            <span className={styles.statSuffix}>ms</span>
+          </div>
+        </div>
+        <div className={`${styles.card} ${styles.cardBuild}`}>
+          <div className={styles.statTitle}>Build</div>
+          <div className={styles.statValueRow}>
+            <span className={`${styles.statValue} ${styles.statValueBuild}`}>
+              {metrics.buildPct.toFixed(1)}
+            </span>
+            <span className={styles.statSuffix}>%</span>
+          </div>
+          <div className={styles.statLabel}>耗时: {metrics.build.toFixed(1)}ms</div>
+        </div>
+        <div className={`${styles.card} ${styles.cardLayout}`}>
+          <div className={styles.statTitle}>Layout</div>
+          <div className={styles.statValueRow}>
+            <span className={`${styles.statValue} ${styles.statValueLayout}`}>
+              {metrics.layoutPct.toFixed(1)}
+            </span>
+            <span className={styles.statSuffix}>%</span>
+          </div>
+          <div className={styles.statLabel}>耗时: {metrics.layout.toFixed(1)}ms</div>
+        </div>
+        <div className={`${styles.card} ${styles.cardPaint}`}>
+          <div className={styles.statTitle}>Paint</div>
+          <div className={styles.statValueRow}>
+            <span className={`${styles.statValue} ${styles.statValuePaint}`}>
+              {metrics.paintPct.toFixed(1)}
+            </span>
+            <span className={styles.statSuffix}>%</span>
+          </div>
+          <div className={styles.statLabel}>耗时: {metrics.paint.toFixed(1)}ms</div>
+        </div>
+      </div>
 
-      <Row gutter={16} style={{ marginTop: 24 }}>
-        <Col span={12}>
-          <Card title="耗时占比">
-            <ReactECharts option={phaseOption} style={{ height: 300 }} />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="耗时分解">
-            <ReactECharts option={totalTimeOption} style={{ height: 300 }} />
-          </Card>
-        </Col>
-      </Row>
+      <div className={styles.cardsGrid2}>
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>耗时占比</div>
+          <ReactECharts option={phaseOption} style={{ height: 300 }} />
+        </div>
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>耗时分解</div>
+          <ReactECharts option={totalTimeOption} style={{ height: 300 }} />
+        </div>
+      </div>
     </div>
   );
 }

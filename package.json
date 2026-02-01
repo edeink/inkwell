@@ -14,10 +14,10 @@
     "doc": "vitepress dev -p 3001 .",
     "doc:build": "vitepress build .",
     "doc:serve": "vitepress preview -p 3001 .",
+    "doc:deploy": "bash scripts/deploy-docs.sh",
     "precommit": "lint-staged"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.0",
     "classnames": "^2.5.1",
     "katex": "^0.16.22",
     "lodash-es": "^4.17.22",
@@ -37,7 +37,6 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "2.1.9",
-    "antd": "^5.29.0",
     "baseline-browser-mapping": "^2.8.31",
     "canvas": "^3.2.0",
     "css-loader": "^6.10.0",

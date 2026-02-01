@@ -1,3 +1,5 @@
+import InkPlayground from '@/site/components/ink-playground';
+import styles from '@/site/pages/index.module.less';
 import {
   AppstoreOutlined,
   BookOutlined,
@@ -5,10 +7,7 @@ import {
   GlobalOutlined,
   RocketOutlined,
   ToolOutlined,
-} from '@ant-design/icons';
-
-import InkPlayground from '@/site/components/ink-playground';
-import styles from '@/site/pages/index.module.less';
+} from '@/ui/icons';
 
 export const showcaseCode = `
 <Container padding={24} borderRadius={16} color="#000000" width={500}>
@@ -302,11 +301,13 @@ export default function VitePressHome() {
                   <div className={styles.uiToggleThumb}></div>
                 </div>
               </div>
-              <div className={styles.wipBadge}>构建中</div>
+              <div className={styles.wipBadge}>逐步完善中</div>
             </div>
             <h3>Ink Design</h3>
-            <p>专为 Canvas 打造的现代化组件库，提供开箱即用的精美 UI。</p>
-            <span className={styles.comingSoonText}>Coming Soon...</span>
+            <p>面向 Canvas 场景的 UI 组件集合，覆盖常用交互与基础布局（持续补齐中）。</p>
+            <a className={styles.learnMoreBtn} href="/docs/api/comp/">
+              查看组件 API →
+            </a>
           </div>
         </div>
       </section>

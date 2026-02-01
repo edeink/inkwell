@@ -1,24 +1,14 @@
-import { CodeOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
-import { Button, Input, Tooltip, Tree } from 'antd';
 import cn from 'classnames';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ElementRef,
-  type Key,
-  type MutableRefObject,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type Key, type MutableRefObject } from 'react';
 
 import { type LayoutInfo } from '../../layout';
 import SimpleTip from '../../simple-tip';
 
 import styles from './index.module.less';
 
-import type { DataNode } from 'antd/es/tree';
-
-export type AntTreeHandle = ElementRef<typeof Tree>;
+import { Button, Input, Tooltip, Tree, type DataNode, type TreeHandle } from '@/ui';
+import { ConsoleOutlined, LeftOutlined, RightOutlined } from '@/ui/icons';
+export type AntTreeHandle = TreeHandle;
 
 export function DevtoolsTreePane({
   info,
@@ -150,7 +140,7 @@ export function DevtoolsTreePane({
         </div>
         <div className={styles.treeToolbarActions}>
           <Tooltip title="打印当前节点" placement="bottom">
-            <Button type="text" icon={<CodeOutlined />} onClick={onPrintSelected} />
+            <Button type="text" icon={<ConsoleOutlined />} onClick={onPrintSelected} />
           </Tooltip>
         </div>
       </div>
@@ -179,8 +169,8 @@ export function DevtoolsTreePane({
           }
           onSelectKey(String(keys[0]));
         }}
-        filterTreeNode={(node) =>
-          !!searchLower && String(node.title).toLowerCase().includes(searchLower)
+        filterTreeNode={
+          searchLower ? (node) => String(node.title).toLowerCase().includes(searchLower) : undefined
         }
       />
 

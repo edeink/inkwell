@@ -1,11 +1,12 @@
-import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { Button, InputNumber, Select, Space, Tabs } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { TestCaseOptions, TestCaseType, PresetType } from '../../index.types';
+import { PresetType, TestCaseOptions, TestCaseType } from '../../index.types';
 import { CASE_CONFIGS } from '../../utils/config';
 
 import styles from './index.module.less';
+
+import { Button, InputNumber, Select, Space, Tabs } from '@/ui';
+import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@/ui/icons';
 
 /**
  * 控制面板参数
@@ -269,8 +270,7 @@ export default function ControlPanel({
         activeKey={testMode}
         onChange={(k) => setTestMode(k as 'benchmark' | 'canvas')}
         items={items}
-        centered
-        style={{ marginBottom: 16 }}
+        tabBarPadding={'8px 4px'}
         className={styles.tabs}
       />
 

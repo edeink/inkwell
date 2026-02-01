@@ -1,11 +1,3 @@
-import {
-  AimOutlined,
-  EyeInvisibleOutlined,
-  InfoCircleOutlined,
-  SyncOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
-import { Button, Input, Popover, Tabs, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 
 import { isHiddenKey, isProtectedKey } from '../../helper/config';
@@ -23,6 +15,15 @@ import { Section } from './section';
  * 返回：无（通过父组件控制实际应用）
  */
 import type { Widget } from '../../../core/base';
+
+import { Button, Input, Popover, Tabs, Tooltip } from '@/ui';
+import {
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  InfoCircleOutlined,
+  SyncOutlined,
+  UserOutlined,
+} from '@/ui/icons';
 
 export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
   const getStateSnapshot = (target: Widget | null) => {
@@ -73,9 +74,9 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
           <div className={styles.emptyTitle}>未选择节点</div>
           <div className={styles.emptyDesc}>选择节点后展示可编辑属性</div>
           <div className={styles.emptySteps}>
-            <div className={styles.emptyStep}>点击左侧 Tree 节点</div>
+            <div className={styles.emptyStep}>点击 Tree 节点</div>
             <div className={styles.emptyStep}>
-              或点击顶部 <AimOutlined /> 在画布上选取
+              或点击顶部 <EyeOutlined style={{ padding: '0 4px' }} /> 在画布上选取
             </div>
           </div>
         </div>
@@ -203,7 +204,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
                 placement="bottom"
                 overlayClassName={styles.hiddenPopoverOverlay}
                 getPopupContainer={(trigger) =>
-                  (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                  (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
                 }
                 content={
                   <div className={styles.hiddenPopover}>
@@ -340,6 +341,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
       <Tabs
         className={styles.tabs}
         size="small"
+        tabBarPadding={'8px 4px'}
         items={[
           { key: 'editable', label: '状态', children: renderEditableTab() },
           { key: 'debug', label: '调试信息', children: renderDebugTab() },

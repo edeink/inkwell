@@ -4,15 +4,23 @@
   border-radius: var(--ink-radius);
   padding: var(--ink-space-3);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   min-height: 260px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
   .canvasWrapper {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: var(--ink-shadow-lg, 0 8px 24px rgb(0 0 0 / 15%));
+    width: 100%;
+    max-width: 100%;
+    min-height: 260px;
+    box-sizing: border-box;
 
     &.readonly {
       box-shadow: none;

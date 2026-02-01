@@ -1,3 +1,8 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+import styles from './index.module.less';
+
+import { Button, Space, Tooltip } from '@/ui';
 import {
   AppleOutlined,
   ChromeOutlined,
@@ -10,13 +15,9 @@ import {
   InfoCircleOutlined,
   PoweroffOutlined,
   WifiOutlined,
-} from '@ant-design/icons';
-import { Button, Space, Tooltip } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+} from '@/ui/icons';
 
-import styles from './index.module.less';
-
-export type EnvItem = { label: string; value: string; icon?: React.ReactNode };
+export type EnvItem = { label: string; value: string; icon?: ReactNode };
 
 type Props = {
   theme?: 'light' | 'dark';
@@ -28,7 +29,7 @@ type Props = {
  * @param ua User-Agent 字符串
  * @returns 浏览器名称、版本与图标
  */
-function parseBrowser(ua: string): { name: string; version: string; icon: React.ReactNode } {
+function parseBrowser(ua: string): { name: string; version: string; icon: ReactNode } {
   const mEdge = ua.match(/Edg\/(\d+)/);
   if (mEdge) {
     return { name: 'Edge', version: mEdge[1], icon: <GlobalOutlined /> };
@@ -128,6 +129,8 @@ function collectEnv() {
 export default function EnvPanel() {
   const items = useMemo(() => collectEnv(), []);
   const [battery, setBattery] = useState<string | null>(null);
+  const [copyResult, setCopyResult] = useState<null | 'success' | 'error'>(null);
+  const copyTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const navAny = navigator as Navigator & {
       getBattery?: () => Promise<{ level: number; charging: boolean }>;
@@ -145,9 +148,54 @@ export default function EnvPanel() {
         .catch(() => {});
     }
   }, []);
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        window.clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = null;
+      }
+    };
+  }, []);
   const withExtra = battery
     ? items.concat([{ label: '电池', value: battery, icon: <PoweroffOutlined /> }])
     : items;
+
+  function showFeedback(type: 'success' | 'error') {
+    setCopyResult(type);
+    if (copyTimerRef.current) {
+      window.clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopyResult(null);
+      copyTimerRef.current = null;
+    }, 1800);
+  }
+
+  function copyText(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (ok) {
+          resolve();
+        } else {
+          reject(new Error('copy failed'));
+        }
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
@@ -160,11 +208,27 @@ export default function EnvPanel() {
             className={styles.copyBtn}
             onClick={() => {
               const text = withExtra.map((it) => `${it.label}: ${it.value}`).join('\n');
-              navigator.clipboard?.writeText(text).catch(() => {});
+              copyText(text)
+                .then(() => showFeedback('success'))
+                .catch(() => showFeedback('error'));
             }}
           >
             复制环境信息
           </Button>
+          {copyResult && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={[
+                styles.copyToast,
+                copyResult === 'success' ? styles.copyToastSuccess : styles.copyToastError,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {copyResult === 'success' ? '复制成功' : '复制失败，请重试'}
+            </div>
+          )}
         </div>
       </div>
       <ul className={styles.list}>

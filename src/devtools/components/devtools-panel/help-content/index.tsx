@@ -1,13 +1,13 @@
+import styles from './index.module.less';
+
 import {
-  AimOutlined,
   CloseOutlined,
-  CodeOutlined,
+  ConsoleOutlined,
+  EyeOutlined,
   LeftOutlined,
   RightOutlined,
   SearchOutlined,
-} from '@ant-design/icons';
-
-import styles from './index.module.less';
+} from '@/ui/icons';
 
 export function DevtoolsHelpContent({ combo }: { combo: string }) {
   return (
@@ -18,7 +18,7 @@ export function DevtoolsHelpContent({ combo }: { combo: string }) {
         <div className={styles.helpGroupTitle}>顶部图标</div>
         <div className={styles.helpItem}>
           <div className={styles.helpIcon}>
-            <AimOutlined />
+            <EyeOutlined />
           </div>
           <div className={styles.helpText}>
             <div className={styles.helpItemTitle}>拾取</div>
@@ -61,7 +61,7 @@ export function DevtoolsHelpContent({ combo }: { combo: string }) {
         </div>
         <div className={styles.helpItem}>
           <div className={styles.helpIcon}>
-            <CodeOutlined />
+            <ConsoleOutlined />
           </div>
           <div className={styles.helpText}>
             <div className={styles.helpItemTitle}>打印当前节点</div>

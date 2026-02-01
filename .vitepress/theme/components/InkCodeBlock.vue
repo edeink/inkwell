@@ -58,6 +58,16 @@ const mode = computed(() => {
   return undefined;
 });
 
+const height = computed(() => {
+  const m = (props.meta ?? '').match(/height:(\d+)/);
+  const raw = m?.[1] ?? '';
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) {
+    return n;
+  }
+  return 260;
+});
+
 function renderReact() {
   if (isSSR) {
     return;
@@ -69,14 +79,20 @@ function renderReact() {
   if (!rootRef.value) {
     rootRef.value = createRoot(el);
   }
-  rootRef.value.render(React.createElement(InkPlayground as any, { code: decodedCode.value, mode: mode.value }));
+  rootRef.value.render(
+    React.createElement(InkPlayground as any, {
+      code: decodedCode.value,
+      mode: mode.value,
+      height: height.value,
+    }),
+  );
 }
 
 onMounted(() => {
   renderReact();
 });
 
-watch([decodedCode, mode], () => {
+watch([decodedCode, mode, height], () => {
   renderReact();
 });
 

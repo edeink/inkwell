@@ -65,7 +65,6 @@ export default function Inkwell({
   instanceId,
 }: InkwellProps) {
   void width;
-  void height;
   const canvasId = React.useMemo(
     () => instanceId ?? `ink-canvas-${Math.random().toString(36).slice(2)}`,
     [instanceId],
@@ -248,7 +247,11 @@ export default function Inkwell({
   }, [cleanup]);
 
   return (
-    <div className={classnames(styles.display)} ref={previewRef}>
+    <div
+      className={classnames(styles.display)}
+      ref={previewRef}
+      style={{ height, minHeight: height }}
+    >
       <div
         id={canvasId}
         className={classnames(styles.canvasWrapper, { [styles.readonly]: readonly })}

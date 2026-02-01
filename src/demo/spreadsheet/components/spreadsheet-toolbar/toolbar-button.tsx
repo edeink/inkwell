@@ -1,8 +1,9 @@
-import { Tooltip } from 'antd';
 import cn from 'classnames';
 import React from 'react';
 
 import styles from './index.module.less';
+
+import { Tooltip } from '@/ui';
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;

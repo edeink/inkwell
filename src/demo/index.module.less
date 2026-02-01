@@ -44,42 +44,6 @@
 .tabs {
   flex: 1;
   overflow: hidden;
-
-  :global {
-    .ant-tabs-nav {
-      margin-bottom: 0 !important;
-      padding: 0 var(--vp-layout-padding, 24px);
-    }
-
-    .ant-tabs-tab-btn {
-      color: var(--ink-demo-text-secondary);
-    }
-
-    .ant-tabs-tab-active .ant-tabs-tab-btn {
-      color: var(--ink-demo-text-primary) !important;
-    }
-
-    .ant-tabs-ink-bar {
-      background: var(--ink-demo-primary);
-    }
-
-    .ant-tabs-content-holder {
-      flex: 1;
-      height: 100%;
-    }
-
-    .ant-tabs-content {
-      height: 100%;
-    }
-
-    .ant-tabs-tabpane {
-      height: 100%;
-      display: flex !important;
-
-      /* Force display flex */
-      flex-direction: column;
-    }
-  }
 }
 
 .tabExtra {
@@ -92,51 +56,17 @@
 .tabExtraLabel {
   color: var(--ink-demo-text-secondary);
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .presetSelect {
   min-width: 100px;
-
-  :global {
-    .ant-select-selector {
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      color: var(--ink-demo-text-secondary) !important;
-    }
-
-    .ant-select-selection-item {
-      font-size: 14px;
-      color: var(--ink-demo-text-secondary) !important;
-    }
-
-    .ant-select-arrow {
-      color: var(--ink-demo-text-secondary) !important;
-    }
-
-    .ant-select-selection-placeholder {
-      color: var(--ink-demo-text-placeholder) !important;
-    }
-  }
 }
 
 .presetSelectPopup {
   background: var(--ink-demo-bg-container) !important;
   border: 1px solid var(--ink-demo-border) !important;
   box-shadow: 0 10px 30px rgb(0 0 0 / 22%);
-
-  :global(.ant-select-item) {
-    color: var(--ink-demo-text-primary) !important;
-  }
-
-  :global(.ant-select-item-option-active:not(.ant-select-item-option-disabled)) {
-    background: var(--ink-demo-bg-surface) !important;
-  }
-
-  :global(.ant-select-item-option-selected:not(.ant-select-item-option-disabled)) {
-    background: color-mix(in srgb, var(--ink-demo-primary), transparent 88%) !important;
-    color: var(--ink-demo-text-primary) !important;
-  }
 }
 
 .content {
@@ -183,10 +113,4 @@
   display: flex;
   flex-direction: column;
   background: var(--ink-demo-bg-base);
-}
-
-:global {
-  .ant-tabs-top > .ant-tabs-nav::before {
-    border-bottom: 1px solid var(--ink-demo-border) !important;
-  }
 }

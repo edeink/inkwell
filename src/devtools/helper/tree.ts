@@ -1,5 +1,5 @@
 import type { Widget } from '../../core/base';
-import type { DataNode } from 'antd/es/tree';
+import type { DataNode } from '@/ui';
 
 export type DevtoolsTreeBuild = {
   treeData: DataNode[];

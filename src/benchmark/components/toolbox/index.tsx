@@ -1,10 +1,11 @@
-import { DownloadOutlined, SwapOutlined, UploadOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
-import { useRef } from 'react';
+import { type ChangeEvent, useRef } from 'react';
 
 import styles from './index.module.less';
 
 import type { ExperimentType, ExportPayload, TestResult } from '../../index.types';
+
+import { Tooltip } from '@/ui';
+import { DownloadOutlined, SwapOutlined, UploadOutlined } from '@/ui/icons';
 
 type Props = {
   results: TestResult[];
@@ -45,7 +46,7 @@ export default function Toolbox({ results, onToggleMode, onUploadBaseline }: Pro
    * 文件选择变更处理：读取并解析 JSON，传递给上传回调。
    * @param e 文件选择事件
    */
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
       return;

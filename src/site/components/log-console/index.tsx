@@ -1,3 +1,9 @@
+import classNames from 'classnames';
+import { useEffect, useReducer, useState } from 'react';
+
+import styles from './index.module.less';
+
+import { Tooltip } from '@/ui';
 import {
   ClearOutlined,
   CloseCircleOutlined,
@@ -5,12 +11,7 @@ import {
   FileTextOutlined,
   InfoCircleOutlined,
   WarningOutlined,
-} from '@ant-design/icons';
-import { Divider, Tooltip } from 'antd';
-import classNames from 'classnames';
-import { useEffect, useReducer, useRef, useState } from 'react';
-
-import styles from './index.module.less';
+} from '@/ui/icons';
 
 type Level = 'log' | 'info' | 'warn' | 'error';
 
@@ -190,22 +191,12 @@ export default function LogConsole({ instanceId }: { instanceId?: string }) {
     error: true,
   });
   const [, force] = useReducer((x) => x + 1, 0);
-  const [copyAllTip, setCopyAllTip] = useState<string | null>(null);
-  const copyAllTimerRef = useRef<number | null>(null);
-  const [entryCopyTips, setEntryCopyTips] = useState<Record<string, string>>({});
-  const entryCopyTimerRef = useRef<Record<string, number>>({});
   const [selectedId, setSelectedId] = useState<string>(instanceId ?? '');
 
   useEffect(() => {
     window.InkConsole?.subscribe(force as () => void);
     return () => {
       window.InkConsole?.unsubscribe(force as () => void);
-      if (copyAllTimerRef.current) {
-        window.clearTimeout(copyAllTimerRef.current);
-        copyAllTimerRef.current = null;
-      }
-      Object.values(entryCopyTimerRef.current).forEach((t) => window.clearTimeout(t));
-      entryCopyTimerRef.current = {};
     };
   }, []);
 
@@ -275,14 +266,17 @@ export default function LogConsole({ instanceId }: { instanceId?: string }) {
               ) : null,
             )}
           </select>
-          <Divider type="vertical" />
+          <span
+            aria-hidden="true"
+            style={{ width: 1, height: 16, background: 'var(--ifm-toc-border-color)' }}
+          />
           <input
             className={styles.filterInput}
             placeholder="过滤关键字"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <Tooltip title="清空" placement="top" mouseEnterDelay={0.15}>
+          <Tooltip title="清空" placement="top">
             <button
               type="button"
               aria-label="清空"
@@ -292,33 +286,13 @@ export default function LogConsole({ instanceId }: { instanceId?: string }) {
               <ClearOutlined />
             </button>
           </Tooltip>
-          <Tooltip title={copyAllTip ?? '复制全部'} placement="top" mouseEnterDelay={0.15}>
+          <Tooltip title="复制全部" placement="top">
             <button
               type="button"
               aria-label="复制全部"
               className={styles.iconOnly}
               onClick={() => {
-                window.InkConsole?.copy?.()
-                  .then(() => {
-                    setCopyAllTip(`复制成功`);
-                    if (copyAllTimerRef.current) {
-                      window.clearTimeout(copyAllTimerRef.current);
-                    }
-                    copyAllTimerRef.current = window.setTimeout(() => {
-                      setCopyAllTip(null);
-                      copyAllTimerRef.current = null;
-                    }, 1800);
-                  })
-                  .catch(() => {
-                    setCopyAllTip('复制失败，请重试');
-                    if (copyAllTimerRef.current) {
-                      window.clearTimeout(copyAllTimerRef.current);
-                    }
-                    copyAllTimerRef.current = window.setTimeout(() => {
-                      setCopyAllTip(null);
-                      copyAllTimerRef.current = null;
-                    }, 1800);
-                  });
+                window.InkConsole?.copy?.().catch(() => {});
               }}
             >
               <CopyOutlined />
@@ -337,48 +311,13 @@ export default function LogConsole({ instanceId }: { instanceId?: string }) {
               <span className={classNames(styles.msg, styles[l.level])}>{l.text}</span>
               <span className={styles.time}>{new Date(l.time).toLocaleTimeString()}</span>
               <span className={styles.tail}>
-                <Tooltip
-                  title={entryCopyTips[l.id] ?? '复制'}
-                  placement="top"
-                  mouseEnterDelay={0.15}
-                >
+                <Tooltip title="复制" placement="top">
                   <button
                     type="button"
                     aria-label="复制"
                     className={styles.entryBtn}
                     onClick={() => {
-                      navigator.clipboard
-                        .writeText(l.text)
-                        .then(() => {
-                          setEntryCopyTips((prev) => ({ ...prev, [l.id]: `复制成功` }));
-                          const t = entryCopyTimerRef.current[l.id];
-                          if (t) {
-                            window.clearTimeout(t);
-                          }
-                          entryCopyTimerRef.current[l.id] = window.setTimeout(() => {
-                            setEntryCopyTips((prev) => {
-                              const n = { ...prev };
-                              delete n[l.id];
-                              return n;
-                            });
-                            delete entryCopyTimerRef.current[l.id];
-                          }, 1800);
-                        })
-                        .catch(() => {
-                          setEntryCopyTips((prev) => ({ ...prev, [l.id]: '复制失败，请重试' }));
-                          const t = entryCopyTimerRef.current[l.id];
-                          if (t) {
-                            window.clearTimeout(t);
-                          }
-                          entryCopyTimerRef.current[l.id] = window.setTimeout(() => {
-                            setEntryCopyTips((prev) => {
-                              const n = { ...prev };
-                              delete n[l.id];
-                              return n;
-                            });
-                            delete entryCopyTimerRef.current[l.id];
-                          }, 1800);
-                        });
+                      navigator.clipboard.writeText(l.text).catch(() => {});
                     }}
                   >
                     <CopyOutlined />

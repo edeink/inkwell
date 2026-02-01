@@ -1,8 +1,9 @@
-import { AimOutlined } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
 import cn from 'classnames';
 
 import styles from './index.module.less';
+
+import { Button, Tooltip } from '@/ui';
+import { EyeOutlined } from '@/ui/icons';
 
 export function DevtoolsHeaderLeft({
   activeInspect,
@@ -17,7 +18,7 @@ export function DevtoolsHeaderLeft({
         type="text"
         aria-pressed={activeInspect}
         className={cn({ [styles.inspectBtnActive]: activeInspect })}
-        icon={<AimOutlined />}
+        icon={<EyeOutlined />}
         onClick={onToggleInspect}
       />
     </Tooltip>

@@ -3,7 +3,7 @@ import { CustomComponentType } from '../../type';
 import type { BuildContext, WidgetProps } from '@/core/base';
 
 import { Widget } from '@/core/base';
-import { invert, transformPoint } from '@/core/helper/transform';
+import { IDENTITY_MATRIX, invert, transformPoint } from '@/core/helper/transform';
 import { findWidget } from '@/core/helper/widget-selector';
 import {
   connectorPathFromRects,
@@ -109,12 +109,12 @@ export class Connector extends Widget<ConnectorProps> {
       `${CustomComponentType.MindMapNode}#${this.toKey}`,
     ) as Widget | null;
 
-    if (!nodeA || !nodeB) {
+    if (!layout || !nodeA || !nodeB) {
       return null;
     }
 
-    const rectA = this.getRectFromNode(nodeA);
-    const rectB = this.getRectFromNode(nodeB);
+    const rectA = this.getRectFromNode(nodeA, layout);
+    const rectB = this.getRectFromNode(nodeB, layout);
 
     const aCenterX = rectA.x + rectA.width / 2;
     const bCenterX = rectB.x + rectB.width / 2;
@@ -148,6 +148,28 @@ export class Connector extends Widget<ConnectorProps> {
     const sw = this.strokeWidth;
 
     renderer.drawPath({ points: pts, stroke, strokeWidth: sw, dash });
+  }
+
+  getBoundingBox(matrix?: [number, number, number, number, number, number]): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return super.getBoundingBox(matrix);
+    }
+    const m = matrix ?? this._worldMatrix ?? IDENTITY_MATRIX;
+    const p1 = transformPoint(m, { x: bounds.x, y: bounds.y });
+    const p2 = transformPoint(m, { x: bounds.x + bounds.width, y: bounds.y });
+    const p3 = transformPoint(m, { x: bounds.x + bounds.width, y: bounds.y + bounds.height });
+    const p4 = transformPoint(m, { x: bounds.x, y: bounds.y + bounds.height });
+    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
+    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
+    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
+    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
   }
 
   public getBounds(): { x: number; y: number; width: number; height: number } | null {
@@ -198,24 +220,42 @@ export class Connector extends Widget<ConnectorProps> {
   /**
    * 从节点实例获取相对位置和尺寸
    */
-  private getRectFromNode(node: Widget): { x: number; y: number; width: number; height: number } {
-    const p = this.getLocalPositionOf(node);
+  private getRectFromNode(
+    node: Widget,
+    layout: Widget,
+  ): { x: number; y: number; width: number; height: number } {
+    const p = this.getLocalPositionOf(node, layout);
     const s = node.renderObject.size;
     return { x: p.x, y: p.y, width: s.width, height: s.height };
   }
 
-  private getLocalPositionOf(node: Widget): { x: number; y: number } {
-    // 同层级优化：如果是兄弟节点，直接计算相对偏移，避免矩阵滞后问题
-    if (this.parent && node.parent === this.parent) {
+  private getLocalPositionOf(node: Widget, layout: Widget): { x: number; y: number } {
+    const nodeInLayout = this.getOffsetInAncestorSpace(node, layout);
+    const selfInLayout = this.getOffsetInAncestorSpace(this, layout);
+    if (nodeInLayout && selfInLayout) {
       return {
-        x: node.renderObject.offset.dx - this.renderObject.offset.dx,
-        y: node.renderObject.offset.dy - this.renderObject.offset.dy,
+        x: nodeInLayout.x - selfInLayout.x,
+        y: nodeInLayout.y - selfInLayout.y,
       };
     }
 
-    // 默认回退：使用绝对坐标转换
     const nodeAbs = node.getAbsolutePosition();
     return this.globalToLocal({ x: nodeAbs.dx, y: nodeAbs.dy });
+  }
+
+  private getOffsetInAncestorSpace(w: Widget, ancestor: Widget): { x: number; y: number } | null {
+    let x = 0;
+    let y = 0;
+    let cur: Widget | null = w;
+    for (let depth = 0; depth < 256 && cur && cur !== ancestor; depth++) {
+      x += cur.renderObject.offset.dx;
+      y += cur.renderObject.offset.dy;
+      cur = cur.parent;
+    }
+    if (cur !== ancestor) {
+      return null;
+    }
+    return { x, y };
   }
 
   private globalToLocal(p: { x: number; y: number }): { x: number; y: number } {

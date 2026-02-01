@@ -22,7 +22,7 @@ export const meta = {
   description: '高性能思维导图应用演示。支持节点拖拽、缩放、编辑和无限画布功能。',
 };
 
-export default function MindmapDemo() {
+export default function MindmapDemo({ width, height }: { width?: number; height?: number }) {
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const [context, setContext] = useState<MindmapController | null>(null);
   // 使用 ref 存储尺寸，避免闭包问题
@@ -97,7 +97,12 @@ export default function MindmapDemo() {
 
   return (
     <ErrorBoundary>
-      <>
+      <div
+        style={{
+          width: width != null ? `${width}px` : '100%',
+          height: height != null ? `${height}px` : '100%',
+        }}
+      >
         <InkwellCanvas
           style={{ width: '100%', height: '100%' }}
           onRuntimeReady={handleRuntimeReady}
@@ -105,12 +110,12 @@ export default function MindmapDemo() {
         />
         {runtime && context && (
           <MindmapContext.Provider value={context}>
-            <Toolbar runtime={runtime} />
+            <Toolbar runtime={runtime} width={width} height={height} />
             <ZoomBar />
             <Minimap width={200} height={150} />
           </MindmapContext.Provider>
         )}
-      </>
+      </div>
     </ErrorBoundary>
   );
 }

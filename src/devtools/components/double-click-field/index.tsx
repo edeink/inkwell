@@ -14,7 +14,7 @@ export function DoubleClickEditableField({
   displayClassName,
   editorClassName,
 }: {
-  editor: ReactNode | ((actions: { exit: () => void }) => ReactNode);
+  editor: ReactNode | ((actions: { exit: () => void; editing: boolean }) => ReactNode);
   display: ReactNode;
   editable?: boolean;
   exitOnBlur?: boolean;
@@ -32,12 +32,10 @@ export function DoubleClickEditableField({
       return false;
     }
     if (
-      target.closest('.ant-select-dropdown') ||
-      target.closest('.ant-select') ||
-      target.closest('.ant-color-picker-panel') ||
-      target.closest('.ant-color-picker-panel-container') ||
-      target.closest('.ant-color-picker') ||
-      target.closest('.ant-color-picker-trigger')
+      target.closest('.ink-ui-select-dropdown') ||
+      target.closest('.ink-ui-select') ||
+      target.closest('.ink-ui-color-picker-panel') ||
+      target.closest('.ink-ui-color-picker')
     ) {
       return false;
     }
@@ -59,7 +57,7 @@ export function DoubleClickEditableField({
       return;
     }
     const target = root.querySelector(
-      'input, textarea, select, [contenteditable="true"], .ant-select-selector',
+      'input, textarea, select, button, [contenteditable="true"], .ink-ui-select-trigger, .ink-ui-color-picker-trigger',
     ) as HTMLElement | null;
     if (target && typeof target.focus === 'function') {
       target.focus();
@@ -111,7 +109,11 @@ export function DoubleClickEditableField({
           .filter(Boolean)
           .join(' ')}
       >
-        {typeof editor === 'function' ? editor({ exit: () => setEditing(false) }) : editor}
+        {editing
+          ? typeof editor === 'function'
+            ? editor({ exit: () => setEditing(false), editing })
+            : editor
+          : null}
       </div>
       <div
         className={[

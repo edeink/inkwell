@@ -140,7 +140,7 @@
 
 .entry {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--ink-space-2);
   border-radius: 6px;
 }
@@ -193,31 +193,29 @@
 }
 
 .level {
-  font-size: 12px;
-  padding: 0 6px;
-  border-radius: 4px;
-  background: #e0e0e0;
-  align-self: flex-start;
-  line-height: 28px;
+  width: 24px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: transparent;
+  color: var(--ink-demo-text-secondary);
 }
 
 .level[data-level='log'] {
-  background: #e0f2f1;
-  color: #00695c;
+  color: var(--ink-demo-text-secondary);
 }
 
 .level[data-level='info'] {
-  background: #e3f2fd;
   color: #1565c0;
 }
 
 .level[data-level='warn'] {
-  background: #fff8e1;
   color: #f57f17;
 }
 
 .level[data-level='error'] {
-  background: #ffebee;
   color: #c62828;
 }
 

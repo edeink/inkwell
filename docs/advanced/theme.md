@@ -98,25 +98,11 @@ import { getThemeColor } from '@/benchmark/utils/theme';
 const primary = getThemeColor('--ink-demo-primary');
 ```
 
-### 3. 配置 Ant Design 主题（可选）
+### 3. React 侧主题（可选）
 
-如果你的 React 侧 UI 使用 Ant Design（如 DevTools 面板），可通过 `ConfigProvider` 同步算法与 token：
+仓库内 React/DOM 侧主题通过 `src/styles/colors.css` 的 CSS 变量实现，不需要额外的 Provider。
 
-```typescript
-import { ConfigProvider, theme } from 'antd';
-
-// 暗色模式
-<ConfigProvider
-  theme={{
-    algorithm: theme.darkAlgorithm,
-    token: {
-      colorPrimary: '#177ddc',
-    },
-  }}
->
-  <App />
-</ConfigProvider>
-```
+如果你需要扩展主题，优先修改/追加语义化变量，并保持与 `ThemePalette` 的同步。
 
 ## 最佳实践
 

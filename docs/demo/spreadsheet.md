@@ -11,9 +11,9 @@ import { SpreadsheetDemoApp } from '@demo/spreadsheet/app';
 
 ## 在线演示
 
-```tsx mode:edit
+```tsx mode:edit height:400
 /** @jsxImportSource @/utils/compiler */
-<SpreadsheetDemoApp width={800} height={600} />
+<SpreadsheetDemoApp width={686} height={400} />
 ```
 
 ### 组件参数 (Props)

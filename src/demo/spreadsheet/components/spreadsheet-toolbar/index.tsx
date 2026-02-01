@@ -1,10 +1,10 @@
-import { ReloadOutlined, TableOutlined } from '@ant-design/icons';
 import React from 'react';
 
 import styles from './index.module.less';
 import { ToolbarButton } from './toolbar-button';
 
 import { useTheme } from '@/styles/theme';
+import { ReloadOutlined, TableOutlined } from '@/ui/icons';
 
 interface SpreadsheetToolbarProps {
   onUpdateData: () => void;

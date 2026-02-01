@@ -1,10 +1,11 @@
-import { DeleteOutlined, MessageOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import LogConsole from '../log-console';
 
 import styles from './index.module.less';
+
+import { Tooltip } from '@/ui';
+import { ConsoleOutlined, DeleteOutlined, PlayCircleOutlined } from '@/ui/icons';
 
 export interface ControlPanelProps {
   running: boolean;
@@ -71,11 +72,7 @@ export default function ControlPanel({
   return (
     <div className={styles.controlPanel}>
       <div className={styles.controlBar}>
-        <Tooltip
-          title={visible ? '隐藏控制台' : '显示控制台'}
-          placement="top"
-          mouseEnterDelay={0.15}
-        >
+        <Tooltip title={visible ? '隐藏控制台' : '显示控制台'} placement="top">
           <span className={styles.iconWrapper}>
             <button
               type="button"
@@ -84,14 +81,14 @@ export default function ControlPanel({
               data-active={String(visible)}
               onClick={() => setVisible(!visible)}
             >
-              <MessageOutlined />
+              <ConsoleOutlined />
             </button>
             {logCount > 1 && (
               <span className={styles.count}>{logCount > 999 ? '999+' : logCount}</span>
             )}
           </span>
         </Tooltip>
-        <Tooltip title="运行" placement="top" mouseEnterDelay={0.15}>
+        <Tooltip title="运行" placement="top">
           <button
             type="button"
             aria-label="运行"
@@ -102,7 +99,7 @@ export default function ControlPanel({
             <PlayCircleOutlined />
           </button>
         </Tooltip>
-        <Tooltip title="清空" placement="top" mouseEnterDelay={0.15}>
+        <Tooltip title="清空" placement="top">
           <button type="button" aria-label="清空" className={styles.iconBtn} onClick={onClear}>
             <DeleteOutlined />
           </button>

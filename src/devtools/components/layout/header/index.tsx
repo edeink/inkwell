@@ -1,9 +1,9 @@
-import { Button, Space, Tooltip } from 'antd';
-
 import { type Dock } from '..';
 import styles from '../index.module.less';
 
 import type { ReactNode } from 'react';
+
+import { Button, Space, Tooltip } from '@/ui';
 
 export function LayoutHeader({
   dock,

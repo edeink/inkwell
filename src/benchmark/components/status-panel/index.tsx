@@ -1,9 +1,9 @@
-import { CheckCircleTwoTone, ClockCircleTwoTone, HourglassTwoTone } from '@ant-design/icons';
-import { Progress, Space, Tag, Tooltip } from 'antd';
-
 import { TestStatus } from '../../index.types';
 
 import styles from './index.module.less';
+
+import { Progress, Space, Tag, Tooltip } from '@/ui';
+import { CheckCircleTwoTone, ClockCircleTwoTone, HourglassTwoTone } from '@/ui/icons';
 
 export type ProgressItem = {
   key: string;
@@ -74,7 +74,7 @@ export default function StatusPanel({
               </span>
               <Tooltip title="展示整体测试完成度">
                 <span className={styles.hourglass} data-testid="hourglass">
-                  <HourglassTwoTone twoToneColor="var(--ink-demo-primary)" />
+                  <HourglassTwoTone style={{ color: 'var(--ink-demo-primary)' }} />
                 </span>
               </Tooltip>
             </>
@@ -108,14 +108,15 @@ export default function StatusPanel({
             <span className={styles.taskTitle}>{it.name}</span>
             <div className={styles.taskRight}>
               {it.status === TestStatus.Done ? (
-                <CheckCircleTwoTone twoToneColor="var(--ink-demo-success)" />
+                <CheckCircleTwoTone style={{ color: 'var(--ink-demo-success)' }} />
               ) : (
                 <ClockCircleTwoTone
-                  twoToneColor={
-                    it.status === TestStatus.Running
-                      ? 'var(--ink-demo-primary)'
-                      : 'var(--ink-demo-text-secondary)'
-                  }
+                  style={{
+                    color:
+                      it.status === TestStatus.Running
+                        ? 'var(--ink-demo-primary)'
+                        : 'var(--ink-demo-text-secondary)',
+                  }}
                 />
               )}
               <Tag

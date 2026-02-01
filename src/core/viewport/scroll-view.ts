@@ -20,6 +20,7 @@ const DEFAULT_BOUNCE_DAMPING = 0.2;
 const DEFAULT_RESISTANCE_FACTOR = 0.5;
 const MIN_BOUNCE_DIFF = 0.5;
 const BOUNCE_DEBOUNCE_TIME = 50;
+const SCROLLBAR_EPS = 0.5;
 
 export enum BounceState {
   IDLE = 'idle',
@@ -164,12 +165,12 @@ export class ScrollView extends Viewport {
 
   private canScrollX(): boolean {
     const width = this._width || 0;
-    return width > 0 && this._contentSize.width > width;
+    return width > 0 && this._contentSize.width > width + SCROLLBAR_EPS;
   }
 
   private canScrollY(): boolean {
     const height = this._height || 0;
-    return height > 0 && this._contentSize.height > height;
+    return height > 0 && this._contentSize.height > height + SCROLLBAR_EPS;
   }
 
   private getScrollBarProps(orientation: 'vertical' | 'horizontal'): ScrollBarProps {

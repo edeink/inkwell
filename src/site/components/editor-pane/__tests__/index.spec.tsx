@@ -18,8 +18,7 @@ vi.mock('react-live', () => ({
   ),
 }));
 
-// Mock icons
-vi.mock('@ant-design/icons', () => ({
+vi.mock('@/ui/icons', () => ({
   CopyOutlined: () => <span className="anticon-copy">CopyIcon</span>,
   DownOutlined: () => <span>DownIcon</span>,
 }));

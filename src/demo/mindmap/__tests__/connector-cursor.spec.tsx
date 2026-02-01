@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { ConnectorStyle } from '../helpers/connection-drawer';
 import { CustomComponentType } from '../type';
 import { Connector } from '../widgets/connector';
 import { MindMapNode } from '../widgets/mindmap-node';
@@ -65,6 +66,7 @@ describe('Connector 光标配置', () => {
               key: 'conn1',
               fromKey: 'node1',
               toKey: 'node2',
+              style: ConnectorStyle.Straight,
             },
           ],
         },
@@ -100,5 +102,55 @@ describe('Connector 光标配置', () => {
 
     const miss = conn.hitTest(150, 100);
     expect(miss).toBe(false);
+  });
+
+  it('缩放更新时不应因矩阵滞后导致连线计算异常', () => {
+    const root = buildTestTree() as unknown as MindMapViewport;
+    const layout = findWidget(root, `${CustomComponentType.MindMapLayout}#layout`) as Widget;
+    const conn = findWidget(root, `${CustomComponentType.Connector}#conn1`) as Connector;
+    const node1 = findWidget(root, `${CustomComponentType.MindMapNode}#node1`) as Widget;
+    const node2 = findWidget(root, `${CustomComponentType.MindMapNode}#node2`) as Widget;
+
+    conn.zIndex = -1;
+    node1.zIndex = 0;
+    node2.zIndex = 0;
+
+    root.setTransform(1, 0, 0);
+
+    const renderer1 = {
+      save() {},
+      restore() {},
+      translate() {},
+      scale() {},
+      rotate() {},
+      transform() {},
+      drawPath() {},
+      drawRect() {},
+      drawText() {},
+      drawRRect() {},
+      drawImage() {},
+      setLineDash() {},
+      clipRect() {},
+      clearRect() {},
+    } as any;
+
+    root.paint({ renderer: renderer1 } as any);
+
+    root.setTransform(2, 100, 100);
+
+    let points: { x: number; y: number }[] | null = null;
+    const renderer2 = {
+      ...renderer1,
+      drawPath(payload: { points: { x: number; y: number }[] }) {
+        points = payload.points;
+      },
+    } as any;
+
+    root.paint({ renderer: renderer2 } as any);
+
+    expect(points).not.toBeNull();
+    expect(points![0]).toEqual({ x: 106, y: 25 });
+    expect(points![points!.length - 1]).toEqual({ x: 194, y: 25 });
+    expect(layout).toBeTruthy();
   });
 });

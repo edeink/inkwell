@@ -1,4 +1,3 @@
-import { CopyOutlined, DownOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import React from 'react';
 import { LiveEditor, LiveProvider } from 'react-live';
@@ -7,6 +6,7 @@ import styles from './index.module.less';
 
 import * as Core from '@/core';
 import Runtime from '@/runtime';
+import { CopyOutlined, DownOutlined } from '@/ui/icons';
 
 export interface EditorPaneProps {
   value: string;
@@ -121,28 +121,30 @@ export default function EditorPane({
       className={rootClass}
       style={{ '--collapsed-h': `${collapsedHeight}px` } as React.CSSProperties}
     >
-      <button
-        type="button"
-        aria-label="复制代码"
-        title="复制代码"
-        className={styles.copyBtn}
-        onClick={onCopy}
-        disabled={copying}
-      >
-        <CopyOutlined />
-      </button>
-      {copyResult && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={classNames(styles.copyToast, {
-            [styles.copyToastSuccess]: copyResult === 'success',
-            [styles.copyToastError]: copyResult === 'error',
-          })}
+      <div className={styles.copyDock}>
+        {copyResult && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={classNames(styles.copyToast, {
+              [styles.copyToastSuccess]: copyResult === 'success',
+              [styles.copyToastError]: copyResult === 'error',
+            })}
+          >
+            {copyResult === 'success' ? '复制成功' : '复制失败，请重试'}
+          </div>
+        )}
+        <button
+          type="button"
+          aria-label="复制代码"
+          title="复制代码"
+          className={styles.copyBtn}
+          onClick={onCopy}
+          disabled={copying}
         >
-          {copyResult === 'success' ? '复制成功' : '复制失败，请重试'}
-        </div>
-      )}
+          <CopyOutlined />
+        </button>
+      </div>
       <div ref={contentRef} className={styles.editorContent} onCopy={onEditorCopy} aria-live="off">
         <LiveProvider code={value} scope={scope} noInline>
           <LiveEditor

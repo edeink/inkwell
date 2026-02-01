@@ -11,14 +11,14 @@ import MindmapDemo from '@mindmap';
 
 ## 在线演示
 
-```tsx mode:edit
+```tsx mode:edit height:400
 /** @jsxImportSource @/utils/compiler */
-<MindmapDemo />
+<MindmapDemo width={686} height={400} />
 ```
 
 ### 组件参数 (Props)
 
-该示例组件本身不需要传入参数，会自动适配父容器尺寸并在 `Resize` 时重建渲染树。
+该示例组件支持 `width` / `height` 两个可选参数，用于在文档等受限容器中固定演示区域尺寸；不传则自动适配父容器并在 `Resize` 时重建渲染树。
 
 ## 组件架构
 

@@ -1,4 +1,3 @@
-import { theme as antTheme, ConfigProvider, Select, Tabs } from 'antd';
 import cn from 'classnames';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -24,6 +23,7 @@ import {
   ThemePresetLabels,
   type ThemePresetKey,
 } from '@/styles/theme';
+import { ConfigProvider, Select, Tabs, theme as uiTheme } from '@/ui';
 
 export default function UnifiedDemo() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -134,7 +134,7 @@ export default function UnifiedDemo() {
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme === ThemeType.Dark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        algorithm: theme === ThemeType.Dark ? uiTheme.darkAlgorithm : uiTheme.defaultAlgorithm,
         token: {
           colorPrimary: 'var(--ink-demo-primary)',
           colorSuccess: 'var(--ink-demo-success)',
@@ -163,8 +163,6 @@ export default function UnifiedDemo() {
                 <div className={styles.tabExtra}>
                   <span className={styles.tabExtraLabel}>配色</span>
                   <Select
-                    size="small"
-                    bordered={false}
                     value={themePreset}
                     onChange={(v) => {
                       const next = v as ThemePresetKey;
@@ -176,8 +174,6 @@ export default function UnifiedDemo() {
                       value: k,
                     }))}
                     className={styles.presetSelect}
-                    classNames={{ popup: { root: styles.presetSelectPopup } }}
-                    popupMatchSelectWidth={false}
                   />
                 </div>
               ),

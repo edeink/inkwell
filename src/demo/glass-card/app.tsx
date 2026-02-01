@@ -55,6 +55,11 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
     );
     const buttonH = 76;
 
+    const glassScale = 0.8;
+    const glassCardW = Math.round(Math.min(520, cardW) * glassScale);
+    const glassCardH = Math.round(260 * glassScale);
+    const glassBlurPx = Math.max(1, Math.round(24 * glassScale));
+
     const buttonGrid: Array<typeof buttonVariants> = [[], [], []];
     for (let i = 0; i < buttonVariants.length; i++) {
       buttonGrid[i % buttonGridColumns].push(buttonVariants[i]);
@@ -102,60 +107,50 @@ export class GlassCardDemoApp extends StatelessWidget<GlassCardDemoAppProps> {
                   crossAxisAlignment={CrossAxisAlignment.Start}
                 >
                   {/* 示例 1：显式指定 windowRect，展示“清晰窗口”位置与尺寸可控 */}
-                  <Container
-                    width={cardW}
-                    height={Math.min(320, (height ?? 600) - 140)}
-                    color="transparent"
-                    isRepaintBoundary={true}
-                  >
+                  <Container width={420} height={320} color="transparent" isRepaintBoundary={true}>
                     <Center>
                       <GlassCardComposite
-                        width={Math.min(520, cardW)}
-                        height={260}
+                        width={glassCardW}
+                        height={glassCardH}
                         theme={theme}
                         title="比卡超"
-                        subtitle="活泼可爱的电气鼠宝可梦，以蓄电的脸颊电袋释放强力电击，象征伙伴与勇气。"
+                        subtitle="脸颊蓄电，释放电击。"
                         imageSrc={demo00ImageUrl}
-                        blurPx={24}
+                        blurPx={glassBlurPx}
                         glassAlpha={theme === Themes.dark ? 0.14 : 0.18}
                         windowRatio={0.32}
                         animate={false}
                         windowRect={{
-                          x: 150,
-                          y: 10,
-                          width: 220,
-                          height: 240,
-                          radius: 20,
+                          x: Math.round(150 * glassScale),
+                          y: Math.round(10 * glassScale),
+                          width: Math.round(220 * glassScale),
+                          height: Math.round(240 * glassScale),
+                          radius: Math.round(20 * glassScale),
                         }}
                       />
                     </Center>
                   </Container>
 
                   {/* 示例 2：同样指定 windowRect，但窗口更宽，用于对比不同构图 */}
-                  <Container
-                    width={cardW}
-                    height={Math.min(320, (height ?? 600) - 140)}
-                    color="transparent"
-                    isRepaintBoundary={true}
-                  >
+                  <Container width={420} height={320} color="transparent" isRepaintBoundary={true}>
                     <Center>
                       <GlassCardComposite
-                        width={Math.min(520, cardW)}
-                        height={260}
+                        width={glassCardW}
+                        height={glassCardH}
                         theme={theme}
                         title="耿鬼"
-                        subtitle="狡黠阴郁的幽灵宝可梦，潜伏于影子与黑夜间以恶作剧和诡计扰乱对手。"
+                        subtitle="潜伏黑夜，擅长恶作剧。"
                         imageSrc={demo01ImageUrl}
-                        blurPx={24}
+                        blurPx={glassBlurPx}
                         glassAlpha={theme === Themes.dark ? 0.14 : 0.18}
                         windowRatio={0.32}
                         animate={true}
                         windowRect={{
-                          x: 160,
-                          y: 10,
-                          width: 350,
-                          height: 240,
-                          radius: 18,
+                          x: Math.round(160 * glassScale),
+                          y: Math.round(10 * glassScale),
+                          width: Math.round(350 * glassScale),
+                          height: Math.round(240 * glassScale),
+                          radius: Math.round(18 * glassScale),
                         }}
                       />
                     </Center>

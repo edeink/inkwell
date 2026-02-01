@@ -15,7 +15,20 @@
       @click="onOverlayClick"
     >
       <div class="ink-mermaid-modal__toolbar">
-        <div ref="closeMountEl" class="ink-mermaid-modal__close"></div>
+        <button
+          class="ink-mermaid-modal__close-btn"
+          type="button"
+          aria-label="关闭预览"
+          title="关闭预览"
+          @click="closePreview"
+        >
+          <svg viewBox="0 0 1024 1024" aria-hidden="true">
+            <path
+              d="M563.797 512l226.133-226.133c14.336-14.336 14.336-37.632 0-51.968-14.336-14.336-37.632-14.336-51.968 0L512 460.032 285.867 233.899c-14.336-14.336-37.632-14.336-51.968 0-14.336 14.336-14.336 37.632 0 51.968L460.032 512 233.899 738.133c-14.336 14.336-14.336 37.632 0 51.968 14.336 14.336 37.632 14.336 51.968 0L512 563.968 738.133 790.101c14.336 14.336 37.632 14.336 51.968 0 14.336-14.336 14.336-37.632 0-51.968L563.968 512z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
       </div>
       <div
         ref="viewportEl"
@@ -43,13 +56,9 @@
  * - 预览层的缩放始终以“指针所在位置”为锚点（zoomAt），避免缩放时跳动
  * - 打开预览时自动适配 SVG：尽可能占满可视区域，并居中显示
  */
-import { CloseOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
 import mermaid from 'mermaid';
-import React from 'react';
-import { createRoot, type Root } from 'react-dom/client';
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useData } from 'vitepress';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 type Props = {
   codeBase64: string;
@@ -62,8 +71,6 @@ const isSSR = import.meta.env.SSR;
 const containerEl = ref<HTMLElement | null>(null);
 const viewportEl = ref<HTMLElement | null>(null);
 const contentEl = ref<HTMLElement | null>(null);
-const closeMountEl = ref<HTMLElement | null>(null);
-const closeRootRef = ref<Root | null>(null);
 
 const previewOpen = ref(false);
 const previewSvg = ref('');
@@ -229,33 +236,6 @@ function closePreview() {
   pointerMap.clear();
   panStart = null;
   pinchStart = null;
-}
-
-function renderCloseButton() {
-  if (isSSR) {
-    return;
-  }
-  const el = closeMountEl.value;
-  if (!el) {
-    return;
-  }
-  if (!closeRootRef.value) {
-    closeRootRef.value = createRoot(el);
-  }
-  closeRootRef.value.render(
-    React.createElement(Button as any, {
-      type: 'text',
-      shape: 'circle',
-      icon: React.createElement(CloseOutlined as any),
-      onClick: closePreview,
-      'aria-label': '关闭预览',
-    }),
-  );
-}
-
-function unmountCloseButton() {
-  closeRootRef.value?.unmount();
-  closeRootRef.value = null;
 }
 
 function onOverlayClick(e: MouseEvent) {
@@ -471,15 +451,11 @@ watch(previewOpen, (open) => {
     window.addEventListener('resize', onResize, { passive: true });
     prevBodyOverflow.value = document.body.style.overflow ?? '';
     document.body.style.overflow = 'hidden';
-    void nextTick().then(() => {
-      renderCloseButton();
-    });
   } else {
     window.removeEventListener('keydown', onKeydown);
     window.removeEventListener('resize', onResize);
     document.body.style.overflow = prevBodyOverflow.value ?? '';
     prevBodyOverflow.value = null;
-    unmountCloseButton();
     previewSvgEl.value = null;
   }
 });
@@ -491,7 +467,6 @@ onBeforeUnmount(() => {
     document.body.style.overflow = prevBodyOverflow.value ?? '';
     prevBodyOverflow.value = null;
   }
-  unmountCloseButton();
 });
 
 </script>
@@ -523,20 +498,43 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.ink-mermaid-modal__close {
+.ink-mermaid-modal__close-btn {
   pointer-events: auto;
-}
-
-.ink-mermaid-modal__close :deep(.ant-btn) {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(0, 0, 0, 0.35);
   color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  appearance: none;
+  outline: none;
+  user-select: none;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
-.ink-mermaid-modal__close :deep(.ant-btn:hover) {
+.ink-mermaid-modal__close-btn:hover {
   border-color: rgba(255, 255, 255, 0.35);
   background: rgba(0, 0, 0, 0.5);
   color: rgba(255, 255, 255, 0.96);
+}
+
+.ink-mermaid-modal__close-btn:active {
+  transform: scale(0.98);
+}
+
+.ink-mermaid-modal__close-btn > svg {
+  width: 18px;
+  height: 18px;
 }
 
 .ink-mermaid-modal__viewport {

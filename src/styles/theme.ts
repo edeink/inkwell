@@ -274,13 +274,13 @@ export const ThemePresets: Record<ThemePresetKey, Record<ThemeMode, ThemePalette
 };
 
 export const Themes: Record<ThemeMode, ThemePalette> = {
-  light: ThemePresets.glass.light,
-  dark: ThemePresets.glass.dark,
+  light: ThemePresets.vitepress.light,
+  dark: ThemePresets.vitepress.dark,
 };
 
 const THEME_PRESET_ATTR = 'data-ink-preset';
 const THEME_PRESET_STORAGE_KEY = 'ink-theme-preset';
-let currentPreset: ThemePresetKey = 'glass';
+let currentPreset: ThemePresetKey = 'vitepress';
 
 function normalizeThemePresetKey(v: string | null | undefined): ThemePresetKey | null {
   if (v === 'antd' || v === 'material' || v === 'glass' || v === 'vitepress') {
@@ -458,6 +458,12 @@ function notifyThemeChange() {
   const mode = getCurrentThemeMode();
   const theme = Themes[mode];
   listeners.forEach((listener) => listener(theme, mode));
+
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
 }
 
 // 监听 html 标签的 data-theme / class 属性变化（适配 VitePress 通过 class="dark" 切换主题）
@@ -466,7 +472,9 @@ if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') 
     mutations.forEach((mutation) => {
       if (
         mutation.type === 'attributes' &&
-        (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')
+        (mutation.attributeName === 'data-theme' ||
+          mutation.attributeName === 'class' ||
+          mutation.attributeName === THEME_PRESET_ATTR)
       ) {
         notifyThemeChange();
       }
@@ -476,7 +484,7 @@ if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') 
   if (document.documentElement) {
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'class'],
+      attributeFilter: ['data-theme', 'class', THEME_PRESET_ATTR],
     });
   }
 }

@@ -10,7 +10,6 @@ const REQUIRED_FILES = [
   'docs/basic/intro.md',
   'docs/basic/quick-start.md',
   'docs/basic/configuration.md',
-  'docs/api/index.md',
   'src/benchmark/README.md',
 ];
 

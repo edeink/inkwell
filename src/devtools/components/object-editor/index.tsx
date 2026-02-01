@@ -1,12 +1,3 @@
-import {
-  CaretDownOutlined,
-  CaretRightOutlined,
-  CloseOutlined,
-  EyeInvisibleOutlined,
-  LockOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
-import { Button, ColorPicker, Input, InputNumber, Popover, Select, Space, Tooltip } from 'antd';
 import { useState, type ReactNode } from 'react';
 
 import { isColor } from '../../helper/colors';
@@ -16,6 +7,16 @@ import { DoubleClickEditableField } from '../double-click-field';
 import { enumOptionsMap } from '../props-editor/enum-options';
 
 import styles from './index.module.less';
+
+import { Button, ColorPicker, Input, InputNumber, Popover, Select, Space, Tooltip } from '@/ui';
+import {
+  CaretDownOutlined,
+  CaretRightOutlined,
+  CloseOutlined,
+  EyeInvisibleOutlined,
+  LockOutlined,
+  PlusOutlined,
+} from '@/ui/icons';
 
 /**
  * ObjectEditor
@@ -146,13 +147,7 @@ export function ObjectEditor({
               onChange={(e) => setKV(k, k, e.target.value)}
               suffix={
                 <Space>
-                  <span
-                    className={styles.colorPickerWrap}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  >
+                  <span className={styles.colorPickerWrap}>
                     <ColorPicker
                       className={styles.colorPicker}
                       value={String(v ?? '')}
@@ -163,7 +158,8 @@ export function ObjectEditor({
                         setKV(k, k, c.toHexString());
                       }}
                       getPopupContainer={(trigger) =>
-                        (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                        (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ??
+                        document.body
                       }
                     />
                   </span>
@@ -215,7 +211,7 @@ export function ObjectEditor({
           editorClassName={styles.kvEditor}
           display={<span className={styles.kvDisplayValue}>{formatDisplayValue(v)}</span>}
           editable={!locked}
-          editor={({ exit }: { exit: () => void }) => (
+          editor={({ exit, editing }: { exit: () => void; editing: boolean }) => (
             <Select
               className={styles.kvValue}
               size="small"
@@ -223,12 +219,13 @@ export function ObjectEditor({
               placeholder="请选择"
               options={enumOptions.map((x) => ({ label: x, value: x }))}
               disabled={locked}
+              autoOpen={editing}
               onChange={(val) => {
                 setKV(k, k, val);
                 exit();
               }}
               getPopupContainer={(trigger) =>
-                (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
               }
             />
           )}
@@ -243,7 +240,7 @@ export function ObjectEditor({
           editorClassName={styles.kvEditor}
           display={<span className={styles.kvDisplayValue}>{formatDisplayValue(v)}</span>}
           editable={!locked}
-          editor={({ exit }: { exit: () => void }) => (
+          editor={({ exit, editing }: { exit: () => void; editing: boolean }) => (
             <Select
               className={styles.kvValue}
               size="small"
@@ -253,12 +250,13 @@ export function ObjectEditor({
                 { label: 'false', value: false },
               ]}
               disabled={locked}
+              autoOpen={editing}
               onChange={(val) => {
                 setKV(k, k, val);
                 exit();
               }}
               getPopupContainer={(trigger) =>
-                (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
               }
             />
           )}
@@ -407,7 +405,7 @@ export function ObjectEditor({
               placement="bottom"
               overlayClassName={styles.hiddenPopoverOverlay}
               getPopupContainer={(trigger) =>
-                (trigger.closest('.ink-devtools-panel') as HTMLElement) || document.body
+                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
               }
               content={
                 <div className={styles.hiddenPopover}>

@@ -1,4 +1,3 @@
-import { ConfigProvider } from 'antd';
 import { throttle } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -16,7 +15,8 @@ import { DevtoolsPropsPane } from './props-pane';
 import { DevtoolsTreePane, type AntTreeHandle } from './tree-pane';
 
 import type { Widget } from '@/core/base';
-import type { DataNode } from 'antd/es/tree';
+
+import { ConfigProvider, type DataNode } from '@/ui';
 
 const objIdByRef = new WeakMap<object, number>();
 let objIdSeq = 1;

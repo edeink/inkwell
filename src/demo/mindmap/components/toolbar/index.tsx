@@ -1,5 +1,3 @@
-import { CloudDownloadOutlined, CloudUploadOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
 import React, { useCallback, useMemo, useRef } from 'react';
 
 import { CustomComponentType } from '../../type';
@@ -13,6 +11,8 @@ import type { MindMapViewport } from '../../widgets/mindmap-viewport';
 import type Runtime from '@/runtime';
 
 import { findWidget } from '@/core/helper/widget-selector';
+import { Tooltip } from '@/ui';
+import { CloudDownloadOutlined, CloudUploadOutlined } from '@/ui/icons';
 
 type Props = {
   runtime: Runtime | null;

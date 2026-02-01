@@ -1,5 +1,6 @@
-import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { Button, Modal, Space } from 'antd';
+import { Button, Modal, Space } from '@/ui';
+import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@/ui/icons';
+
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
