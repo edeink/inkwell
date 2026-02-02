@@ -18,6 +18,10 @@ describe('DevTools 单例管理', () => {
       b = Devtools.getInstance();
     });
     expect(a!).toBe(b!);
+    expect(a!.isMounted()).toBe(false);
+    act(() => {
+      a!.show();
+    });
     expect(a!.isMounted()).toBe(true);
   });
 
@@ -29,6 +33,10 @@ describe('DevTools 单例管理', () => {
     const results = await Promise.all(tasks!);
     const unique = new Set(results);
     expect(unique.size).toBe(1);
+    expect(results[0].isMounted()).toBe(false);
+    act(() => {
+      results[0].show();
+    });
     expect(results[0].isMounted()).toBe(true);
   });
 
@@ -36,6 +44,10 @@ describe('DevTools 单例管理', () => {
     let first: Devtools;
     act(() => {
       first = Devtools.getInstance();
+    });
+    expect(first!.isMounted()).toBe(false);
+    act(() => {
+      first!.show();
     });
     expect(first!.isMounted()).toBe(true);
     act(() => {
@@ -47,6 +59,10 @@ describe('DevTools 单例管理', () => {
       second = Devtools.getInstance();
     });
     expect(second!).not.toBe(first!);
+    expect(second!.isMounted()).toBe(false);
+    act(() => {
+      second!.show();
+    });
     expect(second!.isMounted()).toBe(true);
   });
 });

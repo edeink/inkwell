@@ -298,8 +298,19 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
     }
 
     // 外部环境变化时需要重算位置：窗口 resize、页面滚动、canvas style/class 变化（例如缩放/平移）。
-    const onResize = () => scheduleCompute();
-    const onScroll = () => scheduleCompute();
+    const shouldCompute = () => activeRef.current && !!currentWidgetRef.current;
+    const onResize = () => {
+      if (!shouldCompute()) {
+        return;
+      }
+      scheduleCompute();
+    };
+    const onScroll = () => {
+      if (!shouldCompute()) {
+        return;
+      }
+      scheduleCompute();
+    };
 
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -309,7 +320,12 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
     if (canvas && typeof MutationObserver !== 'undefined') {
-      mo = new MutationObserver(() => scheduleCompute());
+      mo = new MutationObserver(() => {
+        if (!shouldCompute()) {
+          return;
+        }
+        scheduleCompute();
+      });
       mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
     }
 

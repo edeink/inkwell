@@ -73,9 +73,12 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
   const { onToggle, onClose, onInspectToggle } = opts;
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     function onKey(ev: KeyboardEvent) {
       const current = localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || combo;
-      if (enabled && matches(ev, current)) {
+      if (matches(ev, current)) {
         ev.preventDefault();
         if (action === 'toggle') {
           onToggle?.();

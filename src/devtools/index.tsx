@@ -1,7 +1,54 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { DevToolsPanel, type DevToolsProps } from './components/devtools-panel';
+import { useDevtoolsHotkeys } from './hooks/useDevtoolsHotkeys';
+
+type BootstrapDetail = { __inkwellDevtoolsBootstrap?: boolean };
+type BootstrapEvent = CustomEvent<BootstrapDetail>;
+
+function isBootstrapEvent(ev: Event): ev is BootstrapEvent {
+  return ev instanceof CustomEvent && !!ev.detail?.__inkwellDevtoolsBootstrap;
+}
+
+type DevtoolsGlobalState = {
+  instance: Devtools | null;
+  initializing: Promise<Devtools> | null;
+};
+
+const DEVTOOLS_GLOBAL_KEY = '__INKWELL_DEVTOOLS_SINGLETON__';
+const DEVTOOLS_MOUNT_FAIL_KEY = 'INKWELL_DEVTOOLS_MOUNT_FAIL';
+
+function getGlobalState(): DevtoolsGlobalState {
+  const g = globalThis as unknown as Record<string, DevtoolsGlobalState | undefined>;
+  if (!g[DEVTOOLS_GLOBAL_KEY]) {
+    g[DEVTOOLS_GLOBAL_KEY] = { instance: null, initializing: null };
+  }
+  return g[DEVTOOLS_GLOBAL_KEY]!;
+}
+
+function isSameShortcut(a: DevToolsProps['shortcut'], b: DevToolsProps['shortcut']): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+  return a.combo === b.combo && a.action === b.action;
+}
+
+function isSameProps(a: DevToolsProps | undefined, b: DevToolsProps | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  return a.onClose === b.onClose && isSameShortcut(a.shortcut, b.shortcut);
+}
 
 /**
  * IDevtools
@@ -25,19 +72,17 @@ export interface IDevtools {
  * - 提供 dispose/reset 生命周期管理以适配测试环境。
  */
 export class Devtools implements IDevtools {
-  private static _instance: Devtools | null = null;
-  private static _initializing: Promise<Devtools> | null = null;
-
   // 宿主容器与 React Root
   private container: HTMLDivElement | null = null;
   private root: Root | null = null;
   private disposed = false;
+  private mounting = false;
   private props: DevToolsProps | undefined;
+  private renderedProps: DevToolsProps | undefined;
 
   // 私有构造以防外部实例化
   private constructor(props?: DevToolsProps) {
     this.props = props;
-    this.mount();
   }
 
   /**
@@ -46,13 +91,14 @@ export class Devtools implements IDevtools {
    * - 否则创建并返回新实例。
    */
   static getInstance(props?: DevToolsProps): Devtools {
-    const inst = Devtools._instance;
+    const g = getGlobalState();
+    const inst = g.instance;
     if (inst && !inst.disposed) {
       return inst;
     }
     // 创建新实例（JS 单线程环境下无需锁）。
     const created = new Devtools(props);
-    Devtools._instance = created;
+    g.instance = created;
     return created;
   }
 
@@ -61,23 +107,24 @@ export class Devtools implements IDevtools {
    * - 使用 DCL + 初始化 Promise，避免竞争条件。
    */
   static async getInstanceAsync(props?: DevToolsProps): Promise<Devtools> {
-    const inst = Devtools._instance;
+    const g = getGlobalState();
+    const inst = g.instance;
     if (inst && !inst.disposed) {
       return inst;
     }
-    if (!Devtools._initializing) {
-      Devtools._initializing = (async () => {
+    if (!g.initializing) {
+      g.initializing = (async () => {
         // 第二次检查，避免重复创建
-        if (Devtools._instance && !Devtools._instance.disposed) {
-          return Devtools._instance;
+        if (g.instance && !g.instance.disposed) {
+          return g.instance;
         }
         const created = new Devtools(props);
-        Devtools._instance = created;
+        g.instance = created;
         return created;
       })();
     }
-    const result = await Devtools._initializing;
-    Devtools._initializing = null; // 释放初始化占位，减少后续锁竞争
+    const result = await g.initializing;
+    g.initializing = null; // 释放初始化占位，减少后续锁竞争
     return result;
   }
 
@@ -92,12 +139,7 @@ export class Devtools implements IDevtools {
    * 主动显示面板（当前面板内自管可视状态，这里仅确保挂载存在）
    */
   show(): void {
-    if (!this.isMounted()) {
-      this.mount();
-    }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('INKWELL_DEVTOOLS_OPEN'));
-    }
+    this.emit('INKWELL_DEVTOOLS_OPEN');
   }
 
   /**
@@ -109,6 +151,21 @@ export class Devtools implements IDevtools {
     }
   }
 
+  emit(type: string): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!this.isMounted()) {
+      this.ensureMounted();
+    }
+    if (!this.isMounted()) {
+      return;
+    }
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent(type, { detail: { __inkwellDevtoolsBootstrap: true } }));
+    }, 0);
+  }
+
   /**
    * 销毁实例并移除挂载容器
    */
@@ -116,29 +173,38 @@ export class Devtools implements IDevtools {
     if (this.root) {
       try {
         this.root.unmount();
-      } catch {}
+      } catch (err) {
+        console.error('[DevTools] 卸载失败:', err);
+      }
       this.root = null;
     }
     if (this.container) {
       try {
         this.container.remove();
-      } catch {}
+      } catch (err) {
+        console.error('[DevTools] 移除容器失败:', err);
+      }
       this.container = null;
     }
     this.disposed = true;
-    Devtools._instance = null;
-    Devtools._initializing = null;
+    const g = getGlobalState();
+    if (g.instance === this) {
+      g.instance = null;
+      g.initializing = null;
+    }
+    this.renderedProps = undefined;
   }
 
   /**
    * 重置（测试辅助）：等价于 dispose，但确保静态状态清空
    */
   static reset(): void {
-    if (Devtools._instance) {
-      Devtools._instance.dispose();
+    const g = getGlobalState();
+    if (g.instance) {
+      g.instance.dispose();
     }
-    Devtools._instance = null;
-    Devtools._initializing = null;
+    g.instance = null;
+    g.initializing = null;
   }
 
   /**
@@ -146,8 +212,52 @@ export class Devtools implements IDevtools {
    */
   update(props?: DevToolsProps): void {
     this.props = props ?? this.props;
+    const next = this.props;
+    if (isSameProps(this.renderedProps, next)) {
+      return;
+    }
     if (this.root && this.container) {
       this.root.render(<DevToolsPanel {...(this.props ?? {})} />);
+      this.renderedProps = next;
+    }
+  }
+
+  private ensureMounted(): void {
+    if (this.disposed) {
+      this.disposed = false;
+    }
+    if (this.mounting) {
+      return;
+    }
+    if (this.isMounted()) {
+      return;
+    }
+    try {
+      if (localStorage.getItem(DEVTOOLS_MOUNT_FAIL_KEY)) {
+        return;
+      }
+    } catch {
+      void 0;
+    }
+    this.mounting = true;
+    try {
+      this.mount();
+      try {
+        localStorage.removeItem(DEVTOOLS_MOUNT_FAIL_KEY);
+      } catch {
+        void 0;
+      }
+    } catch (err) {
+      try {
+        localStorage.setItem(DEVTOOLS_MOUNT_FAIL_KEY, String(Date.now()));
+      } catch {
+        void 0;
+      }
+      console.error('[DevTools] 挂载失败:', err);
+      this.root = null;
+      this.container = null;
+    } finally {
+      this.mounting = false;
     }
   }
 
@@ -155,8 +265,8 @@ export class Devtools implements IDevtools {
    * 创建并挂载全局容器到 document.body，并渲染面板
    */
   private mount(): void {
-    if (this.disposed) {
-      this.disposed = false;
+    if (this.root && this.container) {
+      return;
     }
     const existing = document.getElementById('inkwell-devtools-root');
     this.container = existing as HTMLDivElement | null;
@@ -167,7 +277,9 @@ export class Devtools implements IDevtools {
       this.container = el;
     }
     this.root = createRoot(this.container);
-    this.root.render(<DevToolsPanel {...(this.props ?? {})} />);
+    const next = this.props ?? {};
+    this.root.render(<DevToolsPanel {...next} />);
+    this.renderedProps = next;
   }
 }
 
@@ -177,12 +289,72 @@ export class Devtools implements IDevtools {
  * 注意：组件自身不再直接渲染面板，而是触发单例的创建与挂载。
  */
 export function DevTools(props: DevToolsProps) {
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  const combo =
+    typeof props.shortcut === 'string'
+      ? props.shortcut
+      : typeof props.shortcut === 'object'
+        ? props.shortcut?.combo
+        : undefined;
+  const action =
+    typeof props.shortcut === 'object' && props.shortcut?.action ? props.shortcut.action : 'toggle';
+
+  useDevtoolsHotkeys({
+    combo,
+    action,
+    enabled: true,
+    onToggle: () => {
+      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_TOGGLE');
+    },
+    onClose: () => {
+      Devtools.getInstance(propsRef.current).hide();
+      propsRef.current.onClose?.();
+    },
+    onInspectToggle: () => {
+      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_INSPECT_TOGGLE');
+    },
+  });
+
   useEffect(() => {
     const inst = Devtools.getInstance(props);
     inst.update(props);
+
+    const onOpen = (ev: Event) => {
+      if (isBootstrapEvent(ev)) {
+        return;
+      }
+      if (!inst.isMounted()) {
+        inst.emit('INKWELL_DEVTOOLS_OPEN');
+      }
+    };
+    const onToggle = (ev: Event) => {
+      if (isBootstrapEvent(ev)) {
+        return;
+      }
+      if (!inst.isMounted()) {
+        inst.emit('INKWELL_DEVTOOLS_TOGGLE');
+      }
+    };
+    const onInspectToggle = (ev: Event) => {
+      if (isBootstrapEvent(ev)) {
+        return;
+      }
+      if (!inst.isMounted()) {
+        inst.emit('INKWELL_DEVTOOLS_INSPECT_TOGGLE');
+      }
+    };
+
+    window.addEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
+    window.addEventListener('INKWELL_DEVTOOLS_TOGGLE', onToggle);
+    window.addEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
     return () => {
       // 保持单例生命周期，由显示的 dispose/reset 控制
+      window.removeEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
+      window.removeEventListener('INKWELL_DEVTOOLS_TOGGLE', onToggle);
+      window.removeEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
     };
-  }, [props]);
+  }, [props.onClose, props.shortcut]);
   return null;
 }

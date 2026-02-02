@@ -1,9 +1,8 @@
 import { throttle } from 'lodash-es';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 
 import Runtime from '../../../runtime';
 import { buildDevtoolsTree, getPathNodeKeys } from '../../helper/tree';
-import { useDevtoolsHotkeys } from '../../hooks/useDevtoolsHotkeys';
 import { useMouseInteraction } from '../../hooks/useMouseInteraction';
 import LayoutPanel from '../layout';
 import Overlay, { type OverlayHandle } from '../overlay';
@@ -80,62 +79,25 @@ export interface DevToolsProps {
 }
 
 export function DevToolsPanel(props: DevToolsProps) {
-  const [selected, setSelected] = useState<Widget | null>(null);
-  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
-  const [runtime, setRuntime] = useState<Runtime | null>(null);
-  const hoverRef = useRef<Widget | null>(null);
-  const treeRef = useRef<AntTreeHandle | null>(null);
-  const overlayRef = useRef<OverlayHandle | null>(null);
-
-  const [version, setVersion] = useState(0);
-  const [isPageVisible, setIsPageVisible] = useState(true);
-  const lastTreeHashRef = useRef<number>(0);
-
-  useEffect(() => {
-    setIsPageVisible(!document.hidden);
-    const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const treeBuild = useMemo(() => {
-    void version;
-    return buildDevtoolsTree(
-      runtime?.getRootWidget?.() ?? null,
-      runtime?.getOverlayRootWidget?.() ?? null,
-    );
-  }, [runtime, version]);
-  const treeData = useMemo(() => treeBuild.treeData as DataNode[], [treeBuild]);
-
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [activeInspect, setActiveInspect] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
 
-  useEffect(() => {
-    setSelected(null);
-    setSelectedNodeKey(null);
-    setExpandedKeys(new Set());
-    hoverRef.current = null;
-    overlayRef.current?.setActive(false);
-    overlayRef.current?.highlight(null);
-  }, [runtime]);
-
-  const { combo } = useDevtoolsHotkeys({
-    combo:
+  const combo = useMemo(() => {
+    const fromProps =
       typeof props.shortcut === 'string'
         ? props.shortcut
-        : props.shortcut?.combo || 'CmdOrCtrl+Shift+D',
-    action:
-      typeof props.shortcut === 'object' && props.shortcut?.action
-        ? props.shortcut.action
-        : 'toggle',
-    onToggle: () => setVisible((v) => !v),
-    onInspectToggle: () => setActiveInspect((v) => !v),
-  });
+        : typeof props.shortcut === 'object'
+          ? props.shortcut?.combo
+          : undefined;
+    if (fromProps) {
+      return fromProps;
+    }
+    try {
+      return localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || 'CmdOrCtrl+Shift+D';
+    } catch {
+      return 'CmdOrCtrl+Shift+D';
+    }
+  }, [props.shortcut]);
 
   const helpContent = useMemo(() => <DevtoolsHelpContent combo={combo} />, [combo]);
 
@@ -163,6 +125,79 @@ export function DevToolsPanel(props: DevToolsProps) {
     };
   }, []);
 
+  if (!visible && !activeInspect) {
+    return null;
+  }
+
+  return (
+    <DevToolsPanelInner
+      activeInspect={activeInspect}
+      visible={visible}
+      helpContent={helpContent}
+      setActiveInspect={setActiveInspect}
+      setVisible={setVisible}
+    />
+  );
+}
+
+function DevToolsPanelInner({
+  activeInspect,
+  visible,
+  helpContent,
+  setActiveInspect,
+  setVisible,
+}: {
+  activeInspect: boolean;
+  visible: boolean;
+  helpContent: ReactElement;
+  setActiveInspect: (next: boolean | ((prev: boolean) => boolean)) => void;
+  setVisible: (next: boolean | ((prev: boolean) => boolean)) => void;
+}) {
+  const [selected, setSelected] = useState<Widget | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [runtime, setRuntime] = useState<Runtime | null>(null);
+  const hoverRef = useRef<Widget | null>(null);
+  const treeRef = useRef<AntTreeHandle | null>(null);
+  const overlayRef = useRef<OverlayHandle | null>(null);
+
+  const [version, setVersion] = useState(0);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const lastTreeHashRef = useRef<number>(0);
+
+  useEffect(() => {
+    setIsPageVisible(!document.hidden);
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const treeBuild = useMemo(() => {
+    void version;
+    if (!runtime) {
+      return buildDevtoolsTree(null, null);
+    }
+    return buildDevtoolsTree(
+      runtime?.getRootWidget?.() ?? null,
+      runtime?.getOverlayRootWidget?.() ?? null,
+    );
+  }, [runtime, version]);
+  const treeData = useMemo(() => treeBuild.treeData as DataNode[], [treeBuild]);
+
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setSelected(null);
+    setSelectedNodeKey(null);
+    setExpandedKeys(new Set());
+    hoverRef.current = null;
+    overlayRef.current?.setActive(false);
+    overlayRef.current?.highlight(null);
+  }, [runtime]);
+
   useEffect(() => {
     if (!runtime) {
       return;
@@ -175,23 +210,45 @@ export function DevToolsPanel(props: DevToolsProps) {
 
     lastTreeHashRef.current = computeRuntimeTreeHash(runtime);
     setVersion((v) => v + 1);
-    const update = throttle(
-      () => {
-        const nextHash = computeRuntimeTreeHash(runtime);
-        if (nextHash === lastTreeHashRef.current) {
-          return;
-        }
-        lastTreeHashRef.current = nextHash;
-        setVersion((v) => v + 1);
-      },
-      300,
-      { trailing: true },
-    );
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    let idleId: number | null = null;
+    const run = () => {
+      idleId = null;
+      const nextHash = computeRuntimeTreeHash(runtime);
+      if (nextHash === lastTreeHashRef.current) {
+        return;
+      }
+      lastTreeHashRef.current = nextHash;
+      setVersion((v) => v + 1);
+    };
+    const schedule = () => {
+      if (idleId != null) {
+        return;
+      }
+      if (w.requestIdleCallback) {
+        idleId = w.requestIdleCallback(run, { timeout: 800 });
+      } else {
+        idleId = window.setTimeout(run, 0);
+      }
+    };
+    const update = throttle(schedule, 250, { trailing: true });
 
     const dispose = runtime.addTickListener(update);
     return () => {
       dispose();
       update.cancel();
+      if (idleId != null) {
+        if (w.cancelIdleCallback) {
+          w.cancelIdleCallback(idleId);
+        } else {
+          window.clearTimeout(idleId);
+        }
+        idleId = null;
+      }
     };
   }, [runtime, visible, isPageVisible]);
 
@@ -312,7 +369,12 @@ export function DevToolsPanel(props: DevToolsProps) {
         headerRightExtra={(requestClose) => (
           <DevtoolsHeaderRight helpContent={helpContent} onRequestClose={requestClose} />
         )}
-        onVisibleChange={setVisible}
+        onVisibleChange={(v) => {
+          setVisible(v);
+          if (!v) {
+            setActiveInspect(false);
+          }
+        }}
         renderTree={(info) => (
           <DevtoolsTreePane
             info={info}
