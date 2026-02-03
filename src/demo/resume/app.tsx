@@ -1,4 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
+import { ResumeDemoApp } from './widgets/resume-demo-app';
 import { ResumeProtectedApp } from './widgets/resume-protected-app';
 
 import type Runtime from '@/runtime';
@@ -18,11 +19,6 @@ export function runApp(runtime: Runtime, width: number, height: number, theme: T
 
 export function runExportApp(runtime: Runtime, width: number, height: number, theme: ThemePalette) {
   return runtime.render(
-    <ResumeProtectedApp
-      width={width}
-      height={height}
-      theme={theme || Themes.light}
-      mode="export"
-    />,
+    <ResumeDemoApp width={width} height={height} theme={theme || Themes.light} mode="export" />,
   );
 }

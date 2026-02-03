@@ -1,3 +1,4 @@
+import cs from 'classnames';
 import { useState, type ReactNode } from 'react';
 
 import { isColor } from '../../helper/colors';
@@ -13,7 +14,7 @@ import {
   CaretDownOutlined,
   CaretRightOutlined,
   CloseOutlined,
-  EyeInvisibleOutlined,
+  InspectOutlined,
   LockOutlined,
   PlusOutlined,
 } from '@/ui/icons';
@@ -309,6 +310,16 @@ export function ObjectEditor({
         </div>
       );
     }
+    const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
+    if (isObj) {
+      return (
+        <Tooltip title="对象键不可编辑">
+          <div className={cs(styles.kvDisplay, { [styles.isObj]: isObj })}>
+            <span className={styles.kvDisplayKey}>{k}</span>
+          </div>
+        </Tooltip>
+      );
+    }
     return (
       <DoubleClickEditableField
         className={styles.kvField}
@@ -332,7 +343,7 @@ export function ObjectEditor({
   return (
     <div
       className={[styles.kvGroup, depth > 0 ? styles.nestedGroup : ''].filter(Boolean).join(' ')}
-      style={{ paddingLeft: depth > 0 ? '12px' : '0' }}
+      style={{ paddingLeft: depth > 0 ? '6px' : '0' }}
     >
       {entries.map(([k, v]) => {
         const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -343,15 +354,14 @@ export function ObjectEditor({
           return (
             <div key={k} className={styles.kvRowObject}>
               <div className={[styles.kvHeader, isOpen ? styles.expanded : ''].join(' ')}>
-                <div className={styles.kvHeaderLeft}>
-                  <Button
-                    size="small"
-                    type="text"
-                    icon={isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />}
-                    onClick={() => setOpenMap({ ...openMap, [k]: !isOpen })}
-                  />
-                  {renderKey(k, v)}
-                </div>
+                <Button
+                  size="small"
+                  type="text"
+                  className={styles.collapseBtn}
+                  icon={isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />}
+                  onClick={() => setOpenMap({ ...openMap, [k]: !isOpen })}
+                />
+                <div className={styles.kvHeaderLeft}>{renderKey(k, v)}</div>
                 <div className={styles.kvHeaderActions}>
                   {!locked && (
                     <Button
@@ -410,7 +420,7 @@ export function ObjectEditor({
               content={
                 <div className={styles.hiddenPopover}>
                   <div className={styles.hiddenPopoverHeader}>
-                    <EyeInvisibleOutlined />
+                    <InspectOutlined />
                     <span>内部属性</span>
                     <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
                   </div>
@@ -428,7 +438,7 @@ export function ObjectEditor({
                 size="small"
                 type="text"
                 className={styles.hiddenHintBtn}
-                icon={<EyeInvisibleOutlined />}
+                icon={<InspectOutlined />}
               >
                 已隐藏 {hiddenEntries.length} 个内部属性
               </Button>

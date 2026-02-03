@@ -1,10 +1,10 @@
 ---
 id: widget-basics
-title: Widget 基础
+title: 组件基础
 sidebar_position: 4
 ---
 
-# Widget 基础
+# 组件基础
 
 Inkwell 的 Widget 是构建界面的基础单元，采用 Flutter 风格的声明式布局与约束模型。你通过组合不同类型的 Widget 构建出层次清晰的布局树。
 

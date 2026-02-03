@@ -140,7 +140,11 @@ export function DevtoolsTreePane({
         </div>
         <div className={styles.treeToolbarActions}>
           <Tooltip title="打印当前节点" placement="bottom">
-            <Button type="text" icon={<ConsoleOutlined />} onClick={onPrintSelected} />
+            <Button
+              type="text"
+              icon={<ConsoleOutlined width={24} height={24} />}
+              onClick={onPrintSelected}
+            />
           </Tooltip>
         </div>
       </div>

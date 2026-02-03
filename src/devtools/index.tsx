@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { DevToolsPanel, type DevToolsProps } from './components/devtools-panel';
@@ -161,9 +162,7 @@ export class Devtools implements IDevtools {
     if (!this.isMounted()) {
       return;
     }
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent(type, { detail: { __inkwellDevtoolsBootstrap: true } }));
-    }, 0);
+    window.dispatchEvent(new CustomEvent(type, { detail: { __inkwellDevtoolsBootstrap: true } }));
   }
 
   /**
@@ -278,7 +277,9 @@ export class Devtools implements IDevtools {
     }
     this.root = createRoot(this.container);
     const next = this.props ?? {};
-    this.root.render(<DevToolsPanel {...next} />);
+    flushSync(() => {
+      this.root?.render(<DevToolsPanel {...next} />);
+    });
     this.renderedProps = next;
   }
 }
@@ -299,14 +300,14 @@ export function DevTools(props: DevToolsProps) {
         ? props.shortcut?.combo
         : undefined;
   const action =
-    typeof props.shortcut === 'object' && props.shortcut?.action ? props.shortcut.action : 'toggle';
+    typeof props.shortcut === 'object' && props.shortcut?.action ? props.shortcut.action : 'open';
 
   useDevtoolsHotkeys({
     combo,
     action,
     enabled: true,
     onToggle: () => {
-      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_TOGGLE');
+      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_OPEN');
     },
     onClose: () => {
       Devtools.getInstance(propsRef.current).hide();
@@ -318,8 +319,8 @@ export function DevTools(props: DevToolsProps) {
   });
 
   useEffect(() => {
-    const inst = Devtools.getInstance(props);
-    inst.update(props);
+    const inst = Devtools.getInstance(propsRef.current);
+    inst.update(propsRef.current);
 
     const onOpen = (ev: Event) => {
       if (isBootstrapEvent(ev)) {
@@ -327,14 +328,6 @@ export function DevTools(props: DevToolsProps) {
       }
       if (!inst.isMounted()) {
         inst.emit('INKWELL_DEVTOOLS_OPEN');
-      }
-    };
-    const onToggle = (ev: Event) => {
-      if (isBootstrapEvent(ev)) {
-        return;
-      }
-      if (!inst.isMounted()) {
-        inst.emit('INKWELL_DEVTOOLS_TOGGLE');
       }
     };
     const onInspectToggle = (ev: Event) => {
@@ -347,12 +340,10 @@ export function DevTools(props: DevToolsProps) {
     };
 
     window.addEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
-    window.addEventListener('INKWELL_DEVTOOLS_TOGGLE', onToggle);
     window.addEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
     return () => {
       // 保持单例生命周期，由显示的 dispose/reset 控制
       window.removeEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
-      window.removeEventListener('INKWELL_DEVTOOLS_TOGGLE', onToggle);
       window.removeEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
     };
   }, [props.onClose, props.shortcut]);

@@ -17,13 +17,7 @@ import { Section } from './section';
 import type { Widget } from '../../../core/base';
 
 import { Button, Input, Popover, Tabs, Tooltip } from '@/ui';
-import {
-  EyeInvisibleOutlined,
-  EyeOutlined,
-  InfoCircleOutlined,
-  SyncOutlined,
-  UserOutlined,
-} from '@/ui/icons';
+import { InfoCircleOutlined, InspectOutlined, SyncOutlined, UserOutlined } from '@/ui/icons';
 
 export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
   const getStateSnapshot = (target: Widget | null) => {
@@ -76,7 +70,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
           <div className={styles.emptySteps}>
             <div className={styles.emptyStep}>点击 Tree 节点</div>
             <div className={styles.emptyStep}>
-              或点击顶部 <EyeOutlined style={{ padding: '0 4px' }} /> 在画布上选取
+              或点击顶部 <InspectOutlined style={{ margin: '0 4px' }} /> 在画布上选取
             </div>
           </div>
         </div>
@@ -209,7 +203,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
                 content={
                   <div className={styles.hiddenPopover}>
                     <div className={styles.hiddenPopoverHeader}>
-                      <EyeInvisibleOutlined />
+                      <InspectOutlined />
                       <span>内部属性</span>
                       <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
                     </div>
@@ -227,7 +221,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
                   size="small"
                   type="text"
                   className={styles.hiddenHintBtn}
-                  icon={<EyeInvisibleOutlined />}
+                  icon={<InspectOutlined />}
                 >
                   已隐藏 {hiddenEntries.length} 个内部属性
                 </Button>

@@ -70,4 +70,3 @@ sidebar_position: 1
 ### Q: 如何查看组件树结构？
 **A**: 
 1.  使用 Inkwell DevTools (参阅 [开发者工具](../advanced/devtools))。
-2.  在控制台挂载了全局变量 `window.__INKWELL_DEVTOOLS_HOOK__`（仅用于 DevTools 内部通信）。

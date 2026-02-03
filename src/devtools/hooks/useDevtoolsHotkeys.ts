@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-export type HotkeyAction = 'toggle' | 'inspect' | 'close';
+export type HotkeyAction = 'open' | 'toggle' | 'inspect' | 'close';
 
 export interface DevtoolsHotkeysOptions {
   combo?: string;
@@ -69,7 +69,7 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
   );
   const [combo, setCombo] = useState<string>(defaultCombo);
   const enabled = opts.enabled ?? true;
-  const action: HotkeyAction = opts.action ?? 'toggle';
+  const action: HotkeyAction = opts.action ?? 'open';
   const { onToggle, onClose, onInspectToggle } = opts;
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
       const current = localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || combo;
       if (matches(ev, current)) {
         ev.preventDefault();
-        if (action === 'toggle') {
+        if (action === 'toggle' || action === 'open') {
           onToggle?.();
         } else if (action === 'close') {
           onClose?.();

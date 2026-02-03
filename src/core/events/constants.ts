@@ -3,6 +3,8 @@ import type { EventType } from './types';
 export const EVENT_PROP_EVENTS = '__events' as const;
 export const EVENT_PROP_NO_EVENTS = '__noEvents' as const;
 
+export const INKWELL_DEVTOOLS_INSPECT_ACTIVE = '__INKWELL_DEVTOOLS_INSPECT_ACTIVE__' as const;
+
 export const EVENT_HANDLER_PROP_PREFIX = 'on' as const;
 export const CAPTURE_SUFFIX = 'Capture' as const;
 export const CAPTURE_KEY_SUFFIX = '_capture' as const;

@@ -43,14 +43,12 @@ export const headerRenderer: BlockRenderer = {
       >
         {showAccent ? (
           <Row crossAxisAlignment={CrossAxisAlignment.Start} spacing={accent.gap}>
-            <Padding padding={{ top: Math.max(0, Math.floor((lineHeight - accentHeight) / 2)) }}>
-              <Container
-                width={accent.width}
-                height={accentHeight}
-                color={accentColor}
-                borderRadius={accent.radius}
-              />
-            </Padding>
+            <Container
+              width={accent.width}
+              height={accentHeight}
+              color={accentColor}
+              borderRadius={accent.radius}
+            />
             <Text
               text={text}
               fontSize={fontSize}

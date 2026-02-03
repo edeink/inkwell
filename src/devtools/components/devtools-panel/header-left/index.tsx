@@ -3,7 +3,7 @@ import cn from 'classnames';
 import styles from './index.module.less';
 
 import { Button, Tooltip } from '@/ui';
-import { EyeOutlined } from '@/ui/icons';
+import { InspectOutlined } from '@/ui/icons';
 
 export function DevtoolsHeaderLeft({
   activeInspect,
@@ -13,12 +13,12 @@ export function DevtoolsHeaderLeft({
   onToggleInspect: () => void;
 }) {
   return (
-    <Tooltip title="拾取" placement="bottom">
+    <Tooltip title="Inspect" placement="bottom">
       <Button
         type="text"
         aria-pressed={activeInspect}
         className={cn({ [styles.inspectBtnActive]: activeInspect })}
-        icon={<EyeOutlined />}
+        icon={<InspectOutlined />}
         onClick={onToggleInspect}
       />
     </Tooltip>

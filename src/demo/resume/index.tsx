@@ -12,6 +12,7 @@ import resumeMarkdown from './raw/resume.markdown?raw';
 
 import type { Widget } from '@/core/base';
 
+import { message } from '@/comp';
 import Runtime from '@/runtime';
 
 export const meta = {
@@ -113,8 +114,56 @@ function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+function isDocsEnv(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.location?.pathname?.startsWith('/docs/');
+  } catch {
+    return false;
+  }
+}
+
+async function tryPickSaveHandle(filename: string, mime: string, extensions: string[]) {
+  const w = window as unknown as {
+    showSaveFilePicker?: (opts: unknown) => Promise<unknown>;
+  };
+  if (typeof w.showSaveFilePicker !== 'function') {
+    return null;
+  }
+  const accept: Record<string, string[]> = { [mime]: extensions };
+  return w.showSaveFilePicker({
+    suggestedName: filename,
+    types: [{ description: filename, accept }],
+  });
+}
+
+async function saveBlobPreferPicker(
+  blob: Blob,
+  filename: string,
+  fileHandle: unknown | null,
+): Promise<void> {
+  if (fileHandle) {
+    const handle = fileHandle as {
+      createWritable?: () => Promise<{
+        write: (b: Blob) => Promise<void>;
+        close: () => Promise<void>;
+      }>;
+    };
+    if (typeof handle.createWritable === 'function') {
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    }
+  }
+  downloadBlob(blob, filename);
 }
 
 function waitNextFrame(): Promise<void> {
@@ -329,14 +378,34 @@ export default function ResumeDemo() {
       }
       setExporting(true);
 
+      const filename = format === 'png' ? 'resume.png' : 'resume.pdf';
+      const mime = format === 'png' ? 'image/png' : 'application/pdf';
+      const extensions = format === 'png' ? ['.png'] : ['.pdf'];
+      let saveHandle: unknown | null = null;
+      if (isDocsEnv()) {
+        try {
+          saveHandle = await tryPickSaveHandle(filename, mime, extensions);
+        } catch (err) {
+          const name =
+            err && typeof err === 'object' && 'name' in err
+              ? String((err as { name?: unknown }).name)
+              : '';
+          if (name === 'AbortError') {
+            setExporting(false);
+            return;
+          }
+          saveHandle = null;
+        }
+      }
+
       const container = document.createElement('div');
       const containerId = `resume-export-${Math.random().toString(36).slice(2)}`;
       container.id = containerId;
       container.style.position = 'fixed';
       container.style.left = '-100000px';
       container.style.top = '0';
-      container.style.width = '1px';
-      container.style.height = '1px';
+      container.style.width = `${RESUME_PAGE_WIDTH + 240}px`;
+      container.style.height = '0px';
       container.style.overflow = 'hidden';
       document.body.appendChild(container);
 
@@ -364,9 +433,11 @@ export default function ResumeDemo() {
           resolution: 2,
         });
 
-        await runExportApp(exportRuntime, RESUME_PAGE_WIDTH, 1, theme);
+        await runExportApp(exportRuntime, RESUME_PAGE_WIDTH, 0, theme);
+        await exportRuntime.rebuild();
         await waitNextFrame();
         await waitRuntimeImagesLoaded(exportRuntime, 3_000);
+        await exportRuntime.rebuild();
         await waitNextFrame();
 
         const renderer = exportRuntime.getRenderer();
@@ -387,7 +458,7 @@ export default function ResumeDemo() {
               'image/png',
             );
           });
-          downloadBlob(blob, 'resume.png');
+          await saveBlobPreferPicker(blob, filename, saveHandle);
           cleanup(exportRuntime);
           return;
         }
@@ -408,9 +479,19 @@ export default function ResumeDemo() {
           pageHeightPt,
         });
 
-        downloadBlob(new Blob([pdf], { type: 'application/pdf' }), 'resume.pdf');
+        await saveBlobPreferPicker(
+          new Blob([pdf], { type: 'application/pdf' }),
+          filename,
+          saveHandle,
+        );
         cleanup(exportRuntime);
-      } catch {
+      } catch (err) {
+        try {
+          const text = err instanceof Error ? err.message : '未知错误';
+          message.error(`导出失败：${text}`);
+        } catch {
+          void 0;
+        }
         cleanup(null);
       } finally {
         setExporting(false);

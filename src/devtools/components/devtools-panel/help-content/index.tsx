@@ -3,13 +3,29 @@ import styles from './index.module.less';
 import {
   CloseOutlined,
   ConsoleOutlined,
-  EyeOutlined,
+  InspectOutlined,
   LeftOutlined,
   RightOutlined,
   SearchOutlined,
 } from '@/ui/icons';
 
-export function DevtoolsHelpContent({ combo }: { combo: string }) {
+function getShortcutDesc(action: 'open' | 'toggle' | 'inspect' | 'close'): string {
+  if (action === 'inspect') {
+    return '切换拾取模式';
+  }
+  if (action === 'close') {
+    return '关闭面板';
+  }
+  return '打开面板';
+}
+
+export function DevtoolsHelpContent({
+  combo,
+  action,
+}: {
+  combo: string;
+  action: 'open' | 'toggle' | 'inspect' | 'close';
+}) {
   return (
     <div className={styles.helpPanel}>
       <div className={styles.helpTitle}>帮助</div>
@@ -18,7 +34,7 @@ export function DevtoolsHelpContent({ combo }: { combo: string }) {
         <div className={styles.helpGroupTitle}>顶部图标</div>
         <div className={styles.helpItem}>
           <div className={styles.helpIcon}>
-            <EyeOutlined />
+            <InspectOutlined />
           </div>
           <div className={styles.helpText}>
             <div className={styles.helpItemTitle}>拾取</div>
@@ -76,7 +92,7 @@ export function DevtoolsHelpContent({ combo }: { combo: string }) {
         <div className={styles.helpGroupTitle}>快捷键</div>
         <div className={styles.helpShortcut}>
           <span className={styles.helpKbd}>{combo}</span>
-          <span className={styles.helpShortcutDesc}>显示/隐藏面板</span>
+          <span className={styles.helpShortcutDesc}>{getShortcutDesc(action)}</span>
         </div>
       </div>
     </div>

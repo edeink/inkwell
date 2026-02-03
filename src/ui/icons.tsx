@@ -3,19 +3,23 @@ import type { CSSProperties, ReactNode } from 'react';
 type IconBaseProps = {
   className?: string;
   style?: CSSProperties;
+  width?: number;
+  height?: number;
 };
 
 function SvgIcon({
   children,
   className,
   style,
+  width = 16,
+  height = 16,
   viewBox = '0 0 1024 1024',
 }: IconBaseProps & { children: ReactNode; viewBox?: string }) {
-  const finalStyle = { fontSize: 'var(--ink-icon-size, 20px)', ...style };
+  const finalStyle = { fontSize: 'var(--ink-icon-size, 16px)', ...style };
   return (
     <svg
       className={className}
-      style={{ width: '1em', height: '1em', display: 'inline-block', ...finalStyle }}
+      style={{ width, height, display: 'inline-block', ...finalStyle }}
       viewBox={viewBox}
       fill="currentColor"
       aria-hidden="true"
@@ -333,12 +337,10 @@ export function CaretRightOutlined(props: IconBaseProps) {
   );
 }
 
-export function EyeInvisibleOutlined(props: IconBaseProps) {
+export function InspectOutlined(props: IconBaseProps) {
   return (
-    <SvgIcon {...props}>
-      <path d="M128 512c96-160 224-240 384-240s288 80 384 240c-96 160-224 240-384 240S224 672 128 512z" />
-      <path d="M512 416a96 96 0 110 192 96 96 0 010-192z" />
-      <path d="M256 256l512 512-45.3 45.3-512-512z" />
+    <SvgIcon {...props} viewBox="0 0 1024 1024">
+      <path d="M905.508571 422.034286c27.062857 0 49.005714-19.017143 49.005715-48.054857V52.589714c0-29.037714-21.942857-52.589714-49.371429-52.589714H48.932571C21.942857 0 0 23.552 0 54.125714v847.725715c0 29.110857 21.942857 52.662857 49.005714 52.662857h295.131429c27.062857 0 48.859429-23.552 48.859428-52.662857 0-29.037714-21.796571-52.589714-48.859428-52.589715H98.011429V105.325714h758.637714v268.726857c0 29.037714 21.942857 47.981714 49.005714 47.981715z m-533.942857-47.177143a29.915429 29.915429 0 0 0-5.851428 6.509714c0 3.218286 196.022857 553.618286 199.241143 559.762286 8.338286 15.140571 18.066286 6.509714 66.56-59.318857 25.6-35.401143 71.241143-92.013714 73.728-94.573715 3.657143-3.657143 22.893714 16.603429 90.550857 84.187429 46.299429 46.299429 78.336 83.090286 80.164571 83.090286 4.681143 0 82.139429-78.336 82.139429-83.090286 0-1.755429-42.788571-38.253714-88.649143-84.187429-45.933714-46.299429-83.675429-79.652571-82.212572-81.846857 1.097143-1.755429 52.516571-42.715429 88.722286-68.754285 35.84-26.331429 66.194286-50.249143 67.291429-53.540572 1.462857-2.925714 0.731429-7.606857-1.097143-10.459428-2.56-4.388571-551.131429-202.532571-562.688-203.264-1.462857-0.292571-5.12 2.194286-7.972572 5.485714z" />
     </SvgIcon>
   );
 }
@@ -499,15 +501,6 @@ export function SearchOutlined(props: IconBaseProps) {
   return (
     <SvgIcon {...props}>
       <path d="M448 160c159.1 0 288 128.9 288 288 0 64.8-21.4 124.6-57.6 172.7l155.4 155.4-45.3 45.3-155.4-155.4C572.6 702.6 512.8 724 448 724c-159.1 0-288-128.9-288-288s128.9-288 288-288zm0 64c-123.7 0-224 100.3-224 224s100.3 224 224 224 224-100.3 224-224-100.3-224-224-224z" />
-    </SvgIcon>
-  );
-}
-
-export function EyeOutlined(props: IconBaseProps) {
-  return (
-    <SvgIcon {...props}>
-      <path d="M96 512c97.5-170.7 251.1-256 416-256s318.5 85.3 416 256c-97.5 170.7-251.1 256-416 256S193.5 682.7 96 512zm416-192c-106 0-192 86-192 192s86 192 192 192 192-86 192-192-86-192-192-192z" />
-      <path d="M512 416a96 96 0 110 192 96 96 0 010-192z" />
     </SvgIcon>
   );
 }

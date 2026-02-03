@@ -16,11 +16,23 @@ type MarkdownItLike = {
   utils: { escapeHtml: (value: string) => string };
   renderer: { rules: Record<string, unknown> };
   use: (plugin: unknown, ...args: unknown[]) => void;
+  core: {
+    ruler: {
+      after: (
+        afterName: string,
+        ruleName: string,
+        fn: (state: { tokens: MarkdownTokenLike[] }) => void,
+      ) => void;
+    };
+  };
 };
 
 type MarkdownTokenLike = {
   info?: string;
   content?: string;
+  type?: string;
+  children?: MarkdownTokenLike[];
+  attrs?: Array<[string, string]>;
 };
 
 function toPosixPath(p: string) {
@@ -74,7 +86,10 @@ function splitIndexSidebarItem(items: DefaultTheme.SidebarItem[]) {
   if (!indexItem || typeof indexItem.link !== 'string') {
     return { indexLink: null as string | null, items };
   }
-  return { indexLink: indexItem.link, items: items.filter((it) => it !== indexItem) };
+  const baseLink = `${indexItem.link.slice(0, -'/index'.length)}/`;
+  const nonIndexItems = items.filter((it) => it !== indexItem);
+  const overviewItem: DefaultTheme.SidebarItem = { text: '概览', link: baseLink };
+  return { indexLink: baseLink, items: [overviewItem, ...nonIndexItems] };
 }
 
 function getDocTitleById(docId: string): string | null {
@@ -83,7 +98,8 @@ function getDocTitleById(docId: string): string | null {
     return docTitleCache.get(key) ?? null;
   }
   const abs = path.resolve(rootDir, 'docs', `${key}.md`);
-  const title = readFrontmatterTitle(abs);
+  const indexAbs = path.resolve(rootDir, 'docs', key, 'index.md');
+  const title = readFrontmatterTitle(abs) ?? readFrontmatterTitle(indexAbs);
   docTitleCache.set(key, title);
   return title;
 }
@@ -276,10 +292,84 @@ function escapeVueMustacheInCodeInline(md: MarkdownItLike) {
   }) satisfies CodeInlineRule;
 }
 
+function enableTaskList(md: MarkdownItLike): void {
+  const parseMarker = (content: string): { checked: boolean; markerLength: number } | null => {
+    const m = content.match(/^\[(?<state>[ xX])\]\s+/);
+    if (!m?.groups) {
+      return null;
+    }
+    const checked = m.groups.state.toLowerCase() === 'x';
+    return { checked, markerLength: m[0].length };
+  };
+
+  const ensureClass = (token: MarkdownTokenLike, className: string): void => {
+    const attrs = (token.attrs ??= []);
+    const existing = attrs.find((it) => it[0] === 'class');
+    if (!existing) {
+      attrs.push(['class', className]);
+      return;
+    }
+    const parts = new Set(existing[1].split(/\s+/).filter(Boolean));
+    parts.add(className);
+    existing[1] = Array.from(parts).join(' ');
+  };
+
+  const injectCheckboxToInline = (inline: MarkdownTokenLike, checked: boolean, cut: number) => {
+    const children = inline.children ?? [];
+    const first = children[0];
+    if (!first || typeof first.content !== 'string') {
+      return;
+    }
+    first.content = first.content.slice(cut);
+    inline.children = [
+      {
+        type: 'html_inline',
+        content: `<input type="checkbox" disabled${checked ? ' checked' : ''}> `,
+      },
+      ...children,
+    ];
+  };
+
+  md.core.ruler.after('inline', 'inkwell-task-list', (state) => {
+    const tokens = state.tokens;
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.type !== 'list_item_open') {
+        continue;
+      }
+      let inline: MarkdownTokenLike | null = null;
+      for (let j = i + 1; j < tokens.length; j++) {
+        const tt = tokens[j];
+        if (tt.type === 'list_item_close') {
+          break;
+        }
+        if (tt.type === 'inline' && Array.isArray(tt.children) && tt.children.length > 0) {
+          inline = tt;
+          break;
+        }
+      }
+      if (!inline || !Array.isArray(inline.children) || inline.children.length === 0) {
+        continue;
+      }
+      const first = inline.children[0];
+      if (typeof first.content !== 'string') {
+        continue;
+      }
+      const marker = parseMarker(first.content);
+      if (!marker) {
+        continue;
+      }
+      ensureClass(t, 'task-list-item');
+      injectCheckboxToInline(inline, marker.checked, marker.markerLength);
+    }
+  });
+}
+
 export default defineConfig({
   title: 'Inkwell 文档',
   description: '基于 Canvas 的高性能 UI 系统，友好的 JSX 体验',
   lang: 'zh-CN',
+  cleanUrls: true,
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     [
@@ -315,6 +405,7 @@ export default defineConfig({
       const api = md as MarkdownItLike;
       api.use(markdownItKatex);
       escapeVueMustacheInCodeInline(api);
+      enableTaskList(api);
       api.renderer.rules.fence = createFenceRenderer(api);
     },
   },

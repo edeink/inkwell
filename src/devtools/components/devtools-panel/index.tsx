@@ -1,5 +1,5 @@
 import { throttle } from 'lodash-es';
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 
 import Runtime from '../../../runtime';
 import { buildDevtoolsTree, getPathNodeKeys } from '../../helper/tree';
@@ -15,6 +15,7 @@ import { DevtoolsTreePane, type AntTreeHandle } from './tree-pane';
 
 import type { Widget } from '@/core/base';
 
+import { INKWELL_DEVTOOLS_INSPECT_ACTIVE } from '@/core/events/constants';
 import { ConfigProvider, type DataNode } from '@/ui';
 
 const objIdByRef = new WeakMap<object, number>();
@@ -75,7 +76,7 @@ function computeRuntimeTreeHash(runtime: Runtime): number {
 
 export interface DevToolsProps {
   onClose?: () => void;
-  shortcut?: string | { combo: string; action?: 'toggle' | 'inspect' };
+  shortcut?: string | { combo: string; action?: 'open' | 'toggle' | 'inspect' | 'close' };
 }
 
 export function DevToolsPanel(props: DevToolsProps) {
@@ -99,10 +100,19 @@ export function DevToolsPanel(props: DevToolsProps) {
     }
   }, [props.shortcut]);
 
-  const helpContent = useMemo(() => <DevtoolsHelpContent combo={combo} />, [combo]);
+  const action = useMemo(() => {
+    if (typeof props.shortcut === 'object' && props.shortcut?.action) {
+      return props.shortcut.action;
+    }
+    return 'open';
+  }, [props.shortcut]);
 
-  useEffect(() => {
-    const handleToggle = () => setVisible((v) => !v);
+  const helpContent = useMemo(
+    () => <DevtoolsHelpContent combo={combo} action={action} />,
+    [combo, action],
+  );
+
+  useLayoutEffect(() => {
     const handleOpen = () => setVisible(true);
     const handleClose = () => {
       setVisible(false);
@@ -113,12 +123,10 @@ export function DevToolsPanel(props: DevToolsProps) {
       setActiveInspect((v) => !v);
     };
 
-    window.addEventListener('INKWELL_DEVTOOLS_TOGGLE', handleToggle);
     window.addEventListener('INKWELL_DEVTOOLS_OPEN', handleOpen);
     window.addEventListener('INKWELL_DEVTOOLS_CLOSE', handleClose);
     window.addEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', handleInspectToggle);
     return () => {
-      window.removeEventListener('INKWELL_DEVTOOLS_TOGGLE', handleToggle);
       window.removeEventListener('INKWELL_DEVTOOLS_OPEN', handleOpen);
       window.removeEventListener('INKWELL_DEVTOOLS_CLOSE', handleClose);
       window.removeEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', handleInspectToggle);
@@ -163,6 +171,14 @@ function DevToolsPanelInner({
   const [version, setVersion] = useState(0);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const lastTreeHashRef = useRef<number>(0);
+
+  useEffect(() => {
+    (globalThis as unknown as Record<string, unknown>)[INKWELL_DEVTOOLS_INSPECT_ACTIVE] =
+      activeInspect;
+    return () => {
+      (globalThis as unknown as Record<string, unknown>)[INKWELL_DEVTOOLS_INSPECT_ACTIVE] = false;
+    };
+  }, [activeInspect]);
 
   useEffect(() => {
     setIsPageVisible(!document.hidden);

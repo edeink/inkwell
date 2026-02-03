@@ -13,7 +13,7 @@
  * 使用注意事项：
  * - 为确保可聚焦以接收键盘事件，Canvas 在绑定时会设置 tabIndex=0。
  */
-import { ALL_EVENT_TYPES, EventTypes } from './constants';
+import { ALL_EVENT_TYPES, EventTypes, INKWELL_DEVTOOLS_INSPECT_ACTIVE } from './constants';
 import { dispatchAt } from './dispatcher';
 import { isEditableElement } from './helper';
 
@@ -84,6 +84,12 @@ class EventManagerImpl {
     }
     for (const type of delegatedTypes) {
       const fn = (e: Event) => {
+        const inspectActive = !!(globalThis as unknown as Record<string, unknown>)[
+          INKWELL_DEVTOOLS_INSPECT_ACTIVE
+        ];
+        if (inspectActive) {
+          return;
+        }
         const native = e as MouseEvent | WheelEvent | PointerEvent | TouchEvent;
         // 自动聚焦处理：当在 Canvas 上发生交互时，尝试获取焦点以接收键盘事件
         // 但如果当前 activeElement 是 input/textarea（例如正在编辑文本），则不要抢占焦点
@@ -147,6 +153,12 @@ class EventManagerImpl {
               this.latestMoveEvent = null;
               this.rafId = null;
               if (payload) {
+                const inspectActiveNow = !!(globalThis as unknown as Record<string, unknown>)[
+                  INKWELL_DEVTOOLS_INSPECT_ACTIVE
+                ];
+                if (inspectActiveNow) {
+                  return;
+                }
                 this.route(payload.type, payload.native);
               }
             });
@@ -226,6 +238,12 @@ class EventManagerImpl {
     type: EventType,
     native: MouseEvent | WheelEvent | PointerEvent | TouchEvent,
   ): void {
+    const inspectActiveNow = !!(globalThis as unknown as Record<string, unknown>)[
+      INKWELL_DEVTOOLS_INSPECT_ACTIVE
+    ];
+    if (inspectActiveNow) {
+      return;
+    }
     const pos = this.getClientXY(native);
     if (!pos) {
       return;
