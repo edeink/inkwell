@@ -1,28 +1,42 @@
-name: Docs CI
+name: Release
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  version:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'pnpm'
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - name: Install deps
         run: pnpm install --frozen-lockfile
-      - name: Check docs integrity
-        run: pnpm run check:integrity
-      - name: Build docs
-        run: pnpm run docs:build
+
+      - name: Create Version PR
+        uses: changesets/action@v1
+        with:
+          version: pnpm run changeset:version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

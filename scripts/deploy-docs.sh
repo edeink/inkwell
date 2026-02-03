@@ -39,7 +39,7 @@ else
 fi
 
 echo "开始构建文档..."
-pnpm run doc:build
+pnpm run docs:build
 
 if [ ! -d "$DIST_DIR" ]; then
   echo "未找到构建产物目录：$DIST_DIR"

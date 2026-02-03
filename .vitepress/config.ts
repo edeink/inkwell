@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import markdownItKatex from 'markdown-it-katex';
 import { type DefaultTheme, defineConfig } from 'vitepress';
 
-import sidebars from '../sidebars';
+import sidebars from '../docs/sidebars';
 
 const configFilePath = fileURLToPath(import.meta.url);
 const configDir = path.dirname(configFilePath);
@@ -299,7 +299,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '指引', link: '/docs/basic/intro' },
-      { text: 'Playground', link: '/demo/' },
+      { text: 'Playground', link: '/docs/demo/' },
       { text: 'GitHub', link: 'https://github.com/edeink/inkwell' },
       { text: '社区', link: 'https://github.com/edeink/inkwell/issues' },
     ],

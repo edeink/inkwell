@@ -71,7 +71,7 @@ export default function VitePressHome() {
           <a className={styles.primaryBtn} href="/docs/basic/intro.html">
             快速开始
           </a>
-          <a className={styles.secondaryBtn} href="/demo/" rel="noreferrer">
+          <a className={styles.secondaryBtn} href="/docs/demo/" rel="noreferrer">
             在线 Playground
           </a>
         </div>

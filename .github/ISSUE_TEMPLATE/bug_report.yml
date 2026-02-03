@@ -1,0 +1,64 @@
+name: Bug 报告
+description: 报告一个可复现的问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量提供可复现信息，便于快速定位与修复。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题概述
+      description: 用简洁的语言描述发生了什么，以及你期望发生什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 请提供最小可复现步骤（越小越好）
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 运行环境与版本信息
+      value: |
+        - 操作系统：
+        - Node.js：
+        - pnpm：
+        - 浏览器：
+        - 复现分支/Commit：
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志与截图（可选）
+      description: 请避免粘贴密钥、Token、个人信息等敏感内容

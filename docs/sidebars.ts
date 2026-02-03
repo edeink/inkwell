@@ -75,7 +75,13 @@ export default {
       type: 'category',
       label: '其他资源',
       collapsed: true,
-      items: ['meta/faq', 'meta/math-test', 'meta/test-component', 'meta/test-benchmark'],
+      items: [
+        'meta/faq',
+        'meta/roadmap',
+        'meta/math-test',
+        'meta/test-component',
+        'meta/test-benchmark',
+      ],
     },
     {
       type: 'category',

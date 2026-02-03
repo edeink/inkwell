@@ -26,6 +26,8 @@ pnpm install
 pnpm doc
 ```
 
+启动后访问 `http://localhost:3001`，Playground 入口统一为 `/docs/demo/`。
+
 ## 组件开发基础
 
 Inkwell 的组件开发体验与 React 非常相似。

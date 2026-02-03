@@ -1,0 +1,618 @@
+{
+  "generatedAt": "2026-02-03T07:45:37.381Z",
+  "rootsRel": [
+    "src",
+    "docs"
+  ],
+  "outDir": "reports/code-stats",
+  "categories": {
+    "TS": {
+      "lines": 67476,
+      "files": 408
+    },
+    "测试": {
+      "lines": 23789,
+      "files": 168
+    },
+    "样式": {
+      "lines": 4683,
+      "files": 45
+    },
+    "文档": {
+      "lines": 6599,
+      "files": 78
+    },
+    "其他": {
+      "lines": 15,
+      "files": 1
+    }
+  },
+  "summary": {
+    "total": {
+      "lines": 102562,
+      "files": 700
+    }
+  },
+  "modules": [
+    {
+      "module": "demo",
+      "totals": {
+        "TS": {
+          "lines": 33238,
+          "files": 208
+        },
+        "测试": {
+          "lines": 12519,
+          "files": 83
+        },
+        "样式": {
+          "lines": 430,
+          "files": 10
+        },
+        "文档": {
+          "lines": 810,
+          "files": 11
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 46997,
+          "files": 312
+        }
+      }
+    },
+    {
+      "module": "core",
+      "totals": {
+        "TS": {
+          "lines": 13811,
+          "files": 50
+        },
+        "测试": {
+          "lines": 7886,
+          "files": 61
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 298,
+          "files": 1
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 21995,
+          "files": 112
+        }
+      }
+    },
+    {
+      "module": "benchmark",
+      "totals": {
+        "TS": {
+          "lines": 5129,
+          "files": 38
+        },
+        "测试": {
+          "lines": 1076,
+          "files": 9
+        },
+        "样式": {
+          "lines": 777,
+          "files": 11
+        },
+        "文档": {
+          "lines": 89,
+          "files": 1
+        },
+        "其他": {
+          "lines": 15,
+          "files": 1
+        },
+        "合计": {
+          "lines": 7086,
+          "files": 60
+        }
+      }
+    },
+    {
+      "module": "devtools",
+      "totals": {
+        "TS": {
+          "lines": 3625,
+          "files": 29
+        },
+        "测试": {
+          "lines": 237,
+          "files": 3
+        },
+        "样式": {
+          "lines": 1536,
+          "files": 12
+        },
+        "文档": {
+          "lines": 77,
+          "files": 1
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 5475,
+          "files": 45
+        }
+      }
+    },
+    {
+      "module": "docs",
+      "totals": {
+        "TS": {
+          "lines": 93,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 5325,
+          "files": 64
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 5418,
+          "files": 65
+        }
+      }
+    },
+    {
+      "module": "comp",
+      "totals": {
+        "TS": {
+          "lines": 3855,
+          "files": 23
+        },
+        "测试": {
+          "lines": 502,
+          "files": 2
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 4357,
+          "files": 25
+        }
+      }
+    },
+    {
+      "module": "site",
+      "totals": {
+        "TS": {
+          "lines": 1268,
+          "files": 9
+        },
+        "测试": {
+          "lines": 268,
+          "files": 3
+        },
+        "样式": {
+          "lines": 1733,
+          "files": 8
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 3269,
+          "files": 20
+        }
+      }
+    },
+    {
+      "module": "ui",
+      "totals": {
+        "TS": {
+          "lines": 2448,
+          "files": 33
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 14,
+          "files": 2
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 2462,
+          "files": 35
+        }
+      }
+    },
+    {
+      "module": "runtime",
+      "totals": {
+        "TS": {
+          "lines": 1179,
+          "files": 1
+        },
+        "测试": {
+          "lines": 864,
+          "files": 3
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 2043,
+          "files": 4
+        }
+      }
+    },
+    {
+      "module": "styles",
+      "totals": {
+        "TS": {
+          "lines": 556,
+          "files": 1
+        },
+        "测试": {
+          "lines": 267,
+          "files": 2
+        },
+        "样式": {
+          "lines": 183,
+          "files": 1
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 1006,
+          "files": 4
+        }
+      }
+    },
+    {
+      "module": "renderer",
+      "totals": {
+        "TS": {
+          "lines": 958,
+          "files": 2
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 958,
+          "files": 2
+        }
+      }
+    },
+    {
+      "module": "utils",
+      "totals": {
+        "TS": {
+          "lines": 467,
+          "files": 6
+        },
+        "测试": {
+          "lines": 170,
+          "files": 2
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 637,
+          "files": 8
+        }
+      }
+    },
+    {
+      "module": "reports",
+      "totals": {
+        "TS": {
+          "lines": 376,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 376,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "vitepress",
+      "totals": {
+        "TS": {
+          "lines": 317,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 317,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "test",
+      "totals": {
+        "TS": {
+          "lines": 111,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 111,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "types",
+      "totals": {
+        "TS": {
+          "lines": 20,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 20,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "App.tsx",
+      "totals": {
+        "TS": {
+          "lines": 16,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 16,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "App.css",
+      "totals": {
+        "TS": {
+          "lines": 0,
+          "files": 0
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 10,
+          "files": 1
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 10,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "main.tsx",
+      "totals": {
+        "TS": {
+          "lines": 7,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 7,
+          "files": 1
+        }
+      }
+    },
+    {
+      "module": "vite-env.d.ts",
+      "totals": {
+        "TS": {
+          "lines": 2,
+          "files": 1
+        },
+        "测试": {
+          "lines": 0,
+          "files": 0
+        },
+        "样式": {
+          "lines": 0,
+          "files": 0
+        },
+        "文档": {
+          "lines": 0,
+          "files": 0
+        },
+        "其他": {
+          "lines": 0,
+          "files": 0
+        },
+        "合计": {
+          "lines": 2,
+          "files": 1
+        }
+      }
+    }
+  ]
+}
