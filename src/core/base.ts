@@ -134,6 +134,7 @@ export function isTight(c: BoxConstraints): boolean {
 export abstract class Widget<TData extends WidgetProps = WidgetProps> {
   key!: string;
   eventKey!: string;
+  // 收敛 type，否则会出现因为混淆，导致 type 不一致的问题
   type!: string;
   children: Widget[] = [];
   private _childrenData: WidgetProps[] = [];

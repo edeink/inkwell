@@ -64,6 +64,22 @@ export default class Runtime {
     string,
     { canvas: HTMLCanvasElement; runtime: Runtime; container: HTMLElement }
   > = new Map();
+  private static canvasRegistryChangeListeners: Set<() => void> = new Set();
+
+  static subscribeCanvasRegistryChange(listener: () => void): () => void {
+    Runtime.canvasRegistryChangeListeners.add(listener);
+    return () => {
+      Runtime.canvasRegistryChangeListeners.delete(listener);
+    };
+  }
+
+  private static emitCanvasRegistryChange(): void {
+    Runtime.canvasRegistryChangeListeners.forEach((fn) => {
+      try {
+        fn();
+      } catch {}
+    });
+  }
 
   /**
    * 创建运行时实例
@@ -97,6 +113,7 @@ export default class Runtime {
       if (entry && entry.runtime === this) {
         EventManager.unregisterCanvas(this.canvasId);
         Runtime.canvasRegistry.delete(this.canvasId);
+        Runtime.emitCanvasRegistryChange();
       }
     }
 
@@ -236,6 +253,7 @@ export default class Runtime {
         runtime: this,
         container: this._container,
       });
+      Runtime.emitCanvasRegistryChange();
       EventManager.bind(this);
     }
     const px = (rendererOptions.width ?? 0) * (rendererOptions.height ?? 0);

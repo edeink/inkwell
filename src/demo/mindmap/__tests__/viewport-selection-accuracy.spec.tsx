@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CustomComponentType } from '../type';
+import { MindMapNode } from '../widgets/mindmap-node';
 import { MindMapViewport, type MindMapViewportProps } from '../widgets/mindmap-viewport';
 
 import type { InkwellEvent } from '@/core/events';
@@ -8,9 +9,9 @@ import type { InkwellEvent } from '@/core/events';
 import { Widget } from '@/core/base';
 
 // 模拟依赖项
-class MockNode extends Widget {
+class MockNode extends MindMapNode {
   constructor(key: string, x: number, y: number, w: number, h: number) {
-    super({ key } as any);
+    super({ key, title: key } as any);
     this.type = CustomComponentType.MindMapNode;
     this.renderObject.offset = { dx: x, dy: y };
     this.renderObject.size = { width: w, height: h };
@@ -199,7 +200,7 @@ describe('MindMapViewport 选区精度测试', () => {
 
   class MockContainer extends Widget {
     constructor(key: string) {
-      super({ key });
+      super({ key } as any);
       this.renderObject.size = { width: 0, height: 0 };
     }
   }

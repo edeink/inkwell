@@ -17,7 +17,7 @@ export function DevtoolsTreePane({
   treeData,
   expandedKeys,
   selectedKey,
-  breadcrumbs,
+  breadcrumbs = [],
   onExpandKeysChange,
   onSelectKey,
   onHoverKey,
@@ -30,7 +30,7 @@ export function DevtoolsTreePane({
   treeData: DataNode[];
   expandedKeys: string[];
   selectedKey: string | null;
-  breadcrumbs: Array<{ key: string; label: string }>;
+  breadcrumbs?: Array<{ key: string; label: string }>;
   onExpandKeysChange: (keys: string[]) => void;
   onSelectKey: (key: string) => void;
   onHoverKey: (key: string | null) => void;

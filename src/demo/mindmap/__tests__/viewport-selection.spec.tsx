@@ -2,15 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CustomComponentType } from '../type';
+import { MindMapNode } from '../widgets/mindmap-node';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
-import { Widget } from '@/core/base';
 import { dispatchToTree } from '@/core/events';
 
 // 模拟 Node
-class MockNode extends Widget {
+class MockNode extends MindMapNode {
   constructor(key: string, x: number, y: number, w: number, h: number) {
-    super({ key } as any);
+    super({ key, title: key } as any);
     this.key = key;
     this.type = CustomComponentType.MindMapNode;
     this.renderObject = {

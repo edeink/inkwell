@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CustomComponentType } from '../type';
+import { MindMapNode } from '../widgets/mindmap-node';
 import { MindMapViewport } from '../widgets/mindmap-viewport';
 
 import type { InkwellEvent } from '@/core/events';
@@ -82,27 +83,23 @@ describe('MindMapViewport 集成测试', () => {
     const vp = new MindMapViewport({ type: CustomComponentType.MindMapViewport });
 
     // 创建模拟子节点
-    const child1 = {
+    const child1 = new MindMapNode({
       type: CustomComponentType.MindMapNode,
       key: 'node-1',
-      parent: vp,
-      children: [],
-      renderObject: {
-        offset: { dx: 10, dy: 10 },
-        size: { width: 50, height: 50 },
-      },
-    } as any;
+      title: 'Node 1',
+    } as any);
+    child1.parent = vp;
+    child1.renderObject.offset = { dx: 10, dy: 10 };
+    child1.renderObject.size = { width: 50, height: 50 };
 
-    const child2 = {
+    const child2 = new MindMapNode({
       type: CustomComponentType.MindMapNode,
       key: 'node-2',
-      parent: vp,
-      children: [],
-      renderObject: {
-        offset: { dx: 100, dy: 100 },
-        size: { width: 50, height: 50 },
-      },
-    } as any;
+      title: 'Node 2',
+    } as any);
+    child2.parent = vp;
+    child2.renderObject.offset = { dx: 100, dy: 100 };
+    child2.renderObject.size = { width: 50, height: 50 };
 
     vp.children = [child1, child2];
 

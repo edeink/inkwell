@@ -82,8 +82,8 @@ export class Connector extends Widget<ConnectorProps> {
     this.fromKey = data.fromKey;
     this.toKey = data.toKey;
     this.color = data.color;
-    this.strokeWidth = (data.strokeWidth ?? this.strokeWidth) as number;
-    this.style = (data.style ?? this.style) as ConnectorStyle;
+    this.strokeWidth = data.strokeWidth ?? this.strokeWidth;
+    this.style = data.style ?? this.style;
     this.dashArray = data.dashArray;
   }
 

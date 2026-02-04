@@ -36,6 +36,7 @@ export function useMouseInteraction({
   // 最近一次指针位置，用于在 Inspect 激活时进行更匹配的 runtime 比较
   const lastPos = useRef<{ x: number; y: number } | null>(null);
   const [runtimeId, setRuntimeId] = useState<string | null>(null);
+  const [canvasRegistryVersion, setCanvasRegistryVersion] = useState(0);
   const [isMultiRuntime, setIsMultiRuntime] = useState<boolean>(() => {
     try {
       const list = Runtime.listCanvas();
@@ -49,6 +50,12 @@ export function useMouseInteraction({
   // 初始与持续匹配：
   // 1) 当 runtime 为空时进行初始化匹配
   // 2) 当 Inspect 激活时持续比较，并在更匹配的 runtime 出现时更新
+  useEffect(() => {
+    return Runtime.subscribeCanvasRegistryChange(() => {
+      setCanvasRegistryVersion((v) => v + 1);
+    });
+  }, []);
+
   useEffect(() => {
     const list = Runtime.listCanvas();
     if (!list || list.length === 0) {
@@ -68,7 +75,7 @@ export function useMouseInteraction({
       setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
       return;
     }
-  }, [runtime, active, setRuntime]);
+  }, [runtime, active, setRuntime, canvasRegistryVersion]);
 
   // 处理 overlay 激活状态和位置信息
   useEffect(() => {

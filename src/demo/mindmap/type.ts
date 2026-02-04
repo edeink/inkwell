@@ -1,11 +1,10 @@
-// 来自 custom-widget/type.ts
-export enum CustomComponentType {
-  MindMapViewport = 'MindMapViewport',
-  MindMapNode = 'MindMapNode',
-  MindMapLayout = 'MindMapLayout',
-  Connector = 'Connector',
-  MindMapNodeToolbar = 'MindMapNodeToolbar',
-}
+export const CustomComponentType = {
+  MindMapViewport: 'MindMapViewport',
+  MindMapNode: 'MindMapNode',
+  MindMapLayout: 'MindMapLayout',
+  Connector: 'Connector',
+  MindMapNodeToolbar: 'MindMapNodeToolbar',
+} as const;
 
 export const enum Side {
   Left = 'left',

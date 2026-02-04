@@ -419,6 +419,9 @@ export default defineConfig({
         'wiki-app': path.resolve(rootDir, 'src/demo/wiki/app.tsx'),
       },
     },
+    build: {
+      sourcemap: process.env.INKWELL_DOCS_SOURCEMAP === 'true',
+    },
     css: {
       preprocessorOptions: {
         less: {

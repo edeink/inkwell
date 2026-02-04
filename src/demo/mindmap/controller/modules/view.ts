@@ -1,5 +1,5 @@
 import { SCALE_CONFIG } from '../../constants';
-import { CustomComponentType } from '../../type';
+import { MindMapNode } from '../../widgets/mindmap-node';
 
 import type { MindMapViewport } from '../../widgets/mindmap-viewport';
 import type { MindmapController } from '../index';
@@ -122,7 +122,7 @@ export class ViewModule {
     }
     const pos = widget.getAbsolutePosition();
     const sz = widget.renderObject.size;
-    const isNode = widget.type === CustomComponentType.MindMapNode;
+    const isNode = widget instanceof MindMapNode;
     if (isNode && x >= pos.dx && y >= pos.dy && x <= pos.dx + sz.width && y <= pos.dy + sz.height) {
       return widget;
     }

@@ -2,6 +2,7 @@
 
 import { CustomComponentType, Side } from '../../type';
 import { Connector } from '../connector';
+import { MindMapNodeToolbar } from '../mindmap-node-toolbar';
 
 import type { CursorType, WidgetProps } from '@/core/base';
 import type { InkwellEvent } from '@/core/events';
@@ -345,16 +346,17 @@ export class MindMapNode extends StatefulWidget<MindMapNodeProps, MindMapNodeSta
       } else {
         const t = this as unknown as Widget;
         const p = t.parent as Widget | null;
-        const container = p && p.type === CustomComponentType.MindMapNodeToolbar ? p : t;
+        const container = p instanceof MindMapNodeToolbar ? p : t;
         container.renderObject.offset = { dx: off.dx, dy: off.dy };
       }
       try {
-        const parentContainer = (this.parent as Widget) ?? null;
+        const parentContainer = (this.parent as Widget | null) ?? null;
         const layout =
-          parentContainer && parentContainer.type === CustomComponentType.MindMapNodeToolbar
-            ? (parentContainer.parent as Widget)
-            : (parentContainer as Widget);
-        if (layout && layout.type === CustomComponentType.MindMapLayout) {
+          (findWidget(this.root, '#layout-root') as Widget | null) ??
+          (parentContainer instanceof MindMapNodeToolbar
+            ? ((parentContainer.parent as Widget | null) ?? null)
+            : parentContainer);
+        if (layout) {
           const descendants = new Set<string>();
           const seen = new Set<string>();
           const stack: string[] = [this.key as string];

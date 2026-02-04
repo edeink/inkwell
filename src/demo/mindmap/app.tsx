@@ -388,11 +388,11 @@ export class MindmapDemo extends StatefulWidget<SceneProps, SceneState> {
       return;
     }
     let wrapper = null;
-    if (target.type === CustomComponentType.MindMapNodeToolbar) {
+    if (target instanceof MindMapNodeToolbar) {
       wrapper = target;
-    } else if (target.type === CustomComponentType.MindMapNode) {
+    } else if (target instanceof MindMapNode) {
       const p = target.parent;
-      if (p && p.type === CustomComponentType.MindMapNodeToolbar) {
+      if (p instanceof MindMapNodeToolbar) {
         wrapper = p;
       } else {
         wrapper = target;

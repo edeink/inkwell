@@ -119,6 +119,7 @@ export function Select({
         flexDirection: 'column',
         gap: 2,
       }}
+      onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >

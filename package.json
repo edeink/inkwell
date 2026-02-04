@@ -21,6 +21,7 @@
     "changeset:version": "changeset version",
     "docs": "vitepress dev",
     "docs:build": "vitepress build .",
+    "docs:build:debug": "INKWELL_DOCS_SOURCEMAP=true vitepress build .",
     "docs:serve": "vitepress preview .",
     "docs:deploy": "bash scripts/deploy-docs.sh",
     "precommit": "lint-staged"

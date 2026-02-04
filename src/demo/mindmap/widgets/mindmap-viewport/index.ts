@@ -12,7 +12,8 @@ import { PreventBrowserZoomCommand } from '../../helpers/shortcut/commands/syste
 import { ViewportTransformCommand } from '../../helpers/shortcut/commands/view';
 import { HistoryManager } from '../../helpers/shortcut/history/manager';
 import { ShortcutManager } from '../../helpers/shortcut/manager';
-import { CustomComponentType, Side } from '../../type';
+import { Side } from '../../type';
+import { MindMapNode } from '../mindmap-node';
 
 import type { SelectionData } from '../../type';
 import type { BoxConstraints, BuildContext, Size } from '@/core/base';
@@ -620,7 +621,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     };
 
     const traverse = (w: Widget) => {
-      if (w.type === CustomComponentType.MindMapNode && w.key) {
+      const isNode = w instanceof MindMapNode;
+      if (isNode && w.key) {
         const bounds = getWidgetBounds(w);
         if (bounds) {
           // 将视觉空间坐标转换为世界空间坐标（逻辑空间）
@@ -697,7 +699,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     const root = this as unknown as Widget;
     const selectedSet = new Set(this.selectedKeys);
     const traverse = (w: Widget) => {
-      if (w.type === CustomComponentType.MindMapNode && w.key) {
+      const isNode = w instanceof MindMapNode;
+      if (isNode && w.key) {
         const props = w.props;
         if (props) {
           const isActive = w.key === this.activeKey;
@@ -730,7 +733,8 @@ export class MindMapViewport extends Viewport<MindMapViewportProps> {
     const res: string[] = [];
     const root = this as unknown as Widget;
     const traverse = (w: Widget) => {
-      if (w.type === CustomComponentType.MindMapNode && w.key) {
+      const isNode = w instanceof MindMapNode;
+      if (isNode && w.key) {
         res.push(w.key);
       }
       for (const c of w.children as Widget[]) {

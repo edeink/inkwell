@@ -9,6 +9,7 @@
 
 import { CustomComponentType, Side } from '../../type';
 import { Connector } from '../connector';
+import { MindMapNode } from '../mindmap-node';
 import { MindMapViewport } from '../mindmap-viewport';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
@@ -480,7 +481,7 @@ export class MindMapNodeToolbar extends Widget<MindMapNodeToolbarProps> {
     if (parentKey && parentContainer) {
       let parentNode: Widget | null = null;
       for (const c of parentContainer.children) {
-        if (c.type === CustomComponentType.MindMapNode && c.key === parentKey) {
+        if (c instanceof MindMapNode && c.key === parentKey) {
           parentNode = c;
           break;
         }

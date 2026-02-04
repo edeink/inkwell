@@ -53,6 +53,7 @@ export function findWidget<T = Widget>(
 clearSelectorCache(root);
 ```
 
+
 ## 使用示例
 
 ```ts
@@ -67,3 +68,38 @@ const toolbarButtons = findWidget(root, 'MindMapViewport > Container[role="toolb
 });
 ```
 
+## 混淆警告
+
+如果你的选择器依赖“类型字符串”（例如 `MindMapNode`），而你的构建产物会对类名/函数名做混淆压缩，那么运行时生成的类型名可能与源码不同，从而导致 `findWidget` 在生产环境查找失败。
+
+建议：
+
+1. 在相关构建（例如 Vite）中开启 `keepNames`，尽量保持 `constructor.name` 在构建前后一致：
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  esbuild: {
+    keepNames: true,
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      keep_classnames: true,
+      keep_fnames: true,
+    },
+  },
+});
+```
+
+2. 如果必须混淆且无法保留名称，请不要在 `findWidget` 里手写类型字符串；改用构造器的运行时名称生成选择器，确保混淆前后一致：
+
+```ts
+import { findWidget } from '@/core/helper/widget-selector';
+import { MindMapNode } from '@/demo/mindmap/widgets/mindmap-node';
+
+const type = MindMapNode.prototype.constructor.name;
+const node = findWidget(root, `${type}#node-1`);
+```

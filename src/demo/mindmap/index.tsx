@@ -42,7 +42,6 @@ export default function MindmapDemo({ width, height }: { width?: number; height?
         root,
         CustomComponentType.MindMapViewport,
       ) as MindMapViewport | null;
-
       if (vp) {
         let ctrl = MindmapController.byRuntime.get(rt);
         // 如果控制器不存在或关联的 viewport 发生变化（虽然不太可能），则重新创建

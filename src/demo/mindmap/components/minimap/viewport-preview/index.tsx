@@ -6,7 +6,8 @@ import {
   DEFAULT_CONNECTOR_OPTIONS,
   type Point,
 } from '../../../helpers/connection-drawer';
-import { CustomComponentType } from '../../../type';
+import { Connector } from '../../../widgets/connector';
+import { MindMapNode } from '../../../widgets/mindmap-node';
 import { fitBounds, type Rect } from '../utils';
 
 import styles from './index.module.less';
@@ -61,7 +62,7 @@ export default function ViewportPreview({
       const vpPos = viewport.getAbsolutePosition();
       const out: Rect[] = [];
       const walk = (w: Widget) => {
-        if (w.type === CustomComponentType.MindMapNode) {
+        if (w instanceof MindMapNode) {
           const p = w.getAbsolutePosition();
           const s = w.renderObject.size;
           // 将屏幕坐标转换为世界坐标
@@ -93,7 +94,7 @@ export default function ViewportPreview({
       const vpPos = viewport.getAbsolutePosition();
       const rectByKey = new Map<string, Rect>();
       const buildRectMap = (w: Widget) => {
-        if (w.type === CustomComponentType.MindMapNode) {
+        if (w instanceof MindMapNode) {
           const p = w.getAbsolutePosition();
           const s = w.renderObject.size;
           // 将屏幕坐标转换为世界坐标
@@ -110,9 +111,8 @@ export default function ViewportPreview({
       };
       const paths: Point[][] = [];
       const walk = (w: Widget) => {
-        if (w.type === CustomComponentType.Connector) {
-          type ConnectorDataLike = { fromKey: string; toKey: string; style?: ConnectorStyle };
-          const { fromKey, toKey, style } = w as unknown as ConnectorDataLike;
+        if (w instanceof Connector) {
+          const { fromKey, toKey, style } = w;
           const a = rectByKey.get(fromKey);
           const b = rectByKey.get(toKey);
           if (a && b) {

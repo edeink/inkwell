@@ -1,5 +1,7 @@
 import { LayoutEngine } from '../../helpers/layout-engine';
-import { CustomComponentType, Side } from '../../type';
+import { Side } from '../../type';
+import { Connector } from '../connector';
+import { MindMapNode } from '../mindmap-node';
 
 import type { BoxConstraints, BuildContext, Offset, Size, WidgetProps } from '@/core/base';
 
@@ -96,10 +98,10 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
     const edges: Array<{ from: string; to: string }> = [];
     for (let i = 0; i < this.children.length; i++) {
       const ch = this.children[i];
-      if (ch.type === CustomComponentType.MindMapNode) {
+      if (ch instanceof MindMapNode) {
         const sz = childrenSizes[i];
         nodes.push({ index: i, key: ch.key, size: sz, widget: ch });
-      } else if (ch.type === CustomComponentType.Connector) {
+      } else if (ch instanceof Connector) {
         const d = ch as unknown as { fromKey?: string; toKey?: string };
         if (typeof d.fromKey === 'string' && typeof d.toKey === 'string') {
           edges.push({ from: d.fromKey, to: d.toKey });
@@ -192,9 +194,8 @@ export class MindMapLayout extends Widget<MindMapLayoutProps> {
       const ch = this.children[i];
       const sz = childrenSizes[i];
       parts.push(`${ch.type}:${ch.key}:${sz.width}x${sz.height}`);
-      if (ch.type === CustomComponentType.Connector) {
-        const d = ch as unknown as { fromKey?: string; toKey?: string };
-        parts.push(`edge:${String(d.fromKey)}->${String(d.toKey)}`);
+      if (ch instanceof Connector) {
+        parts.push(`edge:${String(ch.fromKey)}->${String(ch.toKey)}`);
       }
     }
     return parts.join('|');
