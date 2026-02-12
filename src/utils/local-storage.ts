@@ -28,6 +28,10 @@ export interface LocalStorageManager<T> {
   clear(): void;
 }
 
+type StorageCodec = 'json' | 'string';
+type StorageOptions = { codec?: StorageCodec };
+type DefaultValue<T> = T | (() => T);
+
 /**
  * 创建本地存储管理器
  * @param key 全局唯一的键名
@@ -35,7 +39,11 @@ export interface LocalStorageManager<T> {
  * @throws 如果键名已存在，则抛出错误
  * @returns 本地存储管理器对象
  */
-export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStorageManager<T> {
+export function createLocalStorage<T>(
+  key: string,
+  defaultValue?: DefaultValue<T>,
+  options?: StorageOptions,
+): LocalStorageManager<T> {
   // 检查键名是否已存在
   if (keyRegistry.has(key)) {
     throw new Error(`LocalStorage key "${key}" already exists. Keys must be unique.`);
@@ -43,6 +51,13 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
 
   // 注册键名
   keyRegistry.add(key);
+
+  const codec: StorageCodec = options?.codec ?? 'json';
+  const hasDefault = defaultValue !== undefined;
+  const resolveDefault = (): T | undefined =>
+    hasDefault
+      ? ((typeof defaultValue === 'function' ? (defaultValue as () => T)() : defaultValue) as T)
+      : undefined;
 
   function isProbablyJson(raw: string): boolean {
     const s = raw.trim();
@@ -59,39 +74,81 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
     return s === 'true' || s === 'false' || s === 'null';
   }
 
+  function maybeDecodeJsonString(raw: string): string | undefined {
+    const s = raw.trim();
+    if (!s || s.charCodeAt(0) !== 0x22) {
+      return undefined;
+    }
+    try {
+      const parsed = JSON.parse(s);
+      return typeof parsed === 'string' ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function writeDefault(next: T): void {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      if (codec === 'string') {
+        localStorage.setItem(key, String(next));
+        return;
+      }
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch (error) {
+      console.warn(`本地存储写入失败，key="${key}"`, error);
+    }
+  }
+
   return {
     get(): T | undefined {
       try {
         if (typeof localStorage === 'undefined') {
-          return defaultValue;
+          return resolveDefault();
         }
 
         const value = localStorage.getItem(key);
 
-        if (value) {
+        if (value != null) {
+          if (codec === 'string') {
+            const decoded = maybeDecodeJsonString(value);
+            return (decoded ?? value) as unknown as T;
+          }
           if (!isProbablyJson(value)) {
             try {
               localStorage.removeItem(key);
-            } catch {}
-            return defaultValue;
+            } catch {
+              void 0;
+            }
+            const nextDefault = resolveDefault();
+            if (nextDefault !== undefined) {
+              writeDefault(nextDefault);
+            }
+            return nextDefault;
           }
           return JSON.parse(value) as T;
-        } else if (defaultValue !== undefined) {
-          // 如果本地存储中不存在值，但提供了默认值，则将默认值写入本地存储
-          localStorage.setItem(key, JSON.stringify(defaultValue));
-          return defaultValue;
+        }
+
+        const nextDefault = resolveDefault();
+        if (nextDefault !== undefined) {
+          writeDefault(nextDefault);
+          return nextDefault;
         }
 
         return undefined;
       } catch (error) {
+        console.warn(`本地存储读取失败，key="${key}"`, error);
         try {
           localStorage.removeItem(key);
-        } catch {}
-        if (defaultValue !== undefined) {
-          try {
-            localStorage.setItem(key, JSON.stringify(defaultValue));
-          } catch {}
-          return defaultValue;
+        } catch {
+          void 0;
+        }
+        const nextDefault = resolveDefault();
+        if (nextDefault !== undefined) {
+          writeDefault(nextDefault);
+          return nextDefault;
         }
         return undefined;
       }
@@ -102,10 +159,13 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
         if (typeof localStorage === 'undefined') {
           return;
         }
+        if (codec === 'string') {
+          localStorage.setItem(key, String(value));
+          return;
+        }
         localStorage.setItem(key, JSON.stringify(value));
       } catch (error) {
-        console.error(`本地存储写入失败，key="${key}"`, error);
-        throw new Error(`本地存储写入失败：${String(error)}`);
+        console.warn(`本地存储写入失败，key="${key}"`, error);
       }
     },
 
@@ -121,6 +181,43 @@ export function createLocalStorage<T>(key: string, defaultValue?: T): LocalStora
     },
   };
 }
+
+export type DevtoolsDock = 'left' | 'right' | 'top' | 'bottom';
+export type DevtoolsLayoutStorage = { dock: DevtoolsDock; width: number; height: number };
+export type DevtoolsSplitStorage = { treeWidth: number; treeHeight: number };
+
+export function getDevtoolsDefaultLayout(): DevtoolsLayoutStorage {
+  const safeHeight =
+    typeof window !== 'undefined' && Number.isFinite(window.innerHeight)
+      ? Math.min(window.innerHeight, 420)
+      : 420;
+  return { dock: 'right', width: 380, height: safeHeight };
+}
+
+export const DEVTOOLS_HOTKEY_DEFAULT = 'CmdOrCtrl+Shift+D';
+export const DEVTOOLS_HOTKEY = createLocalStorage<string>(
+  'INKWELL_DEVTOOLS_HOTKEY',
+  DEVTOOLS_HOTKEY_DEFAULT,
+  { codec: 'string' },
+);
+export const DEVTOOLS_LAYOUT = createLocalStorage<DevtoolsLayoutStorage>(
+  'INKWELL_DEVTOOLS_LAYOUT',
+  getDevtoolsDefaultLayout,
+);
+export const DEVTOOLS_SPLIT_DEFAULT: DevtoolsSplitStorage = { treeWidth: 300, treeHeight: 240 };
+export const DEVTOOLS_SPLIT = createLocalStorage<DevtoolsSplitStorage>(
+  'INKWELL_DEVTOOLS_SPLIT',
+  DEVTOOLS_SPLIT_DEFAULT,
+);
+export const DEVTOOLS_MOUNT_FAIL = createLocalStorage<string>(
+  'INKWELL_DEVTOOLS_MOUNT_FAIL',
+  undefined,
+  { codec: 'string' },
+);
+
+export const RESUME_UNLOCKED = createLocalStorage<string>('inkwell_resume_unlocked', undefined, {
+  codec: 'string',
+});
 
 // 基准分辨率
 export const LOCAL_RESOLUTION = createLocalStorage<number>('@edeink/editor/resolution', 4);

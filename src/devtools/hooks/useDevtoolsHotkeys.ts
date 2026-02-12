@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
-export type HotkeyAction = 'open' | 'toggle' | 'inspect' | 'close';
+import { DEVTOOLS_DOM_EVENTS, HOTKEY_ACTION } from '../constants';
+
+import { DEVTOOLS_HOTKEY, DEVTOOLS_HOTKEY_DEFAULT } from '@/utils/local-storage';
+
+export type HotkeyAction = (typeof HOTKEY_ACTION)[keyof typeof HOTKEY_ACTION];
 
 export interface DevtoolsHotkeysOptions {
   combo?: string;
@@ -64,12 +68,12 @@ function matches(ev: KeyboardEvent, comboStr: string): boolean {
 
 export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
   const defaultCombo = useMemo(
-    () => opts.combo || localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || 'CmdOrCtrl+Shift+D',
+    () => opts.combo || DEVTOOLS_HOTKEY.get() || DEVTOOLS_HOTKEY_DEFAULT,
     [opts.combo],
   );
   const [combo, setCombo] = useState<string>(defaultCombo);
   const enabled = opts.enabled ?? true;
-  const action: HotkeyAction = opts.action ?? 'open';
+  const action: HotkeyAction = opts.action ?? HOTKEY_ACTION.OPEN;
   const { onToggle, onClose, onInspectToggle } = opts;
 
   useEffect(() => {
@@ -77,26 +81,26 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
       return;
     }
     function onKey(ev: KeyboardEvent) {
-      const current = localStorage.getItem('INKWELL_DEVTOOLS_HOTKEY') || combo;
+      const current = DEVTOOLS_HOTKEY.get() || combo;
       if (matches(ev, current)) {
         ev.preventDefault();
-        if (action === 'toggle' || action === 'open') {
+        if (action === HOTKEY_ACTION.TOGGLE || action === HOTKEY_ACTION.OPEN) {
           onToggle?.();
-        } else if (action === 'close') {
+        } else if (action === HOTKEY_ACTION.CLOSE) {
           onClose?.();
-        } else if (action === 'inspect') {
+        } else if (action === HOTKEY_ACTION.INSPECT) {
           onInspectToggle?.();
         }
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener(DEVTOOLS_DOM_EVENTS.KEYDOWN, onKey);
+    return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.KEYDOWN, onKey);
   }, [combo, enabled, action, onToggle, onClose, onInspectToggle]);
 
   function updateCombo(next: string) {
     const normalized = normalizeCombo(next);
     setCombo(normalized);
-    localStorage.setItem('INKWELL_DEVTOOLS_HOTKEY', normalized);
+    DEVTOOLS_HOTKEY.set(normalized);
   }
 
   return { combo, setCombo: updateCombo };

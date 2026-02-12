@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import {
+  DEVTOOLS_DOM_EVENT_OPTIONS,
+  DEVTOOLS_DOM_EVENTS,
+  DEVTOOLS_SELECTORS,
+} from '../../constants';
+
 import styles from './index.module.less';
 
 /**
@@ -32,10 +38,10 @@ export function DoubleClickEditableField({
       return false;
     }
     if (
-      target.closest('.ink-ui-select-dropdown') ||
-      target.closest('.ink-ui-select') ||
-      target.closest('.ink-ui-color-picker-panel') ||
-      target.closest('.ink-ui-color-picker')
+      target.closest(DEVTOOLS_SELECTORS.UI_SELECT_DROPDOWN) ||
+      target.closest(DEVTOOLS_SELECTORS.UI_SELECT_ROOT) ||
+      target.closest(DEVTOOLS_SELECTORS.UI_COLOR_PICKER_PANEL) ||
+      target.closest(DEVTOOLS_SELECTORS.UI_COLOR_PICKER_ROOT)
     ) {
       return false;
     }
@@ -56,9 +62,7 @@ export function DoubleClickEditableField({
     if (!root) {
       return;
     }
-    const target = root.querySelector(
-      'input, textarea, select, button, [contenteditable="true"], .ink-ui-select-trigger, .ink-ui-color-picker-trigger',
-    ) as HTMLElement | null;
+    const target = root.querySelector(DEVTOOLS_SELECTORS.EDITABLE_FOCUSABLE) as HTMLElement | null;
     if (target && typeof target.focus === 'function') {
       target.focus();
       if ('select' in target && typeof (target as HTMLInputElement).select === 'function') {
@@ -79,8 +83,17 @@ export function DoubleClickEditableField({
       }
       setEditing(false);
     };
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener(
+      DEVTOOLS_DOM_EVENTS.POINTERDOWN,
+      handlePointerDown,
+      DEVTOOLS_DOM_EVENT_OPTIONS.CAPTURE_TRUE,
+    );
+    return () =>
+      document.removeEventListener(
+        DEVTOOLS_DOM_EVENTS.POINTERDOWN,
+        handlePointerDown,
+        DEVTOOLS_DOM_EVENT_OPTIONS.CAPTURE_TRUE,
+      );
   }, [editing, exitOnBlur]);
 
   const handleBlurCapture = (e: React.FocusEvent<HTMLDivElement>) => {

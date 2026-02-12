@@ -1,7 +1,4 @@
-import { Button, Modal, Space } from '@/ui';
-import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@/ui/icons';
-
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '../styles/colors.css';
@@ -26,7 +23,8 @@ import {
 import DomPerformanceTest from './metrics/dom';
 import WidgetPerformanceTest from './metrics/widget';
 
-import type { RefObject } from 'react';
+import { Button, Modal, Space } from '@/ui';
+import { PauseCircleOutlined, PlayCircleOutlined, StopOutlined } from '@/ui/icons';
 
 /**
  * 已加载测试描述：名称与工厂方法（基于舞台元素创建具体测试实例）。

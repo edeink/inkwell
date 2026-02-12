@@ -1,5 +1,7 @@
 import cn from 'classnames';
 
+import { DEVTOOLS_PLACEMENT, DEVTOOLS_TOOLTIP } from '../../../constants';
+
 import styles from './index.module.less';
 
 import { Button, Tooltip } from '@/ui';
@@ -13,7 +15,7 @@ export function DevtoolsHeaderLeft({
   onToggleInspect: () => void;
 }) {
   return (
-    <Tooltip title="Inspect" placement="bottom">
+    <Tooltip title={DEVTOOLS_TOOLTIP.INSPECT} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
       <Button
         type="text"
         aria-pressed={activeInspect}

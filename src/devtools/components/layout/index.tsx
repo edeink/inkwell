@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { DEVTOOLS_CSS, DEVTOOLS_DOCK, DEVTOOLS_DOM_EVENTS } from '../../constants';
 import { clamp } from '../../helper/math';
 import globalStyles from '../../index.module.less';
 
@@ -16,11 +17,18 @@ import { LayoutHeader } from './header';
 import styles from './index.module.less';
 import { LayoutResizeHandle } from './resize-handle';
 
+import {
+  DEVTOOLS_LAYOUT,
+  DEVTOOLS_SPLIT,
+  DEVTOOLS_SPLIT_DEFAULT,
+  getDevtoolsDefaultLayout,
+} from '@/utils/local-storage';
+
 /**
  * Dock 位置枚举
  * 控制面板停靠在窗口的左/右/上/下
  */
-export type Dock = 'left' | 'right' | 'top' | 'bottom';
+export type Dock = (typeof DEVTOOLS_DOCK)[keyof typeof DEVTOOLS_DOCK];
 
 /**
  * 布局信息
@@ -55,40 +63,14 @@ export function LayoutPanel({
   renderProps: (info: LayoutInfo) => ReactNode;
   onVisibleChange?: (next: boolean) => void;
 }) {
-  const storageKey = 'INKWELL_DEVTOOLS_LAYOUT';
-  const initialLayout = (() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {
-      void 0;
-    }
-    return { dock: 'right', width: 380, height: Math.min(window.innerHeight, 420) } as {
-      dock: Dock;
-      width: number;
-      height: number;
-    };
-  })();
+  const initialLayout = DEVTOOLS_LAYOUT.get() ?? getDevtoolsDefaultLayout();
   const [dock, setDock] = useState<Dock>(initialLayout.dock);
   const [width, setWidth] = useState<number>(initialLayout.width);
   const [height, setHeight] = useState<number>(initialLayout.height);
   // visible 由父组件控制；此处不再使用内部关闭态
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  const splitStorageKey = 'INKWELL_DEVTOOLS_SPLIT';
-  const initialSplit = (() => {
-    try {
-      const raw = localStorage.getItem(splitStorageKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {
-      void 0;
-    }
-    return { treeWidth: 300, treeHeight: 240 } as { treeWidth: number; treeHeight: number };
-  })();
+  const initialSplit = DEVTOOLS_SPLIT.get() ?? DEVTOOLS_SPLIT_DEFAULT;
   const [treeWidth, setTreeWidth] = useState<number>(initialSplit.treeWidth);
   const [treeHeight, setTreeHeight] = useState<number>(initialSplit.treeHeight);
   const [isNarrow, setIsNarrow] = useState<boolean>(false);
@@ -97,28 +79,20 @@ export function LayoutPanel({
     const updateNarrow = () => {
       const w =
         panelRef.current?.clientWidth ??
-        (dock === 'left' || dock === 'right' ? width : window.innerWidth);
+        (dock === DEVTOOLS_DOCK.LEFT || dock === DEVTOOLS_DOCK.RIGHT ? width : window.innerWidth);
       setIsNarrow(w < 600);
     };
     updateNarrow();
-    window.addEventListener('resize', updateNarrow);
-    return () => window.removeEventListener('resize', updateNarrow);
+    window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
+    return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
   }, [dock, width]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ dock, width, height }));
-    } catch {
-      void 0;
-    }
+    DEVTOOLS_LAYOUT.set({ dock, width, height });
   }, [dock, width, height]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(splitStorageKey, JSON.stringify({ treeWidth, treeHeight }));
-    } catch {
-      void 0;
-    }
+    DEVTOOLS_SPLIT.set({ treeWidth, treeHeight });
   }, [treeWidth, treeHeight]);
 
   function onResizeMouseDown(e: ReactMouseEvent) {
@@ -130,25 +104,25 @@ export function LayoutPanel({
     function onMove(ev: globalThis.MouseEvent) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      if (dock === 'right') {
+      if (dock === DEVTOOLS_DOCK.RIGHT) {
         setWidth(clamp(startW - dx, 260, Math.min(window.innerWidth - 80, 900)));
       }
-      if (dock === 'left') {
+      if (dock === DEVTOOLS_DOCK.LEFT) {
         setWidth(clamp(startW + dx, 260, Math.min(window.innerWidth - 80, 900)));
       }
-      if (dock === 'top') {
+      if (dock === DEVTOOLS_DOCK.TOP) {
         setHeight(clamp(startH + dy, 200, Math.min(window.innerHeight - 80, 800)));
       }
-      if (dock === 'bottom') {
+      if (dock === DEVTOOLS_DOCK.BOTTOM) {
         setHeight(clamp(startH - dy, 200, Math.min(window.innerHeight - 80, 800)));
       }
     }
     function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
+      document.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEUP, onUp);
     }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    document.addEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
+    document.addEventListener(DEVTOOLS_DOM_EVENTS.MOUSEUP, onUp);
   }
 
   function onSplitMouseDown(e: ReactMouseEvent) {
@@ -162,7 +136,9 @@ export function LayoutPanel({
         const dy = ev.clientY - startY;
         const maxH = Math.max(
           160,
-          dock === 'top' || dock === 'bottom' ? height - 160 : window.innerHeight - 200,
+          dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM
+            ? height - 160
+            : window.innerHeight - 200,
         );
         const nextH = clamp(startH + dy, 140, maxH);
         setTreeHeight(nextH);
@@ -171,24 +147,30 @@ export function LayoutPanel({
         const next = clamp(
           startW + dx,
           200,
-          Math.min((dock === 'left' || dock === 'right' ? width : window.innerWidth) - 240, 800),
+          Math.min(
+            (dock === DEVTOOLS_DOCK.LEFT || dock === DEVTOOLS_DOCK.RIGHT
+              ? width
+              : window.innerWidth) - 240,
+            800,
+          ),
         );
         setTreeWidth(next);
       }
     }
     function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
+      document.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEUP, onUp);
     }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    document.addEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
+    document.addEventListener(DEVTOOLS_DOM_EVENTS.MOUSEUP, onUp);
   }
 
-  const cursor = dock === 'top' || dock === 'bottom' ? 'ns-resize' : 'ew-resize';
+  const cursor =
+    dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM ? 'ns-resize' : 'ew-resize';
   const panelClass = classnames(
     styles.layoutPanel,
     globalStyles.panel,
-    'ink-devtools-panel',
+    DEVTOOLS_CSS.PANEL_CLASS,
     styles[`dock-${dock}`],
     {
       [styles.closing]: !visible,

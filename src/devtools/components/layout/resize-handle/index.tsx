@@ -12,11 +12,7 @@ export function LayoutResizeHandle({
   return (
     <div
       onMouseDown={(e) => {
-        try {
-          e.stopPropagation();
-        } catch {
-          void 0;
-        }
+        e.stopPropagation();
         onResizeMouseDown(e);
       }}
       className={className}

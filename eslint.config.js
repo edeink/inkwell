@@ -59,7 +59,7 @@ export default tseslint.config([
       curly: ['warn', 'all'],
       'max-len': [
         'warn',
-        { code: 100, ignoreUrls: false, ignoreStrings: false, ignoreTemplateLiterals: false },
+        { code: 100, ignoreUrls: false, ignoreStrings: true, ignoreTemplateLiterals: true },
       ],
       'object-curly-newline': 'off',
       'prettier/prettier': 'warn',

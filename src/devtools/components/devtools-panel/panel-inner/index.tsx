@@ -2,6 +2,7 @@ import { throttle } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 
 import Runtime from '../../../../runtime';
+import { DEVTOOLS_DOM, DEVTOOLS_DOM_EVENTS, DEVTOOLS_LOG } from '../../../constants';
 import {
   buildDevtoolsTree,
   computeRuntimeTreeHash,
@@ -10,11 +11,11 @@ import {
 } from '../../../helper/tree';
 import { useMouseInteraction } from '../../../hooks/useMouseInteraction';
 import LayoutPanel from '../../layout';
-import Overlay, { type OverlayHandle } from '../../overlay';
+import Overlay from '../../overlay';
 import { DevtoolsHeaderLeft } from '../header-left';
 import { DevtoolsHeaderRight } from '../header-right';
 import { DevtoolsPropsPane } from '../props-pane';
-import { DevtoolsTreePane, type AntTreeHandle } from '../tree-pane';
+import { DevtoolsTreePane } from '../tree-pane';
 
 import type { Widget } from '@/core/base';
 
@@ -36,10 +37,9 @@ export function DevToolsPanelInner({
 }) {
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [runtime, setRuntime] = useState<Runtime | null>(null);
-  const runtimeRef = useRef<Runtime | null>(null);
-  const hoverRef = useRef<Widget | null>(null);
-  const treeRef = useRef<AntTreeHandle | null>(null);
-  const overlayRef = useRef<OverlayHandle | null>(null);
+  const [inspectHoverWidget, setInspectHoverWidget] = useState<Widget | null>(null);
+  const [treeHoverWidget, setTreeHoverWidget] = useState<Widget | null>(null);
+  const [pickedWidget, setPickedWidget] = useState<Widget | null>(null);
 
   const [version, setVersion] = useState(0);
   const [isPageVisible, setIsPageVisible] = useState(true);
@@ -59,9 +59,9 @@ export function DevToolsPanelInner({
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener(DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, handleVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener(DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, handleVisibilityChange);
     };
   }, []);
 
@@ -76,20 +76,13 @@ export function DevToolsPanelInner({
     );
   }, [runtime, version]);
   const treeData = useMemo(() => treeBuild.treeData as DataNode[], [treeBuild]);
-  const treeBuildRef = useRef(treeBuild);
-  useEffect(() => {
-    treeBuildRef.current = treeBuild;
-  }, [treeBuild]);
-  useEffect(() => {
-    runtimeRef.current = runtime;
-  }, [runtime]);
 
   useEffect(() => {
     setSelectedNodeKey(null);
     setExpandedKeys(new Set());
-    hoverRef.current = null;
-    overlayRef.current?.setActive(false);
-    overlayRef.current?.highlight(null);
+    setInspectHoverWidget(null);
+    setTreeHoverWidget(null);
+    setPickedWidget(null);
   }, [runtime]);
 
   const selected = useMemo(() => {
@@ -165,10 +158,6 @@ export function DevToolsPanelInner({
     });
   }, [selectedNodeKey, treeBuild]);
 
-  const getHoverRef = useCallback(() => hoverRef.current, []);
-  const setHoverRef = useCallback((w: Widget | null) => {
-    hoverRef.current = w;
-  }, []);
   const setRuntimeStable = useCallback((rt: Runtime) => setRuntime(rt), []);
 
   const scrollToKey = useCallback((k: string) => {
@@ -176,50 +165,47 @@ export function DevToolsPanelInner({
       const el = document.querySelector(`[data-key="${k}"]`);
       if (el) {
         el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-      } else if (treeRef.current?.scrollTo) {
-        treeRef.current.scrollTo({ key: k, align: 'auto' });
       }
     });
   }, []);
 
-  const onPick = useCallback(
-    (current: Widget) => {
-      const rt = runtimeRef.current;
-      const tree = treeBuildRef.current;
-      const nodeKey =
-        tree.nodeKeyByWidget.get(current) ?? (rt ? getNodeKeyByWidget(rt, current) : null);
-      if (!nodeKey) {
-        setSelectedNodeKey(null);
-        return;
-      }
+  const { isMultiRuntime } = useMouseInteraction({
+    runtime,
+    active: activeInspect,
+    setRuntime: setRuntimeStable,
+    setHoverWidget: setInspectHoverWidget,
+    setPickedWidget: (w) => setPickedWidget(w),
+  });
+
+  useEffect(() => {
+    if (!pickedWidget) {
+      return;
+    }
+    const nodeKey =
+      treeBuild.nodeKeyByWidget.get(pickedWidget) ??
+      (runtime ? getNodeKeyByWidget(runtime, pickedWidget) : null);
+    if (!nodeKey) {
+      setSelectedNodeKey(null);
+      setPickedWidget(null);
+      setActiveInspect(false);
+      return;
+    }
+    if (nodeKey !== selectedNodeKey) {
       setSelectedNodeKey(nodeKey);
       setExpandedKeys(new Set(getPathNodeKeysByNodeKey(nodeKey)));
       scrollToKey(nodeKey);
-      setActiveInspect(false);
-    },
-    [scrollToKey, setActiveInspect],
-  );
-
-  const { isMultiRuntime } = useMouseInteraction({
-    runtime,
-    overlayRef,
-    active: activeInspect,
-    getHoverRef,
-    setHoverRef,
-    setRuntime: setRuntimeStable,
-    onPick,
-  });
+    }
+    setPickedWidget(null);
+    setActiveInspect(false);
+  }, [pickedWidget, runtime, scrollToKey, selectedNodeKey, setActiveInspect, treeBuild]);
 
   const handleHoverKey = (k: string | null) => {
     if (!k) {
-      overlayRef.current?.setActive(false);
-      overlayRef.current?.highlight(null);
+      setTreeHoverWidget(null);
       return;
     }
     const w = treeBuild.widgetByNodeKey.get(k) ?? null;
-    hoverRef.current = w;
-    overlayRef.current?.setActive(!!w);
-    overlayRef.current?.highlight(w);
+    setTreeHoverWidget(w);
   };
 
   const handleSelectKey = (k: string) => {
@@ -237,7 +223,7 @@ export function DevToolsPanelInner({
 
   const handlePrintSelected = () => {
     if (!selected) {
-      console.log('未选中节点');
+      console.log(DEVTOOLS_LOG.NO_SELECTED_NODE);
       return;
     }
     console.log(selected);
@@ -247,11 +233,15 @@ export function DevToolsPanelInner({
     <ConfigProvider
       getPopupContainer={(triggerNode) => {
         const container =
-          (triggerNode?.closest?.('#inkwell-devtools-root') as HTMLElement | null) ?? null;
+          (triggerNode?.closest?.(DEVTOOLS_DOM.ROOT_SELECTOR) as HTMLElement | null) ?? null;
         return container ?? document.body;
       }}
     >
-      <Overlay ref={overlayRef} runtime={runtime} />
+      <Overlay
+        runtime={runtime}
+        active={!!treeHoverWidget || (activeInspect && !!inspectHoverWidget)}
+        widget={treeHoverWidget ?? (activeInspect ? inspectHoverWidget : null)}
+      />
       <LayoutPanel
         visible={visible}
         headerLeft={
@@ -272,7 +262,6 @@ export function DevToolsPanelInner({
         renderTree={(info) => (
           <DevtoolsTreePane
             info={info}
-            treeRef={treeRef}
             isMultiRuntime={isMultiRuntime}
             treeData={treeData}
             expandedKeys={Array.from(expandedKeys)}

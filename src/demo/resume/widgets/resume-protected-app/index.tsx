@@ -1,5 +1,5 @@
 /** @jsxImportSource @/utils/compiler */
-import { RESUME_UNLOCK_EVENT, RESUME_UNLOCK_STORAGE_KEY } from '../../helpers/constants';
+import { RESUME_UNLOCK_EVENT } from '../../helpers/constants';
 import { sha256Hex } from '../../helpers/crypto';
 import { BlurBoundary } from '../blur-boundary';
 import { ResumeDemoApp, type ResumeDemoAppProps } from '../resume-demo-app';
@@ -18,6 +18,7 @@ import {
   Text,
 } from '@/core';
 import { Themes } from '@/styles/theme';
+import { RESUME_UNLOCKED } from '@/utils/local-storage';
 
 const RESUME_PASSWORD_SHA256_HEX =
   '99f1e14363b74a463ffb12d216b5d1864555b0103af6f69a' + '76d16fe1dcd26238';
@@ -39,16 +40,7 @@ export class ResumeProtectedApp extends StatefulWidget<ResumeDemoAppProps, Resum
 
   protected override initWidget(data: ResumeDemoAppProps) {
     super.initWidget(data);
-    let unlocked = false;
-    if (typeof window !== 'undefined') {
-      try {
-        // 只要存储里标记为已解锁，就不再弹出密码框（用于 Demo 体验）
-        unlocked = window.localStorage.getItem(RESUME_UNLOCK_STORAGE_KEY) === '1';
-      } catch {
-        unlocked = false;
-      }
-    }
-    this.state.locked = !unlocked;
+    this.state.locked = RESUME_UNLOCKED.get() !== '1';
   }
 
   private clearPassword = () => {
@@ -76,12 +68,8 @@ export class ResumeProtectedApp extends StatefulWidget<ResumeDemoAppProps, Resum
         // 前端仅做 sha256 比对（避免在代码里放明文密码）
         const hex = await sha256Hex(raw);
         if (hex === RESUME_PASSWORD_SHA256_HEX) {
+          RESUME_UNLOCKED.set('1');
           if (typeof window !== 'undefined') {
-            try {
-              window.localStorage.setItem(RESUME_UNLOCK_STORAGE_KEY, '1');
-            } catch {
-              void 0;
-            }
             try {
               window.dispatchEvent(new CustomEvent(RESUME_UNLOCK_EVENT));
             } catch {

@@ -7,13 +7,14 @@ import { DemoKey } from '../type';
 import { RESUME_PAGE_WIDTH, runApp, runExportApp } from './app';
 import avatarUrl from './assets/avator.jpeg?url';
 import { ExportActions } from './components/export-actions';
-import { RESUME_UNLOCK_EVENT, RESUME_UNLOCK_STORAGE_KEY } from './helpers/constants';
+import { RESUME_UNLOCK_EVENT } from './helpers/constants';
 import resumeMarkdown from './raw/resume.markdown?raw';
 
 import type { Widget } from '@/core/base';
 
 import { message } from '@/comp';
 import Runtime from '@/runtime';
+import { RESUME_UNLOCKED } from '@/utils/local-storage';
 
 export const meta = {
   key: DemoKey.Resume,
@@ -314,14 +315,7 @@ export default function ResumeDemo() {
 
   useEffect(() => {
     const readUnlocked = () => {
-      if (typeof window === 'undefined') {
-        return false;
-      }
-      try {
-        return window.localStorage.getItem(RESUME_UNLOCK_STORAGE_KEY) === '1';
-      } catch {
-        return false;
-      }
+      return RESUME_UNLOCKED.get() === '1';
     };
 
     setUnlocked(readUnlocked());

@@ -1,4 +1,10 @@
 import { type Dock } from '..';
+import {
+  DEVTOOLS_ARIA,
+  DEVTOOLS_DOCK,
+  DEVTOOLS_PLACEMENT,
+  DEVTOOLS_TOOLTIP,
+} from '../../../constants';
 import styles from '../index.module.less';
 
 import type { ReactNode } from 'react';
@@ -23,58 +29,58 @@ export function LayoutHeader({
       <div className={styles.left}>{headerLeft}</div>
       <div className={styles.right}>
         <Space.Compact>
-          <Tooltip title="靠左" placement="bottom">
+          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_LEFT} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
-              className={dock === 'left' ? styles.btnTextPrimary : styles.btnText}
-              aria-label="dock-left"
-              aria-pressed={dock === 'left'}
-              icon={getDockIcon('left')}
+              className={dock === DEVTOOLS_DOCK.LEFT ? styles.btnTextPrimary : styles.btnText}
+              aria-label={DEVTOOLS_ARIA.DOCK_LEFT}
+              aria-pressed={dock === DEVTOOLS_DOCK.LEFT}
+              icon={getDockIcon(DEVTOOLS_DOCK.LEFT)}
               onClick={() => {
-                if (dock !== 'left') {
-                  onDockChange('left');
+                if (dock !== DEVTOOLS_DOCK.LEFT) {
+                  onDockChange(DEVTOOLS_DOCK.LEFT);
                 }
               }}
             />
           </Tooltip>
-          <Tooltip title="靠右" placement="bottom">
+          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_RIGHT} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
-              className={dock === 'right' ? styles.btnTextPrimary : styles.btnText}
-              aria-label="dock-right"
-              aria-pressed={dock === 'right'}
-              icon={getDockIcon('right')}
+              className={dock === DEVTOOLS_DOCK.RIGHT ? styles.btnTextPrimary : styles.btnText}
+              aria-label={DEVTOOLS_ARIA.DOCK_RIGHT}
+              aria-pressed={dock === DEVTOOLS_DOCK.RIGHT}
+              icon={getDockIcon(DEVTOOLS_DOCK.RIGHT)}
               onClick={() => {
-                if (dock !== 'right') {
-                  onDockChange('right');
+                if (dock !== DEVTOOLS_DOCK.RIGHT) {
+                  onDockChange(DEVTOOLS_DOCK.RIGHT);
                 }
               }}
             />
           </Tooltip>
-          <Tooltip title="靠上" placement="bottom">
+          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_TOP} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
-              className={dock === 'top' ? styles.btnTextPrimary : styles.btnText}
-              aria-label="dock-top"
-              aria-pressed={dock === 'top'}
-              icon={getDockIcon('top')}
+              className={dock === DEVTOOLS_DOCK.TOP ? styles.btnTextPrimary : styles.btnText}
+              aria-label={DEVTOOLS_ARIA.DOCK_TOP}
+              aria-pressed={dock === DEVTOOLS_DOCK.TOP}
+              icon={getDockIcon(DEVTOOLS_DOCK.TOP)}
               onClick={() => {
-                if (dock !== 'top') {
-                  onDockChange('top');
+                if (dock !== DEVTOOLS_DOCK.TOP) {
+                  onDockChange(DEVTOOLS_DOCK.TOP);
                 }
               }}
             />
           </Tooltip>
-          <Tooltip title="靠下" placement="bottom">
+          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_BOTTOM} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
-              className={dock === 'bottom' ? styles.btnTextPrimary : styles.btnText}
-              aria-label="dock-bottom"
-              aria-pressed={dock === 'bottom'}
-              icon={getDockIcon('bottom')}
+              className={dock === DEVTOOLS_DOCK.BOTTOM ? styles.btnTextPrimary : styles.btnText}
+              aria-label={DEVTOOLS_ARIA.DOCK_BOTTOM}
+              aria-pressed={dock === DEVTOOLS_DOCK.BOTTOM}
+              icon={getDockIcon(DEVTOOLS_DOCK.BOTTOM)}
               onClick={() => {
-                if (dock !== 'bottom') {
-                  onDockChange('bottom');
+                if (dock !== DEVTOOLS_DOCK.BOTTOM) {
+                  onDockChange(DEVTOOLS_DOCK.BOTTOM);
                 }
               }}
             />
@@ -90,10 +96,18 @@ function getDockIcon(side: Dock) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={styles.dockIconSvg}>
       <rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="currentColor" />
-      {side === 'left' && <rect x="2" y="2" width="4" height="12" rx="2" fill="currentColor" />}
-      {side === 'right' && <rect x="10" y="2" width="4" height="12" rx="2" fill="currentColor" />}
-      {side === 'top' && <rect x="2" y="2" width="12" height="4" rx="2" fill="currentColor" />}
-      {side === 'bottom' && <rect x="2" y="10" width="12" height="4" rx="2" fill="currentColor" />}
+      {side === DEVTOOLS_DOCK.LEFT && (
+        <rect x="2" y="2" width="4" height="12" rx="2" fill="currentColor" />
+      )}
+      {side === DEVTOOLS_DOCK.RIGHT && (
+        <rect x="10" y="2" width="4" height="12" rx="2" fill="currentColor" />
+      )}
+      {side === DEVTOOLS_DOCK.TOP && (
+        <rect x="2" y="2" width="12" height="4" rx="2" fill="currentColor" />
+      )}
+      {side === DEVTOOLS_DOCK.BOTTOM && (
+        <rect x="2" y="10" width="12" height="4" rx="2" fill="currentColor" />
+      )}
     </svg>
   );
 }

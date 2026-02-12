@@ -1,6 +1,14 @@
 import cs from 'classnames';
 import { useState, type ReactNode } from 'react';
 
+import {
+  DEVTOOLS_CSS,
+  DEVTOOLS_OBJECT_EDITOR_TEXT,
+  DEVTOOLS_PLACEMENT,
+  DEVTOOLS_TOOLTIP,
+  DEVTOOLS_TRIGGER,
+  formatHiddenInternalProps,
+} from '../../constants';
 import { isColor } from '../../helper/colors';
 import { isHiddenKey } from '../../helper/config';
 import { formatDisplayValue, isNumberArray } from '../../helper/format';
@@ -159,7 +167,7 @@ export function ObjectEditor({
                         setKV(k, k, c.toHexString());
                       }}
                       getPopupContainer={(trigger) =>
-                        (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ??
+                        (trigger?.closest?.(DEVTOOLS_CSS.PANEL_SELECTOR) as HTMLElement | null) ??
                         document.body
                       }
                     />
@@ -217,7 +225,7 @@ export function ObjectEditor({
               className={styles.kvValue}
               size="small"
               value={typeof v === 'string' ? v : undefined}
-              placeholder="请选择"
+              placeholder={DEVTOOLS_OBJECT_EDITOR_TEXT.PLACEHOLDER_SELECT}
               options={enumOptions.map((x) => ({ label: x, value: x }))}
               disabled={locked}
               autoOpen={editing}
@@ -226,7 +234,8 @@ export function ObjectEditor({
                 exit();
               }}
               getPopupContainer={(trigger) =>
-                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
+                (trigger?.closest?.(DEVTOOLS_CSS.PANEL_SELECTOR) as HTMLElement | null) ??
+                document.body
               }
             />
           )}
@@ -247,8 +256,8 @@ export function ObjectEditor({
               size="small"
               value={v}
               options={[
-                { label: 'true', value: true },
-                { label: 'false', value: false },
+                { label: DEVTOOLS_OBJECT_EDITOR_TEXT.BOOL_TRUE, value: true },
+                { label: DEVTOOLS_OBJECT_EDITOR_TEXT.BOOL_FALSE, value: false },
               ]}
               disabled={locked}
               autoOpen={editing}
@@ -257,7 +266,8 @@ export function ObjectEditor({
                 exit();
               }}
               getPopupContainer={(trigger) =>
-                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
+                (trigger?.closest?.(DEVTOOLS_CSS.PANEL_SELECTOR) as HTMLElement | null) ??
+                document.body
               }
             />
           )}
@@ -304,7 +314,7 @@ export function ObjectEditor({
       return (
         <div className={styles.kvKeyLocked}>
           <span>{k}</span>
-          <Tooltip title="受保护属性">
+          <Tooltip title={DEVTOOLS_TOOLTIP.PROTECTED_PROP}>
             <LockOutlined className={styles.lockIcon} />
           </Tooltip>
         </div>
@@ -313,7 +323,7 @@ export function ObjectEditor({
     const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
     if (isObj) {
       return (
-        <Tooltip title="对象键不可编辑">
+        <Tooltip title={DEVTOOLS_TOOLTIP.OBJECT_KEY_UNEDITABLE}>
           <div className={cs(styles.kvDisplay, { [styles.isObj]: isObj })}>
             <span className={styles.kvDisplayKey}>{k}</span>
           </div>
@@ -411,17 +421,18 @@ export function ObjectEditor({
         <div className={styles.kvActions}>
           {hiddenEntries.length > 0 && (
             <Popover
-              trigger="click"
-              placement="bottom"
+              trigger={DEVTOOLS_TRIGGER.CLICK}
+              placement={DEVTOOLS_PLACEMENT.BOTTOM}
               overlayClassName={styles.hiddenPopoverOverlay}
               getPopupContainer={(trigger) =>
-                (trigger?.closest?.('.ink-devtools-panel') as HTMLElement | null) ?? document.body
+                (trigger?.closest?.(DEVTOOLS_CSS.PANEL_SELECTOR) as HTMLElement | null) ??
+                document.body
               }
               content={
                 <div className={styles.hiddenPopover}>
                   <div className={styles.hiddenPopoverHeader}>
                     <InspectOutlined />
-                    <span>内部属性</span>
+                    <span>{DEVTOOLS_OBJECT_EDITOR_TEXT.HIDDEN_PROPS_TITLE}</span>
                     <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
                   </div>
                   <div className={styles.hiddenPopoverList}>
@@ -440,7 +451,7 @@ export function ObjectEditor({
                 className={styles.hiddenHintBtn}
                 icon={<InspectOutlined />}
               >
-                已隐藏 {hiddenEntries.length} 个内部属性
+                {formatHiddenInternalProps(hiddenEntries.length)}
               </Button>
             </Popover>
           )}
@@ -451,7 +462,7 @@ export function ObjectEditor({
             icon={<PlusOutlined />}
             onClick={addKey}
           >
-            添加属性
+            {DEVTOOLS_OBJECT_EDITOR_TEXT.ADD_PROP}
           </Button>
         </div>
       )}

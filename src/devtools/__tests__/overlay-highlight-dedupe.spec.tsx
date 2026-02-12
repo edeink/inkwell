@@ -1,8 +1,8 @@
-import { act, createRef } from 'react';
+import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import Overlay, { type OverlayHandle } from '../components/overlay';
+import Overlay from '../components/overlay';
 
 import type { Widget } from '@/core/base';
 
@@ -61,27 +61,24 @@ describe('Overlay 高亮去重', () => {
       getBoundingBox: () => ({ x: 10, y: 20, width: 100, height: 50 }),
     } as unknown as Widget;
 
-    const overlayRef = createRef<OverlayHandle>();
     const root = createRoot(host);
 
     await act(async () => {
-      root.render(<Overlay ref={overlayRef} runtime={runtime} />);
+      root.render(<Overlay runtime={runtime} active={false} widget={null} />);
       await Promise.resolve();
     });
 
     await act(async () => {
-      overlayRef.current?.setActive(true);
+      root.render(<Overlay runtime={runtime} active={true} widget={widget} />);
       await Promise.resolve();
     });
     rafSpy.mockClear();
 
     await act(async () => {
-      overlayRef.current?.highlight(widget);
-      overlayRef.current?.highlight(widget);
+      root.render(<Overlay runtime={runtime} active={true} widget={widget} />);
       await Promise.resolve();
     });
-
-    expect(rafSpy).toHaveBeenCalledTimes(1);
+    expect(rafSpy).toHaveBeenCalledTimes(0);
 
     await act(async () => {
       root.unmount();

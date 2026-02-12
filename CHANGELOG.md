@@ -19,3 +19,8 @@ All notable changes to this project will be documented in this file.
   - Lowered minimum item size to 4px (aligned with Flex benchmark) to support high-density tests.
 - **Docs**: Added `docs/reports/layout_style_alignment.md` detailing style comparison and adjustments.
 - **Test**: Added unit tests for `clearDomStage`, `createLayoutDomNodes`, and `createStateDomNodes` in `src/benchmark/metrics/__tests__/dom.test.ts`.
+
+### Devtools
+- **Refactor**: 收敛 DevTools 字符串常量到 `src/devtools/constants.ts`，统一事件名、存储键、DOM 事件/选择器与 UI 文案。
+- **Refactor**: DevTools localStorage 读写统一迁移到 `safeReadStorage/safeWriteStorage`，移除散落的 try/catch。
+- **Test**: 补齐 `safeReadStorage/safeWriteStorage` 单测，覆盖正常、异常与无 localStorage 场景。

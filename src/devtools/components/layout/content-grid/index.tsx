@@ -20,11 +20,7 @@ export function LayoutContentGrid({
       <div
         className={styles.splitHandle}
         onMouseDown={(e) => {
-          try {
-            e.stopPropagation();
-          } catch {
-            void 0;
-          }
+          e.stopPropagation();
           onSplitMouseDown(e);
         }}
       />

@@ -1,3 +1,5 @@
+import { DEVTOOLS_PLACEMENT, DEVTOOLS_TOOLTIP, DEVTOOLS_TRIGGER } from '../../../constants';
+
 import styles from './index.module.less';
 
 import type { ReactNode } from 'react';
@@ -15,16 +17,16 @@ export function DevtoolsHeaderRight({
   return (
     <>
       <Popover
-        trigger="click"
-        placement="bottom"
+        trigger={DEVTOOLS_TRIGGER.CLICK}
+        placement={DEVTOOLS_PLACEMENT.BOTTOM}
         overlayClassName={styles.helpOverlay}
         content={helpContent}
       >
-        <Tooltip title="帮助" placement="bottom">
+        <Tooltip title={DEVTOOLS_TOOLTIP.HELP} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
           <Button type="text" icon={<QuestionCircleOutlined />} />
         </Tooltip>
       </Popover>
-      <Tooltip title="关闭" placement="bottom">
+      <Tooltip title={DEVTOOLS_TOOLTIP.CLOSE} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
         <Button type="text" icon={<CloseOutlined />} onClick={onRequestClose} />
       </Tooltip>
     </>

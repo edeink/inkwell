@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 
 export type InputNumberProps = {
   className?: string;
@@ -43,13 +43,16 @@ export function InputNumber({
     return v;
   };
 
-  const formatValue = (n: number | null | undefined) => {
-    if (n == null) {
-      return '';
-    }
-    const fixed = precision != null ? Number(n).toFixed(precision) : String(n);
-    return formatter ? formatter(fixed) : String(fixed);
-  };
+  const formatValue = useCallback(
+    (n: number | null | undefined) => {
+      if (n == null) {
+        return '';
+      }
+      const fixed = precision != null ? Number(n).toFixed(precision) : String(n);
+      return formatter ? formatter(fixed) : String(fixed);
+    },
+    [formatter, precision],
+  );
 
   const parseValue = (raw: string) => {
     const txt = raw.trim();
@@ -69,7 +72,7 @@ export function InputNumber({
       return;
     }
     setText(formatValue(value));
-  }, [useTextMode, value, precision]);
+  }, [formatValue, useTextMode, value]);
 
   if (useTextMode) {
     return (

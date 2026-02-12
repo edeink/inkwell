@@ -1,18 +1,22 @@
 import cn from 'classnames';
-import { useEffect, useMemo, useRef, useState, type Key, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type Key } from 'react';
 
+import {
+  DEVTOOLS_DOCK,
+  DEVTOOLS_DOM_EVENTS,
+  DEVTOOLS_PLACEMENT,
+  DEVTOOLS_TREE_PANE_TEXT,
+} from '../../../constants';
 import { type LayoutInfo } from '../../layout';
 import SimpleTip from '../../simple-tip';
 
 import styles from './index.module.less';
 
-import { Button, Input, Tooltip, Tree, type DataNode, type TreeHandle } from '@/ui';
+import { Button, Input, Tooltip, Tree, type DataNode } from '@/ui';
 import { ConsoleOutlined, LeftOutlined, RightOutlined } from '@/ui/icons';
-export type AntTreeHandle = TreeHandle;
 
 export function DevtoolsTreePane({
   info,
-  treeRef,
   isMultiRuntime,
   treeData,
   expandedKeys,
@@ -25,7 +29,6 @@ export function DevtoolsTreePane({
   onPrintSelected,
 }: {
   info: LayoutInfo;
-  treeRef: MutableRefObject<AntTreeHandle | null>;
   isMultiRuntime: boolean;
   treeData: DataNode[];
   expandedKeys: string[];
@@ -67,11 +70,11 @@ export function DevtoolsTreePane({
       return;
     }
     const onScroll = () => checkScroll();
-    el.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', checkScroll);
+    el.addEventListener(DEVTOOLS_DOM_EVENTS.SCROLL, onScroll);
+    window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, checkScroll);
     return () => {
-      el.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', checkScroll);
+      el.removeEventListener(DEVTOOLS_DOM_EVENTS.SCROLL, onScroll);
+      window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, checkScroll);
     };
   }, []);
 
@@ -93,8 +96,8 @@ export function DevtoolsTreePane({
     const update = () => setContainerHeight(el.clientHeight);
     update();
     if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', update);
-      return () => window.removeEventListener('resize', update);
+      window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, update);
+      return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, update);
     }
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -106,7 +109,7 @@ export function DevtoolsTreePane({
       containerHeight ||
       (info.isNarrow
         ? info.treeHeight
-        : info.dock === 'top' || info.dock === 'bottom'
+        : info.dock === DEVTOOLS_DOCK.TOP || info.dock === DEVTOOLS_DOCK.BOTTOM
           ? info.height
           : window.innerHeight);
     const tipH = tipRef.current?.getBoundingClientRect().height ?? 0;
@@ -120,12 +123,7 @@ export function DevtoolsTreePane({
     <div ref={containerRef} className={styles.treePaneRoot}>
       {isMultiRuntime && (
         <div ref={tipRef}>
-          <SimpleTip
-            message={
-              '检测到当前页面存在多个 runtime。激活 inspect 模式后，' +
-              '将鼠标移动到目标 canvas 上可切换对应的 runtime。'
-            }
-          />
+          <SimpleTip message={DEVTOOLS_TREE_PANE_TEXT.MULTI_RUNTIME_TIP} />
         </div>
       )}
 
@@ -134,12 +132,15 @@ export function DevtoolsTreePane({
           <Input.Search
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索节点..."
+            placeholder={DEVTOOLS_TREE_PANE_TEXT.SEARCH_PLACEHOLDER}
             allowClear
           />
         </div>
         <div className={styles.treeToolbarActions}>
-          <Tooltip title="打印当前节点" placement="bottom">
+          <Tooltip
+            title={DEVTOOLS_TREE_PANE_TEXT.PRINT_SELECTED}
+            placement={DEVTOOLS_PLACEMENT.BOTTOM}
+          >
             <Button
               type="text"
               icon={<ConsoleOutlined width={24} height={24} />}
@@ -150,7 +151,6 @@ export function DevtoolsTreePane({
       </div>
 
       <Tree
-        ref={treeRef}
         className={styles.compactTree}
         showLine
         height={treeHeight}

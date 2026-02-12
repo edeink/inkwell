@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useContext,
   useLayoutEffect,
   useRef,
@@ -38,7 +39,7 @@ export function Popover({
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const ctxGetPopupContainer = useContext(PopupContainerContext);
 
-  const updatePos = () => {
+  const updatePos = useCallback(() => {
     const anchor = anchorRef.current;
     const pop = popoverRef.current;
     if (!anchor || !pop) {
@@ -61,7 +62,7 @@ export function Popover({
     left = Math.max(8, Math.min(left, window.innerWidth - pr.width - 8));
     top = Math.max(8, Math.min(top, window.innerHeight - pr.height - 8));
     setPos({ left, top });
-  };
+  }, [placement]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -75,7 +76,7 @@ export function Popover({
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onResize, true);
     };
-  }, [open, placement]);
+  }, [open, updatePos]);
 
   useGlobalClickDismiss(open, popoverRef.current, () => setOpen(false));
 

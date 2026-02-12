@@ -3,13 +3,25 @@ import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { DevToolsPanel, type DevToolsProps } from './components/devtools-panel';
+import {
+  DEVTOOLS_DOM,
+  DEVTOOLS_EVENTS,
+  DEVTOOLS_GLOBAL,
+  DEVTOOLS_LOG,
+  HOTKEY_ACTION,
+  JS_TYPE,
+  isTypeObject,
+  isTypeString,
+} from './constants';
 import { useDevtoolsHotkeys } from './hooks/useDevtoolsHotkeys';
 
-type BootstrapDetail = { __inkwellDevtoolsBootstrap?: boolean };
+import { DEVTOOLS_MOUNT_FAIL } from '@/utils/local-storage';
+
+type BootstrapDetail = { [DEVTOOLS_GLOBAL.BOOTSTRAP_DETAIL_KEY]?: boolean };
 type BootstrapEvent = CustomEvent<BootstrapDetail>;
 
 function isBootstrapEvent(ev: Event): ev is BootstrapEvent {
-  return ev instanceof CustomEvent && !!ev.detail?.__inkwellDevtoolsBootstrap;
+  return ev instanceof CustomEvent && !!ev.detail?.[DEVTOOLS_GLOBAL.BOOTSTRAP_DETAIL_KEY];
 }
 
 type DevtoolsGlobalState = {
@@ -17,15 +29,12 @@ type DevtoolsGlobalState = {
   initializing: Promise<Devtools> | null;
 };
 
-const DEVTOOLS_GLOBAL_KEY = '__INKWELL_DEVTOOLS_SINGLETON__';
-const DEVTOOLS_MOUNT_FAIL_KEY = 'INKWELL_DEVTOOLS_MOUNT_FAIL';
-
 function getGlobalState(): DevtoolsGlobalState {
   const g = globalThis as unknown as Record<string, DevtoolsGlobalState | undefined>;
-  if (!g[DEVTOOLS_GLOBAL_KEY]) {
-    g[DEVTOOLS_GLOBAL_KEY] = { instance: null, initializing: null };
+  if (!g[DEVTOOLS_GLOBAL.STATE_KEY]) {
+    g[DEVTOOLS_GLOBAL.STATE_KEY] = { instance: null, initializing: null };
   }
-  return g[DEVTOOLS_GLOBAL_KEY]!;
+  return g[DEVTOOLS_GLOBAL.STATE_KEY]!;
 }
 
 function isSameShortcut(a: DevToolsProps['shortcut'], b: DevToolsProps['shortcut']): boolean {
@@ -35,7 +44,7 @@ function isSameShortcut(a: DevToolsProps['shortcut'], b: DevToolsProps['shortcut
   if (!a || !b) {
     return false;
   }
-  if (typeof a === 'string' || typeof b === 'string') {
+  if (isTypeString(a) || isTypeString(b)) {
     return a === b;
   }
   return a.combo === b.combo && a.action === b.action;
@@ -140,20 +149,20 @@ export class Devtools implements IDevtools {
    * 主动显示面板（当前面板内自管可视状态，这里仅确保挂载存在）
    */
   show(): void {
-    this.emit('INKWELL_DEVTOOLS_OPEN');
+    this.emit(DEVTOOLS_EVENTS.OPEN);
   }
 
   /**
    * 主动隐藏面板（当前实现保持组件内部控制，此处不卸载以保留状态）
    */
   hide(): void {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('INKWELL_DEVTOOLS_CLOSE'));
+    if (typeof window !== JS_TYPE.UNDEFINED) {
+      window.dispatchEvent(new Event(DEVTOOLS_EVENTS.CLOSE));
     }
   }
 
   emit(type: string): void {
-    if (typeof window === 'undefined') {
+    if (typeof window === JS_TYPE.UNDEFINED) {
       return;
     }
     if (!this.isMounted()) {
@@ -162,7 +171,11 @@ export class Devtools implements IDevtools {
     if (!this.isMounted()) {
       return;
     }
-    window.dispatchEvent(new CustomEvent(type, { detail: { __inkwellDevtoolsBootstrap: true } }));
+    window.dispatchEvent(
+      new CustomEvent(type, {
+        detail: { [DEVTOOLS_GLOBAL.BOOTSTRAP_DETAIL_KEY]: true },
+      }),
+    );
   }
 
   /**
@@ -173,7 +186,7 @@ export class Devtools implements IDevtools {
       try {
         this.root.unmount();
       } catch (err) {
-        console.error('[DevTools] 卸载失败:', err);
+        console.error(DEVTOOLS_LOG.PREFIX, DEVTOOLS_LOG.UNMOUNT_FAIL, err);
       }
       this.root = null;
     }
@@ -181,7 +194,7 @@ export class Devtools implements IDevtools {
       try {
         this.container.remove();
       } catch (err) {
-        console.error('[DevTools] 移除容器失败:', err);
+        console.error(DEVTOOLS_LOG.PREFIX, DEVTOOLS_LOG.REMOVE_CONTAINER_FAIL, err);
       }
       this.container = null;
     }
@@ -231,28 +244,17 @@ export class Devtools implements IDevtools {
     if (this.isMounted()) {
       return;
     }
-    try {
-      if (localStorage.getItem(DEVTOOLS_MOUNT_FAIL_KEY)) {
-        return;
-      }
-    } catch {
-      void 0;
+    const mountFailTs = DEVTOOLS_MOUNT_FAIL.get();
+    if (mountFailTs) {
+      return;
     }
     this.mounting = true;
     try {
       this.mount();
-      try {
-        localStorage.removeItem(DEVTOOLS_MOUNT_FAIL_KEY);
-      } catch {
-        void 0;
-      }
+      DEVTOOLS_MOUNT_FAIL.clear();
     } catch (err) {
-      try {
-        localStorage.setItem(DEVTOOLS_MOUNT_FAIL_KEY, String(Date.now()));
-      } catch {
-        void 0;
-      }
-      console.error('[DevTools] 挂载失败:', err);
+      DEVTOOLS_MOUNT_FAIL.set(String(Date.now()));
+      console.error(DEVTOOLS_LOG.PREFIX, DEVTOOLS_LOG.MOUNT_FAIL, err);
       this.root = null;
       this.container = null;
     } finally {
@@ -267,11 +269,11 @@ export class Devtools implements IDevtools {
     if (this.root && this.container) {
       return;
     }
-    const existing = document.getElementById('inkwell-devtools-root');
+    const existing = document.getElementById(DEVTOOLS_DOM.ROOT_ID);
     this.container = existing as HTMLDivElement | null;
     if (!this.container) {
       const el = document.createElement('div');
-      el.id = 'inkwell-devtools-root';
+      el.id = DEVTOOLS_DOM.ROOT_ID;
       document.body.appendChild(el);
       this.container = el;
     }
@@ -293,28 +295,29 @@ export function DevTools(props: DevToolsProps) {
   const propsRef = useRef(props);
   propsRef.current = props;
 
-  const combo =
-    typeof props.shortcut === 'string'
-      ? props.shortcut
-      : typeof props.shortcut === 'object'
-        ? props.shortcut?.combo
-        : undefined;
+  const combo = isTypeString(props.shortcut)
+    ? props.shortcut
+    : isTypeObject(props.shortcut)
+      ? props.shortcut?.combo
+      : undefined;
   const action =
-    typeof props.shortcut === 'object' && props.shortcut?.action ? props.shortcut.action : 'open';
+    isTypeObject(props.shortcut) && props.shortcut?.action
+      ? props.shortcut.action
+      : HOTKEY_ACTION.OPEN;
 
   useDevtoolsHotkeys({
     combo,
     action,
     enabled: true,
     onToggle: () => {
-      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_OPEN');
+      Devtools.getInstance(propsRef.current).emit(DEVTOOLS_EVENTS.OPEN);
     },
     onClose: () => {
       Devtools.getInstance(propsRef.current).hide();
       propsRef.current.onClose?.();
     },
     onInspectToggle: () => {
-      Devtools.getInstance(propsRef.current).emit('INKWELL_DEVTOOLS_INSPECT_TOGGLE');
+      Devtools.getInstance(propsRef.current).emit(DEVTOOLS_EVENTS.INSPECT_TOGGLE);
     },
   });
 
@@ -327,7 +330,7 @@ export function DevTools(props: DevToolsProps) {
         return;
       }
       if (!inst.isMounted()) {
-        inst.emit('INKWELL_DEVTOOLS_OPEN');
+        inst.emit(DEVTOOLS_EVENTS.OPEN);
       }
     };
     const onInspectToggle = (ev: Event) => {
@@ -335,16 +338,16 @@ export function DevTools(props: DevToolsProps) {
         return;
       }
       if (!inst.isMounted()) {
-        inst.emit('INKWELL_DEVTOOLS_INSPECT_TOGGLE');
+        inst.emit(DEVTOOLS_EVENTS.INSPECT_TOGGLE);
       }
     };
 
-    window.addEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
-    window.addEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
+    window.addEventListener(DEVTOOLS_EVENTS.OPEN, onOpen);
+    window.addEventListener(DEVTOOLS_EVENTS.INSPECT_TOGGLE, onInspectToggle);
     return () => {
       // 保持单例生命周期，由显示的 dispose/reset 控制
-      window.removeEventListener('INKWELL_DEVTOOLS_OPEN', onOpen);
-      window.removeEventListener('INKWELL_DEVTOOLS_INSPECT_TOGGLE', onInspectToggle);
+      window.removeEventListener(DEVTOOLS_EVENTS.OPEN, onOpen);
+      window.removeEventListener(DEVTOOLS_EVENTS.INSPECT_TOGGLE, onInspectToggle);
     };
   }, [props.onClose, props.shortcut]);
   return null;

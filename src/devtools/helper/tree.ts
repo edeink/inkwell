@@ -1,3 +1,5 @@
+import { formatSiblingDuplicateKeyError } from '../constants';
+
 import type { Widget } from '../../core/base';
 import type { DataNode } from '@/ui';
 
@@ -39,13 +41,11 @@ function hashStr(h: number, s: string): number {
   return h;
 }
 
-// 为 hashNum 函数添加注释说明其哈希算法
 function hashNum(h: number, n: number): number {
   h ^= n >>> 0;
   return Math.imul(h, 16777619);
 }
 
-// 计算 Widget 树的哈希值
 export function computeWidgetTreeHash(root: Widget | null): number {
   if (!root) {
     return 0;
@@ -174,9 +174,7 @@ export function buildDevtoolsTree(
         ? [
             {
               key: `${nodeKey}::error`,
-              title: `错误：${String(widget.type)} [${String(widget.key)}] 下同级 key 重复：${dupKeys
-                .map((k) => String(k))
-                .join(', ')}`,
+              title: formatSiblingDuplicateKeyError(widget.type, widget.key, dupKeys),
               disabled: true,
               selectable: false,
               isLeaf: true,

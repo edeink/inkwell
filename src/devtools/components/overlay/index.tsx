@@ -1,29 +1,20 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+export { hitTest } from '@/core/helper/hit-test';
+
+import {
+  DEVTOOLS_DOM_ATTRIBUTES,
+  DEVTOOLS_DOM_EVENT_OPTIONS,
+  DEVTOOLS_DOM_EVENTS,
+  DEVTOOLS_DOM_TAGS,
+} from '../../constants';
 
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
 import type Runtime from '../../../runtime';
-export { hitTest } from '@/core/helper/hit-test';
 
-/**
- * DevTools 高亮覆盖层（Overlay）
- *
- * 核心职责：
- * - 将 Widget 的世界坐标包围盒转换为 DOM 像素坐标，并绘制高亮框与信息条。
- * - 用 requestAnimationFrame 合并多次 highlight/setActive 调用，避免频繁 setState。
- * - 通过 Portal 挂载到 runtime.container 内，保证覆盖在 canvas 之上且不拦截交互。
- */
 type BoxRect = { left: number; top: number; width: number; height: number };
 type ViewportRect = {
   left: number;
@@ -119,19 +110,16 @@ function resolveOffscreenDirection(
   return '→';
 }
 
-export type OverlayHandle = {
-  setActive: (v: boolean) => void;
-  highlight: (widget: Widget | null) => void;
-};
-
-export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function Overlay(
-  { runtime },
-  ref,
-) {
+export default function Overlay({
+  runtime,
+  active: overlayActive,
+  widget,
+}: {
+  runtime: Runtime | null;
+  active: boolean;
+  widget: Widget | null;
+}) {
   const rootElRef = useRef<HTMLDivElement | null>(null);
-  const runtimeRef = useRef<Runtime | null>(runtime);
-  const activeRef = useRef<boolean>(false);
-  const currentWidgetRef = useRef<Widget | null>(null);
 
   const rafIdRef = useRef<number | null>(null);
   const lastCommittedRef = useRef<OverlayRenderState>({ active: false });
@@ -140,96 +128,93 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
   const infoRef = useRef<HTMLDivElement | null>(null);
   const [infoPos, setInfoPos] = useState<{ left: number; top: number } | null>(null);
 
-  useEffect(() => {
-    runtimeRef.current = runtime;
-  }, [runtime]);
+  const computeRenderState = useCallback(
+    (target: Widget | null): OverlayRenderState | null => {
+      const rt = runtime;
+      const container = rt?.container ?? null;
+      if (!container || !rootElRef.current) {
+        return null;
+      }
 
-  const computeRenderState = useCallback((widget: Widget | null): OverlayRenderState | null => {
-    const rt = runtimeRef.current;
-    const container = rt?.container ?? null;
-    if (!container || !rootElRef.current) {
-      return null;
-    }
+      if (!overlayActive || !target) {
+        return { active: overlayActive };
+      }
 
-    // 未开启 Inspect 或未命中节点时，仅同步 active 状态并清空高亮数据。
-    if (!activeRef.current || !widget) {
-      return { active: activeRef.current };
-    }
+      const renderer = rt?.getRenderer?.() ?? null;
+      const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
+      const canvas = raw?.canvas ?? container.querySelector(DEVTOOLS_DOM_TAGS.CANVAS) ?? null;
+      if (!canvas) {
+        return { active: overlayActive };
+      }
 
-    const renderer = rt?.getRenderer?.() ?? null;
-    const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-    const canvas = raw?.canvas ?? container.querySelector('canvas') ?? null;
-    if (!canvas) {
-      return { active: activeRef.current };
-    }
+      const containerRect = container.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const cssTransform = window.getComputedStyle(canvas).transform;
+      const cssS =
+        cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
+      const offsetX = canvasRect.left - containerRect.left;
+      const offsetY = canvasRect.top - containerRect.top;
 
-    // 1) 先将 Widget 的世界坐标（canvas 内）换算为容器内的像素坐标。
-    // 2) 再叠加 canvas 在容器中的偏移与 CSS transform(scale)。
-    const containerRect = container.getBoundingClientRect();
-    const canvasRect = canvas.getBoundingClientRect();
-    const cssTransform = window.getComputedStyle(canvas).transform;
-    const cssS =
-      cssTransform && cssTransform !== 'none' ? parseCssScale(cssTransform) : { sx: 1, sy: 1 };
-    const offsetX = canvasRect.left - containerRect.left;
-    const offsetY = canvasRect.top - containerRect.top;
+      const wm = target.getWorldMatrix();
+      const isIdentity =
+        wm[0] === 1 && wm[1] === 0 && wm[2] === 0 && wm[3] === 1 && wm[4] === 0 && wm[5] === 0;
+      const hasOffset =
+        (target.renderObject.offset?.dx ?? 0) !== 0 || (target.renderObject.offset?.dy ?? 0) !== 0;
 
-    // 正常情况使用世界矩阵包围盒；当矩阵仍为 identity（例如未经历 paint 计算矩阵）时回退到绝对位置。
-    const wm = widget.getWorldMatrix();
-    const isIdentity =
-      wm[0] === 1 && wm[1] === 0 && wm[2] === 0 && wm[3] === 1 && wm[4] === 0 && wm[5] === 0;
-    const hasOffset =
-      (widget.renderObject.offset?.dx ?? 0) !== 0 || (widget.renderObject.offset?.dy ?? 0) !== 0;
+      let bbox = target.getBoundingBox(wm);
+      if (isIdentity && (hasOffset || target.parent)) {
+        const pos = target.getAbsolutePosition();
+        bbox = {
+          x: pos.dx,
+          y: pos.dy,
+          width: target.renderObject.size.width,
+          height: target.renderObject.size.height,
+        };
+      }
 
-    let bbox = widget.getBoundingBox(wm);
-    if (isIdentity && (hasOffset || widget.parent)) {
-      const pos = widget.getAbsolutePosition();
-      bbox = {
-        x: pos.dx,
-        y: pos.dy,
-        width: widget.renderObject.size.width,
-        height: widget.renderObject.size.height,
+      const screenLeft = offsetX + bbox.x * cssS.sx;
+      const screenTop = offsetY + bbox.y * cssS.sy;
+      const screenWidth = bbox.width * cssS.sx;
+      const screenHeight = bbox.height * cssS.sy;
+
+      const viewportLeft = containerRect.left + screenLeft;
+      const viewportTop = containerRect.top + screenTop;
+      const targetRect: ViewportRect = {
+        left: viewportLeft,
+        top: viewportTop,
+        width: screenWidth,
+        height: screenHeight,
+        right: viewportLeft + screenWidth,
+        bottom: viewportTop + screenHeight,
       };
-    }
 
-    // 最终的屏幕像素坐标（相对容器）。
-    const screenLeft = offsetX + bbox.x * cssS.sx;
-    const screenTop = offsetY + bbox.y * cssS.sy;
-    const screenWidth = bbox.width * cssS.sx;
-    const screenHeight = bbox.height * cssS.sy;
+      const direction = resolveOffscreenDirection(
+        targetRect,
+        window.innerWidth,
+        window.innerHeight,
+      );
 
-    const viewportLeft = containerRect.left + screenLeft;
-    const viewportTop = containerRect.top + screenTop;
-    const targetRect: ViewportRect = {
-      left: viewportLeft,
-      top: viewportTop,
-      width: screenWidth,
-      height: screenHeight,
-      right: viewportLeft + screenWidth,
-      bottom: viewportTop + screenHeight,
-    };
+      const wTxt = Math.round(screenWidth);
+      const hTxt = Math.round(screenHeight);
 
-    const direction = resolveOffscreenDirection(targetRect, window.innerWidth, window.innerHeight);
-
-    const wTxt = Math.round(screenWidth);
-    const hTxt = Math.round(screenHeight);
-
-    return {
-      active: true,
-      boxRect: { left: screenLeft, top: screenTop, width: screenWidth, height: screenHeight },
-      label: `${widget.type} · w:${wTxt} h:${hTxt}`,
-      targetRect,
-      direction,
-    };
-  }, []);
+      return {
+        active: true,
+        boxRect: { left: screenLeft, top: screenTop, width: screenWidth, height: screenHeight },
+        label: `${target.type} · w:${wTxt} h:${hTxt}`,
+        targetRect,
+        direction,
+      };
+    },
+    [overlayActive, runtime],
+  );
 
   const scheduleCompute = useCallback((): void => {
     if (rafIdRef.current != null) {
       return;
     }
-    // 合并到同一帧提交，避免 mousemove/hover 高频触发 setState。
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
-      const next = computeRenderState(currentWidgetRef.current);
+      const next = computeRenderState(widget);
       if (!next) {
         return;
       }
@@ -239,25 +224,7 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
       lastCommittedRef.current = next;
       setRenderState(next);
     });
-  }, [computeRenderState]);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      setActive(v: boolean) {
-        activeRef.current = v;
-        if (!v) {
-          currentWidgetRef.current = null;
-        }
-        scheduleCompute();
-      },
-      highlight(widget: Widget | null) {
-        currentWidgetRef.current = widget;
-        scheduleCompute();
-      },
-    }),
-    [scheduleCompute],
-  );
+  }, [computeRenderState, widget]);
 
   useLayoutEffect(() => {
     if (!runtime) {
@@ -268,7 +235,6 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
       return;
     }
 
-    // Overlay 需要绝对定位覆盖容器；当容器为 static 时，提升为 relative。
     const computed = window.getComputedStyle(container);
     if (computed.position === 'static') {
       container.style.position = 'relative';
@@ -298,7 +264,7 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
     }
 
     // 外部环境变化时需要重算位置：窗口 resize、页面滚动、canvas style/class 变化（例如缩放/平移）。
-    const shouldCompute = () => activeRef.current && !!currentWidgetRef.current;
+    const shouldCompute = () => overlayActive && !!widget;
     const onResize = () => {
       if (!shouldCompute()) {
         return;
@@ -312,13 +278,18 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
       scheduleCompute();
     };
 
-    window.addEventListener('resize', onResize);
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, onResize);
+    window.addEventListener(
+      DEVTOOLS_DOM_EVENTS.SCROLL,
+      onScroll,
+      DEVTOOLS_DOM_EVENT_OPTIONS.PASSIVE_TRUE,
+    );
 
     let mo: MutationObserver | null = null;
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
-    const canvas = raw?.canvas ?? runtime.container?.querySelector('canvas') ?? null;
+    const canvas =
+      raw?.canvas ?? runtime.container?.querySelector(DEVTOOLS_DOM_TAGS.CANVAS) ?? null;
     if (canvas && typeof MutationObserver !== 'undefined') {
       mo = new MutationObserver(() => {
         if (!shouldCompute()) {
@@ -326,16 +297,23 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
         }
         scheduleCompute();
       });
-      mo.observe(canvas, { attributes: true, attributeFilter: ['style', 'class'] });
+      mo.observe(canvas, {
+        attributes: true,
+        attributeFilter: [DEVTOOLS_DOM_ATTRIBUTES.STYLE, DEVTOOLS_DOM_ATTRIBUTES.CLASS],
+      });
     }
 
     return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, onResize);
+      window.removeEventListener(DEVTOOLS_DOM_EVENTS.SCROLL, onScroll);
       mo?.disconnect?.();
       mo = null;
     };
-  }, [runtime, scheduleCompute]);
+  }, [overlayActive, runtime, scheduleCompute, widget]);
+
+  useEffect(() => {
+    scheduleCompute();
+  }, [scheduleCompute]);
 
   const { active, boxRect, label, targetRect, direction } = renderState;
   const infoText = useMemo(() => label ?? '', [label]);
@@ -399,7 +377,7 @@ export default forwardRef<OverlayHandle, { runtime: Runtime | null }>(function O
     </>,
     rootElRef.current,
   );
-});
+}
 
 function parseCssScale(transform: string): { sx: number; sy: number } {
   const t = transform.trim();
