@@ -3,6 +3,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type CSSProperties,
   type Key,
   type ReactNode,
@@ -84,6 +85,26 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
     () => flattenTree(treeData ?? [], expanded, filterTreeNode),
     [treeData, expanded, filterTreeNode],
   );
+  const [scrollTop, setScrollTop] = useState(0);
+  const rowHeight = 24;
+  const overscan = 6;
+  const viewHeight = typeof height === 'number' ? height : 0;
+  const shouldVirtualize = viewHeight > 0;
+  const indexByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < rows.length; i++) {
+      map.set(String(rows[i].node.key), i);
+    }
+    return map;
+  }, [rows]);
+  const totalHeight = rows.length * rowHeight;
+  const startIndex = shouldVirtualize
+    ? Math.max(0, Math.floor(scrollTop / rowHeight) - overscan)
+    : 0;
+  const endIndex = shouldVirtualize
+    ? Math.min(rows.length, Math.ceil((scrollTop + viewHeight) / rowHeight) + overscan)
+    : rows.length;
+  const visibleRows = shouldVirtualize ? rows.slice(startIndex, endIndex) : rows;
 
   useEffect(() => {
     if (!ref) {
@@ -91,9 +112,15 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
     }
     const api: TreeHandle = {
       scrollTo: ({ key }) => {
-        const el = containerRef.current?.querySelector(
-          `[data-key="${String(key)}"]`,
-        ) as HTMLElement | null;
+        const idx = indexByKey.get(String(key));
+        const container = containerRef.current;
+        if (container && typeof idx === 'number') {
+          const top = idx * rowHeight;
+          container.scrollTop = top;
+          setScrollTop(top);
+          return;
+        }
+        const el = container?.querySelector(`[data-key="${String(key)}"]`) as HTMLElement | null;
         el?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
       },
     };
@@ -102,7 +129,7 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
     } else {
       ref.current = api;
     }
-  }, [ref]);
+  }, [ref, indexByKey]);
 
   return (
     <div
@@ -115,80 +142,103 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
         color: 'var(--ink-demo-text-primary)',
         ...style,
       }}
+      onScroll={(e) => {
+        if (!shouldVirtualize) {
+          return;
+        }
+        const nextTop = e.currentTarget.scrollTop;
+        if (nextTop !== scrollTop) {
+          setScrollTop(nextTop);
+        }
+      }}
     >
-      {rows.map(({ node, depth, hasChildren }) => {
-        const keyStr = String(node.key);
-        const isExpanded = expanded.has(keyStr);
-        const isSelected = selected.has(keyStr);
-        return (
-          <div
-            key={keyStr}
-            data-key={keyStr}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '2px 8px',
-              paddingLeft: 8 + depth * 14,
-              borderRadius: 8,
-              background: isSelected
-                ? 'color-mix(in srgb, var(--ink-demo-primary), transparent 90%)'
-                : 'transparent',
-              cursor: 'default',
-              userSelect: 'none',
-            }}
-            onClick={() => onSelect?.([node.key])}
-          >
-            {hasChildren ? (
-              <button
-                type="button"
-                style={{
-                  width: 16,
-                  height: 16,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--ink-demo-text-secondary)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  lineHeight: 0,
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const next = new Set(expanded);
-                  if (isExpanded) {
-                    next.delete(keyStr);
-                  } else {
-                    next.add(keyStr);
-                  }
-                  onExpand?.(Array.from(next));
-                }}
-              >
-                {isExpanded ? (
-                  <CaretDownOutlined style={{ fontSize: 12 }} />
-                ) : (
-                  <CaretRightOutlined style={{ fontSize: 12 }} />
-                )}
-              </button>
-            ) : (
-              <span
-                style={{
-                  width: 16,
-                  height: 16,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {titleRender ? titleRender(node) : (node.title as ReactNode)}
+      <div
+        style={{
+          height: shouldVirtualize ? totalHeight : undefined,
+          position: shouldVirtualize ? 'relative' : undefined,
+        }}
+      >
+        {visibleRows.map(({ node, depth, hasChildren }, index) => {
+          const keyStr = String(node.key);
+          const isExpanded = expanded.has(keyStr);
+          const isSelected = selected.has(keyStr);
+          const rowIndex = shouldVirtualize ? startIndex + index : index;
+          return (
+            <div
+              key={keyStr}
+              data-key={keyStr}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '2px 8px',
+                paddingLeft: 8 + depth * 14,
+                borderRadius: 8,
+                background: isSelected
+                  ? 'color-mix(in srgb, var(--ink-demo-primary), transparent 90%)'
+                  : 'transparent',
+                cursor: 'default',
+                userSelect: 'none',
+                height: rowHeight,
+                boxSizing: 'border-box',
+                position: shouldVirtualize ? 'absolute' : undefined,
+                top: shouldVirtualize ? rowIndex * rowHeight : undefined,
+                left: shouldVirtualize ? 0 : undefined,
+                right: shouldVirtualize ? 0 : undefined,
+              }}
+              onClick={() => onSelect?.([node.key])}
+            >
+              {hasChildren ? (
+                <button
+                  type="button"
+                  style={{
+                    width: 16,
+                    height: 16,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--ink-demo-text-secondary)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    lineHeight: 0,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const next = new Set(expanded);
+                    if (isExpanded) {
+                      next.delete(keyStr);
+                    } else {
+                      next.add(keyStr);
+                    }
+                    onExpand?.(Array.from(next));
+                  }}
+                >
+                  {isExpanded ? (
+                    <CaretDownOutlined style={{ fontSize: 12 }} />
+                  ) : (
+                    <CaretRightOutlined style={{ fontSize: 12 }} />
+                  )}
+                </button>
+              ) : (
+                <span
+                  style={{
+                    width: 16,
+                    height: 16,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {titleRender ? titleRender(node) : (node.title as ReactNode)}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 });

@@ -1,3 +1,4 @@
+import { throttle } from 'lodash-es';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SCALE_CONFIG } from '../../constants';
@@ -9,6 +10,7 @@ import { quantize } from './helper';
 import styles from './index.module.less';
 
 import { findWidget } from '@/core/helper/widget-selector';
+import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
 import { InputNumber, Tooltip } from '@/ui';
 import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@/ui/icons';
 
@@ -69,23 +71,30 @@ export default function ZoomBar({
   );
 
   useEffect(() => {
-    const onMove = (e: PointerEvent) => {
+    if (!featureToggleStore.isEnabled('FEATURE_MINDMAP_ZOOM_DRAG', true)) {
+      return;
+    }
+    const onMove = throttle((e: PointerEvent) => {
       if (!dragging) {
         return;
       }
       updateFromClientX(e.clientX);
-    };
+    }, 16);
     const onUp = () => setDragging(false);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      onMove.cancel();
     };
   }, [dragging, updateFromClientX]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
+      if (!featureToggleStore.isEnabled('FEATURE_MINDMAP_ZOOM_DRAG', true)) {
+        return;
+      }
       e.stopPropagation();
       setDragging(true);
       updateFromClientX(e.clientX);

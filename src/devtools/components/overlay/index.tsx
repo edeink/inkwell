@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+/**
+ * Devtools 选中态 Overlay
+ *
+ * 负责在画布上方渲染选中框与标签提示。
+ * 注意事项：依赖 Runtime 与 Widget 的位置信息。
+ * 潜在副作用：注册全局事件监听并创建 Portal。
+ */
+import { observer, useLocalObservable } from 'mobx-react-lite';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 export { hitTest } from '@/core/helper/hit-test';
@@ -33,10 +41,31 @@ type OverlayRenderState = {
   direction?: string | null;
 };
 
+/**
+ * 数值区间裁剪
+ *
+ * @param n 输入值
+ * @param min 最小值
+ * @param max 最大值
+ * @returns 裁剪后的数值
+ * @remarks
+ * 注意事项：min 需小于等于 max。
+ * 潜在副作用：无。
+ */
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+/**
+ * 判断 BoxRect 是否一致
+ *
+ * @param a 矩形 A
+ * @param b 矩形 B
+ * @returns 是否一致
+ * @remarks
+ * 注意事项：任一为空则视为不一致。
+ * 潜在副作用：无。
+ */
 function isSameBoxRect(a?: BoxRect, b?: BoxRect): boolean {
   if (a === b) {
     return true;
@@ -47,6 +76,16 @@ function isSameBoxRect(a?: BoxRect, b?: BoxRect): boolean {
   return a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
 }
 
+/**
+ * 判断 ViewportRect 是否一致
+ *
+ * @param a 视口矩形 A
+ * @param b 视口矩形 B
+ * @returns 是否一致
+ * @remarks
+ * 注意事项：任一为空则视为不一致。
+ * 潜在副作用：无。
+ */
 function isSameViewportRect(a?: ViewportRect, b?: ViewportRect): boolean {
   if (a === b) {
     return true;
@@ -64,6 +103,16 @@ function isSameViewportRect(a?: ViewportRect, b?: ViewportRect): boolean {
   );
 }
 
+/**
+ * 判断 Overlay 状态是否一致
+ *
+ * @param a 状态 A
+ * @param b 状态 B
+ * @returns 是否一致
+ * @remarks
+ * 注意事项：用于减少无效重绘。
+ * 潜在副作用：无。
+ */
 function isSameRenderState(a: OverlayRenderState, b: OverlayRenderState): boolean {
   return (
     a.active === b.active &&
@@ -74,6 +123,17 @@ function isSameRenderState(a: OverlayRenderState, b: OverlayRenderState): boolea
   );
 }
 
+/**
+ * 计算越界方向提示
+ *
+ * @param rect 目标矩形
+ * @param viewportW 视口宽度
+ * @param viewportH 视口高度
+ * @returns 越界方向描述
+ * @remarks
+ * 注意事项：仅用于 UI 提示。
+ * 潜在副作用：无。
+ */
 function resolveOffscreenDirection(
   rect: ViewportRect,
   viewportW: number,
@@ -110,7 +170,16 @@ function resolveOffscreenDirection(
   return '→';
 }
 
-export default function Overlay({
+/**
+ * Overlay
+ *
+ * @param props Overlay 参数
+ * @returns React 元素或 null
+ * @remarks
+ * 注意事项：active 为 false 时不渲染。
+ * 潜在副作用：注册 DOM 监听并创建 Portal。
+ */
+const Overlay = observer(function Overlay({
   runtime,
   active: overlayActive,
   widget,
@@ -123,10 +192,21 @@ export default function Overlay({
 
   const rafIdRef = useRef<number | null>(null);
   const lastCommittedRef = useRef<OverlayRenderState>({ active: false });
-  const [renderState, setRenderState] = useState<OverlayRenderState>({ active: false });
+  const ui = useLocalObservable(() => ({
+    renderState: { active: false } as OverlayRenderState,
+    infoPos: null as { left: number; top: number } | null,
+    setRenderState(next: OverlayRenderState) {
+      this.renderState = next;
+    },
+    resetRenderState() {
+      this.renderState = { active: false };
+    },
+    setInfoPos(next: { left: number; top: number } | null) {
+      this.infoPos = next;
+    },
+  }));
 
   const infoRef = useRef<HTMLDivElement | null>(null);
-  const [infoPos, setInfoPos] = useState<{ left: number; top: number } | null>(null);
 
   const computeRenderState = useCallback(
     (target: Widget | null): OverlayRenderState | null => {
@@ -222,9 +302,9 @@ export default function Overlay({
         return;
       }
       lastCommittedRef.current = next;
-      setRenderState(next);
+      ui.setRenderState(next);
     });
-  }, [computeRenderState, widget]);
+  }, [computeRenderState, ui, widget]);
 
   useLayoutEffect(() => {
     if (!runtime) {
@@ -252,11 +332,11 @@ export default function Overlay({
         rafIdRef.current = null;
       }
       lastCommittedRef.current = { active: false };
-      setRenderState({ active: false });
+      ui.resetRenderState();
       // 避免卸载时与 React commit/DOM 更新顺序交错，延后移除宿主节点更稳妥。
       runtime.nextTick(() => el.remove());
     };
-  }, [runtime]);
+  }, [runtime, ui]);
 
   useEffect(() => {
     if (!runtime) {
@@ -315,13 +395,13 @@ export default function Overlay({
     scheduleCompute();
   }, [scheduleCompute]);
 
-  const { active, boxRect, label, targetRect, direction } = renderState;
+  const { active, boxRect, label, targetRect, direction } = ui.renderState;
   const infoText = useMemo(() => label ?? '', [label]);
   const dirText = useMemo(() => direction ?? '', [direction]);
 
   useLayoutEffect(() => {
     if (!active || !targetRect || !infoRef.current) {
-      setInfoPos(null);
+      ui.setInfoPos(null);
       return;
     }
 
@@ -339,8 +419,8 @@ export default function Overlay({
     let left = targetRect.left;
     left = clamp(left, margin, Math.max(margin, vw - margin - infoBox.width));
 
-    setInfoPos({ left, top });
-  }, [active, targetRect, infoText]);
+    ui.setInfoPos({ left, top });
+  }, [active, infoText, targetRect, ui]);
 
   if (!rootElRef.current) {
     return null;
@@ -351,8 +431,8 @@ export default function Overlay({
   }
 
   let infoStyle: { left: string; top: string } | undefined;
-  if (infoPos) {
-    infoStyle = { left: `${infoPos.left}px`, top: `${infoPos.top}px` };
+  if (ui.infoPos) {
+    infoStyle = { left: `${ui.infoPos.left}px`, top: `${ui.infoPos.top}px` };
   }
 
   return createPortal(
@@ -377,8 +457,19 @@ export default function Overlay({
     </>,
     rootElRef.current,
   );
-}
+});
 
+export default Overlay;
+
+/**
+ * 解析 CSS transform 的缩放值
+ *
+ * @param transform transform 字符串
+ * @returns 缩放系数
+ * @remarks
+ * 注意事项：仅解析 scale/scale3d 形式。
+ * 潜在副作用：无。
+ */
 function parseCssScale(transform: string): { sx: number; sy: number } {
   const t = transform.trim();
   if (!t || t === 'none') {

@@ -1,3 +1,10 @@
+/**
+ * 属性编辑器枚举选项
+ *
+ * 提供常见属性名与可选值的映射。
+ * 注意事项：用于对象编辑器的下拉选项。
+ * 潜在副作用：无。
+ */
 import { AlignmentGeometry, StackFit } from '@/core';
 
 const textAlignOptions = ['left', 'center', 'right'] as const;
@@ -15,6 +22,12 @@ const mainAxisSizeOptions = ['min', 'max'] as const;
 const alignmentGeometryOptions = Object.values(AlignmentGeometry);
 const stackFitOptions = Object.values(StackFit);
 
+/**
+ * 枚举选项映射表
+ *
+ * 注意事项：键名需与属性名一致。
+ * 潜在副作用：无。
+ */
 export const enumOptionsMap: Record<string, readonly string[]> = {
   cursor: [
     'auto',

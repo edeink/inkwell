@@ -1,5 +1,13 @@
+/**
+ * Devtools 对象编辑器
+ *
+ * 以 KV 形式编辑对象属性，支持数字数组与颜色类型输入。
+ * 注意事项：受保护与隐藏字段将按规则过滤。
+ * 潜在副作用：通过 onChange 触发对象更新。
+ */
 import cs from 'classnames';
-import { useState, type ReactNode } from 'react';
+import { observer, useLocalObservable } from 'mobx-react-lite';
+import { type ReactNode } from 'react';
 
 import {
   DEVTOOLS_CSS,
@@ -29,11 +37,14 @@ import {
 
 /**
  * ObjectEditor
- * 功能：以 KV 形式编辑对象属性，支持数字与颜色类型的专用输入
- * 参数：value - 对象值；onChange - 对象变更回调
- * 返回：无（受控组件，通过 onChange 输出）
+ *
+ * @param props 对象编辑器参数
+ * @returns React 元素
+ * @remarks
+ * 注意事项：onChange 必须以受控方式更新数据。
+ * 潜在副作用：触发对象更新与输入状态变化。
  */
-export function ObjectEditor({
+export const ObjectEditor = observer(function ObjectEditor({
   value,
   onChange,
   depth = 0,
@@ -61,11 +72,26 @@ export function ObjectEditor({
       return isObjA ? 1 : -1;
     });
 
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const ui = useLocalObservable(() => ({
+    openMap: {} as Record<string, boolean>,
+    setOpen(key: string, open: boolean) {
+      this.openMap[key] = open;
+    },
+  }));
 
   const isLocked = (k: string) => readOnly || lockedKeys.includes(k);
 
-  // 同步键与值的修改，确保对象结构可控
+  /**
+   * 更新指定键值对
+   *
+   * @param oldKey 原始 key
+   * @param newKey 新 key
+   * @param newVal 新值
+   * @returns void
+   * @remarks
+   * 注意事项：受锁定规则影响可能不生效。
+   * 潜在副作用：触发 onChange。
+   */
   function setKV(oldKey: string, newKey: string, newVal: unknown) {
     if (isLocked(oldKey)) {
       return;
@@ -80,7 +106,15 @@ export function ObjectEditor({
     onChange(next);
   }
 
-  // 删除指定键值对
+  /**
+   * 删除指定键
+   *
+   * @param k key
+   * @returns void
+   * @remarks
+   * 注意事项：受锁定规则影响可能不生效。
+   * 潜在副作用：触发 onChange。
+   */
   function removeKey(k: string) {
     if (isLocked(k)) {
       return;
@@ -90,7 +124,14 @@ export function ObjectEditor({
     onChange(next);
   }
 
-  // 新增键值对并避免重复键
+  /**
+   * 新增键值对
+   *
+   * @returns void
+   * @remarks
+   * 注意事项：只读模式下不会新增。
+   * 潜在副作用：触发 onChange。
+   */
   function addKey() {
     if (readOnly) {
       return;
@@ -106,6 +147,16 @@ export function ObjectEditor({
     onChange(next);
   }
 
+  /**
+   * 渲染数字数组编辑器
+   *
+   * @param k key
+   * @param v 数字数组
+   * @returns React 节点
+   * @remarks
+   * 注意事项：会对输入进行 Number 转换。
+   * 潜在副作用：触发 onChange。
+   */
   function renderNumberArrayEditor(k: string, v: number[]) {
     const locked = isLocked(k);
     return (
@@ -136,7 +187,16 @@ export function ObjectEditor({
     );
   }
 
-  // 根据值类型渲染对应的编辑控件
+  /**
+   * 根据值类型渲染编辑控件
+   *
+   * @param k key
+   * @param v 值
+   * @returns React 节点
+   * @remarks
+   * 注意事项：颜色/枚举/数组会走专用控件。
+   * 潜在副作用：触发 onChange。
+   */
   function renderValueField(k: string, v: unknown): ReactNode {
     const locked = isLocked(k);
     if (isColor(v)) {
@@ -308,6 +368,16 @@ export function ObjectEditor({
     );
   }
 
+  /**
+   * 渲染 key 编辑区域
+   *
+   * @param k key
+   * @param v 值
+   * @returns React 节点
+   * @remarks
+   * 注意事项：对象类型的 key 不可编辑。
+   * 潜在副作用：触发 onChange。
+   */
   const renderKey = (k: string, v: unknown) => {
     const locked = isLocked(k);
     if (locked) {
@@ -357,7 +427,7 @@ export function ObjectEditor({
     >
       {entries.map(([k, v]) => {
         const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
-        const isOpen = !!openMap[k] || !isObj;
+        const isOpen = !!ui.openMap[k] || !isObj;
         const locked = isLocked(k);
 
         if (isObj) {
@@ -369,7 +439,7 @@ export function ObjectEditor({
                   type="text"
                   className={styles.collapseBtn}
                   icon={isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />}
-                  onClick={() => setOpenMap({ ...openMap, [k]: !isOpen })}
+                  onClick={() => ui.setOpen(k, !isOpen)}
                 />
                 <div className={styles.kvHeaderLeft}>{renderKey(k, v)}</div>
                 <div className={styles.kvHeaderActions}>
@@ -468,4 +538,4 @@ export function ObjectEditor({
       )}
     </div>
   );
-}
+});

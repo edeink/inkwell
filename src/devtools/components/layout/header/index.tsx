@@ -1,3 +1,10 @@
+/**
+ * Devtools 布局标题栏
+ *
+ * 渲染停靠位置切换按钮与右侧扩展区域。
+ * 注意事项：onDockChange 需保证状态同步。
+ * 潜在副作用：触发布局状态更新。
+ */
 import { type Dock } from '..';
 import {
   DEVTOOLS_ARIA,
@@ -11,6 +18,15 @@ import type { ReactNode } from 'react';
 
 import { Button, Space, Tooltip } from '@/ui';
 
+/**
+ * LayoutHeader
+ *
+ * @param props 标题栏参数
+ * @returns React 元素
+ * @remarks
+ * 注意事项：onRequestClose 需负责隐藏面板。
+ * 潜在副作用：触发布局状态更新。
+ */
 export function LayoutHeader({
   dock,
   headerLeft,
@@ -92,6 +108,15 @@ export function LayoutHeader({
   );
 }
 
+/**
+ * 获取停靠方向图标
+ *
+ * @param side 停靠方向
+ * @returns SVG 图标节点
+ * @remarks
+ * 注意事项：仅用于渲染。
+ * 潜在副作用：无。
+ */
 function getDockIcon(side: Dock) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={styles.dockIconSvg}>

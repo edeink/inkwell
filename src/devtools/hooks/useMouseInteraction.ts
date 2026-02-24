@@ -1,81 +1,115 @@
-import { useEffect, useRef, useState } from 'react';
+/**
+ * Devtools 鼠标交互 Hook
+ *
+ * 处理鼠标移动、拾取、悬停同步与多运行时提示。
+ * 注意事项：依赖 Runtime、Overlay 与 DOM 环境。
+ * 潜在副作用：注册全局事件监听、读取 DOM、触发日志采样。
+ */
+import { throttle } from 'lodash-es';
+import { useEffect, useRef } from 'react';
 
 import Runtime from '../../runtime';
 import { hitTest } from '../components/overlay';
 import {
+  DEVTOOLS_DEBUG_LEVEL,
   DEVTOOLS_DOM_EVENT_OPTIONS,
   DEVTOOLS_DOM_EVENTS,
   DEVTOOLS_DOM_TAGS,
   DEVTOOLS_LOG,
+  devtoolsCount,
+  devtoolsGetMemorySnapshot,
+  devtoolsGetResourceSnapshot,
+  devtoolsLog,
+  devtoolsLogEffect,
+  devtoolsLogState,
+  devtoolsTimeEnd,
+  devtoolsTimeStart,
+  devtoolsTrackEventListener,
+  devtoolsTrackRaf,
 } from '../constants';
 import { resolveHitWidget } from '../helper/resolve';
 
+import type { DevtoolsPanelStore } from '../store/panel-store';
 import type { Widget } from '@/core/base';
 
-export interface MouseInteractionOptions {
-  runtime: Runtime | null;
-  active: boolean;
-  setRuntime: (rt: Runtime) => void;
-  setHoverWidget: (w: Widget | null) => void;
-  setPickedWidget: (w: Widget) => void;
-}
+import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
 
-export function useMouseInteraction({
-  runtime,
-  active,
-  setRuntime,
-  setHoverWidget,
-  setPickedWidget,
-}: MouseInteractionOptions): {
+/**
+ * useMouseInteraction
+ *
+ * @param panel 面板状态实例
+ * @returns 鼠标交互相关状态快照
+ * @remarks
+ * 注意事项：需在浏览器环境调用。
+ * 潜在副作用：注册 window/document 事件监听与 RAF。
+ */
+export function useMouseInteraction(panel: DevtoolsPanelStore): {
   runtimeId: string | null;
   isMultiRuntime: boolean;
   overlapWarning: boolean;
 } {
   const lastPos = useRef<{ x: number; y: number } | null>(null);
-  const [runtimeId, setRuntimeId] = useState<string | null>(null);
-  const [canvasRegistryVersion, setCanvasRegistryVersion] = useState(0);
-  const [isMultiRuntime, setIsMultiRuntime] = useState<boolean>(() => {
-    try {
-      const list = Runtime.listCanvas();
-      return !!list && list.length > 1;
-    } catch {
-      return false;
-    }
-  });
-  const overlapWarning = false;
+  const runtime = panel.runtime;
+  const active = panel.activeInspect;
+  const overlapWarning = panel.overlapWarning;
+  const canvasRegistryVersion = panel.canvasRegistryVersion;
   useEffect(() => {
-    if (!active) {
-      setHoverWidget(null);
-    }
-  }, [active, setHoverWidget]);
-  useEffect(() => {
-    return Runtime.subscribeCanvasRegistryChange(() => {
-      setCanvasRegistryVersion((v) => v + 1);
+    devtoolsLogEffect('mouse.mount', 'start');
+    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'useMouseInteraction 挂载', {
+      内存: devtoolsGetMemorySnapshot(),
+      资源: devtoolsGetResourceSnapshot(),
     });
+    return () => {
+      devtoolsLogEffect('mouse.mount', 'cleanup');
+      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'useMouseInteraction 卸载', {
+        内存: devtoolsGetMemorySnapshot(),
+        资源: devtoolsGetResourceSnapshot(),
+      });
+    };
   }, []);
+  useEffect(() => {
+    devtoolsLogEffect('mouse.active', 'start', { 启用: active });
+    if (!active) {
+      panel.setInspectHoverWidget(null);
+    }
+  }, [active, panel]);
+  useEffect(() => {
+    devtoolsLogEffect('mouse.canvasRegistry', 'start');
+    return Runtime.subscribeCanvasRegistryChange(() => {
+      panel.bumpCanvasRegistryVersion();
+    });
+  }, [panel]);
 
   useEffect(() => {
+    devtoolsCount('useMouseInteraction.canvasRegistryUpdate', { threshold: 8, windowMs: 1000 });
     const list = Runtime.listCanvas();
     if (!list || list.length === 0) {
       return;
     }
-    setIsMultiRuntime(list.length > 1);
+    panel.setIsMultiRuntime(list.length > 1);
     if (!runtime && list.length >= 1) {
-      setRuntime(list[0].runtime);
-      setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
+      panel.setRuntime(list[0].runtime);
+      panel.setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
     } else if (list.length === 1) {
       if (runtime !== list[0].runtime) {
-        setRuntime(list[0].runtime);
+        panel.setRuntime(list[0].runtime);
       }
-      setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
+      panel.setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
       return;
     }
-  }, [runtime, active, setRuntime, canvasRegistryVersion]);
+  }, [runtime, active, canvasRegistryVersion, panel]);
 
   useEffect(() => {
+    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_LISTENER', true)) {
+      panel.setInspectHoverWidget(null);
+      return;
+    }
     if (!runtime) {
       return;
     }
+    devtoolsLogEffect('mouse.events', 'start', {
+      运行时: runtime.getCanvasId?.() ?? 'unknown',
+    });
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas =
@@ -89,18 +123,28 @@ export function useMouseInteraction({
       if (raf) {
         return;
       }
+      devtoolsTrackRaf('request');
       raf = requestAnimationFrame(() => {
         raf = 0;
         if (!lastEvent || !active) {
           return;
         }
+        if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_HIT_TEST', true)) {
+          lastHover = null;
+          panel.setInspectHoverWidget(null);
+          return;
+        }
+        const perfStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        devtoolsTimeStart('useMouseInteraction.hitTest', {
+          运行时: runtime?.getCanvasId?.() ?? 'unknown',
+        });
         const cx = lastEvent.clientX;
         const cy = lastEvent.clientY;
         try {
           const list = Runtime.listCanvas();
           const nextMulti = list.length > 1;
-          if (nextMulti !== isMultiRuntime) {
-            setIsMultiRuntime(nextMulti);
+          if (nextMulti !== panel.isMultiRuntime) {
+            panel.setIsMultiRuntime(nextMulti);
           }
           let overCanvas = false;
           for (const it of list) {
@@ -111,21 +155,23 @@ export function useMouseInteraction({
               if (elAt === it.canvas) {
                 overCanvas = true;
                 if (it.runtime !== runtime) {
-                  setRuntime(it.runtime);
+                  panel.setRuntime(it.runtime);
                 }
-                setRuntimeId(it.runtime.getCanvasId?.() ?? null);
+                panel.setRuntimeId(it.runtime.getCanvasId?.() ?? null);
                 break;
               }
             }
           }
           if (!overCanvas) {
             lastHover = null;
-            setHoverWidget(null);
+            panel.setInspectHoverWidget(null);
+            devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '不在画布' });
             return;
           }
         } catch {
           lastHover = null;
-          setHoverWidget(null);
+          panel.setInspectHoverWidget(null);
+          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '异常' });
           return;
         }
         const rendererNow = runtime?.getRenderer();
@@ -134,14 +180,16 @@ export function useMouseInteraction({
           rawNow?.canvas ?? runtime?.container?.querySelector(DEVTOOLS_DOM_TAGS.CANVAS);
         if (!canvasEl) {
           lastHover = null;
-          setHoverWidget(null);
+          panel.setInspectHoverWidget(null);
+          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '无画布' });
           return;
         }
         const rect = (canvasEl as HTMLCanvasElement).getBoundingClientRect();
         const elAt = document.elementFromPoint(cx, cy);
         if (elAt !== canvasEl) {
           lastHover = null;
-          setHoverWidget(null);
+          panel.setInspectHoverWidget(null);
+          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '元素不匹配' });
           return;
         }
         const x = cx - rect.left;
@@ -166,22 +214,44 @@ export function useMouseInteraction({
           }
         }
 
+        devtoolsLogState('mouse.hoverWidget', lastHover, finalTarget);
         lastHover = finalTarget;
-        setHoverWidget(finalTarget);
+        panel.setInspectHoverWidget(finalTarget);
+        devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '完成' });
+        const perfEnd = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const cost = perfEnd - perfStart;
+        if (cost >= 12) {
+          devtoolsLog(DEVTOOLS_DEBUG_LEVEL.WARN, '命中测试较慢', {
+            耗时: Number(cost.toFixed(2)),
+            运行时: runtime?.getCanvasId?.() ?? 'unknown',
+            目标: finalTarget?.type ?? null,
+          });
+        }
       });
     }
 
+    const scheduleThrottled = throttle(schedule, 16, { trailing: true });
+
     function onMove(e: MouseEvent): void {
+      if (!active) {
+        return;
+      }
+      devtoolsCount('useMouseInteraction.onMove', { threshold: 60, windowMs: 1000 });
       lastEvent = e;
       lastPos.current = { x: e.clientX, y: e.clientY };
-      schedule();
+      scheduleThrottled();
     }
 
     function onClick(): void {
+      if (!active) {
+        return;
+      }
+      devtoolsCount('useMouseInteraction.onClick', { threshold: 6, windowMs: 1000 });
       if (active && lastHover && runtime) {
-        setPickedWidget(lastHover);
+        devtoolsLogState('mouse.pickedWidget', null, lastHover);
+        panel.setPickedWidget(lastHover);
         lastHover = null;
-        setHoverWidget(null);
+        panel.setInspectHoverWidget(null);
       }
     }
 
@@ -190,16 +260,25 @@ export function useMouseInteraction({
       onMove,
       DEVTOOLS_DOM_EVENT_OPTIONS.PASSIVE_TRUE,
     );
+    devtoolsTrackEventListener('add', DEVTOOLS_DOM_EVENTS.MOUSEMOVE, 'window');
     canvas?.addEventListener(DEVTOOLS_DOM_EVENTS.CLICK, onClick);
+    devtoolsTrackEventListener('add', DEVTOOLS_DOM_EVENTS.CLICK, 'canvas');
 
     return () => {
+      devtoolsLogEffect('mouse.events', 'cleanup', {
+        运行时: runtime.getCanvasId?.() ?? 'unknown',
+      });
       window.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
+      devtoolsTrackEventListener('remove', DEVTOOLS_DOM_EVENTS.MOUSEMOVE, 'window');
       canvas?.removeEventListener(DEVTOOLS_DOM_EVENTS.CLICK, onClick);
+      devtoolsTrackEventListener('remove', DEVTOOLS_DOM_EVENTS.CLICK, 'canvas');
       if (raf) {
+        devtoolsTrackRaf('cancel');
         cancelAnimationFrame(raf);
       }
+      scheduleThrottled.cancel();
     };
-  }, [runtime, active, setHoverWidget, setPickedWidget, setRuntime, isMultiRuntime]);
+  }, [runtime, active, panel]);
 
-  return { runtimeId, isMultiRuntime, overlapWarning };
+  return { runtimeId: panel.runtimeId, isMultiRuntime: panel.isMultiRuntime, overlapWarning };
 }

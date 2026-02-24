@@ -1,3 +1,10 @@
+/**
+ * Devtools 单例管理测试
+ *
+ * 验证单例初始化、并发初始化与销毁重建流程。
+ * 注意事项：测试过程中会操作 DOM。
+ * 潜在副作用：创建并销毁 Devtools 实例。
+ */
 import { act } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 

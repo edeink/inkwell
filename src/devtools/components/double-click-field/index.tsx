@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+/**
+ * 双击可编辑字段
+ *
+ * 支持点击进入编辑态并处理失焦退出。
+ * 注意事项：依赖 DOM 事件监听。
+ * 潜在副作用：注册全局 pointerdown 监听。
+ */
+import { observer, useLocalObservable } from 'mobx-react-lite';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 import {
   DEVTOOLS_DOM_EVENT_OPTIONS,
@@ -9,9 +17,15 @@ import {
 import styles from './index.module.less';
 
 /**
- * 双击可编辑字段组件
+ * DoubleClickEditableField
+ *
+ * @param props 组件参数
+ * @returns React 元素
+ * @remarks
+ * 注意事项：editable 为 false 时禁止进入编辑态。
+ * 潜在副作用：注册 pointerdown 监听与焦点控制。
  */
-export function DoubleClickEditableField({
+export const DoubleClickEditableField = observer(function DoubleClickEditableField({
   editor,
   display,
   editable = true,
@@ -28,7 +42,12 @@ export function DoubleClickEditableField({
   displayClassName?: string;
   editorClassName?: string;
 }) {
-  const [editing, setEditing] = useState(false);
+  const ui = useLocalObservable(() => ({
+    editing: false,
+    setEditing(next: boolean) {
+      this.editing = next;
+    },
+  }));
   const rootRef = useRef<HTMLDivElement | null>(null);
   const isExitTarget = (target: HTMLElement | null, root: HTMLElement | null) => {
     if (!target) {
@@ -49,13 +68,13 @@ export function DoubleClickEditableField({
   };
 
   useEffect(() => {
-    if (!editable && editing) {
-      setEditing(false);
+    if (!editable && ui.editing) {
+      ui.setEditing(false);
     }
-  }, [editable, editing]);
+  }, [editable, ui]);
 
   useEffect(() => {
-    if (!editing) {
+    if (!ui.editing) {
       return;
     }
     const root = rootRef.current;
@@ -69,10 +88,10 @@ export function DoubleClickEditableField({
         (target as HTMLInputElement).select();
       }
     }
-  }, [editing]);
+  }, [ui.editing]);
 
   useEffect(() => {
-    if (!editing || !exitOnBlur) {
+    if (!ui.editing || !exitOnBlur) {
       return;
     }
     const handlePointerDown = (event: PointerEvent) => {
@@ -81,7 +100,7 @@ export function DoubleClickEditableField({
       if (!isExitTarget(target, root)) {
         return;
       }
-      setEditing(false);
+      ui.setEditing(false);
     };
     document.addEventListener(
       DEVTOOLS_DOM_EVENTS.POINTERDOWN,
@@ -94,17 +113,17 @@ export function DoubleClickEditableField({
         handlePointerDown,
         DEVTOOLS_DOM_EVENT_OPTIONS.CAPTURE_TRUE,
       );
-  }, [editing, exitOnBlur]);
+  }, [exitOnBlur, ui]);
 
   const handleBlurCapture = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (!exitOnBlur || !editing) {
+    if (!exitOnBlur || !ui.editing) {
       return;
     }
     const next = e.relatedTarget instanceof HTMLElement ? e.relatedTarget : null;
     if (!isExitTarget(next, e.currentTarget)) {
       return;
     }
-    setEditing(false);
+    ui.setEditing(false);
   };
 
   return (
@@ -116,22 +135,22 @@ export function DoubleClickEditableField({
       <div
         className={[
           styles.editor,
-          editing ? styles.editorActive : styles.editorInactive,
+          ui.editing ? styles.editorActive : styles.editorInactive,
           editorClassName ?? '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        {editing
+        {ui.editing
           ? typeof editor === 'function'
-            ? editor({ exit: () => setEditing(false), editing })
+            ? editor({ exit: () => ui.setEditing(false), editing: ui.editing })
             : editor
           : null}
       </div>
       <div
         className={[
           styles.display,
-          editing ? styles.displayHidden : styles.displayActive,
+          ui.editing ? styles.displayHidden : styles.displayActive,
           editable ? styles.displayEditable : styles.displayReadonly,
           displayClassName ?? '',
         ]
@@ -142,11 +161,11 @@ export function DoubleClickEditableField({
             return;
           }
           e.stopPropagation?.();
-          setEditing(true);
+          ui.setEditing(true);
         }}
       >
         {display}
       </div>
     </div>
   );
-}
+});

@@ -1,11 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+/**
+ * Devtools 快捷键 Hook
+ *
+ * 负责在页面级监听快捷键并触发对应动作。
+ * 注意事项：仅在浏览器环境生效。
+ * 潜在副作用：注册全局键盘事件监听。
+ */
+import { useEffect, useMemo } from 'react';
 
 import { DEVTOOLS_DOM_EVENTS, HOTKEY_ACTION } from '../constants';
+import { devtoolsHotkeyStore } from '../store';
 
 import { DEVTOOLS_HOTKEY, DEVTOOLS_HOTKEY_DEFAULT } from '@/utils/local-storage';
 
+/**
+ * 快捷键动作类型
+ *
+ * 注意事项：与 HOTKEY_ACTION 常量保持一致。
+ * 潜在副作用：无。
+ */
 export type HotkeyAction = (typeof HOTKEY_ACTION)[keyof typeof HOTKEY_ACTION];
 
+/**
+ * 快捷键 Hook 配置
+ *
+ * 注意事项：未传 combo 时使用本地存储配置。
+ * 潜在副作用：无。
+ */
 export interface DevtoolsHotkeysOptions {
   combo?: string;
   action?: HotkeyAction;
@@ -15,6 +35,15 @@ export interface DevtoolsHotkeysOptions {
   onInspectToggle?: () => void;
 }
 
+/**
+ * 规范化快捷键组合字符串
+ *
+ * @param raw 原始组合字符串
+ * @returns 规范化后的组合字符串
+ * @remarks
+ * 注意事项：会移除多余空格与空片段。
+ * 潜在副作用：无。
+ */
 function normalizeCombo(raw: string) {
   return raw
     .split('+')
@@ -23,6 +52,16 @@ function normalizeCombo(raw: string) {
     .join('+');
 }
 
+/**
+ * 判断键盘事件是否匹配组合键
+ *
+ * @param ev 键盘事件
+ * @param comboStr 组合键字符串
+ * @returns 是否命中
+ * @remarks
+ * 注意事项：支持 CmdOrCtrl 的跨平台映射。
+ * 潜在副作用：无。
+ */
 function matches(ev: KeyboardEvent, comboStr: string): boolean {
   const parts = normalizeCombo(comboStr).split('+');
   const needShift = parts.includes('Shift');
@@ -66,12 +105,21 @@ function matches(ev: KeyboardEvent, comboStr: string): boolean {
   return keyMatch && modOk;
 }
 
+/**
+ * useDevtoolsHotkeys
+ *
+ * @param opts 快捷键配置
+ * @returns 当前 combo 与更新函数
+ * @remarks
+ * 注意事项：enabled 为 false 时不会注册事件监听。
+ * 潜在副作用：会注册并移除 window 的 keydown 监听。
+ */
 export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
   const defaultCombo = useMemo(
     () => opts.combo || DEVTOOLS_HOTKEY.get() || DEVTOOLS_HOTKEY_DEFAULT,
     [opts.combo],
   );
-  const [combo, setCombo] = useState<string>(defaultCombo);
+  const combo = opts.combo ?? devtoolsHotkeyStore.combo ?? defaultCombo;
   const enabled = opts.enabled ?? true;
   const action: HotkeyAction = opts.action ?? HOTKEY_ACTION.OPEN;
   const { onToggle, onClose, onInspectToggle } = opts;
@@ -97,10 +145,18 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
     return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.KEYDOWN, onKey);
   }, [combo, enabled, action, onToggle, onClose, onInspectToggle]);
 
+  /**
+   * 更新快捷键组合
+   *
+   * @param next 新组合键
+   * @returns void
+   * @remarks
+   * 注意事项：会对组合键做规范化处理。
+   * 潜在副作用：写入 hotkey store。
+   */
   function updateCombo(next: string) {
     const normalized = normalizeCombo(next);
-    setCombo(normalized);
-    DEVTOOLS_HOTKEY.set(normalized);
+    devtoolsHotkeyStore.setCombo(normalized);
   }
 
   return { combo, setCombo: updateCombo };

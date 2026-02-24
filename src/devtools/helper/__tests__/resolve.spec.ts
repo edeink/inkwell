@@ -1,3 +1,10 @@
+/**
+ * resolveHitWidget 工具函数测试
+ *
+ * 验证命中节点向上回溯与 overlay 分支支持。
+ * 注意事项：使用模拟 Widget 树。
+ * 潜在副作用：无。
+ */
 import { describe, expect, it } from 'vitest';
 
 import { resolveHitWidget } from '../resolve';

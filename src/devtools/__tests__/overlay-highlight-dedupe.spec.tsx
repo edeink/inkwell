@@ -1,3 +1,10 @@
+/**
+ * Overlay 高亮去重测试
+ *
+ * 验证重复渲染时的 RAF 调度去重行为。
+ * 注意事项：使用 JSDOM 模拟 DOM 与 RAF。
+ * 潜在副作用：会 stub 全局函数与 DOM。
+ */
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';

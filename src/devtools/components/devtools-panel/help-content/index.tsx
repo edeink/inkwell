@@ -1,3 +1,10 @@
+/**
+ * Devtools 帮助内容组件
+ *
+ * 用于展示快捷键说明与操作提示文案。
+ * 注意事项：依赖 DEVTOOLS_HELP_TEXT 文案配置。
+ * 潜在副作用：无。
+ */
 import { DEVTOOLS_HELP_TEXT, HOTKEY_ACTION, type HotkeyAction } from '../../../constants';
 
 import styles from './index.module.less';
@@ -11,6 +18,15 @@ import {
   SearchOutlined,
 } from '@/ui/icons';
 
+/**
+ * 获取快捷键说明文案
+ *
+ * @param action 快捷键动作类型
+ * @returns 对应的说明文本
+ * @remarks
+ * 注意事项：必须覆盖所有 HotkeyAction 分支。
+ * 潜在副作用：无。
+ */
 function getShortcutDesc(action: HotkeyAction): string {
   if (action === HOTKEY_ACTION.INSPECT) {
     return DEVTOOLS_HELP_TEXT.SHORTCUT_DESC_PICK;
@@ -21,6 +37,15 @@ function getShortcutDesc(action: HotkeyAction): string {
   return DEVTOOLS_HELP_TEXT.SHORTCUT_DESC_OPEN;
 }
 
+/**
+ * DevtoolsHelpContent
+ *
+ * @param props 帮助内容参数
+ * @returns React 元素
+ * @remarks
+ * 注意事项：combo 用于动态展示快捷键文本。
+ * 潜在副作用：无。
+ */
 export function DevtoolsHelpContent({ combo, action }: { combo: string; action: HotkeyAction }) {
   return (
     <div className={styles.helpPanel}>

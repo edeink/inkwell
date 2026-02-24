@@ -1,5 +1,13 @@
+/**
+ * Devtools 树面板组件
+ *
+ * 渲染组件树、搜索与面包屑，并提供交互回调。
+ * 注意事项：依赖 LayoutInfo 控制布局尺寸。
+ * 潜在副作用：可能触发滚动与输入焦点管理。
+ */
 import cn from 'classnames';
-import { useEffect, useMemo, useRef, useState, type Key } from 'react';
+import { observer, useLocalObservable } from 'mobx-react-lite';
+import { useCallback, useEffect, useMemo, useRef, type Key } from 'react';
 
 import {
   DEVTOOLS_DOCK,
@@ -15,19 +23,13 @@ import styles from './index.module.less';
 import { Button, Input, Tooltip, Tree, type DataNode } from '@/ui';
 import { ConsoleOutlined, LeftOutlined, RightOutlined } from '@/ui/icons';
 
-export function DevtoolsTreePane({
-  info,
-  isMultiRuntime,
-  treeData,
-  expandedKeys,
-  selectedKey,
-  breadcrumbs = [],
-  onExpandKeysChange,
-  onSelectKey,
-  onHoverKey,
-  onClickBreadcrumbKey,
-  onPrintSelected,
-}: {
+/**
+ * 树面板属性
+ *
+ * 注意事项：回调需保持稳定引用以避免无效渲染。
+ * 潜在副作用：无。
+ */
+export type DevtoolsTreePaneProps = {
   info: LayoutInfo;
   isMultiRuntime: boolean;
   treeData: DataNode[];
@@ -39,30 +41,65 @@ export function DevtoolsTreePane({
   onHoverKey: (key: string | null) => void;
   onClickBreadcrumbKey: (key: string) => void;
   onPrintSelected: () => void;
-}) {
-  const [search, setSearch] = useState<string>('');
-  const searchLower = useMemo(() => search.trim().toLowerCase(), [search]);
+};
+
+/**
+ * DevtoolsTreePane
+ *
+ * @param props 树面板属性
+ * @returns React 元素
+ * @remarks
+ * 注意事项：树数据量较大时需关注性能。
+ * 潜在副作用：可能触发滚动与输入状态变化。
+ */
+export const DevtoolsTreePane = observer(function DevtoolsTreePane({
+  info,
+  isMultiRuntime,
+  treeData,
+  expandedKeys,
+  selectedKey,
+  breadcrumbs = [],
+  onExpandKeysChange,
+  onSelectKey,
+  onHoverKey,
+  onClickBreadcrumbKey,
+  onPrintSelected,
+}: DevtoolsTreePaneProps) {
+  const ui = useLocalObservable(() => ({
+    search: '',
+    containerHeight: 0,
+    scrollLeft: false,
+    scrollRight: false,
+    setSearch(value: string) {
+      this.search = value;
+    },
+    setContainerHeight(value: number) {
+      this.containerHeight = value;
+    },
+    setScrollState(left: boolean, right: boolean) {
+      this.scrollLeft = left;
+      this.scrollRight = right;
+    },
+    get searchLower() {
+      return this.search.trim().toLowerCase();
+    },
+  }));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const breadcrumbsRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState<number>(0);
 
   const breadcrumbScrollRef = useRef<HTMLDivElement>(null);
-  const [scrollState, setScrollState] = useState({ left: false, right: false });
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     const el = breadcrumbScrollRef.current;
     if (!el) {
       return;
     }
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setScrollState({
-      left: scrollLeft > 1,
-      right: Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1,
-    });
-  };
+    ui.setScrollState(scrollLeft > 1, Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1);
+  }, [ui]);
 
   useEffect(() => {
     const el = breadcrumbScrollRef.current;
@@ -76,7 +113,7 @@ export function DevtoolsTreePane({
       el.removeEventListener(DEVTOOLS_DOM_EVENTS.SCROLL, onScroll);
       window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, checkScroll);
     };
-  }, []);
+  }, [checkScroll]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -86,14 +123,14 @@ export function DevtoolsTreePane({
         el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
       }
     });
-  }, [breadcrumbs]);
+  }, [breadcrumbs, checkScroll]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) {
       return;
     }
-    const update = () => setContainerHeight(el.clientHeight);
+    const update = () => ui.setContainerHeight(el.clientHeight);
     update();
     if (typeof ResizeObserver === 'undefined') {
       window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, update);
@@ -102,11 +139,11 @@ export function DevtoolsTreePane({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [ui]);
 
   const treeHeight = useMemo(() => {
     const containerH =
-      containerHeight ||
+      ui.containerHeight ||
       (info.isNarrow
         ? info.treeHeight
         : info.dock === DEVTOOLS_DOCK.TOP || info.dock === DEVTOOLS_DOCK.BOTTOM
@@ -117,7 +154,7 @@ export function DevtoolsTreePane({
     const breadcrumbsH = breadcrumbsRef.current?.getBoundingClientRect().height ?? 0;
     const gap = 8;
     return Math.max(120, Math.floor(containerH - tipH - toolbarH - breadcrumbsH - gap));
-  }, [containerHeight, info.dock, info.height, info.isNarrow, info.treeHeight]);
+  }, [ui.containerHeight, info.dock, info.height, info.isNarrow, info.treeHeight]);
 
   return (
     <div ref={containerRef} className={styles.treePaneRoot}>
@@ -130,8 +167,8 @@ export function DevtoolsTreePane({
       <div className={styles.treeToolbar} ref={toolbarRef}>
         <div className={styles.treeToolbarSearch}>
           <Input.Search
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={ui.search}
+            onChange={(e) => ui.setSearch(e.target.value)}
             placeholder={DEVTOOLS_TREE_PANE_TEXT.SEARCH_PLACEHOLDER}
             allowClear
           />
@@ -174,13 +211,15 @@ export function DevtoolsTreePane({
           onSelectKey(String(keys[0]));
         }}
         filterTreeNode={
-          searchLower ? (node) => String(node.title).toLowerCase().includes(searchLower) : undefined
+          ui.searchLower
+            ? (node) => String(node.title).toLowerCase().includes(ui.searchLower)
+            : undefined
         }
       />
 
       <div className={styles.breadcrumbsContainer} ref={breadcrumbsRef}>
         <div
-          className={cn(styles.navBtn, { [styles.disabled]: !scrollState.left })}
+          className={cn(styles.navBtn, { [styles.disabled]: !ui.scrollLeft })}
           onClick={() => {
             breadcrumbScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
           }}
@@ -210,7 +249,7 @@ export function DevtoolsTreePane({
           })}
         </div>
         <div
-          className={cn(styles.navBtn, { [styles.disabled]: !scrollState.right })}
+          className={cn(styles.navBtn, { [styles.disabled]: !ui.scrollRight })}
           onClick={() => {
             breadcrumbScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
           }}
@@ -220,4 +259,4 @@ export function DevtoolsTreePane({
       </div>
     </div>
   );
-}
+});

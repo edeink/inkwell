@@ -1,4 +1,12 @@
-import { useEffect, useState } from 'react';
+/**
+ * Devtools 属性编辑器
+ *
+ * 渲染组件属性与状态编辑面板。
+ * 注意事项：依赖 Widget 实例的 data/state 结构。
+ * 潜在副作用：可能调用 widget.createElement 与 setState。
+ */
+import { observer, useLocalObservable } from 'mobx-react-lite';
+import { useEffect } from 'react';
 
 import {
   DEVTOOLS_CSS,
@@ -19,18 +27,36 @@ import styles from './index.module.less';
 import { ReadonlyRows } from './readonly-rows';
 import { Section } from './section';
 
-/**
- * PropsEditor
- * 功能：基于组件数据渲染属性编辑表单，支持受保护属性提示与禁用
- * 参数：widget - 目标组件；onChange - 应用更新后的回调
- * 返回：无（通过父组件控制实际应用）
- */
 import type { Widget } from '../../../core/base';
 
 import { Button, Input, Popover, Tabs, Tooltip } from '@/ui';
 import { InfoCircleOutlined, InspectOutlined, SyncOutlined, UserOutlined } from '@/ui/icons';
 
-export function PropsEditor({ widget, onChange }: { widget: Widget | null; onChange: () => void }) {
+/**
+ * PropsEditor
+ *
+ * @param props 属性编辑器参数
+ * @returns React 元素
+ * @remarks
+ * 注意事项：会直接修改 widget 实例数据并触发重建。
+ * 潜在副作用：调用 createElement/setState/markDirty。
+ */
+export const PropsEditor = observer(function PropsEditor({
+  widget,
+  onChange,
+}: {
+  widget: Widget | null;
+  onChange: () => void;
+}) {
+  /**
+   * 获取状态快照
+   *
+   * @param target 目标组件
+   * @returns 状态快照对象
+   * @remarks
+   * 注意事项：仅支持 plain object 状态。
+   * 潜在副作用：无。
+   */
   const getStateSnapshot = (target: Widget | null) => {
     const state = (target as unknown as { state?: Record<string, unknown> } | null)?.state;
     if (!state || typeof state !== 'object' || Array.isArray(state)) {
@@ -38,32 +64,47 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
     }
     return { ...state };
   };
-  const [localProps, setLocalProps] = useState<Record<string, unknown>>(
-    widget ? { ...widget.data } : {},
-  );
-  const [localState, setLocalState] = useState<Record<string, unknown>>(
-    widget ? getStateSnapshot(widget) : {},
-  );
+  const ui = useLocalObservable(() => ({
+    localProps: {} as Record<string, unknown>,
+    localState: {} as Record<string, unknown>,
+    setFromWidget(target: Widget | null) {
+      this.localProps = target ? { ...target.data } : {};
+      this.localState = target ? getStateSnapshot(target) : {};
+    },
+    setLocalProps(next: Record<string, unknown>) {
+      this.localProps = next;
+    },
+    setLocalState(next: Record<string, unknown>) {
+      this.localState = next;
+    },
+  }));
 
   useEffect(() => {
-    setLocalProps(widget ? { ...widget.data } : {});
-    setLocalState(widget ? getStateSnapshot(widget) : {});
-  }, [widget]);
+    ui.setFromWidget(widget);
+  }, [ui, widget]);
 
+  /**
+   * 应用本地编辑结果
+   *
+   * @returns void
+   * @remarks
+   * 注意事项：会触发 widget 重建与状态更新。
+   * 潜在副作用：调用 createElement/setState/markDirty。
+   */
   function apply() {
     if (!widget) {
       return;
     }
-    const nextData = { ...widget.data, ...localProps } as typeof widget.data;
+    const nextData = { ...widget.data, ...ui.localProps } as typeof widget.data;
     widget.createElement(nextData);
     const stateTarget = widget as unknown as {
       setState?: (partial: Record<string, unknown>) => void;
       state?: Record<string, unknown>;
     };
-    if (stateTarget.setState && Object.keys(localState).length > 0) {
-      stateTarget.setState(localState);
-    } else if (stateTarget.state && Object.keys(localState).length > 0) {
-      stateTarget.state = { ...localState };
+    if (stateTarget.setState && Object.keys(ui.localState).length > 0) {
+      stateTarget.setState(ui.localState);
+    } else if (stateTarget.state && Object.keys(ui.localState).length > 0) {
+      stateTarget.state = { ...ui.localState };
       widget.markDirty();
     }
     onChange();
@@ -90,7 +131,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
       </div>
     );
   }
-  const allEntries = Object.entries(localProps).filter(
+  const allEntries = Object.entries(ui.localProps).filter(
     ([k]) =>
       k !== DEVTOOLS_PROP_KEYS.INKWELL_TYPE &&
       k !== DEVTOOLS_PROP_KEYS.CHILDREN &&
@@ -101,7 +142,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
   const isCallbackKey = (k: string) => /^on[A-Z]/.test(k);
   const callbackEntries = displayEntries.filter(([k]) => isCallbackKey(k));
 
-  const stateEntries = Object.entries(localState);
+  const stateEntries = Object.entries(ui.localState);
 
   // 过滤出用于 ObjectEditor 编辑的属性 (排除 callbacks 和 children/state/hidden)
   // 注意：ObjectEditor 内部会处理 hiddenKeys，但我们在这里为了避免混淆，
@@ -115,19 +156,19 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
     !isCallbackKey(k);
 
   const editableProps = Object.fromEntries(
-    Object.entries(localProps).filter(([k]) => isPropEditable(k)),
+    Object.entries(ui.localProps).filter(([k]) => isPropEditable(k)),
   );
 
   const onPropsChange = (newEditableProps: Record<string, unknown>) => {
     // Merge back: keep non-editable props from localProps, add new editable props
     const nonEditableProps = Object.fromEntries(
-      Object.entries(localProps).filter(([k]) => !isPropEditable(k)),
+      Object.entries(ui.localProps).filter(([k]) => !isPropEditable(k)),
     );
-    setLocalProps({ ...nonEditableProps, ...newEditableProps });
+    ui.setLocalProps({ ...nonEditableProps, ...newEditableProps });
   };
 
   const onStateChange = (newState: Record<string, unknown>) => {
-    setLocalState(newState);
+    ui.setLocalState(newState);
   };
 
   // 锁定属性：key 和受保护属性
@@ -324,7 +365,7 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
             titleClassName={styles.sectionTitlePrimary}
             bodyClassName={styles.singleColumnGroup}
           >
-            <ObjectEditor value={localState} onChange={onStateChange} />
+            <ObjectEditor value={ui.localState} onChange={onStateChange} />
           </Section>
         )}
         {Object.keys(editableProps).length > 0 && (
@@ -366,4 +407,4 @@ export function PropsEditor({ widget, onChange }: { widget: Widget | null; onCha
       />
     </div>
   );
-}
+});

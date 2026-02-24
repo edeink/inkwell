@@ -1,9 +1,22 @@
+/**
+ * 命中节点解析工具
+ *
+ * 提供从命中节点向上回溯的可达性解析逻辑。
+ * 注意事项：依赖 Widget 的 parent/children 关系。
+ * 潜在副作用：无。
+ */
 import type { Widget } from '@/core/base';
 
 /**
  * 解析命中节点
- * 尝试从命中节点向上查找，直到找到一个在树中可以通过选择器定位到的节点。
- * 这保证了 DevTools 的 Tree 跳转和高亮的一致性。
+ *
+ * @param root 主树根节点
+ * @param hitNode 命中节点
+ * @param overlayRoot overlay 树根节点
+ * @returns 可达节点或原始命中节点
+ * @remarks
+ * 注意事项：会沿父链向上查找可达节点。
+ * 潜在副作用：无。
  */
 export function resolveHitWidget(
   root: Widget,
