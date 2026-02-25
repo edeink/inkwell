@@ -6,7 +6,7 @@
  * 潜在副作用：注册页面可见性监听并输出调试日志。
  */
 import { observer } from 'mobx-react-lite';
-import { useEffect, useMemo, type ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 
 import {
   DEVTOOLS_DEBUG_LEVEL,
@@ -19,9 +19,12 @@ import {
 import { useMouseInteraction } from '../../../hooks/useMouseInteraction';
 import { useDevtoolsStore } from '../../../store';
 import LayoutPanel from '../../layout';
-import Overlay from '../../overlay';
 import { DevtoolsHeaderLeft } from '../header-left';
 import { DevtoolsHeaderRight } from '../header-right';
+
+import type { Widget } from '@/core/base';
+import type Runtime from '@/runtime';
+import type { DataNode } from '@/ui';
 
 import { ConfigProvider } from '@/ui';
 
@@ -40,18 +43,24 @@ export const DevToolsPanelInner = observer(function DevToolsPanelInner({
   helpContent: ReactElement;
 }) {
   const { panel } = useDevtoolsStore();
-  const { runtime, activeInspect, visible } = panel;
+  const { activeInspect, visible } = panel;
+  const isActive = visible || activeInspect;
   const inspectEnabled = panel.inspectEnabled;
-  const { isMultiRuntime } = useMouseInteraction(panel);
-  const treeData = panel.treeData;
-  const selectedNodeKey = panel.selectedNodeKey;
-  const selected = panel.selectedWidget;
-  const expandedKeys = useMemo<string[]>(
-    () => Array.from(panel.expandedKeys),
-    [panel.expandedKeys],
-  );
-  const breadcrumbs = panel.breadcrumbs;
-  const overlayState = panel.overlayState;
+  const { isMultiRuntime } = useMouseInteraction(panel, isActive);
+  let runtime: Runtime | null = null;
+  let treeData: DataNode[] = [];
+  let selectedNodeKey: string | null = null;
+  let selected: Widget | null = null;
+  let expandedKeys: string[] = [];
+  let breadcrumbs: Array<{ key: string; label: string }> = [];
+  if (isActive) {
+    runtime = panel.runtime;
+    treeData = panel.treeData;
+    selectedNodeKey = panel.selectedNodeKey;
+    selected = panel.selectedWidget;
+    expandedKeys = Array.from(panel.expandedKeys);
+    breadcrumbs = panel.breadcrumbs;
+  }
 
   useEffect(() => {
     devtoolsLogEffect('panel.mount', 'start');
@@ -78,9 +87,9 @@ export const DevToolsPanelInner = observer(function DevToolsPanelInner({
         return container ?? document.body;
       }}
     >
-      {overlayState.active ? (
+      {/* {overlayState.active ? (
         <Overlay runtime={runtime} active={overlayState.active} widget={overlayState.widget} />
-      ) : null}
+      ) : null} */}
       <LayoutPanel
         visible={visible}
         headerLeft={

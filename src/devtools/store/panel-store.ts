@@ -61,6 +61,7 @@ export class DevtoolsPanelStore {
   overlapWarning = false;
   canvasRegistryVersion = 0;
   private disposers: Array<() => void> = [];
+  private treeHashDisposer: (() => void) | null = null;
 
   /**
    * 初始化面板状态与反应式副作用
@@ -149,6 +150,12 @@ export class DevtoolsPanelStore {
         { fireImmediately: true },
       ),
     );
+    this.disposers.push(() => {
+      if (this.treeHashDisposer) {
+        this.treeHashDisposer();
+        this.treeHashDisposer = null;
+      }
+    });
   }
 
   /**
@@ -623,6 +630,10 @@ export class DevtoolsPanelStore {
   }
 
   private bindTreeHashListener() {
+    if (this.treeHashDisposer) {
+      this.treeHashDisposer();
+      this.treeHashDisposer = null;
+    }
     if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_TREE_HASH', true)) {
       return;
     }
@@ -672,7 +683,12 @@ export class DevtoolsPanelStore {
     };
     const update = debounceSchedule(schedule, 250);
     const dispose = this.runtime.addTickListener(update);
-    this.disposers.push(() => {
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
       devtoolsLogEffect('panel.treeHash', 'cleanup');
       dispose();
       update.cancel();
@@ -685,7 +701,8 @@ export class DevtoolsPanelStore {
         }
         idleId = null;
       }
-    });
+    };
+    this.treeHashDisposer = cleanup;
   }
 }
 

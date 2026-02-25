@@ -43,17 +43,27 @@ import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
  * 注意事项：需在浏览器环境调用。
  * 潜在副作用：注册 window/document 事件监听与 RAF。
  */
-export function useMouseInteraction(panel: DevtoolsPanelStore): {
+export function useMouseInteraction(
+  panel: DevtoolsPanelStore,
+  enabled: boolean = true,
+): {
   runtimeId: string | null;
   isMultiRuntime: boolean;
   overlapWarning: boolean;
 } {
+  const snapshotRef = useRef({
+    runtimeId: null as string | null,
+    isMultiRuntime: false,
+    overlapWarning: false,
+  });
   const lastPos = useRef<{ x: number; y: number } | null>(null);
-  const runtime = panel.runtime;
-  const active = panel.activeInspect;
-  const overlapWarning = panel.overlapWarning;
-  const canvasRegistryVersion = panel.canvasRegistryVersion;
+  const runtime = enabled ? panel.runtime : null;
+  const active = enabled ? panel.activeInspect : false;
+  const canvasRegistryVersion = enabled ? panel.canvasRegistryVersion : 0;
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     devtoolsLogEffect('mouse.mount', 'start');
     devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'useMouseInteraction 挂载', {
       内存: devtoolsGetMemorySnapshot(),
@@ -66,21 +76,31 @@ export function useMouseInteraction(panel: DevtoolsPanelStore): {
         资源: devtoolsGetResourceSnapshot(),
       });
     };
-  }, []);
+  }, [enabled]);
   useEffect(() => {
+    if (!enabled) {
+      panel.setInspectHoverWidget(null);
+      return;
+    }
     devtoolsLogEffect('mouse.active', 'start', { 启用: active });
     if (!active) {
       panel.setInspectHoverWidget(null);
     }
-  }, [active, panel]);
+  }, [active, enabled, panel]);
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     devtoolsLogEffect('mouse.canvasRegistry', 'start');
     return Runtime.subscribeCanvasRegistryChange(() => {
       panel.bumpCanvasRegistryVersion();
     });
-  }, [panel]);
+  }, [enabled, panel]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     devtoolsCount('useMouseInteraction.canvasRegistryUpdate', { threshold: 8, windowMs: 1000 });
     const list = Runtime.listCanvas();
     if (!list || list.length === 0) {
@@ -97,9 +117,13 @@ export function useMouseInteraction(panel: DevtoolsPanelStore): {
       panel.setRuntimeId(list[0].runtime.getCanvasId?.() ?? null);
       return;
     }
-  }, [runtime, active, canvasRegistryVersion, panel]);
+  }, [runtime, active, canvasRegistryVersion, enabled, panel]);
 
   useEffect(() => {
+    if (!enabled) {
+      panel.setInspectHoverWidget(null);
+      return;
+    }
     if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_LISTENER', true)) {
       panel.setInspectHoverWidget(null);
       return;
@@ -278,7 +302,14 @@ export function useMouseInteraction(panel: DevtoolsPanelStore): {
       }
       scheduleThrottled.cancel();
     };
-  }, [runtime, active, panel]);
+  }, [runtime, active, enabled, panel]);
 
-  return { runtimeId: panel.runtimeId, isMultiRuntime: panel.isMultiRuntime, overlapWarning };
+  if (enabled) {
+    snapshotRef.current = {
+      runtimeId: panel.runtimeId,
+      isMultiRuntime: panel.isMultiRuntime,
+      overlapWarning: panel.overlapWarning,
+    };
+  }
+  return snapshotRef.current;
 }

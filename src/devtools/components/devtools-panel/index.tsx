@@ -128,10 +128,6 @@ export const DevToolsPanel = observer(function DevToolsPanel(props: DevToolsProp
     devtoolsCount('DevToolsPanel.stateChange', { threshold: 6, windowMs: 1000 });
   }, [panel.activeInspect, panel.visible]);
 
-  if (!panel.visible && !panel.activeInspect) {
-    return null;
-  }
-
   return (
     <DevtoolsStoreProvider store={store}>
       <DevToolsPanelInner helpContent={helpContent} />

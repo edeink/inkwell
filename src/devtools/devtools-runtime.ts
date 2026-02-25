@@ -1,14 +1,49 @@
-import { DEVTOOLS_DOM, DEVTOOLS_EVENTS } from './constants';
+import { DEVTOOLS_DOM, DEVTOOLS_EVENTS, DEVTOOLS_GLOBAL } from './constants';
 
 let portalContainer: HTMLDivElement | null = null;
 let created = false;
 let instance: Devtools | null = null;
 
+type DevtoolsGlobalState = {
+  container: HTMLDivElement | null;
+  created: boolean;
+};
+
+function getGlobalState(): DevtoolsGlobalState | null {
+  if (typeof globalThis === 'undefined') {
+    return null;
+  }
+  const key = DEVTOOLS_GLOBAL.STATE_KEY;
+  const g = globalThis as typeof globalThis & { [key: string]: DevtoolsGlobalState | undefined };
+  const existing = g[key];
+  if (existing) {
+    return existing;
+  }
+  const next = { container: null, created: false };
+  g[key] = next;
+  return next;
+}
+
 export function ensureDevtoolsContainer(): HTMLDivElement | null {
   if (typeof document === 'undefined') {
     return null;
   }
+  const globalState = getGlobalState();
+  const globalContainer = globalState?.container ?? null;
+  if (globalContainer) {
+    portalContainer = globalContainer;
+    if (!document.body.contains(globalContainer)) {
+      document.body.appendChild(globalContainer);
+    }
+    return globalContainer;
+  }
   if (portalContainer) {
+    if (!document.body.contains(portalContainer)) {
+      document.body.appendChild(portalContainer);
+    }
+    if (globalState) {
+      globalState.container = portalContainer;
+    }
     return portalContainer;
   }
   const existing = document.getElementById(DEVTOOLS_DOM.ROOT_ID) as HTMLDivElement | null;
@@ -16,6 +51,9 @@ export function ensureDevtoolsContainer(): HTMLDivElement | null {
   if (!existing) {
     portalContainer.id = DEVTOOLS_DOM.ROOT_ID;
     document.body.appendChild(portalContainer);
+  }
+  if (globalState) {
+    globalState.container = portalContainer;
   }
   return portalContainer;
 }
@@ -28,15 +66,25 @@ export function emitDevtoolsEvent(type: string) {
 }
 
 export function isDevtoolsCreated() {
+  const globalState = getGlobalState();
+  if (globalState) {
+    return globalState.created;
+  }
   return created;
 }
 
 export function markDevtoolsCreated() {
   created = true;
+  const globalState = getGlobalState();
+  if (globalState) {
+    globalState.created = true;
+  }
 }
 
 export class Devtools {
-  private constructor() {}
+  private constructor() {
+    void 0;
+  }
 
   static getInstance() {
     return instance ?? (instance = new Devtools());
@@ -77,5 +125,10 @@ export class Devtools {
     }
     portalContainer = null;
     created = false;
+    const globalState = getGlobalState();
+    if (globalState) {
+      globalState.container = null;
+      globalState.created = false;
+    }
   }
 }
