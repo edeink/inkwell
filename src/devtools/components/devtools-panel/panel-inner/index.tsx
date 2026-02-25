@@ -3,28 +3,18 @@
  *
  * 负责渲染布局容器、树面板、属性面板与 Overlay。
  * 注意事项：依赖 DevtoolsStoreProvider 提供的 RootStore。
- * 潜在副作用：注册页面可见性监听并输出调试日志。
+ * 潜在副作用：注册页面可见性监听。
  */
 import { observer } from 'mobx-react-lite';
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, useMemo, type ReactElement } from 'react';
 
-import {
-  DEVTOOLS_DEBUG_LEVEL,
-  DEVTOOLS_DOM,
-  devtoolsGetMemorySnapshot,
-  devtoolsGetResourceSnapshot,
-  devtoolsLog,
-  devtoolsLogEffect,
-} from '../../../constants';
+import { DEVTOOLS_DOM } from '../../../constants';
 import { useMouseInteraction } from '../../../hooks/useMouseInteraction';
 import { useDevtoolsStore } from '../../../store';
 import LayoutPanel from '../../layout';
+import Overlay from '../../overlay';
 import { DevtoolsHeaderLeft } from '../header-left';
 import { DevtoolsHeaderRight } from '../header-right';
-
-import type { Widget } from '@/core/base';
-import type Runtime from '@/runtime';
-import type { DataNode } from '@/ui';
 
 import { ConfigProvider } from '@/ui';
 
@@ -35,7 +25,7 @@ import { ConfigProvider } from '@/ui';
  * @returns React 元素
  * @remarks
  * 注意事项：必须处于 DevtoolsStoreProvider 的上下文内。
- * 潜在副作用：注册页面可见性监听与日志输出。
+ * 潜在副作用：注册页面可见性监听。
  */
 export const DevToolsPanelInner = observer(function DevToolsPanelInner({
   helpContent,
@@ -43,39 +33,18 @@ export const DevToolsPanelInner = observer(function DevToolsPanelInner({
   helpContent: ReactElement;
 }) {
   const { panel } = useDevtoolsStore();
-  const { activeInspect, visible } = panel;
-  const isActive = visible || activeInspect;
+  const { runtime, activeInspect, visible } = panel;
   const inspectEnabled = panel.inspectEnabled;
-  const { isMultiRuntime } = useMouseInteraction(panel, isActive);
-  let runtime: Runtime | null = null;
-  let treeData: DataNode[] = [];
-  let selectedNodeKey: string | null = null;
-  let selected: Widget | null = null;
-  let expandedKeys: string[] = [];
-  let breadcrumbs: Array<{ key: string; label: string }> = [];
-  if (isActive) {
-    runtime = panel.runtime;
-    treeData = panel.treeData;
-    selectedNodeKey = panel.selectedNodeKey;
-    selected = panel.selectedWidget;
-    expandedKeys = Array.from(panel.expandedKeys);
-    breadcrumbs = panel.breadcrumbs;
-  }
-
-  useEffect(() => {
-    devtoolsLogEffect('panel.mount', 'start');
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'DevToolsPanelInner 挂载', {
-      内存: devtoolsGetMemorySnapshot(),
-      资源: devtoolsGetResourceSnapshot(),
-    });
-    return () => {
-      devtoolsLogEffect('panel.mount', 'cleanup');
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'DevToolsPanelInner 卸载', {
-        内存: devtoolsGetMemorySnapshot(),
-        资源: devtoolsGetResourceSnapshot(),
-      });
-    };
-  }, []);
+  const { isMultiRuntime } = useMouseInteraction(panel, visible);
+  const treeData = panel.treeData;
+  const selectedNodeKey = panel.selectedNodeKey;
+  const selected = panel.selectedWidget;
+  const expandedKeys = useMemo<string[]>(
+    () => Array.from(panel.expandedKeys),
+    [panel.expandedKeys],
+  );
+  const breadcrumbs = panel.breadcrumbs;
+  const overlayState = panel.overlayState;
 
   useEffect(() => panel.attachPageVisibility(), [panel]);
 
@@ -87,9 +56,9 @@ export const DevToolsPanelInner = observer(function DevToolsPanelInner({
         return container ?? document.body;
       }}
     >
-      {/* {overlayState.active ? (
+      {overlayState.active ? (
         <Overlay runtime={runtime} active={overlayState.active} widget={overlayState.widget} />
-      ) : null} */}
+      ) : null}
       <LayoutPanel
         visible={visible}
         headerLeft={

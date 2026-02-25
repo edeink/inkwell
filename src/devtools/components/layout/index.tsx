@@ -29,8 +29,6 @@ import { LayoutResizeHandle } from './resize-handle';
 import type { DevtoolsPropsPaneProps } from '@/devtools/components/devtools-panel/props-pane';
 import type { DevtoolsTreePaneProps } from '@/devtools/components/devtools-panel/tree-pane';
 
-import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
-
 /**
  * Dock 位置枚举
  *
@@ -102,13 +100,10 @@ export const LayoutPanel = observer(function LayoutPanel({
    * @param e 鼠标按下事件
    * @returns void
    * @remarks
-   * 注意事项：需依赖布局开关启用。
+   * 注意事项：会阻止默认选中行为。
    * 潜在副作用：注册 document 的鼠标监听。
    */
   function onResizeMouseDown(e: ReactMouseEvent) {
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_LAYOUT_RESIZE', true)) {
-      return;
-    }
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
@@ -117,6 +112,7 @@ export const LayoutPanel = observer(function LayoutPanel({
     const onMove = throttle((ev: globalThis.MouseEvent) => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
+      // 根据停靠方向调整宽高
       if (dock === DEVTOOLS_DOCK.RIGHT) {
         layout.setWidth(clamp(startW - dx, 260, Math.min(window.innerWidth - 80, 900)));
       }
@@ -149,9 +145,6 @@ export const LayoutPanel = observer(function LayoutPanel({
    * 潜在副作用：注册 document 的鼠标监听。
    */
   function onSplitMouseDown(e: ReactMouseEvent) {
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_LAYOUT_RESIZE', true)) {
-      return;
-    }
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;

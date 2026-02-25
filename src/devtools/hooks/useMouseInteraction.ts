@@ -3,7 +3,7 @@
  *
  * 处理鼠标移动、拾取、悬停同步与多运行时提示。
  * 注意事项：依赖 Runtime、Overlay 与 DOM 环境。
- * 潜在副作用：注册全局事件监听、读取 DOM、触发日志采样。
+ * 潜在副作用：注册全局事件监听、读取 DOM。
  */
 import { throttle } from 'lodash-es';
 import { useEffect, useRef } from 'react';
@@ -11,28 +11,15 @@ import { useEffect, useRef } from 'react';
 import Runtime from '../../runtime';
 import { hitTest } from '../components/overlay';
 import {
-  DEVTOOLS_DEBUG_LEVEL,
   DEVTOOLS_DOM_EVENT_OPTIONS,
   DEVTOOLS_DOM_EVENTS,
   DEVTOOLS_DOM_TAGS,
   DEVTOOLS_LOG,
-  devtoolsCount,
-  devtoolsGetMemorySnapshot,
-  devtoolsGetResourceSnapshot,
-  devtoolsLog,
-  devtoolsLogEffect,
-  devtoolsLogState,
-  devtoolsTimeEnd,
-  devtoolsTimeStart,
-  devtoolsTrackEventListener,
-  devtoolsTrackRaf,
 } from '../constants';
 import { resolveHitWidget } from '../helper/resolve';
 
-import type { DevtoolsPanelStore } from '../store/panel-store';
 import type { Widget } from '@/core/base';
-
-import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
+import type { DevtoolsPanelStore } from '@/devtools/store/panel-store';
 
 /**
  * useMouseInteraction
@@ -62,27 +49,9 @@ export function useMouseInteraction(
   const canvasRegistryVersion = enabled ? panel.canvasRegistryVersion : 0;
   useEffect(() => {
     if (!enabled) {
-      return;
-    }
-    devtoolsLogEffect('mouse.mount', 'start');
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'useMouseInteraction 挂载', {
-      内存: devtoolsGetMemorySnapshot(),
-      资源: devtoolsGetResourceSnapshot(),
-    });
-    return () => {
-      devtoolsLogEffect('mouse.mount', 'cleanup');
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, 'useMouseInteraction 卸载', {
-        内存: devtoolsGetMemorySnapshot(),
-        资源: devtoolsGetResourceSnapshot(),
-      });
-    };
-  }, [enabled]);
-  useEffect(() => {
-    if (!enabled) {
       panel.setInspectHoverWidget(null);
       return;
     }
-    devtoolsLogEffect('mouse.active', 'start', { 启用: active });
     if (!active) {
       panel.setInspectHoverWidget(null);
     }
@@ -91,7 +60,6 @@ export function useMouseInteraction(
     if (!enabled) {
       return;
     }
-    devtoolsLogEffect('mouse.canvasRegistry', 'start');
     return Runtime.subscribeCanvasRegistryChange(() => {
       panel.bumpCanvasRegistryVersion();
     });
@@ -101,7 +69,6 @@ export function useMouseInteraction(
     if (!enabled) {
       return;
     }
-    devtoolsCount('useMouseInteraction.canvasRegistryUpdate', { threshold: 8, windowMs: 1000 });
     const list = Runtime.listCanvas();
     if (!list || list.length === 0) {
       return;
@@ -124,16 +91,9 @@ export function useMouseInteraction(
       panel.setInspectHoverWidget(null);
       return;
     }
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_LISTENER', true)) {
-      panel.setInspectHoverWidget(null);
-      return;
-    }
     if (!runtime) {
       return;
     }
-    devtoolsLogEffect('mouse.events', 'start', {
-      运行时: runtime.getCanvasId?.() ?? 'unknown',
-    });
     const renderer = runtime.getRenderer();
     const raw = renderer?.getRawInstance?.() as CanvasRenderingContext2D | null;
     const canvas =
@@ -147,21 +107,12 @@ export function useMouseInteraction(
       if (raf) {
         return;
       }
-      devtoolsTrackRaf('request');
       raf = requestAnimationFrame(() => {
         raf = 0;
         if (!lastEvent || !active) {
           return;
         }
-        if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_HIT_TEST', true)) {
-          lastHover = null;
-          panel.setInspectHoverWidget(null);
-          return;
-        }
-        const perfStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        devtoolsTimeStart('useMouseInteraction.hitTest', {
-          运行时: runtime?.getCanvasId?.() ?? 'unknown',
-        });
+        // 合并多次鼠标事件，减少命中测试的频次
         const cx = lastEvent.clientX;
         const cy = lastEvent.clientY;
         try {
@@ -189,13 +140,11 @@ export function useMouseInteraction(
           if (!overCanvas) {
             lastHover = null;
             panel.setInspectHoverWidget(null);
-            devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '不在画布' });
             return;
           }
         } catch {
           lastHover = null;
           panel.setInspectHoverWidget(null);
-          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '异常' });
           return;
         }
         const rendererNow = runtime?.getRenderer();
@@ -205,7 +154,6 @@ export function useMouseInteraction(
         if (!canvasEl) {
           lastHover = null;
           panel.setInspectHoverWidget(null);
-          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '无画布' });
           return;
         }
         const rect = (canvasEl as HTMLCanvasElement).getBoundingClientRect();
@@ -213,7 +161,6 @@ export function useMouseInteraction(
         if (elAt !== canvasEl) {
           lastHover = null;
           panel.setInspectHoverWidget(null);
-          devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '元素不匹配' });
           return;
         }
         const x = cx - rect.left;
@@ -238,29 +185,18 @@ export function useMouseInteraction(
           }
         }
 
-        devtoolsLogState('mouse.hoverWidget', lastHover, finalTarget);
         lastHover = finalTarget;
         panel.setInspectHoverWidget(finalTarget);
-        devtoolsTimeEnd('useMouseInteraction.hitTest', { 结果: '完成' });
-        const perfEnd = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        const cost = perfEnd - perfStart;
-        if (cost >= 12) {
-          devtoolsLog(DEVTOOLS_DEBUG_LEVEL.WARN, '命中测试较慢', {
-            耗时: Number(cost.toFixed(2)),
-            运行时: runtime?.getCanvasId?.() ?? 'unknown',
-            目标: finalTarget?.type ?? null,
-          });
-        }
       });
     }
 
+    // 双层节流：pointermove 频繁触发，命中测试控制在 60fps 以内
     const scheduleThrottled = throttle(schedule, 16, { trailing: true });
 
     function onMove(e: MouseEvent): void {
       if (!active) {
         return;
       }
-      devtoolsCount('useMouseInteraction.onMove', { threshold: 60, windowMs: 1000 });
       lastEvent = e;
       lastPos.current = { x: e.clientX, y: e.clientY };
       scheduleThrottled();
@@ -270,9 +206,7 @@ export function useMouseInteraction(
       if (!active) {
         return;
       }
-      devtoolsCount('useMouseInteraction.onClick', { threshold: 6, windowMs: 1000 });
       if (active && lastHover && runtime) {
-        devtoolsLogState('mouse.pickedWidget', null, lastHover);
         panel.setPickedWidget(lastHover);
         lastHover = null;
         panel.setInspectHoverWidget(null);
@@ -284,20 +218,12 @@ export function useMouseInteraction(
       onMove,
       DEVTOOLS_DOM_EVENT_OPTIONS.PASSIVE_TRUE,
     );
-    devtoolsTrackEventListener('add', DEVTOOLS_DOM_EVENTS.MOUSEMOVE, 'window');
     canvas?.addEventListener(DEVTOOLS_DOM_EVENTS.CLICK, onClick);
-    devtoolsTrackEventListener('add', DEVTOOLS_DOM_EVENTS.CLICK, 'canvas');
 
     return () => {
-      devtoolsLogEffect('mouse.events', 'cleanup', {
-        运行时: runtime.getCanvasId?.() ?? 'unknown',
-      });
       window.removeEventListener(DEVTOOLS_DOM_EVENTS.MOUSEMOVE, onMove);
-      devtoolsTrackEventListener('remove', DEVTOOLS_DOM_EVENTS.MOUSEMOVE, 'window');
       canvas?.removeEventListener(DEVTOOLS_DOM_EVENTS.CLICK, onClick);
-      devtoolsTrackEventListener('remove', DEVTOOLS_DOM_EVENTS.CLICK, 'canvas');
       if (raf) {
-        devtoolsTrackRaf('cancel');
         cancelAnimationFrame(raf);
       }
       scheduleThrottled.cancel();

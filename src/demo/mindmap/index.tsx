@@ -1,4 +1,4 @@
-import { Profiler, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { InkwellCanvas } from '../common/inkwell-canvas';
 
@@ -13,8 +13,6 @@ import { CustomComponentType } from './type';
 import { MindMapViewport } from './widgets/mindmap-viewport';
 
 import { findWidget } from '@/core/helper/widget-selector';
-import FeaturePanel from '@/devtools/perf-panel';
-import { markReactRender } from '@/devtools/perf-panel/features-toggle';
 import Runtime from '@/runtime';
 import { useTheme } from '@/styles/theme';
 
@@ -98,28 +96,25 @@ export default function MindmapDemo({ width, height }: { width?: number; height?
 
   return (
     <ErrorBoundary>
-      <Profiler id="mindmap-demo" onRender={() => markReactRender()}>
-        <div
-          style={{
-            width: width != null ? `${width}px` : '100%',
-            height: height != null ? `${height}px` : '100%',
-          }}
-        >
-          <InkwellCanvas
-            style={{ width: '100%', height: '100%' }}
-            onRuntimeReady={handleRuntimeReady}
-            onResize={handleResize}
-          />
-          {runtime && context && (
-            <MindmapContext.Provider value={context}>
-              <Toolbar runtime={runtime} width={width} height={height} />
-              <ZoomBar />
-              <Minimap width={200} height={150} />
-            </MindmapContext.Provider>
-          )}
-        </div>
-      </Profiler>
-      <FeaturePanel />
+      <div
+        style={{
+          width: width != null ? `${width}px` : '100%',
+          height: height != null ? `${height}px` : '100%',
+        }}
+      >
+        <InkwellCanvas
+          style={{ width: '100%', height: '100%' }}
+          onRuntimeReady={handleRuntimeReady}
+          onResize={handleResize}
+        />
+        {runtime && context && (
+          <MindmapContext.Provider value={context}>
+            <Toolbar runtime={runtime} width={width} height={height} />
+            <ZoomBar />
+            <Minimap width={200} height={150} />
+          </MindmapContext.Provider>
+        )}
+      </div>
     </ErrorBoundary>
   );
 }

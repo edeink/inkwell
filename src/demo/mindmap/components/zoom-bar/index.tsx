@@ -10,7 +10,6 @@ import { quantize } from './helper';
 import styles from './index.module.less';
 
 import { findWidget } from '@/core/helper/widget-selector';
-import { featureToggleStore } from '@/devtools/perf-panel/features-toggle';
 import { InputNumber, Tooltip } from '@/ui';
 import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@/ui/icons';
 
@@ -71,9 +70,6 @@ export default function ZoomBar({
   );
 
   useEffect(() => {
-    if (!featureToggleStore.isEnabled('FEATURE_MINDMAP_ZOOM_DRAG', true)) {
-      return;
-    }
     const onMove = throttle((e: PointerEvent) => {
       if (!dragging) {
         return;
@@ -92,9 +88,6 @@ export default function ZoomBar({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!featureToggleStore.isEnabled('FEATURE_MINDMAP_ZOOM_DRAG', true)) {
-        return;
-      }
       e.stopPropagation();
       setDragging(true);
       updateFromClientX(e.clientX);

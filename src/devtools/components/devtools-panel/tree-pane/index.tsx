@@ -10,12 +10,10 @@ import { observer, useLocalObservable } from 'mobx-react-lite';
 import { useCallback, useEffect, useMemo, useRef, type Key } from 'react';
 
 import {
-  DEVTOOLS_DEBUG_LEVEL,
   DEVTOOLS_DOCK,
   DEVTOOLS_DOM_EVENTS,
   DEVTOOLS_PLACEMENT,
   DEVTOOLS_TREE_PANE_TEXT,
-  devtoolsLog,
 } from '../../../constants';
 import { type LayoutInfo } from '../../layout';
 import SimpleTip from '../../simple-tip';
@@ -24,24 +22,6 @@ import styles from './index.module.less';
 
 import { Button, Input, Tooltip, Tree, type DataNode } from '@/ui';
 import { ConsoleOutlined, LeftOutlined, RightOutlined } from '@/ui/icons';
-
-const treePaneUiIds = new WeakMap<object, number>();
-let treePaneUiSeq = 0;
-
-function getTreePaneUiId(target: object): number {
-  const existing = treePaneUiIds.get(target);
-  if (existing) {
-    return existing;
-  }
-  const next = treePaneUiSeq + 1;
-  treePaneUiSeq = next;
-  treePaneUiIds.set(target, next);
-  return next;
-}
-
-function getStack(label: string): string {
-  return new Error(label).stack ?? '';
-}
 
 /**
  * 树面板属性
@@ -99,19 +79,12 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
     setScrollState(left: boolean, right: boolean) {
       this.scrollLeft = left;
       this.scrollRight = right;
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.DEBUG, '树面包屑滚动状态更新', {
-        标识: getTreePaneUiId(this),
-        左: left,
-        右: right,
-        调用栈: getStack('setScrollState'),
-      });
     },
     get searchLower() {
       return this.search.trim().toLowerCase();
     },
   }));
 
-  const uiId = getTreePaneUiId(ui);
   const containerRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -119,29 +92,17 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
 
   const breadcrumbScrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, '树面板 UI 实例', {
-      标识: uiId,
-      构造函数: Object.getPrototypeOf(ui)?.constructor?.name ?? 'Object',
-    });
-  }, [ui, uiId]);
-
+  // 计算面包屑滚动边界，用于显示左右滚动按钮
   const checkScroll = useCallback(() => {
     const el = breadcrumbScrollRef.current;
     if (!el) {
       return;
     }
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.DEBUG, '树面包屑滚动检查', {
-      标识: uiId,
-      scrollLeft,
-      scrollWidth,
-      clientWidth,
-      调用栈: getStack('checkScroll'),
-    });
     ui.setScrollState(scrollLeft > 1, Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1);
-  }, [ui, uiId]);
+  }, [ui]);
 
+  // 监听滚动与窗口尺寸变化，同步滚动边界状态
   useEffect(() => {
     const el = breadcrumbScrollRef.current;
     if (!el) {
@@ -156,21 +117,18 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
     };
   }, [checkScroll]);
 
+  // 面包屑更新后在下一帧对齐末尾，避免读取到旧的布局尺寸
   useEffect(() => {
     requestAnimationFrame(() => {
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.DEBUG, '树面包屑更新触发', {
-        标识: uiId,
-        数量: breadcrumbs.length,
-        调用栈: getStack('breadcrumbs'),
-      });
       checkScroll();
       const el = breadcrumbScrollRef.current;
       if (el) {
         el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
       }
     });
-  }, [breadcrumbs, checkScroll, uiId]);
+  }, [breadcrumbs, checkScroll]);
 
+  // 容器高度变化影响树可用高度，优先使用 ResizeObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) {
@@ -204,15 +162,9 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
 
   const emitHoverKey = useCallback(
     (key: string | null, source: string) => {
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.DEBUG, '树面板 hover 触发', {
-        标识: uiId,
-        来源: source,
-        key,
-        调用栈: getStack('hover'),
-      });
       onHoverKey(key);
     },
-    [onHoverKey, uiId],
+    [onHoverKey],
   );
 
   return (

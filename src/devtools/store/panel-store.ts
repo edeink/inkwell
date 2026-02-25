@@ -2,32 +2,18 @@
  * Devtools 面板状态模块
  *
  * 负责面板可见性、运行时绑定、树数据构建、拾取与悬停等核心交互状态。
- * 注意事项：内部包含多个 reaction 与性能采样逻辑。
+ * 注意事项：内部包含多个 reaction 与状态派生逻辑。
  * 潜在副作用：会读写全局状态、注册监听器与定时器。
  */
 import { computed, makeAutoObservable, reaction, runInAction } from 'mobx';
 
-import {
-  DEVTOOLS_DEBUG_LEVEL,
-  DEVTOOLS_DOM_EVENTS,
-  DEVTOOLS_LOG,
-  devtoolsCount,
-  devtoolsGetResourceSnapshot,
-  devtoolsLog,
-  devtoolsLogEffect,
-  devtoolsResolveStateUpdate,
-  devtoolsTimeEnd,
-  devtoolsTimeStart,
-  devtoolsTrackEventListener,
-  devtoolsTrackTimer,
-} from '../constants';
+import { DEVTOOLS_DOM_EVENTS, devtoolsResolveStateUpdate } from '../constants';
 import {
   buildDevtoolsTree,
   computeRuntimeTreeHash,
   getNodeKeyByWidget,
   getPathNodeKeysByNodeKey,
 } from '../helper/tree';
-import { featureToggleStore } from '../perf-panel/features-toggle';
 
 import type { Widget } from '@/core/base';
 import type { DataNode } from '@/ui';
@@ -80,7 +66,6 @@ export class DevtoolsPanelStore {
       reaction(
         () => this.activeInspect,
         (active: boolean) => {
-          devtoolsLogEffect('panel.inspectActive', 'start', { 启用: active });
           (globalThis as unknown as Record<string, unknown>)[INKWELL_DEVTOOLS_INSPECT_ACTIVE] =
             active;
         },
@@ -101,16 +86,11 @@ export class DevtoolsPanelStore {
       reaction(
         () => this.runtime,
         (runtime: Runtime | null) => {
-          devtoolsLogEffect('panel.runtimeChange', 'start', { 有运行时: !!runtime });
           this.setSelectedNodeKey(null);
           this.setExpandedKeys([]);
           this.setInspectHoverWidget(null);
           this.setTreeHoverWidget(null);
           this.setPickedWidget(null);
-          devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, '运行时切换', {
-            有运行时: !!runtime,
-            资源: devtoolsGetResourceSnapshot(),
-          });
         },
         { fireImmediately: false },
       ),
@@ -176,14 +156,11 @@ export class DevtoolsPanelStore {
    *
    * @returns 是否允许启用鼠标拾取
    * @remarks
-   * 注意事项：依赖性能面板的功能开关。
+   * 注意事项：由面板自身状态决定。
    * 潜在副作用：无。
    */
   get inspectEnabled(): boolean {
-    return (
-      featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_LISTENER', true) &&
-      featureToggleStore.isEnabled('FEATURE_DEVTOOLS_MOUSE_HIT_TEST', true)
-    );
+    return true;
   }
 
   /**
@@ -191,49 +168,17 @@ export class DevtoolsPanelStore {
    *
    * @returns 树构建结果（包含树节点与索引表）
    * @remarks
-   * 注意事项：在关闭树构建开关时返回空树。
-   * 潜在副作用：触发性能计时与日志输出。
+   * 注意事项：依赖 runtime 与 overlayRoot 的当前状态。
+   * 潜在副作用：无。
    */
   get treeBuild() {
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_TREE_BUILD', true)) {
+    if (!this.runtime) {
       return buildDevtoolsTree(null, null);
     }
-    const perfStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    devtoolsTimeStart('DevToolsPanelInner.buildTree', {
-      版本: this.version,
-      有运行时: !!this.runtime,
-    });
-    if (!this.runtime) {
-      const result = buildDevtoolsTree(null, null);
-      const perfEnd = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const cost = perfEnd - perfStart;
-      if (cost >= 16) {
-        devtoolsLog(DEVTOOLS_DEBUG_LEVEL.WARN, 'DevToolsPanelInner.buildTree较慢', {
-          耗时: Number(cost.toFixed(2)),
-          节点数: result.widgetByNodeKey.size,
-          版本: this.version,
-          有运行时: false,
-        });
-      }
-      devtoolsTimeEnd('DevToolsPanelInner.buildTree', { 结果: '空树' });
-      return result;
-    }
-    const result = buildDevtoolsTree(
+    return buildDevtoolsTree(
       this.runtime?.getRootWidget?.() ?? null,
       this.runtime?.getOverlayRootWidget?.() ?? null,
     );
-    const perfEnd = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const cost = perfEnd - perfStart;
-    if (cost >= 16) {
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.WARN, 'DevToolsPanelInner.buildTree较慢', {
-        耗时: Number(cost.toFixed(2)),
-        节点数: result.widgetByNodeKey.size,
-        版本: this.version,
-        有运行时: true,
-      });
-    }
-    devtoolsTimeEnd('DevToolsPanelInner.buildTree', { 结果: '完成' });
-    return result;
   }
 
   /**
@@ -287,13 +232,10 @@ export class DevtoolsPanelStore {
    *
    * @returns 是否激活与当前高亮 Widget
    * @remarks
-   * 注意事项：在关闭 overlay 功能开关时返回空状态。
+   * 注意事项：依赖树 hover 与拾取 hover 的当前状态。
    * 潜在副作用：无。
    */
   get overlayState(): { active: boolean; widget: Widget | null } {
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_OVERLAY', true)) {
-      return { active: false, widget: null };
-    }
     const active = !!this.treeHoverWidget || (this.activeInspect && !!this.inspectHoverWidget);
     const widget = this.treeHoverWidget ?? (this.activeInspect ? this.inspectHoverWidget : null);
     return { active, widget };
@@ -305,7 +247,7 @@ export class DevtoolsPanelStore {
    * @param next 新的可见性或基于旧值的计算函数
    * @remarks
    * 注意事项：关闭时会自动退出拾取模式。
-   * 潜在副作用：触发日志输出。
+   * 潜在副作用：无。
    */
   setVisible(next: boolean | ((prev: boolean) => boolean)) {
     const resolved = devtoolsResolveStateUpdate('panel.visible', this.visible, next);
@@ -313,7 +255,6 @@ export class DevtoolsPanelStore {
     if (!resolved) {
       this.setActiveInspect(false);
     }
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, '面板可见性变更', { 可见: resolved });
   }
 
   /**
@@ -322,7 +263,7 @@ export class DevtoolsPanelStore {
    * @param next 新的拾取状态或基于旧值的计算函数
    * @remarks
    * 注意事项：在功能不可用时应避免设置为 true。
-   * 潜在副作用：触发日志输出与全局标记变更。
+   * 潜在副作用：触发全局标记变更。
    */
   setActiveInspect(next: boolean | ((prev: boolean) => boolean)) {
     this.activeInspect = devtoolsResolveStateUpdate(
@@ -330,7 +271,6 @@ export class DevtoolsPanelStore {
       this.activeInspect,
       next,
     );
-    devtoolsLog(DEVTOOLS_DEBUG_LEVEL.INFO, '拾取模式变更', { 启用: this.activeInspect });
   }
 
   /**
@@ -338,7 +278,7 @@ export class DevtoolsPanelStore {
    *
    * @remarks
    * 注意事项：当 inspectEnabled 为 false 时会强制关闭拾取。
-   * 潜在副作用：触发日志输出。
+   * 潜在副作用：无。
    */
   toggleInspect() {
     if (!this.inspectEnabled) {
@@ -529,15 +469,10 @@ export class DevtoolsPanelStore {
    *
    * @param k 目标节点 key 或 null
    * @remarks
-   * 注意事项：受 Tree hover 联动开关控制。
+   * 注意事项：当 key 为空时清理 hover 状态。
    * 潜在副作用：会更新 overlayState。
    */
   handleHoverKey(k: string | null) {
-    devtoolsCount('DevToolsPanelInner.handleHoverKey', { threshold: 12, windowMs: 1000 });
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_TREE_HOVER_SYNC', true)) {
-      this.setTreeHoverWidget(null);
-      return;
-    }
     if (!k) {
       this.setTreeHoverWidget(null);
       return;
@@ -555,7 +490,6 @@ export class DevtoolsPanelStore {
    * 潜在副作用：可能触发展开与滚动定位。
    */
   handleSelectKey(k: string) {
-    devtoolsCount('DevToolsPanelInner.handleSelectKey', { threshold: 8, windowMs: 1000 });
     const w = this.treeBuild.widgetByNodeKey.get(k) ?? null;
     this.setSelectedNodeKey(w ? k : null);
     if (w) {
@@ -580,15 +514,11 @@ export class DevtoolsPanelStore {
    * 打印当前选中 Widget
    *
    * @remarks
-   * 注意事项：仅用于调试输出。
-   * 潜在副作用：console 输出选中 Widget。
+   * 注意事项：保留方法以兼容面板回调。
+   * 潜在副作用：无。
    */
   handlePrintSelected() {
-    if (!this.selectedWidget) {
-      console.log(DEVTOOLS_LOG.NO_SELECTED_NODE);
-      return;
-    }
-    console.log(this.selectedWidget);
+    return;
   }
 
   /**
@@ -622,10 +552,8 @@ export class DevtoolsPanelStore {
     };
     this.setIsPageVisible(!document.hidden);
     document.addEventListener(DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, handleVisibilityChange);
-    devtoolsTrackEventListener('add', DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, 'document');
     return () => {
       document.removeEventListener(DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, handleVisibilityChange);
-      devtoolsTrackEventListener('remove', DEVTOOLS_DOM_EVENTS.VISIBILITYCHANGE, 'document');
     };
   }
 
@@ -634,20 +562,10 @@ export class DevtoolsPanelStore {
       this.treeHashDisposer();
       this.treeHashDisposer = null;
     }
-    if (!featureToggleStore.isEnabled('FEATURE_DEVTOOLS_TREE_HASH', true)) {
-      return;
-    }
     if (!this.runtime || !this.visible || !this.isPageVisible) {
       return;
     }
-    devtoolsLogEffect('panel.treeHash', 'start', {
-      可见: this.visible,
-      页面可见: this.isPageVisible,
-      有运行时: !!this.runtime,
-    });
-    devtoolsTimeStart('DevToolsPanelInner.computeRuntimeTreeHash');
     this.lastTreeHash = computeRuntimeTreeHash(this.runtime);
-    devtoolsTimeEnd('DevToolsPanelInner.computeRuntimeTreeHash', { 阶段: '初始化' });
     this.bumpVersion();
     const w = window as unknown as {
       requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
@@ -656,12 +574,7 @@ export class DevtoolsPanelStore {
     let idleId: number | null = null;
     const run = () => {
       idleId = null;
-      devtoolsTimeStart('DevToolsPanelInner.computeRuntimeTreeHash', { 阶段: '更新' });
       const nextHash = computeRuntimeTreeHash(this.runtime!);
-      devtoolsTimeEnd('DevToolsPanelInner.computeRuntimeTreeHash', {
-        阶段: '更新',
-        变化: nextHash !== this.lastTreeHash,
-      });
       if (nextHash === this.lastTreeHash) {
         return;
       }
@@ -677,7 +590,6 @@ export class DevtoolsPanelStore {
       if (w.requestIdleCallback) {
         idleId = w.requestIdleCallback(run, { timeout: 800 });
       } else {
-        devtoolsTrackTimer('set', 'timeout');
         idleId = window.setTimeout(run, 0);
       }
     };
@@ -689,14 +601,12 @@ export class DevtoolsPanelStore {
         return;
       }
       cleaned = true;
-      devtoolsLogEffect('panel.treeHash', 'cleanup');
       dispose();
       update.cancel();
       if (idleId != null) {
         if (w.cancelIdleCallback) {
           w.cancelIdleCallback(idleId);
         } else {
-          devtoolsTrackTimer('clear', 'timeout');
           window.clearTimeout(idleId);
         }
         idleId = null;

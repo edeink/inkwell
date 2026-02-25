@@ -5,7 +5,7 @@
  * 注意事项：应在外部销毁时调用 dispose 清理监听。
  * 潜在副作用：可能注入 MobX DevTools。
  */
-import { DEVTOOLS_DEBUG_LEVEL, devtoolsLog, getDevtoolsDebugConfig } from '../constants';
+import { getDevtoolsDebugConfig } from '../constants';
 
 import { DevtoolsLayoutStore } from './layout-store';
 import { DevtoolsPanelStore } from './panel-store';
@@ -46,7 +46,7 @@ export class DevtoolsRootStore {
         makeInspectable(this);
       }
     } catch (err) {
-      devtoolsLog(DEVTOOLS_DEBUG_LEVEL.WARN, 'MobX DevTools 注入失败', { 错误: String(err) });
+      void err;
     }
   }
 
