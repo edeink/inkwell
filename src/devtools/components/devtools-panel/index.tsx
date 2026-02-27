@@ -5,8 +5,8 @@
  * 注意事项：需运行在浏览器环境。
  * 潜在副作用：注册全局事件监听并创建 MobX store。
  */
-import { observer } from 'mobx-react-lite';
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useLayoutEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import {
   DEVTOOLS_EVENTS,
@@ -15,7 +15,7 @@ import {
   isTypeObject,
   isTypeString,
 } from '../../constants';
-import { DevtoolsRootStore, DevtoolsStoreProvider } from '../../store';
+import { usePanelStore } from '../../store';
 
 import { DevtoolsHelpContent } from './help-content';
 import { DevToolsPanelInner } from './panel-inner';
@@ -42,9 +42,14 @@ export interface DevToolsProps {
  * 注意事项：内部会创建 RootStore 并绑定全局事件。
  * 潜在副作用：注册 window 事件监听与创建 DevtoolsRootStore 实例。
  */
-export const DevToolsPanel = observer(function DevToolsPanel(props: DevToolsProps) {
-  const store = useMemo(() => new DevtoolsRootStore(), []);
-  const { panel } = store;
+export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
+  const { setVisible, setActiveInspect, toggleInspect } = usePanelStore(
+    useShallow((state) => ({
+      setVisible: state.setVisible,
+      setActiveInspect: state.setActiveInspect,
+      toggleInspect: state.toggleInspect,
+    })),
+  );
 
   const combo = useMemo(() => {
     const fromProps = isTypeString(props.shortcut)
@@ -70,20 +75,15 @@ export const DevToolsPanel = observer(function DevToolsPanel(props: DevToolsProp
     [combo, action],
   );
 
-  useEffect(() => {
-    void store.attachMobxDevtools();
-    return () => store.dispose();
-  }, [store]);
-
   useLayoutEffect(() => {
-    const handleOpen = () => panel.setVisible(true);
+    const handleOpen = () => setVisible(true);
     const handleClose = () => {
-      panel.setVisible(false);
-      panel.setActiveInspect(false);
+      setVisible(false);
+      setActiveInspect(false);
     };
     const handleInspectToggle = () => {
-      panel.setVisible(true);
-      panel.toggleInspect();
+      setVisible(true);
+      toggleInspect();
     };
 
     window.addEventListener(DEVTOOLS_EVENTS.OPEN, handleOpen);
@@ -94,11 +94,7 @@ export const DevToolsPanel = observer(function DevToolsPanel(props: DevToolsProp
       window.removeEventListener(DEVTOOLS_EVENTS.CLOSE, handleClose);
       window.removeEventListener(DEVTOOLS_EVENTS.INSPECT_TOGGLE, handleInspectToggle);
     };
-  }, [panel]);
+  }, [setVisible, setActiveInspect, toggleInspect]);
 
-  return (
-    <DevtoolsStoreProvider store={store}>
-      <DevToolsPanelInner helpContent={helpContent} />
-    </DevtoolsStoreProvider>
-  );
-});
+  return <DevToolsPanelInner helpContent={helpContent} />;
+};

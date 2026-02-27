@@ -2,6 +2,8 @@
 
 .layoutPanel {
   position: fixed;
+  display: flex;
+  flex-direction: column;
   background: var(--ink-demo-bg-base);
   border: 1px solid var(--ink-demo-border);
   box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
@@ -10,35 +12,42 @@
   transition:
     transform 0.15s ease,
     opacity 0.15s ease;
+}
 
-  &.dock-left {
-    left: 0;
-    top: 0;
-    height: 100vh;
-  }
+.dockLeft {
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: var(--devtools-width);
+}
 
-  &.dock-right {
-    right: 0;
-    top: 0;
-    height: 100vh;
-  }
+.dockRight {
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: var(--devtools-width);
+}
 
-  &.dock-top {
-    left: 0;
-    right: 0;
-    top: 0;
-  }
+.dockTop {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--devtools-height);
+}
 
-  &.dock-bottom {
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
+.dockBottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--devtools-height);
+}
 
-  &.closing {
-    opacity: 0;
-    pointer-events: none;
-  }
+.closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.isNarrow {
 }
 
 .layoutHeader {
@@ -60,11 +69,11 @@
 
 .layoutContentGrid {
   display: grid;
+  flex: 1;
   gap: 8px;
   padding: 10px;
   overflow: hidden;
   grid-template-columns: var(--tree-width, 260px) 8px 1fr;
-  height: var(--grid-height, calc(100vh - 53px));
   min-height: 0;
 }
 
@@ -160,34 +169,34 @@
 
 .resizeHandle {
   position: absolute;
+}
 
-  &.handle-left {
-    right: 0;
-    top: 0;
-    width: 6px;
-    height: 100%;
-  }
+.handleLeft {
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+}
 
-  &.handle-right {
-    left: 0;
-    top: 0;
-    width: 6px;
-    height: 100%;
-  }
+.handleRight {
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+}
 
-  &.handle-top {
-    left: 0;
-    bottom: 0;
-    height: 6px;
-    width: 100%;
-  }
+.handleTop {
+  left: 0;
+  bottom: 0;
+  height: 6px;
+  width: 100%;
+}
 
-  &.handle-bottom {
-    left: 0;
-    top: 0;
-    height: 6px;
-    width: 100%;
-  }
+.handleBottom {
+  left: 0;
+  top: 0;
+  height: 6px;
+  width: 100%;
 }
 
 .btnText {

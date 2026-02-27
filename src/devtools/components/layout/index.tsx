@@ -7,7 +7,6 @@
  */
 import classnames from 'classnames';
 import { throttle } from 'lodash-es';
-import { observer } from 'mobx-react-lite';
 import {
   useEffect,
   useRef,
@@ -15,19 +14,16 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { DEVTOOLS_CSS, DEVTOOLS_DOCK, DEVTOOLS_DOM_EVENTS } from '../../constants';
 import { clamp } from '../../helper/math';
-import globalStyles from '../../index.module.less';
-import { useDevtoolsStore } from '../../store';
+import { useLayoutStore } from '../../store';
 
 import { LayoutContentGrid } from './content-grid';
 import { LayoutHeader } from './header';
 import styles from './index.module.less';
 import { LayoutResizeHandle } from './resize-handle';
-
-import type { DevtoolsPropsPaneProps } from '@/devtools/components/devtools-panel/props-pane';
-import type { DevtoolsTreePaneProps } from '@/devtools/components/devtools-panel/tree-pane';
 
 /**
  * Dock 位置枚举
@@ -63,36 +59,92 @@ export type LayoutInfo = {
  * 注意事项：visible 为 false 时会隐藏面板。
  * 潜在副作用：可能触发窗口 resize 监听。
  */
-export const LayoutPanel = observer(function LayoutPanel({
+export const LayoutPanel = function LayoutPanel({
   visible,
   headerLeft,
   headerRightExtra,
-  treePaneProps,
-  propsPaneProps,
+  treePane,
+  propsPane,
   onVisibleChange,
 }: {
   visible: boolean;
   headerLeft?: ReactNode;
   headerRightExtra?: (requestClose: () => void) => ReactNode;
-  treePaneProps: Omit<DevtoolsTreePaneProps, 'info'>;
-  propsPaneProps: DevtoolsPropsPaneProps;
+  treePane: ReactNode;
+  propsPane: ReactNode;
   onVisibleChange?: (next: boolean) => void;
 }) {
-  const { layout } = useDevtoolsStore();
-  const { dock, width, height, treeWidth, treeHeight, isNarrow } = layout;
+  const {
+    dock,
+    width,
+    height,
+    treeWidth,
+    treeHeight,
+    isNarrow,
+    setWidth,
+    setHeight,
+    setTreeWidth,
+    setTreeHeight,
+    setIsNarrow,
+    setDock,
+  } = useLayoutStore(
+    useShallow((state) => ({
+      dock: state.dock,
+      width: state.width,
+      height: state.height,
+      treeWidth: state.treeWidth,
+      treeHeight: state.treeHeight,
+      isNarrow: state.isNarrow,
+      setWidth: state.setWidth,
+      setHeight: state.setHeight,
+      setTreeWidth: state.setTreeWidth,
+      setTreeHeight: state.setTreeHeight,
+      setIsNarrow: state.setIsNarrow,
+      setDock: state.setDock,
+    })),
+  );
+  const layout = { dock, width, height, treeWidth, treeHeight, isNarrow };
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  // TODO 这里有问题
   useEffect(() => {
     const updateNarrow = () => {
       const w =
         panelRef.current?.clientWidth ??
         (dock === DEVTOOLS_DOCK.LEFT || dock === DEVTOOLS_DOCK.RIGHT ? width : window.innerWidth);
-      layout.setIsNarrow(w < 600);
+      const isNarrowNow = w < 600;
+      setIsNarrow((prev) => {
+        if (prev === isNarrowNow) {
+          return prev;
+        }
+        // Hysteresis to prevent flickering at boundary
+        if (prev && w > 610) {
+          return false;
+        }
+        if (!prev && w < 590) {
+          return true;
+        }
+        return prev;
+      });
     };
     updateNarrow();
     window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
     return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
-  }, [dock, width, layout]);
+  }, [dock, width, setIsNarrow]);
+
+  const dockClass = {
+    [DEVTOOLS_DOCK.LEFT]: styles.dockLeft,
+    [DEVTOOLS_DOCK.RIGHT]: styles.dockRight,
+    [DEVTOOLS_DOCK.TOP]: styles.dockTop,
+    [DEVTOOLS_DOCK.BOTTOM]: styles.dockBottom,
+  }[dock];
+
+  const handleClass = {
+    [DEVTOOLS_DOCK.LEFT]: classnames(styles.resizeHandle, styles.handleLeft),
+    [DEVTOOLS_DOCK.RIGHT]: classnames(styles.resizeHandle, styles.handleRight),
+    [DEVTOOLS_DOCK.TOP]: classnames(styles.resizeHandle, styles.handleTop),
+    [DEVTOOLS_DOCK.BOTTOM]: classnames(styles.resizeHandle, styles.handleBottom),
+  }[dock];
 
   /**
    * 处理面板尺寸拖拽
@@ -114,16 +166,16 @@ export const LayoutPanel = observer(function LayoutPanel({
       const dy = ev.clientY - startY;
       // 根据停靠方向调整宽高
       if (dock === DEVTOOLS_DOCK.RIGHT) {
-        layout.setWidth(clamp(startW - dx, 260, Math.min(window.innerWidth - 80, 900)));
+        setWidth(clamp(startW - dx, 260, Math.min(window.innerWidth - 80, 900)));
       }
       if (dock === DEVTOOLS_DOCK.LEFT) {
-        layout.setWidth(clamp(startW + dx, 260, Math.min(window.innerWidth - 80, 900)));
+        setWidth(clamp(startW + dx, 260, Math.min(window.innerWidth - 80, 900)));
       }
       if (dock === DEVTOOLS_DOCK.TOP) {
-        layout.setHeight(clamp(startH + dy, 200, Math.min(window.innerHeight - 80, 800)));
+        setHeight(clamp(startH + dy, 200, Math.min(window.innerHeight - 80, 800)));
       }
       if (dock === DEVTOOLS_DOCK.BOTTOM) {
-        layout.setHeight(clamp(startH - dy, 200, Math.min(window.innerHeight - 80, 800)));
+        setHeight(clamp(startH - dy, 200, Math.min(window.innerHeight - 80, 800)));
       }
     }, 16);
     function onUp() {
@@ -160,7 +212,7 @@ export const LayoutPanel = observer(function LayoutPanel({
             : window.innerHeight - 200,
         );
         const nextH = clamp(startH + dy, 140, maxH);
-        layout.setTreeHeight(nextH);
+        setTreeHeight(nextH);
       } else {
         const dx = ev.clientX - startX;
         const next = clamp(
@@ -173,7 +225,7 @@ export const LayoutPanel = observer(function LayoutPanel({
             800,
           ),
         );
-        layout.setTreeWidth(next);
+        setTreeWidth(next);
       }
     }, 16);
     function onUp() {
@@ -185,72 +237,51 @@ export const LayoutPanel = observer(function LayoutPanel({
     document.addEventListener(DEVTOOLS_DOM_EVENTS.MOUSEUP, onUp);
   }
 
-  const cursor =
-    dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM ? 'ns-resize' : 'ew-resize';
-  const panelClass = classnames(
-    styles.layoutPanel,
-    globalStyles.panel,
-    DEVTOOLS_CSS.PANEL_CLASS,
-    styles[`dock-${dock}`],
-    {
-      [styles.closing]: !visible,
-      [styles.isNarrow]: isNarrow,
-    },
-  );
-  const handleClass = classnames(styles.resizeHandle, styles[`handle-${dock}`]);
-
-  const info: LayoutInfo = layout.layoutInfo;
-  const panelStyle: CSSProperties & Record<string, string | number | undefined> = (() => {
-    if (dock === 'top' || dock === 'bottom') {
-      return {
-        height,
-        '--tree-width': `${treeWidth}px`,
-        '--tree-height': `${treeHeight}px`,
-        '--grid-height': `calc(${height}px - 53px)`,
-      };
-    }
-    return {
-      width,
-      '--tree-width': `${treeWidth}px`,
-      '--tree-height': `${treeHeight}px`,
-      '--grid-height': 'calc(100vh - 53px)',
-    };
-  })();
-
+  // 渲染
   return (
-    <div
-      ref={panelRef}
-      className={panelClass}
-      style={panelStyle}
-      data-visible={visible ? '1' : '0'}
-      onWheel={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerMove={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
-    >
-      <LayoutHeader
-        dock={dock}
-        headerLeft={headerLeft}
-        headerRightExtra={headerRightExtra}
-        onDockChange={layout.setDock.bind(layout)}
-        onRequestClose={() => onVisibleChange?.(false)}
-      />
-      <LayoutContentGrid
-        info={info}
-        treePaneProps={treePaneProps}
-        propsPaneProps={propsPaneProps}
-        onSplitMouseDown={onSplitMouseDown}
-      />
-      <LayoutResizeHandle
-        className={handleClass}
-        cursor={cursor}
-        onResizeMouseDown={onResizeMouseDown}
-      />
-    </div>
+    <>
+      <div
+        ref={panelRef}
+        className={classnames(
+          styles.layoutPanel,
+          dockClass,
+          DEVTOOLS_CSS.PANEL_CLASS,
+          isNarrow && styles.isNarrow,
+        )}
+        style={
+          {
+            '--devtools-dock': dock,
+            '--devtools-width': `${width}px`,
+            '--devtools-height': `${height}px`,
+            '--devtools-tree-width': `${treeWidth}px`,
+            '--devtools-tree-height': `${treeHeight}px`,
+            display: visible ? undefined : 'none',
+          } as CSSProperties
+        }
+      >
+        <LayoutHeader
+          dock={dock}
+          onDockChange={setDock}
+          headerLeft={headerLeft}
+          headerRightExtra={headerRightExtra}
+          onRequestClose={onVisibleChange ? () => onVisibleChange(false) : () => {}}
+        />
+        <LayoutContentGrid
+          treePane={treePane}
+          propsPane={propsPane}
+          onSplitMouseDown={onSplitMouseDown}
+        />
+        <LayoutResizeHandle
+          className={classnames(styles.resizeHandle, handleClass)}
+          cursor={
+            dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM ? 'ns-resize' : 'ew-resize'
+          }
+          onResizeMouseDown={onResizeMouseDown}
+        />
+      </div>
+      <style>{`${DEVTOOLS_CSS.PANEL_SELECTOR} { --devtools-dock: ${dock}; }`}</style>
+    </>
   );
-});
+};
 
 export default LayoutPanel;

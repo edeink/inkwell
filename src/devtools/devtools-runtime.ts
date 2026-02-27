@@ -1,4 +1,4 @@
-import { DEVTOOLS_DOM, DEVTOOLS_EVENTS, DEVTOOLS_GLOBAL } from './constants';
+import { DEVTOOLS_EVENTS, DEVTOOLS_GLOBAL, DEVTOOLS_IDS } from './constants';
 
 let portalContainer: HTMLDivElement | null = null;
 let created = false;
@@ -46,10 +46,10 @@ export function ensureDevtoolsContainer(): HTMLDivElement | null {
     }
     return portalContainer;
   }
-  const existing = document.getElementById(DEVTOOLS_DOM.ROOT_ID) as HTMLDivElement | null;
+  const existing = document.getElementById(DEVTOOLS_IDS.ROOT) as HTMLDivElement | null;
   portalContainer = existing ?? document.createElement('div');
   if (!existing) {
-    portalContainer.id = DEVTOOLS_DOM.ROOT_ID;
+    portalContainer.id = DEVTOOLS_IDS.ROOT;
     document.body.appendChild(portalContainer);
   }
   if (globalState) {
@@ -125,6 +125,9 @@ export class Devtools {
     }
     portalContainer = null;
     created = false;
+    if (instance === this) {
+      instance = null;
+    }
     const globalState = getGlobalState();
     if (globalState) {
       globalState.container = null;

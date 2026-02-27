@@ -6,9 +6,10 @@
  * 潜在副作用：注册全局键盘事件监听。
  */
 import { useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { DEVTOOLS_DOM_EVENTS, HOTKEY_ACTION } from '../constants';
-import { devtoolsHotkeyStore } from '../store';
+import { useHotkeyStore } from '../store';
 
 import { DEVTOOLS_HOTKEY, DEVTOOLS_HOTKEY_DEFAULT } from '@/utils/local-storage';
 
@@ -115,11 +116,15 @@ function matches(ev: KeyboardEvent, comboStr: string): boolean {
  * 潜在副作用：会注册并移除 window 的 keydown 监听。
  */
 export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
+  const { combo: storeCombo, setCombo: storeSetCombo } = useHotkeyStore(
+    useShallow((state) => ({ combo: state.combo, setCombo: state.setCombo })),
+  );
+
   const defaultCombo = useMemo(
     () => opts.combo || DEVTOOLS_HOTKEY.get() || DEVTOOLS_HOTKEY_DEFAULT,
     [opts.combo],
   );
-  const combo = opts.combo ?? devtoolsHotkeyStore.combo ?? defaultCombo;
+  const combo = opts.combo ?? storeCombo ?? defaultCombo;
   const enabled = opts.enabled ?? true;
   const action: HotkeyAction = opts.action ?? HOTKEY_ACTION.OPEN;
   const { onToggle, onClose, onInspectToggle } = opts;
@@ -156,7 +161,7 @@ export function useDevtoolsHotkeys(opts: DevtoolsHotkeysOptions) {
    */
   function updateCombo(next: string) {
     const normalized = normalizeCombo(next);
-    devtoolsHotkeyStore.setCombo(normalized);
+    storeSetCombo(normalized);
   }
 
   return { combo, setCombo: updateCombo };

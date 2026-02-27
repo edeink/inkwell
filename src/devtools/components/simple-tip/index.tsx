@@ -7,7 +7,7 @@
  */
 import React from 'react';
 
-import { DEVTOOLS_ARIA, DEVTOOLS_PLACEMENT } from '../../constants';
+import { DEVTOOLS_PLACEMENT } from '../../constants';
 
 import styles from './index.module.less';
 
@@ -40,7 +40,7 @@ export default function SimpleTip({ message, className, style }: SimpleTipProps)
     <div className={[styles.simpleTip, className ?? ''].join(' ').trim()} style={style}>
       <span className={styles.text}>{message}</span>
       <Tooltip title={message} placement={DEVTOOLS_PLACEMENT.TOP}>
-        <span className={styles.icon} aria-label={DEVTOOLS_ARIA.MORE_INFO}>
+        <span className={styles.icon} aria-label="更多信息">
           <ExclamationCircleOutlined />
         </span>
       </Tooltip>

@@ -6,17 +6,9 @@
  * 潜在副作用：通过 onChange 触发对象更新。
  */
 import cs from 'classnames';
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
-import {
-  DEVTOOLS_CSS,
-  DEVTOOLS_OBJECT_EDITOR_TEXT,
-  DEVTOOLS_PLACEMENT,
-  DEVTOOLS_TOOLTIP,
-  DEVTOOLS_TRIGGER,
-  formatHiddenInternalProps,
-} from '../../constants';
+import { DEVTOOLS_CSS, DEVTOOLS_DOM_EVENTS, DEVTOOLS_PLACEMENT } from '../../constants';
 import { isColor } from '../../helper/colors';
 import { isHiddenKey } from '../../helper/config';
 import { formatDisplayValue, isNumberArray } from '../../helper/format';
@@ -44,7 +36,7 @@ import {
  * 注意事项：onChange 必须以受控方式更新数据。
  * 潜在副作用：触发对象更新与输入状态变化。
  */
-export const ObjectEditor = observer(function ObjectEditor({
+export const ObjectEditor = function ObjectEditor({
   value,
   onChange,
   depth = 0,
@@ -72,12 +64,11 @@ export const ObjectEditor = observer(function ObjectEditor({
       return isObjA ? 1 : -1;
     });
 
-  const ui = useLocalObservable(() => ({
-    openMap: {} as Record<string, boolean>,
-    setOpen(key: string, open: boolean) {
-      this.openMap[key] = open;
-    },
-  }));
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+
+  const setOpen = (key: string, open: boolean) => {
+    setOpenMap((prev) => ({ ...prev, [key]: open }));
+  };
 
   const isLocked = (k: string) => readOnly || lockedKeys.includes(k);
 
@@ -285,7 +276,7 @@ export const ObjectEditor = observer(function ObjectEditor({
               className={styles.kvValue}
               size="small"
               value={typeof v === 'string' ? v : undefined}
-              placeholder={DEVTOOLS_OBJECT_EDITOR_TEXT.PLACEHOLDER_SELECT}
+              placeholder="请选择"
               options={enumOptions.map((x) => ({ label: x, value: x }))}
               disabled={locked}
               autoOpen={editing}
@@ -316,8 +307,8 @@ export const ObjectEditor = observer(function ObjectEditor({
               size="small"
               value={v}
               options={[
-                { label: DEVTOOLS_OBJECT_EDITOR_TEXT.BOOL_TRUE, value: true },
-                { label: DEVTOOLS_OBJECT_EDITOR_TEXT.BOOL_FALSE, value: false },
+                { label: 'true', value: true },
+                { label: 'false', value: false },
               ]}
               disabled={locked}
               autoOpen={editing}
@@ -384,7 +375,7 @@ export const ObjectEditor = observer(function ObjectEditor({
       return (
         <div className={styles.kvKeyLocked}>
           <span>{k}</span>
-          <Tooltip title={DEVTOOLS_TOOLTIP.PROTECTED_PROP}>
+          <Tooltip title="受保护属性">
             <LockOutlined className={styles.lockIcon} />
           </Tooltip>
         </div>
@@ -393,7 +384,7 @@ export const ObjectEditor = observer(function ObjectEditor({
     const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
     if (isObj) {
       return (
-        <Tooltip title={DEVTOOLS_TOOLTIP.OBJECT_KEY_UNEDITABLE}>
+        <Tooltip title="对象键不可编辑">
           <div className={cs(styles.kvDisplay, { [styles.isObj]: isObj })}>
             <span className={styles.kvDisplayKey}>{k}</span>
           </div>
@@ -427,7 +418,7 @@ export const ObjectEditor = observer(function ObjectEditor({
     >
       {entries.map(([k, v]) => {
         const isObj = typeof v === 'object' && v !== null && !Array.isArray(v);
-        const isOpen = !!ui.openMap[k] || !isObj;
+        const isOpen = !!openMap[k] || !isObj;
         const locked = isLocked(k);
 
         if (isObj) {
@@ -439,7 +430,7 @@ export const ObjectEditor = observer(function ObjectEditor({
                   type="text"
                   className={styles.collapseBtn}
                   icon={isOpen ? <CaretDownOutlined /> : <CaretRightOutlined />}
-                  onClick={() => ui.setOpen(k, !isOpen)}
+                  onClick={() => setOpen(k, !isOpen)}
                 />
                 <div className={styles.kvHeaderLeft}>{renderKey(k, v)}</div>
                 <div className={styles.kvHeaderActions}>
@@ -491,7 +482,7 @@ export const ObjectEditor = observer(function ObjectEditor({
         <div className={styles.kvActions}>
           {hiddenEntries.length > 0 && (
             <Popover
-              trigger={DEVTOOLS_TRIGGER.CLICK}
+              trigger={DEVTOOLS_DOM_EVENTS.CLICK}
               placement={DEVTOOLS_PLACEMENT.BOTTOM}
               overlayClassName={styles.hiddenPopoverOverlay}
               getPopupContainer={(trigger) =>
@@ -502,7 +493,7 @@ export const ObjectEditor = observer(function ObjectEditor({
                 <div className={styles.hiddenPopover}>
                   <div className={styles.hiddenPopoverHeader}>
                     <InspectOutlined />
-                    <span>{DEVTOOLS_OBJECT_EDITOR_TEXT.HIDDEN_PROPS_TITLE}</span>
+                    <span>内部属性</span>
                     <span className={styles.hiddenPopoverCount}>({hiddenEntries.length})</span>
                   </div>
                   <div className={styles.hiddenPopoverList}>
@@ -521,7 +512,7 @@ export const ObjectEditor = observer(function ObjectEditor({
                 className={styles.hiddenHintBtn}
                 icon={<InspectOutlined />}
               >
-                {formatHiddenInternalProps(hiddenEntries.length)}
+                {`已隐藏 ${hiddenEntries.length} 个内部属性`}
               </Button>
             </Popover>
           )}
@@ -532,10 +523,10 @@ export const ObjectEditor = observer(function ObjectEditor({
             icon={<PlusOutlined />}
             onClick={addKey}
           >
-            {DEVTOOLS_OBJECT_EDITOR_TEXT.ADD_PROP}
+            添加属性
           </Button>
         </div>
       )}
     </div>
   );
-});
+};

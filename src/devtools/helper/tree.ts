@@ -5,8 +5,6 @@
  * 注意事项：依赖 Widget 的 parent/children 结构。
  * 潜在副作用：无。
  */
-import { formatSiblingDuplicateKeyError } from '../constants';
-
 import type { Widget } from '../../core/base';
 import type { DataNode } from '@/ui';
 
@@ -230,7 +228,9 @@ export function buildDevtoolsTree(
         ? [
             {
               key: `${nodeKey}::error`,
-              title: formatSiblingDuplicateKeyError(widget.type, widget.key, dupKeys),
+              title: `错误：${String(widget.type)} [${String(
+                widget.key,
+              )}] 下同级 key 重复：${dupKeys.map((k) => String(k)).join(', ')}`,
               disabled: true,
               selectable: false,
               isLeaf: true,

@@ -6,12 +6,7 @@
  * 潜在副作用：触发布局状态更新。
  */
 import { type Dock } from '..';
-import {
-  DEVTOOLS_ARIA,
-  DEVTOOLS_DOCK,
-  DEVTOOLS_PLACEMENT,
-  DEVTOOLS_TOOLTIP,
-} from '../../../constants';
+import { DEVTOOLS_DOCK, DEVTOOLS_PLACEMENT } from '../../../constants';
 import styles from '../index.module.less';
 
 import type { ReactNode } from 'react';
@@ -45,11 +40,11 @@ export function LayoutHeader({
       <div className={styles.left}>{headerLeft}</div>
       <div className={styles.right}>
         <Space.Compact>
-          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_LEFT} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+          <Tooltip title="靠左" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
               className={dock === DEVTOOLS_DOCK.LEFT ? styles.btnTextPrimary : styles.btnText}
-              aria-label={DEVTOOLS_ARIA.DOCK_LEFT}
+              aria-label="dock-left"
               aria-pressed={dock === DEVTOOLS_DOCK.LEFT}
               icon={getDockIcon(DEVTOOLS_DOCK.LEFT)}
               onClick={() => {
@@ -59,11 +54,11 @@ export function LayoutHeader({
               }}
             />
           </Tooltip>
-          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_RIGHT} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+          <Tooltip title="靠右" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
               className={dock === DEVTOOLS_DOCK.RIGHT ? styles.btnTextPrimary : styles.btnText}
-              aria-label={DEVTOOLS_ARIA.DOCK_RIGHT}
+              aria-label="dock-right"
               aria-pressed={dock === DEVTOOLS_DOCK.RIGHT}
               icon={getDockIcon(DEVTOOLS_DOCK.RIGHT)}
               onClick={() => {
@@ -73,11 +68,11 @@ export function LayoutHeader({
               }}
             />
           </Tooltip>
-          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_TOP} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+          <Tooltip title="靠上" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
               className={dock === DEVTOOLS_DOCK.TOP ? styles.btnTextPrimary : styles.btnText}
-              aria-label={DEVTOOLS_ARIA.DOCK_TOP}
+              aria-label="dock-top"
               aria-pressed={dock === DEVTOOLS_DOCK.TOP}
               icon={getDockIcon(DEVTOOLS_DOCK.TOP)}
               onClick={() => {
@@ -87,11 +82,11 @@ export function LayoutHeader({
               }}
             />
           </Tooltip>
-          <Tooltip title={DEVTOOLS_TOOLTIP.DOCK_BOTTOM} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+          <Tooltip title="靠下" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
             <Button
               type="text"
               className={dock === DEVTOOLS_DOCK.BOTTOM ? styles.btnTextPrimary : styles.btnText}
-              aria-label={DEVTOOLS_ARIA.DOCK_BOTTOM}
+              aria-label="dock-bottom"
               aria-pressed={dock === DEVTOOLS_DOCK.BOTTOM}
               icon={getDockIcon(DEVTOOLS_DOCK.BOTTOM)}
               onClick={() => {

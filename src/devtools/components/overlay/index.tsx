@@ -5,9 +5,9 @@
  * 注意事项：依赖 Runtime 与 Widget 的位置信息。
  * 潜在副作用：注册全局事件监听并创建 Portal。
  */
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useShallow } from 'zustand/react/shallow';
 
 export { hitTest } from '@/core/helper/hit-test';
 
@@ -17,11 +17,11 @@ import {
   DEVTOOLS_DOM_EVENTS,
   DEVTOOLS_DOM_TAGS,
 } from '../../constants';
+import { usePanelStore } from '../../store';
 
 import styles from './index.module.less';
 
 import type { Widget } from '../../../core/base';
-import type Runtime from '../../../runtime';
 
 type BoxRect = { left: number; top: number; width: number; height: number };
 type ViewportRect = {
@@ -179,32 +179,41 @@ function resolveOffscreenDirection(
  * 注意事项：active 为 false 时不渲染。
  * 潜在副作用：注册 DOM 监听并创建 Portal。
  */
-const Overlay = observer(function Overlay({
-  runtime,
-  active: overlayActive,
-  widget,
-}: {
-  runtime: Runtime | null;
-  active: boolean;
-  widget: Widget | null;
-}) {
+const Overlay = function Overlay() {
+  const {
+    runtime,
+    active: overlayActive,
+    widget,
+  } = usePanelStore(
+    useShallow((state) => {
+      let active = false;
+      let widget: Widget | null = null;
+
+      if (state.activeInspect && state.inspectHoverWidget) {
+        active = true;
+        widget = state.inspectHoverWidget;
+      } else if (state.treeHoverWidget) {
+        active = true;
+        widget = state.treeHoverWidget;
+      } else if (state.pickedWidget) {
+        active = true;
+        widget = state.pickedWidget;
+      }
+
+      return {
+        runtime: state.runtime,
+        active,
+        widget,
+      };
+    }),
+  );
+
   const rootElRef = useRef<HTMLDivElement | null>(null);
 
   const rafIdRef = useRef<number | null>(null);
   const lastCommittedRef = useRef<OverlayRenderState>({ active: false });
-  const ui = useLocalObservable(() => ({
-    renderState: { active: false } as OverlayRenderState,
-    infoPos: null as { left: number; top: number } | null,
-    setRenderState(next: OverlayRenderState) {
-      this.renderState = next;
-    },
-    resetRenderState() {
-      this.renderState = { active: false };
-    },
-    setInfoPos(next: { left: number; top: number } | null) {
-      this.infoPos = next;
-    },
-  }));
+  const [renderState, setRenderState] = useState<OverlayRenderState>({ active: false });
+  const [infoPos, setInfoPos] = useState<{ left: number; top: number } | null>(null);
 
   const infoRef = useRef<HTMLDivElement | null>(null);
 
@@ -302,9 +311,9 @@ const Overlay = observer(function Overlay({
         return;
       }
       lastCommittedRef.current = next;
-      ui.setRenderState(next);
+      setRenderState(next);
     });
-  }, [computeRenderState, ui, widget]);
+  }, [computeRenderState, widget]);
 
   useLayoutEffect(() => {
     if (!runtime) {
@@ -332,11 +341,11 @@ const Overlay = observer(function Overlay({
         rafIdRef.current = null;
       }
       lastCommittedRef.current = { active: false };
-      ui.resetRenderState();
+      setRenderState({ active: false });
       // 避免卸载时与 React commit/DOM 更新顺序交错，延后移除宿主节点更稳妥。
       runtime.nextTick(() => el.remove());
     };
-  }, [runtime, ui]);
+  }, [runtime]);
 
   useEffect(() => {
     if (!runtime) {
@@ -395,13 +404,13 @@ const Overlay = observer(function Overlay({
     scheduleCompute();
   }, [scheduleCompute]);
 
-  const { active, boxRect, label, targetRect, direction } = ui.renderState;
+  const { active, boxRect, label, targetRect, direction } = renderState;
   const infoText = useMemo(() => label ?? '', [label]);
   const dirText = useMemo(() => direction ?? '', [direction]);
 
   useLayoutEffect(() => {
     if (!active || !targetRect || !infoRef.current) {
-      ui.setInfoPos(null);
+      setInfoPos(null);
       return;
     }
 
@@ -416,11 +425,15 @@ const Overlay = observer(function Overlay({
     let top = preferAbove ? targetRect.top - gap - infoBox.height : targetRect.bottom + gap;
     top = clamp(top, margin, Math.max(margin, vh - margin - infoBox.height));
 
-    let left = targetRect.left;
-    left = clamp(left, margin, Math.max(margin, vw - margin - infoBox.width));
+    const left = clamp(targetRect.left, margin, Math.max(margin, vw - margin - infoBox.width));
 
-    ui.setInfoPos({ left, top });
-  }, [active, infoText, targetRect, ui]);
+    setInfoPos((prev) => {
+      if (prev && prev.left === left && prev.top === top) {
+        return prev;
+      }
+      return { left, top };
+    });
+  }, [active, infoText, targetRect]);
 
   if (!rootElRef.current) {
     return null;
@@ -431,8 +444,8 @@ const Overlay = observer(function Overlay({
   }
 
   let infoStyle: { left: string; top: string } | undefined;
-  if (ui.infoPos) {
-    infoStyle = { left: `${ui.infoPos.left}px`, top: `${ui.infoPos.top}px` };
+  if (infoPos) {
+    infoStyle = { left: `${infoPos.left}px`, top: `${infoPos.top}px` };
   }
 
   return createPortal(
@@ -457,7 +470,7 @@ const Overlay = observer(function Overlay({
     </>,
     rootElRef.current,
   );
-});
+};
 
 export default Overlay;
 

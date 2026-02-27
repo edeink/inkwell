@@ -2,88 +2,96 @@
  * Devtools 树面板组件
  *
  * 渲染组件树、搜索与面包屑，并提供交互回调。
- * 注意事项：依赖 LayoutInfo 控制布局尺寸。
+ * 注意事项：内部直接连接 Store 获取数据与回调。
  * 潜在副作用：可能触发滚动与输入焦点管理。
  */
 import cn from 'classnames';
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { useCallback, useEffect, useMemo, useRef, type Key } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
-import {
-  DEVTOOLS_DOCK,
-  DEVTOOLS_DOM_EVENTS,
-  DEVTOOLS_PLACEMENT,
-  DEVTOOLS_TREE_PANE_TEXT,
-} from '../../../constants';
-import { type LayoutInfo } from '../../layout';
+import { DEVTOOLS_DOCK, DEVTOOLS_DOM_EVENTS, DEVTOOLS_PLACEMENT } from '../../../constants';
+import { getPathNodeKeys } from '../../../helper/tree';
+import { useLayoutStore, usePanelStore } from '../../../store';
 import SimpleTip from '../../simple-tip';
 
 import styles from './index.module.less';
 
-import { Button, Input, Tooltip, Tree, type DataNode } from '@/ui';
+import { Button, Input, Tooltip, Tree } from '@/ui';
 import { ConsoleOutlined, LeftOutlined, RightOutlined } from '@/ui/icons';
-
-/**
- * 树面板属性
- *
- * 注意事项：回调需保持稳定引用以避免无效渲染。
- * 潜在副作用：无。
- */
-export type DevtoolsTreePaneProps = {
-  info: LayoutInfo;
-  isMultiRuntime: boolean;
-  treeData: DataNode[];
-  expandedKeys: string[];
-  selectedKey: string | null;
-  breadcrumbs?: Array<{ key: string; label: string }>;
-  onExpandKeysChange: (keys: string[]) => void;
-  onSelectKey: (key: string) => void;
-  onHoverKey: (key: string | null) => void;
-  onClickBreadcrumbKey: (key: string) => void;
-  onPrintSelected: () => void;
-};
 
 /**
  * DevtoolsTreePane
  *
- * @param props 树面板属性
  * @returns React 元素
  * @remarks
  * 注意事项：树数据量较大时需关注性能。
  * 潜在副作用：可能触发滚动与输入状态变化。
  */
-export const DevtoolsTreePane = observer(function DevtoolsTreePane({
-  info,
-  isMultiRuntime,
-  treeData,
-  expandedKeys,
-  selectedKey,
-  breadcrumbs = [],
-  onExpandKeysChange,
-  onSelectKey,
-  onHoverKey,
-  onClickBreadcrumbKey,
-  onPrintSelected,
-}: DevtoolsTreePaneProps) {
-  const ui = useLocalObservable(() => ({
-    search: '',
-    containerHeight: 0,
-    scrollLeft: false,
-    scrollRight: false,
-    setSearch(value: string) {
-      this.search = value;
-    },
-    setContainerHeight(value: number) {
-      this.containerHeight = value;
-    },
-    setScrollState(left: boolean, right: boolean) {
-      this.scrollLeft = left;
-      this.scrollRight = right;
-    },
-    get searchLower() {
-      return this.search.trim().toLowerCase();
-    },
-  }));
+export const DevtoolsTreePane = function DevtoolsTreePane() {
+  const {
+    isMultiRuntime,
+    treeBuild,
+    expandedKeys,
+    selectedNodeKey,
+    setExpandedKeys,
+    handleSelectKey,
+    handleHoverKey,
+    handleClickBreadcrumbKey,
+    handlePrintSelected,
+  } = usePanelStore(
+    useShallow((state) => ({
+      isMultiRuntime: state.isMultiRuntime,
+      treeBuild: state.treeBuild,
+      expandedKeys: state.expandedKeys,
+      selectedNodeKey: state.selectedNodeKey,
+      setExpandedKeys: state.setExpandedKeys,
+      handleSelectKey: state.handleSelectKey,
+      handleHoverKey: state.handleHoverKey,
+      handleClickBreadcrumbKey: state.handleClickBreadcrumbKey,
+      handlePrintSelected: state.handlePrintSelected,
+    })),
+  );
+
+  const {
+    dock,
+    treeWidth,
+    treeHeight: currentTreeHeight,
+    isNarrow,
+  } = useLayoutStore(
+    useShallow((state) => ({
+      dock: state.dock,
+      treeWidth: state.treeWidth,
+      treeHeight: state.treeHeight,
+      isNarrow: state.isNarrow,
+    })),
+  );
+
+  const treeData = treeBuild.treeData;
+  const breadcrumbs = useMemo(() => {
+    if (!selectedNodeKey) {
+      return [];
+    }
+    return getPathNodeKeys(treeBuild.parentByNodeKey, selectedNodeKey).map((key) => {
+      const widget = treeBuild.widgetByNodeKey.get(key);
+      const label = widget ? widget.constructor.name : 'Unknown';
+      return { key, label };
+    });
+  }, [selectedNodeKey, treeBuild]);
+
+  const expandedKeysArray = useMemo(() => Array.from(expandedKeys), [expandedKeys]);
+
+  const containerStyle =
+    dock === DEVTOOLS_DOCK.BOTTOM || dock === DEVTOOLS_DOCK.TOP
+      ? { width: treeWidth }
+      : { height: currentTreeHeight };
+
+  const showBreadcrumbs = !isNarrow && breadcrumbs.length > 0;
+
+  const [search, setSearch] = useState('');
+  const [containerHeight, setContainerHeight] = useState(0);
+  const [scrollState, setScrollState] = useState({ left: false, right: false });
+
+  const searchLower = useMemo(() => search.trim().toLowerCase(), [search]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -99,8 +107,11 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
       return;
     }
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    ui.setScrollState(scrollLeft > 1, Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1);
-  }, [ui]);
+    setScrollState({
+      left: scrollLeft > 1,
+      right: Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1,
+    });
+  }, []);
 
   // 监听滚动与窗口尺寸变化，同步滚动边界状态
   useEffect(() => {
@@ -134,8 +145,14 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
     if (!el) {
       return;
     }
-    const update = () => ui.setContainerHeight(el.clientHeight);
-    update();
+    const update = () => {
+      setContainerHeight((prev) => {
+        if (Math.abs(el.clientHeight - prev) <= 1) {
+          return prev;
+        }
+        return el.clientHeight;
+      });
+    };
     if (typeof ResizeObserver === 'undefined') {
       window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, update);
       return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, update);
@@ -143,131 +160,136 @@ export const DevtoolsTreePane = observer(function DevtoolsTreePane({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [ui]);
+  }, []);
 
-  const treeHeight = useMemo(() => {
+  const calculatedTreeHeight = useMemo(() => {
+    // 基础高度逻辑：优先使用 ResizeObserver 测量的 containerHeight
+    // 如果没有，则根据 dock 状态回退
     const containerH =
-      ui.containerHeight ||
-      (info.isNarrow
-        ? info.treeHeight
-        : info.dock === DEVTOOLS_DOCK.TOP || info.dock === DEVTOOLS_DOCK.BOTTOM
-          ? info.height
+      containerHeight ||
+      (isNarrow
+        ? currentTreeHeight
+        : dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM
+          ? window.innerHeight
           : window.innerHeight);
-    const tipH = tipRef.current?.getBoundingClientRect().height ?? 0;
-    const toolbarH = toolbarRef.current?.getBoundingClientRect().height ?? 0;
-    const breadcrumbsH = breadcrumbsRef.current?.getBoundingClientRect().height ?? 0;
-    const gap = 8;
-    return Math.max(120, Math.floor(containerH - tipH - toolbarH - breadcrumbsH - gap));
-  }, [ui.containerHeight, info.dock, info.height, info.isNarrow, info.treeHeight]);
+
+    if (containerHeight > 0) {
+      const tipH = tipRef.current?.getBoundingClientRect().height ?? 0;
+      const toolbarH = toolbarRef.current?.getBoundingClientRect().height ?? 0;
+      const breadcrumbsH = breadcrumbsRef.current?.getBoundingClientRect().height ?? 0;
+      const gap = 8;
+      return Math.max(120, Math.floor(containerHeight - tipH - toolbarH - breadcrumbsH - gap));
+    }
+
+    return 300; // Default height fallback
+  }, [containerHeight, isNarrow, currentTreeHeight, dock]);
 
   const emitHoverKey = useCallback(
     (key: string | null, source: string) => {
-      onHoverKey(key);
+      handleHoverKey(key);
     },
-    [onHoverKey],
+    [handleHoverKey],
   );
 
   return (
-    <div ref={containerRef} className={styles.treePaneRoot}>
+    <div ref={containerRef} className={styles.treePaneRoot} style={containerStyle}>
       {isMultiRuntime && (
         <div ref={tipRef}>
-          <SimpleTip message={DEVTOOLS_TREE_PANE_TEXT.MULTI_RUNTIME_TIP} />
+          <SimpleTip message="检测到当前页面存在多个 runtime。激活 inspect 模式后，将鼠标移动到目标 canvas 上可切换对应的 runtime。" />
         </div>
       )}
 
       <div className={styles.treeToolbar} ref={toolbarRef}>
         <div className={styles.treeToolbarSearch}>
           <Input.Search
-            value={ui.search}
-            onChange={(e) => ui.setSearch(e.target.value)}
-            placeholder={DEVTOOLS_TREE_PANE_TEXT.SEARCH_PLACEHOLDER}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="搜索组件"
             allowClear
           />
         </div>
-        <div className={styles.treeToolbarActions}>
-          <Tooltip
-            title={DEVTOOLS_TREE_PANE_TEXT.PRINT_SELECTED}
-            placement={DEVTOOLS_PLACEMENT.BOTTOM}
-          >
-            <Button
-              type="text"
-              icon={<ConsoleOutlined width={24} height={24} />}
-              onClick={onPrintSelected}
-            />
-          </Tooltip>
-        </div>
+        <Tooltip title="打印选中组件到控制台" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+          <Button
+            type="text"
+            icon={<ConsoleOutlined />}
+            disabled={!selectedNodeKey}
+            onClick={handlePrintSelected}
+          />
+        </Tooltip>
       </div>
 
-      <Tree
-        className={styles.compactTree}
-        showLine
-        height={treeHeight}
-        treeData={treeData}
-        titleRender={(node) => (
-          <span
-            data-key={String(node.key)}
-            onMouseEnter={() => emitHoverKey(String(node.key), 'tree')}
-            onMouseLeave={() => emitHoverKey(null, 'tree')}
-          >
-            {node.title as unknown as string}
-          </span>
-        )}
-        expandedKeys={expandedKeys}
-        onExpand={(keys: Key[]) => onExpandKeysChange(keys as string[])}
-        selectedKeys={selectedKey ? [selectedKey] : []}
-        onSelect={(keys: Key[]) => {
-          if (keys.length === 0) {
-            return;
-          }
-          onSelectKey(String(keys[0]));
-        }}
-        filterTreeNode={
-          ui.searchLower
-            ? (node) => String(node.title).toLowerCase().includes(ui.searchLower)
-            : undefined
-        }
-      />
-
-      <div className={styles.breadcrumbsContainer} ref={breadcrumbsRef}>
-        <div
-          className={cn(styles.navBtn, { [styles.disabled]: !ui.scrollLeft })}
-          onClick={() => {
-            breadcrumbScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
+      <div className={styles.treeBody}>
+        <Tree
+          treeData={treeData}
+          height={calculatedTreeHeight}
+          expandedKeys={expandedKeysArray}
+          selectedKeys={selectedNodeKey ? [selectedNodeKey] : []}
+          onExpand={(keys) => setExpandedKeys(new Set(keys as string[]))}
+          onSelect={(keys) => {
+            const key = keys[0];
+            if (key) {
+              handleSelectKey(key as string);
+            }
           }}
-        >
-          <LeftOutlined style={{ fontSize: 10 }} />
-        </div>
-        <div className={styles.scrollArea} ref={breadcrumbScrollRef}>
-          {breadcrumbs.map((w, index) => {
-            const isActive = index === breadcrumbs.length - 1;
+          titleRender={(node) => {
+            const isHover = false;
+            const match = searchLower && (node.title as string).toLowerCase().includes(searchLower);
             return (
-              <span key={w.key} style={{ display: 'flex', alignItems: 'center' }}>
-                {index > 0 && (
-                  <span className={styles.separator}>
-                    <RightOutlined style={{ fontSize: 10 }} />
-                  </span>
-                )}
-                <span
-                  className={cn(styles.crumbItem, { [styles.crumbItemActive]: isActive })}
-                  onMouseEnter={() => emitHoverKey(w.key, 'breadcrumbs')}
-                  onMouseLeave={() => emitHoverKey(null, 'breadcrumbs')}
-                  onClick={() => onClickBreadcrumbKey(w.key)}
-                >
-                  {w.label}
-                </span>
-              </span>
+              <div
+                className={cn(styles.treeNodeTitle, {
+                  [styles.treeNodeTitleHover]: isHover,
+                  [styles.treeNodeTitleMatch]: match,
+                })}
+                onMouseEnter={() => emitHoverKey(node.key as string, 'enter')}
+                onMouseLeave={() => emitHoverKey(null, 'leave')}
+              >
+                {node.title as React.ReactNode}
+              </div>
             );
-          })}
-        </div>
-        <div
-          className={cn(styles.navBtn, { [styles.disabled]: !ui.scrollRight })}
-          onClick={() => {
-            breadcrumbScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
           }}
-        >
-          <RightOutlined style={{ fontSize: 10 }} />
-        </div>
+        />
       </div>
+
+      {showBreadcrumbs && (
+        <div className={styles.breadcrumbsWrapper} ref={breadcrumbsRef}>
+          <div
+            className={cn(styles.scrollBtn, styles.scrollBtnLeft, {
+              [styles.scrollBtnVisible]: scrollState.left,
+            })}
+            onClick={() => {
+              if (breadcrumbScrollRef.current) {
+                breadcrumbScrollRef.current.scrollBy({ left: -100, behavior: 'smooth' });
+              }
+            }}
+          >
+            <LeftOutlined />
+          </div>
+          <div className={styles.breadcrumbsScroll} ref={breadcrumbScrollRef}>
+            {breadcrumbs.map((item, index) => (
+              <div
+                key={item.key}
+                className={styles.breadcrumbItem}
+                onClick={() => handleClickBreadcrumbKey(item.key)}
+              >
+                <span className={styles.breadcrumbLabel}>{item.label}</span>
+                {index < breadcrumbs.length - 1 && <span className={styles.breadcrumbSep}>/</span>}
+              </div>
+            ))}
+          </div>
+          <div
+            className={cn(styles.scrollBtn, styles.scrollBtnRight, {
+              [styles.scrollBtnVisible]: scrollState.right,
+            })}
+            onClick={() => {
+              if (breadcrumbScrollRef.current) {
+                breadcrumbScrollRef.current.scrollBy({ left: 100, behavior: 'smooth' });
+              }
+            }}
+          >
+            <RightOutlined />
+          </div>
+        </div>
+      )}
     </div>
   );
-});
+};

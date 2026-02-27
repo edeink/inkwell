@@ -5,8 +5,7 @@
  * 注意事项：依赖 DOM 事件监听。
  * 潜在副作用：注册全局 pointerdown 监听。
  */
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
   DEVTOOLS_DOM_EVENT_OPTIONS,
@@ -25,7 +24,7 @@ import styles from './index.module.less';
  * 注意事项：editable 为 false 时禁止进入编辑态。
  * 潜在副作用：注册 pointerdown 监听与焦点控制。
  */
-export const DoubleClickEditableField = observer(function DoubleClickEditableField({
+export const DoubleClickEditableField = function DoubleClickEditableField({
   editor,
   display,
   editable = true,
@@ -42,12 +41,7 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
   displayClassName?: string;
   editorClassName?: string;
 }) {
-  const ui = useLocalObservable(() => ({
-    editing: false,
-    setEditing(next: boolean) {
-      this.editing = next;
-    },
-  }));
+  const [editing, setEditing] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const isExitTarget = (target: HTMLElement | null, root: HTMLElement | null) => {
     if (!target) {
@@ -68,13 +62,13 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
   };
 
   useEffect(() => {
-    if (!editable && ui.editing) {
-      ui.setEditing(false);
+    if (!editable && editing) {
+      setEditing(false);
     }
-  }, [editable, ui]);
+  }, [editable, editing]);
 
   useEffect(() => {
-    if (!ui.editing) {
+    if (!editing) {
       return;
     }
     const root = rootRef.current;
@@ -88,10 +82,10 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
         (target as HTMLInputElement).select();
       }
     }
-  }, [ui.editing]);
+  }, [editing]);
 
   useEffect(() => {
-    if (!ui.editing || !exitOnBlur) {
+    if (!editing || !exitOnBlur) {
       return;
     }
     const handlePointerDown = (event: PointerEvent) => {
@@ -100,7 +94,7 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
       if (!isExitTarget(target, root)) {
         return;
       }
-      ui.setEditing(false);
+      setEditing(false);
     };
     document.addEventListener(
       DEVTOOLS_DOM_EVENTS.POINTERDOWN,
@@ -113,17 +107,17 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
         handlePointerDown,
         DEVTOOLS_DOM_EVENT_OPTIONS.CAPTURE_TRUE,
       );
-  }, [exitOnBlur, ui]);
+  }, [exitOnBlur, editing]);
 
   const handleBlurCapture = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (!exitOnBlur || !ui.editing) {
+    if (!exitOnBlur || !editing) {
       return;
     }
     const next = e.relatedTarget instanceof HTMLElement ? e.relatedTarget : null;
     if (!isExitTarget(next, e.currentTarget)) {
       return;
     }
-    ui.setEditing(false);
+    setEditing(false);
   };
 
   return (
@@ -135,22 +129,22 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
       <div
         className={[
           styles.editor,
-          ui.editing ? styles.editorActive : styles.editorInactive,
+          editing ? styles.editorActive : styles.editorInactive,
           editorClassName ?? '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        {ui.editing
+        {editing
           ? typeof editor === 'function'
-            ? editor({ exit: () => ui.setEditing(false), editing: ui.editing })
+            ? editor({ exit: () => setEditing(false), editing: editing })
             : editor
           : null}
       </div>
       <div
         className={[
           styles.display,
-          ui.editing ? styles.displayHidden : styles.displayActive,
+          editing ? styles.displayHidden : styles.displayActive,
           editable ? styles.displayEditable : styles.displayReadonly,
           displayClassName ?? '',
         ]
@@ -161,11 +155,11 @@ export const DoubleClickEditableField = observer(function DoubleClickEditableFie
             return;
           }
           e.stopPropagation?.();
-          ui.setEditing(true);
+          setEditing(true);
         }}
       >
         {display}
       </div>
     </div>
   );
-});
+};

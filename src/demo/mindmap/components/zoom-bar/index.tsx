@@ -3,11 +3,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { SCALE_CONFIG } from '../../constants';
 import { useMindmapController } from '../../hooks/context';
-import { useMindmapView } from '../../hooks/use-mindmap-view';
+import { useMindmapView, useMindmapViewWithController } from '../../hooks/use-mindmap-view';
 import { CustomComponentType } from '../../type';
 
 import { quantize } from './helper';
 import styles from './index.module.less';
+
+import type { MindmapController } from '../../controller';
+import type { MindmapViewState } from '../../hooks/use-mindmap-view';
 
 import { findWidget } from '@/core/helper/widget-selector';
 import { InputNumber, Tooltip } from '@/ui';
@@ -19,13 +22,18 @@ interface ZoomBarProps {
   step?: number;
 }
 
-export default function ZoomBar({
+type ZoomBarBaseProps = ZoomBarProps & {
+  controller: MindmapController;
+  viewState: MindmapViewState;
+};
+
+function ZoomBarBase({
+  controller,
+  viewState,
   min = SCALE_CONFIG.MIN_SCALE,
   max = SCALE_CONFIG.MAX_SCALE,
   step = 0.01,
-}: ZoomBarProps) {
-  const controller = useMindmapController();
-  const viewState = useMindmapView();
+}: ZoomBarBaseProps) {
   const value = viewState.scale;
 
   const getViewportCenter = useCallback((): { cx: number; cy: number; vw: number; vh: number } => {
@@ -182,5 +190,25 @@ export default function ZoomBar({
         </Tooltip>
       </div>
     </div>
+  );
+}
+
+export function ZoomBarWithController({
+  controller,
+  min,
+  max,
+  step,
+}: ZoomBarProps & { controller: MindmapController }) {
+  const viewState = useMindmapViewWithController(controller);
+  return (
+    <ZoomBarBase controller={controller} viewState={viewState} min={min} max={max} step={step} />
+  );
+}
+
+export default function ZoomBar({ min, max, step }: ZoomBarProps) {
+  const controller = useMindmapController();
+  const viewState = useMindmapView();
+  return (
+    <ZoomBarBase controller={controller} viewState={viewState} min={min} max={max} step={step} />
   );
 }

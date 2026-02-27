@@ -3,9 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MindmapController } from '../../../controller';
-import { MindmapContext } from '../../../hooks/context';
 import { MindMapViewport } from '../../../widgets/mindmap-viewport';
-import Minimap from '../index';
+import { MinimapWithController } from '../index';
 
 import type { Root } from 'react-dom/client';
 
@@ -145,11 +144,7 @@ describe('Minimap 集成测试', () => {
 
   it('应该正确渲染 Minimap 组件 (Should render Minimap component correctly)', async () => {
     await act(async () => {
-      root.render(
-        <MindmapContext.Provider value={controller}>
-          <Minimap width={200} height={140} />
-        </MindmapContext.Provider>,
-      );
+      root.render(<MinimapWithController controller={controller} width={200} height={140} />);
     });
 
     // 检查 canvas 元素而不是可能已哈希的类名
@@ -159,11 +154,7 @@ describe('Minimap 集成测试', () => {
 
   it('当视图变化时应该触发重绘 (Should trigger redraw when view changes)', async () => {
     await act(async () => {
-      root.render(
-        <MindmapContext.Provider value={controller}>
-          <Minimap width={200} height={140} />
-        </MindmapContext.Provider>,
-      );
+      root.render(<MinimapWithController controller={controller} width={200} height={140} />);
     });
 
     // 验证初始画布
@@ -208,11 +199,7 @@ describe('Minimap 集成测试', () => {
     );
 
     await act(async () => {
-      root.render(
-        <MindmapContext.Provider value={controller}>
-          <Minimap width={200} height={140} />
-        </MindmapContext.Provider>,
-      );
+      root.render(<MinimapWithController controller={controller} width={200} height={140} />);
     });
 
     const canvases = container.querySelectorAll('canvas');

@@ -5,7 +5,7 @@
  * 注意事项：需要外部传入关闭回调与帮助内容。
  * 潜在副作用：无。
  */
-import { DEVTOOLS_PLACEMENT, DEVTOOLS_TOOLTIP, DEVTOOLS_TRIGGER } from '../../../constants';
+import { DEVTOOLS_DOM_EVENTS, DEVTOOLS_PLACEMENT } from '../../../constants';
 
 import styles from './index.module.less';
 
@@ -33,16 +33,16 @@ export function DevtoolsHeaderRight({
   return (
     <>
       <Popover
-        trigger={DEVTOOLS_TRIGGER.CLICK}
+        trigger={DEVTOOLS_DOM_EVENTS.CLICK}
         placement={DEVTOOLS_PLACEMENT.BOTTOM}
         overlayClassName={styles.helpOverlay}
         content={helpContent}
       >
-        <Tooltip title={DEVTOOLS_TOOLTIP.HELP} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+        <Tooltip title="帮助" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
           <Button type="text" icon={<QuestionCircleOutlined />} />
         </Tooltip>
       </Popover>
-      <Tooltip title={DEVTOOLS_TOOLTIP.CLOSE} placement={DEVTOOLS_PLACEMENT.BOTTOM}>
+      <Tooltip title="关闭" placement={DEVTOOLS_PLACEMENT.BOTTOM}>
         <Button type="text" icon={<CloseOutlined />} onClick={onRequestClose} />
       </Tooltip>
     </>

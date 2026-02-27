@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { useMindmapController } from './context';
 
+import type { MindmapController } from '../controller';
+
 export interface MindmapViewState {
   scale: number;
   tx: number;
@@ -12,6 +14,10 @@ export interface MindmapViewState {
 
 export function useMindmapView(): MindmapViewState {
   const controller = useMindmapController();
+  return useMindmapViewWithController(controller);
+}
+
+export function useMindmapViewWithController(controller: MindmapController): MindmapViewState {
   const [state, setState] = useState<MindmapViewState>({
     scale: controller.viewScale,
     tx: controller.viewTx,

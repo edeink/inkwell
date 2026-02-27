@@ -4,11 +4,10 @@ import { InkwellCanvas } from '../common/inkwell-canvas';
 
 import { runApp } from './app';
 import ErrorBoundary from './components/error-boundary';
-import Minimap from './components/minimap';
+import { MinimapWithController } from './components/minimap';
 import Toolbar from './components/toolbar';
-import ZoomBar from './components/zoom-bar';
+import { ZoomBarWithController } from './components/zoom-bar';
 import { MindmapController } from './controller/index';
-import { MindmapContext } from './hooks/context';
 import { CustomComponentType } from './type';
 import { MindMapViewport } from './widgets/mindmap-viewport';
 
@@ -108,11 +107,11 @@ export default function MindmapDemo({ width, height }: { width?: number; height?
           onResize={handleResize}
         />
         {runtime && context && (
-          <MindmapContext.Provider value={context}>
+          <>
             <Toolbar runtime={runtime} width={width} height={height} />
-            <ZoomBar />
-            <Minimap width={200} height={150} />
-          </MindmapContext.Provider>
+            <ZoomBarWithController controller={context} />
+            <MinimapWithController controller={context} width={200} height={150} />
+          </>
         )}
       </div>
     </ErrorBoundary>
