@@ -28,6 +28,14 @@ export function useDevToolsInteraction() {
     });
   }, []);
 
+  // Debug: Freeze Reproduction Monitor
+  const debugRef = useRef({
+    lastOverCanvas: false,
+    flipCount: 0,
+    lastFlipTime: 0,
+    lastRuntimeId: '',
+  });
+
   useEffect(() => {
     if (!visible || !activeInspect) {
       return;
@@ -55,12 +63,36 @@ export function useDevToolsInteraction() {
           const r = item.canvas.getBoundingClientRect();
           if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
             const elAt = document.elementFromPoint(cx, cy);
-            if (elAt === item.canvas) {
+            // 允许穿透 Overlay
+            if (
+              elAt === item.canvas ||
+              item.canvas.contains(elAt) ||
+              (elAt && elAt.getAttribute('data-devtools-overlay') === 'true') ||
+              (elAt && elAt.closest('[data-devtools-overlay="true"]'))
+            ) {
               overCanvas = true;
               targetRuntime = item.runtime;
               break;
             }
           }
+        }
+
+        // Freeze Reproduction Logic
+        const now = Date.now();
+        if (overCanvas !== debugRef.current.lastOverCanvas) {
+          if (now - debugRef.current.lastFlipTime < 200) {
+            debugRef.current.flipCount++;
+            if (debugRef.current.flipCount > 5) {
+              console.error(
+                '[DevTools Freeze Detected] overCanvas is flipping rapidly! Possible infinite loop.',
+                { overCanvas, elAt: document.elementFromPoint(cx, cy) }
+              );
+            }
+          } else {
+            debugRef.current.flipCount = 0;
+          }
+          debugRef.current.lastFlipTime = now;
+          debugRef.current.lastOverCanvas = overCanvas;
         }
 
         if (!overCanvas) {

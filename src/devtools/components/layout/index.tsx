@@ -106,31 +106,37 @@ export const LayoutPanel = function LayoutPanel({
   const layout = { dock, width, height, treeWidth, treeHeight, isNarrow };
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // TODO 这里有问题
   useEffect(() => {
-    const updateNarrow = () => {
-      const w =
-        panelRef.current?.clientWidth ??
-        (dock === DEVTOOLS_DOCK.LEFT || dock === DEVTOOLS_DOCK.RIGHT ? width : window.innerWidth);
-      const isNarrowNow = w < 600;
-      setIsNarrow((prev) => {
-        if (prev === isNarrowNow) {
+    if (!panelRef.current) {
+      return;
+    }
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        console.log('[LayoutPanel] ResizeObserver width:', w);
+        const isNarrowNow = w < 600;
+        setIsNarrow((prev) => {
+          if (prev === isNarrowNow) {
+            return prev;
+          }
+          // Hysteresis to prevent flickering at boundary
+          if (prev && w > 610) {
+            console.log('[LayoutPanel] Switching to wide mode');
+            return false;
+          }
+          if (!prev && w < 590) {
+            console.log('[LayoutPanel] Switching to narrow mode');
+            return true;
+          }
           return prev;
-        }
-        // Hysteresis to prevent flickering at boundary
-        if (prev && w > 610) {
-          return false;
-        }
-        if (!prev && w < 590) {
-          return true;
-        }
-        return prev;
-      });
-    };
-    updateNarrow();
-    window.addEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
-    return () => window.removeEventListener(DEVTOOLS_DOM_EVENTS.RESIZE, updateNarrow);
-  }, [dock, width, setIsNarrow]);
+        });
+      }
+    });
+
+    ro.observe(panelRef.current);
+    return () => ro.disconnect();
+  }, [setIsNarrow]);
 
   const dockClass = {
     [DEVTOOLS_DOCK.LEFT]: styles.dockLeft,
@@ -253,8 +259,8 @@ export const LayoutPanel = function LayoutPanel({
             '--devtools-dock': dock,
             '--devtools-width': `${width}px`,
             '--devtools-height': `${height}px`,
-            '--devtools-tree-width': `${treeWidth}px`,
-            '--devtools-tree-height': `${treeHeight}px`,
+            '--tree-width': `${treeWidth}px`,
+            '--tree-height': `${treeHeight}px`,
             display: visible ? undefined : 'none',
           } as CSSProperties
         }

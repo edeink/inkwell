@@ -49,6 +49,16 @@ export default function InkPlayground({
     setError(null);
   }, []);
 
+  const handleSuccess = useCallback(() => {
+    setError(null);
+    setRunning(false);
+  }, []);
+
+  const handleError = useCallback((e: string) => {
+    setError(e);
+    setRunning(false);
+  }, []);
+
   useEffect(() => {
     if (autoRunTimerRef.current) {
       window.clearTimeout(autoRunTimerRef.current);
@@ -78,14 +88,8 @@ export default function InkPlayground({
                 width={width}
                 height={height}
                 readonly
-                onError={(e) => {
-                  setError(e);
-                  setRunning(false);
-                }}
-                onSuccess={() => {
-                  setError(null);
-                  setRunning(false);
-                }}
+                onError={handleError}
+                onSuccess={handleSuccess}
               />
             </div>
           </div>
@@ -136,14 +140,8 @@ export default function InkPlayground({
                   width={width}
                   height={height}
                   readonly={true}
-                  onError={(e) => {
-                    setError(e);
-                    setRunning(false);
-                  }}
-                  onSuccess={() => {
-                    setError(null);
-                    setRunning(false);
-                  }}
+                  onError={handleError}
+                  onSuccess={handleSuccess}
                 />
               </div>
             </div>
@@ -166,14 +164,8 @@ export default function InkPlayground({
                 width={width}
                 height={height}
                 readonly={false}
-                onError={(e) => {
-                  setError(e);
-                  setRunning(false);
-                }}
-                onSuccess={() => {
-                  setError(null);
-                  setRunning(false);
-                }}
+                onError={handleError}
+                onSuccess={handleSuccess}
               />
             </div>
             <div className={`${styles.section} ${styles.codeSection}`}>

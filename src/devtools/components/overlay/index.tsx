@@ -303,6 +303,7 @@ const Overlay = function Overlay() {
     }
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
+      console.log('[DevTools] Overlay computing render state');
       const next = computeRenderState(widget);
       if (!next) {
         return;
@@ -331,6 +332,7 @@ const Overlay = function Overlay() {
 
     const el = document.createElement('div');
     el.className = styles.overlayRoot;
+    el.setAttribute('data-devtools-overlay', 'true');
     container.appendChild(el);
     rootElRef.current = el;
 
@@ -380,10 +382,19 @@ const Overlay = function Overlay() {
     const canvas =
       raw?.canvas ?? runtime.container?.querySelector(DEVTOOLS_DOM_TAGS.CANVAS) ?? null;
     if (canvas && typeof MutationObserver !== 'undefined') {
-      mo = new MutationObserver(() => {
+      mo = new MutationObserver((mutations) => {
         if (!shouldCompute()) {
           return;
         }
+        // Log mutation details to debug infinite loop
+        mutations.forEach((m) => {
+          console.log(
+            '[Overlay] Canvas mutation:',
+            m.attributeName,
+            canvas.style.cssText,
+            canvas.className,
+          );
+        });
         scheduleCompute();
       });
       mo.observe(canvas, {

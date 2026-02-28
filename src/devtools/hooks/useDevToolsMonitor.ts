@@ -6,22 +6,33 @@
  */
 import { useEffect, useRef } from 'react';
 
-import { computeRuntimeTreeHash } from '../helper/tree';
+import { computeWidgetTreeHash } from '../helper/tree';
 import { usePanelStore } from '../store';
 
 export function useDevToolsMonitor() {
   const runtime = usePanelStore((state) => state.runtime);
   const visible = usePanelStore((state) => state.visible);
 
-  // 使用 ref 避免闭包陷阱
   const lastTreeHashRef = useRef(0);
+  const lastRootHashRef = useRef(0);
+  const lastOverlayHashRef = useRef(0);
   const isPollingRef = useRef(false);
   const idleIdRef = useRef<number | null>(null);
   const timerIdRef = useRef<number | null>(null);
+  const rateLimitRef = useRef({ count: 0, startTime: Date.now() });
 
   // 同步 store 中的 hash
   useEffect(() => {
+    console.log('[useDevToolsMonitor] Mount');
+    return () => console.log('[useDevToolsMonitor] Unmount');
+  }, []);
+
+  useEffect(() => {
     return usePanelStore.subscribe((state) => {
+      // Debug: Log if lastTreeHash is a float or unexpected
+      if (state.lastTreeHash !== 0 && !Number.isInteger(state.lastTreeHash)) {
+        console.warn('[useDevToolsMonitor] State lastTreeHash is float:', state.lastTreeHash);
+      }
       lastTreeHashRef.current = state.lastTreeHash;
     });
   }, []);
@@ -51,6 +62,8 @@ export function useDevToolsMonitor() {
     }
 
     isPollingRef.current = true;
+    // 重置计数器 (每次 visible/runtime 变化时重置，但保留 total limit 防止死循环)
+    // 这里我们使用一个简单的策略：如果短时间内更新次数过多，则停止
 
     const checkHash = () => {
       if (!isPollingRef.current) {
@@ -70,9 +83,42 @@ export function useDevToolsMonitor() {
       }
 
       try {
-        const nextHash = computeRuntimeTreeHash(runtime);
+        const rootHash = computeWidgetTreeHash(runtime.getRootWidget?.() ?? null);
+        const overlayHash = computeWidgetTreeHash(runtime.getOverlayRootWidget?.() ?? null);
+
+        // 手动组合，与 tree.ts 保持一致
+        let h = rootHash;
+        h ^= overlayHash >>> 0;
+        const nextHash = Math.imul(h, 16777619) >>> 0;
+
         if (nextHash !== lastTreeHashRef.current) {
+          // Rate limiting logic
+          const now = Date.now();
+          if (now - rateLimitRef.current.startTime > 5000) {
+            rateLimitRef.current = { count: 0, startTime: now };
+          }
+          rateLimitRef.current.count++;
+
+          if (rateLimitRef.current.count > 50) {
+            console.warn(
+              '[DevTools Monitor] Infinite loop detected (>50 updates in 5s). Stopping monitor.',
+            );
+            isPollingRef.current = false;
+            return;
+          }
+
+          console.log('[DevTools Monitor] Tree Hash Changed:', {
+            old: lastTreeHashRef.current,
+            new: nextHash,
+            rootHash,
+            overlayHash,
+            oldRootHash: lastRootHashRef.current,
+            oldOverlayHash: lastOverlayHashRef.current,
+            runtimeId: runtime.getCanvasId?.(),
+          });
           lastTreeHashRef.current = nextHash;
+          lastRootHashRef.current = rootHash;
+          lastOverlayHashRef.current = overlayHash;
 
           // 批量更新 Store
           const store = usePanelStore.getState();

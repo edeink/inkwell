@@ -62,7 +62,13 @@ export function computeWidgetTreeHash(root: Widget | null): number {
   const stack: Widget[] = [root];
   while (stack.length) {
     const w = stack.pop()!;
-    h = hashStr(h, w.key ?? '');
+    // Only hash explicit keys from user data to avoid instability from auto-generated keys
+    // which change on every instance creation (e.g. Container-1 vs Container-2).
+    // If w.data.key is present, use it; otherwise ignore key in hash.
+    const userKey = (w.data as { key?: string })?.key;
+    if (userKey !== undefined) {
+      h = hashStr(h, String(userKey));
+    }
     h = hashStr(h, w.type ?? '');
     const children = w.children ?? [];
     h = hashNum(h, children.length);

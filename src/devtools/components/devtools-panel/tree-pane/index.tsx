@@ -9,7 +9,7 @@ import cn from 'classnames';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { DEVTOOLS_DOCK, DEVTOOLS_DOM_EVENTS, DEVTOOLS_PLACEMENT } from '../../../constants';
+import { DEVTOOLS_DOM_EVENTS, DEVTOOLS_PLACEMENT } from '../../../constants';
 import { getPathNodeKeys } from '../../../helper/tree';
 import { useLayoutStore, usePanelStore } from '../../../store';
 import SimpleTip from '../../simple-tip';
@@ -54,14 +54,14 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
 
   const {
     dock,
-    treeWidth,
-    treeHeight: currentTreeHeight,
+    // treeWidth,
+    // treeHeight: currentTreeHeight,
     isNarrow,
   } = useLayoutStore(
     useShallow((state) => ({
       dock: state.dock,
-      treeWidth: state.treeWidth,
-      treeHeight: state.treeHeight,
+      // treeWidth: state.treeWidth,
+      // treeHeight: state.treeHeight,
       isNarrow: state.isNarrow,
     })),
   );
@@ -80,20 +80,16 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
 
   const expandedKeysArray = useMemo(() => Array.from(expandedKeys), [expandedKeys]);
 
-  const containerStyle =
-    dock === DEVTOOLS_DOCK.BOTTOM || dock === DEVTOOLS_DOCK.TOP
-      ? { width: treeWidth }
-      : { height: currentTreeHeight };
-
   const showBreadcrumbs = !isNarrow && breadcrumbs.length > 0;
 
   const [search, setSearch] = useState('');
-  const [containerHeight, setContainerHeight] = useState(0);
+  const [treeWrapperHeight, setTreeWrapperHeight] = useState(0);
   const [scrollState, setScrollState] = useState({ left: false, right: false });
 
   const searchLower = useMemo(() => search.trim().toLowerCase(), [search]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const breadcrumbsRef = useRef<HTMLDivElement>(null);
@@ -141,12 +137,12 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
 
   // 容器高度变化影响树可用高度，优先使用 ResizeObserver
   useEffect(() => {
-    const el = containerRef.current;
+    const el = treeContainerRef.current;
     if (!el) {
       return;
     }
     const update = () => {
-      setContainerHeight((prev) => {
+      setTreeWrapperHeight((prev) => {
         if (Math.abs(el.clientHeight - prev) <= 1) {
           return prev;
         }
@@ -163,26 +159,10 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
   }, []);
 
   const calculatedTreeHeight = useMemo(() => {
-    // 基础高度逻辑：优先使用 ResizeObserver 测量的 containerHeight
-    // 如果没有，则根据 dock 状态回退
-    const containerH =
-      containerHeight ||
-      (isNarrow
-        ? currentTreeHeight
-        : dock === DEVTOOLS_DOCK.TOP || dock === DEVTOOLS_DOCK.BOTTOM
-          ? window.innerHeight
-          : window.innerHeight);
-
-    if (containerHeight > 0) {
-      const tipH = tipRef.current?.getBoundingClientRect().height ?? 0;
-      const toolbarH = toolbarRef.current?.getBoundingClientRect().height ?? 0;
-      const breadcrumbsH = breadcrumbsRef.current?.getBoundingClientRect().height ?? 0;
-      const gap = 8;
-      return Math.max(120, Math.floor(containerHeight - tipH - toolbarH - breadcrumbsH - gap));
-    }
-
-    return 300; // Default height fallback
-  }, [containerHeight, isNarrow, currentTreeHeight, dock]);
+    // 优先使用 ResizeObserver 测量的 treeWrapperHeight
+    // 如果没有，则提供一个默认值
+    return treeWrapperHeight > 0 ? treeWrapperHeight : 300;
+  }, [treeWrapperHeight]);
 
   const emitHoverKey = useCallback(
     (key: string | null, source: string) => {
@@ -192,7 +172,7 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
   );
 
   return (
-    <div ref={containerRef} className={styles.treePaneRoot} style={containerStyle}>
+    <div ref={containerRef} className={styles.treePaneRoot}>
       {isMultiRuntime && (
         <div ref={tipRef}>
           <SimpleTip message="检测到当前页面存在多个 runtime。激活 inspect 模式后，将鼠标移动到目标 canvas 上可切换对应的 runtime。" />
@@ -218,7 +198,7 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
         </Tooltip>
       </div>
 
-      <div className={styles.treeBody}>
+      <div className={styles.compactTree} ref={treeContainerRef}>
         <Tree
           treeData={treeData}
           height={calculatedTreeHeight}
@@ -242,6 +222,7 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
                 })}
                 onMouseEnter={() => emitHoverKey(node.key as string, 'enter')}
                 onMouseLeave={() => emitHoverKey(null, 'leave')}
+                style={{ whiteSpace: 'nowrap' }}
               >
                 {node.title as React.ReactNode}
               </div>
@@ -251,10 +232,10 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
       </div>
 
       {showBreadcrumbs && (
-        <div className={styles.breadcrumbsWrapper} ref={breadcrumbsRef}>
+        <div className={styles.breadcrumbsContainer} ref={breadcrumbsRef}>
           <div
-            className={cn(styles.scrollBtn, styles.scrollBtnLeft, {
-              [styles.scrollBtnVisible]: scrollState.left,
+            className={cn(styles.navBtn, {
+              [styles.disabled]: !scrollState.left,
             })}
             onClick={() => {
               if (breadcrumbScrollRef.current) {
@@ -264,21 +245,29 @@ export const DevtoolsTreePane = function DevtoolsTreePane() {
           >
             <LeftOutlined />
           </div>
-          <div className={styles.breadcrumbsScroll} ref={breadcrumbScrollRef}>
-            {breadcrumbs.map((item, index) => (
-              <div
-                key={item.key}
-                className={styles.breadcrumbItem}
-                onClick={() => handleClickBreadcrumbKey(item.key)}
-              >
-                <span className={styles.breadcrumbLabel}>{item.label}</span>
-                {index < breadcrumbs.length - 1 && <span className={styles.breadcrumbSep}>/</span>}
-              </div>
-            ))}
+          <div className={styles.scrollArea} ref={breadcrumbScrollRef}>
+            {breadcrumbs.map((item, index) => {
+              const isLast = index === breadcrumbs.length - 1;
+              return (
+                <div key={item.key} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    className={cn(styles.crumbItem, {
+                      [styles.crumbItemActive]: isLast,
+                    })}
+                    onClick={() => handleClickBreadcrumbKey(item.key)}
+                    onMouseEnter={() => emitHoverKey(item.key, 'enter')}
+                    onMouseLeave={() => emitHoverKey(null, 'leave')}
+                  >
+                    {item.label}
+                  </div>
+                  {!isLast && <div className={styles.separator}>/</div>}
+                </div>
+              );
+            })}
           </div>
           <div
-            className={cn(styles.scrollBtn, styles.scrollBtnRight, {
-              [styles.scrollBtnVisible]: scrollState.right,
+            className={cn(styles.navBtn, {
+              [styles.disabled]: !scrollState.right,
             })}
             onClick={() => {
               if (breadcrumbScrollRef.current) {

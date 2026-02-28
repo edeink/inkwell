@@ -5,7 +5,7 @@
  * 注意事项：依赖 DevtoolsStoreProvider 提供的 RootStore。
  * 潜在副作用：注册页面可见性监听。
  */
-import { type ReactElement } from 'react';
+import { type ReactElement, useLayoutEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useDevToolsInteraction } from '../../../hooks/useDevToolsInteraction';
@@ -32,7 +32,13 @@ export const DevToolsPanelInner = function DevToolsPanelInner({
 }: {
   helpContent: ReactElement;
 }) {
-  // 启用监控与交互逻辑
+  // Debug log for render
+  console.log('[DevToolsPanelInner] Render');
+  useLayoutEffect(() => {
+    console.log('[DevToolsPanelInner] Mount');
+    return () => console.log('[DevToolsPanelInner] Unmount');
+  }, []);
+
   useDevToolsMonitor();
   useDevToolsInteraction();
 

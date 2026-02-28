@@ -136,7 +136,7 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
       ref={containerRef}
       className={className}
       style={{
-        overflowY: 'auto',
+        overflow: 'auto',
         height,
         fontSize: 12,
         color: 'var(--ink-demo-text-primary)',
@@ -155,14 +155,16 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
       <div
         style={{
           height: shouldVirtualize ? totalHeight : undefined,
-          position: shouldVirtualize ? 'relative' : undefined,
+          boxSizing: 'border-box',
+          paddingTop: shouldVirtualize ? startIndex * rowHeight : 0,
+          minWidth: '100%',
+          width: 'max-content',
         }}
       >
         {visibleRows.map(({ node, depth, hasChildren }, index) => {
           const keyStr = String(node.key);
           const isExpanded = expanded.has(keyStr);
           const isSelected = selected.has(keyStr);
-          const rowIndex = shouldVirtualize ? startIndex + index : index;
           return (
             <div
               key={keyStr}
@@ -179,12 +181,9 @@ export const Tree = forwardRef<TreeHandle, TreeProps>(function Tree(
                   : 'transparent',
                 cursor: 'default',
                 userSelect: 'none',
-                height: rowHeight,
+                minWidth: '100%',
+                width: 'max-content',
                 boxSizing: 'border-box',
-                position: shouldVirtualize ? 'absolute' : undefined,
-                top: shouldVirtualize ? rowIndex * rowHeight : undefined,
-                left: shouldVirtualize ? 0 : undefined,
-                right: shouldVirtualize ? 0 : undefined,
               }}
               onClick={() => onSelect?.([node.key])}
             >

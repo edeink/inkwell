@@ -24,6 +24,7 @@
     "docs:build:debug": "INKWELL_DOCS_SOURCEMAP=true vitepress build .",
     "docs:serve": "vitepress preview .",
     "docs:deploy": "bash scripts/deploy-docs.sh",
+    "build:debug": "vite build -c vite.debug.config.ts",
     "precommit": "lint-staged"
   },
   "dependencies": {
