@@ -1,7 +1,8 @@
 /** @jsxImportSource @/utils/compiler */
 
-import demo00ImageUrl from './assets/demo-00.jpeg?url';
-import demo01ImageUrl from './assets/demo-01.jpeg?url';
+import demo00ImageUrl from '../assets/demo-00.jpeg?url';
+import demo01ImageUrl from '../assets/demo-01.jpeg?url';
+
 import { buttonVariants, GlassButton } from './widgets/glass-button/index';
 import { GlassCalendar } from './widgets/glass-calendar';
 import { GlassCardComposite } from './widgets/glass-card';

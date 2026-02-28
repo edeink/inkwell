@@ -409,6 +409,14 @@ export default defineConfig({
       api.renderer.rules.fence = createFenceRenderer(api);
     },
   },
+  transformHtml: (code, id, { content, pageData }) => {
+    // Remove modulepreload for large vendor chunks that are not needed immediately
+    // Use non-greedy match to avoid removing multiple links at once if on same line
+    return code.replace(
+      /<link rel="modulepreload" href="[^"]*(vendor-babel|vendor-mermaid|vendor-echarts)[^"]*">/g,
+      '',
+    );
+  },
   vite: {
     resolve: {
       alias: {
@@ -421,6 +429,47 @@ export default defineConfig({
     },
     build: {
       sourcemap: process.env.INKWELL_DOCS_SOURCEMAP === 'true',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Split node_modules to optimize cache and initial load
+            if (id.includes('node_modules')) {
+              // 1. React Core: Essential for the demo components
+              if (
+                id.includes('/react/') ||
+                id.includes('/react-dom/') ||
+                id.includes('/scheduler/')
+              ) {
+                return 'vendor-react';
+              }
+              // 2. Heavy Compiler: Used only in Playground, isolate it!
+              if (id.includes('@babel')) {
+                return 'vendor-babel';
+              }
+              // 3. Graphics & Utils: Shared libraries
+              if (
+                id.includes('pixi.js') ||
+                id.includes('konva') ||
+                id.includes('lodash') ||
+                id.includes('classnames')
+              ) {
+                return 'vendor-libs';
+              }
+              // 4. Large Dependencies: Mermaid, ECharts
+              if (id.includes('mermaid')) {
+                return 'vendor-mermaid';
+              }
+              if (id.includes('echarts')) {
+                return 'vendor-echarts';
+              }
+            }
+            // 5. Inkwell Core Logic
+            if (id.includes('/src/core/')) {
+              return 'inkwell-core';
+            }
+          },
+        },
+      },
     },
     css: {
       preprocessorOptions: {

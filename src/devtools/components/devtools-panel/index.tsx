@@ -20,6 +20,7 @@ import { usePanelStore } from '../../store';
 import { DevtoolsHelpContent } from './help-content';
 import { DevToolsPanelInner } from './panel-inner';
 
+import Runtime from '@/runtime';
 import { DEVTOOLS_HOTKEY, DEVTOOLS_HOTKEY_DEFAULT } from '@/utils/local-storage';
 
 /**
@@ -31,6 +32,7 @@ import { DEVTOOLS_HOTKEY, DEVTOOLS_HOTKEY_DEFAULT } from '@/utils/local-storage'
 export interface DevToolsProps {
   onClose?: () => void;
   shortcut?: string | { combo: string; action?: HotkeyAction };
+  defaultOpen?: boolean;
 }
 
 /**
@@ -43,11 +45,12 @@ export interface DevToolsProps {
  * 潜在副作用：注册 window 事件监听与创建 DevtoolsRootStore 实例。
  */
 export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
-  const { setVisible, setActiveInspect, toggleInspect } = usePanelStore(
+  const { setVisible, setActiveInspect, toggleInspect, setRuntime } = usePanelStore(
     useShallow((state) => ({
       setVisible: state.setVisible,
       setActiveInspect: state.setActiveInspect,
       toggleInspect: state.toggleInspect,
+      setRuntime: state.setRuntime,
     })),
   );
 
@@ -75,14 +78,47 @@ export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
     [combo, action],
   );
 
+  const tryAutoConnectRuntime = () => {
+    // 只有当当前没有 Runtime 时才尝试自动连接
+    const currentRuntime = usePanelStore.getState().runtime;
+    if (!currentRuntime) {
+      const list = Runtime.listCanvas();
+      if (list.length > 0) {
+        setRuntime(list[0].runtime);
+      }
+    }
+  };
+
   useLayoutEffect(() => {
-    const handleOpen = () => setVisible(true);
+    // 仅在首次挂载且 defaultOpen 为 true 时打开，避免后续更新导致循环
+    if (props.defaultOpen) {
+      setVisible(true);
+      tryAutoConnectRuntime();
+    }
+
+    // 监听 Runtime 注册变化，自动连接新出现的 Runtime
+    const unsubscribe = Runtime.subscribeCanvasRegistryChange(() => {
+      tryAutoConnectRuntime();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLayoutEffect(() => {
+    const handleOpen = () => {
+      setVisible(true);
+      tryAutoConnectRuntime();
+    };
     const handleClose = () => {
       setVisible(false);
       setActiveInspect(false);
     };
     const handleInspectToggle = () => {
       setVisible(true);
+      tryAutoConnectRuntime();
       toggleInspect();
     };
 
@@ -94,7 +130,8 @@ export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
       window.removeEventListener(DEVTOOLS_EVENTS.CLOSE, handleClose);
       window.removeEventListener(DEVTOOLS_EVENTS.INSPECT_TOGGLE, handleInspectToggle);
     };
-  }, [setVisible, setActiveInspect, toggleInspect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <DevToolsPanelInner helpContent={helpContent} />;
 };

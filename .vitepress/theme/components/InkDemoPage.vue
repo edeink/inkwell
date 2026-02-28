@@ -3,11 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import React from 'react';
+import React, { Suspense } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-import UnifiedDemo from '../../../src/demo';
+import { DemoLoading } from '../../../src/demo/common/loading';
+
+const UnifiedDemo = React.lazy(() => import('../../../src/demo'));
 
 const mountEl = ref<HTMLElement | null>(null);
 const rootRef = ref<Root | null>(null);
@@ -21,7 +23,13 @@ onMounted(() => {
     return;
   }
   rootRef.value = createRoot(el);
-  rootRef.value.render(React.createElement(UnifiedDemo as any));
+  rootRef.value.render(
+    React.createElement(
+      Suspense,
+      { fallback: React.createElement(DemoLoading) },
+      React.createElement(UnifiedDemo)
+    )
+  );
 });
 
 onBeforeUnmount(() => {

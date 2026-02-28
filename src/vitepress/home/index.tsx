@@ -1,4 +1,5 @@
-import InkPlayground from '@/site/components/ink-playground';
+import React, { Suspense } from 'react';
+
 import styles from '@/site/pages/index.module.less';
 import {
   AppstoreOutlined,
@@ -8,6 +9,26 @@ import {
   RocketOutlined,
   ToolOutlined,
 } from '@/ui/icons';
+
+// Lazy load InkPlayground to reduce initial bundle size
+// eslint-disable-next-line no-restricted-syntax
+const InkPlayground = React.lazy(() => import('@/site/components/ink-playground'));
+
+const LoadingFallback = () => (
+  <div
+    style={{
+      height: 400,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#999',
+      background: 'var(--vp-c-bg-soft)',
+      borderRadius: 8,
+    }}
+  >
+    Loading Playground...
+  </div>
+);
 
 export const showcaseCode = `
 <Container padding={24} borderRadius={16} color="#000000" width={500}>
@@ -127,7 +148,9 @@ export default function VitePressHome() {
 
       <section className={styles.jsxSection}>
         <h2 className={styles.sectionTitle}>JSX 即写即得</h2>
-        <InkPlayground mode="readonly" code={showcaseCode} />
+        <Suspense fallback={<LoadingFallback />}>
+          <InkPlayground mode="readonly" code={showcaseCode} />
+        </Suspense>
       </section>
 
       <section className={styles.perfSection}>

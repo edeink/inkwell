@@ -14,9 +14,12 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { createRoot, type Root } from 'react-dom/client';
-import React from 'react';
+import React, { Suspense } from 'react';
 
-import InkPlayground from '../../../src/site/components/ink-playground';
+import { DemoLoading } from '../../../src/demo/common/loading';
+
+// Lazy load InkPlayground to avoid bundling it in the main chunk
+const InkPlayground = React.lazy(() => import('../../../src/site/components/ink-playground'));
 
 type Props = {
   codeBase64: string;
@@ -80,11 +83,15 @@ function renderReact() {
     rootRef.value = createRoot(el);
   }
   rootRef.value.render(
-    React.createElement(InkPlayground as any, {
-      code: decodedCode.value,
-      mode: mode.value,
-      height: height.value,
-    }),
+    React.createElement(
+      Suspense,
+      { fallback: React.createElement(DemoLoading, {}) },
+      React.createElement(InkPlayground as any, {
+        code: decodedCode.value,
+        mode: mode.value,
+        height: height.value,
+      }),
+    ),
   );
 }
 

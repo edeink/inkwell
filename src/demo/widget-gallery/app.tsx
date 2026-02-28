@@ -1,4 +1,6 @@
 /** @jsxImportSource @/utils/compiler */
+import demo00ImageUrl from '../assets/demo-00.jpeg?url';
+
 import { DemoCard } from './widgets/demo-card';
 import { InteractiveDemo } from './widgets/interactive-demo';
 import { Section } from './widgets/section';
@@ -386,7 +388,7 @@ export const WidgetGalleryDemo = ({
                       <Image
                         key="img-contain"
                         type="image"
-                        src="/assets/logo.png"
+                        src={demo00ImageUrl}
                         fit={ImageFit.Contain}
                       />
                     </Container>
@@ -407,7 +409,7 @@ export const WidgetGalleryDemo = ({
                       <Image
                         key="img-cover"
                         type="image"
-                        src="/assets/logo.png"
+                        src={demo00ImageUrl}
                         fit={ImageFit.Cover}
                       />
                     </Container>
