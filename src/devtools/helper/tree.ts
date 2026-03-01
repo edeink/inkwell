@@ -62,9 +62,9 @@ export function computeWidgetTreeHash(root: Widget | null): number {
   const stack: Widget[] = [root];
   while (stack.length) {
     const w = stack.pop()!;
-    // Only hash explicit keys from user data to avoid instability from auto-generated keys
-    // which change on every instance creation (e.g. Container-1 vs Container-2).
-    // If w.data.key is present, use it; otherwise ignore key in hash.
+    // 仅对用户数据中的显式 key 进行哈希，以避免自动生成的 key 导致的不稳定性
+    // 因为自动生成的 key 在每次实例创建时都会改变（例如 Container-1 vs Container-2）。
+    // 如果 w.data.key 存在，则使用它；否则在哈希中忽略 key。
     const userKey = (w.data as { key?: string })?.key;
     if (userKey !== undefined) {
       h = hashStr(h, String(userKey));

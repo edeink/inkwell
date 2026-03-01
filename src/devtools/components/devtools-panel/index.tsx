@@ -44,7 +44,7 @@ export interface DevToolsProps {
  * 注意事项：内部会创建 RootStore 并绑定全局事件。
  * 潜在副作用：注册 window 事件监听与创建 DevtoolsRootStore 实例。
  */
-export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
+export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps = {}) {
   const { setVisible, setActiveInspect, toggleInspect, setRuntime } = usePanelStore(
     useShallow((state) => ({
       setVisible: state.setVisible,
@@ -79,12 +79,21 @@ export const DevToolsPanel = function DevToolsPanel(props: DevToolsProps) {
   );
 
   const tryAutoConnectRuntime = () => {
-    // 只有当当前没有 Runtime 时才尝试自动连接
+    // 检查当前 Runtime 是否仍然有效 (存在于注册表中)
     const currentRuntime = usePanelStore.getState().runtime;
-    if (!currentRuntime) {
-      const list = Runtime.listCanvas();
+    const isCurrentValid =
+      currentRuntime &&
+      currentRuntime.getCanvasId?.() &&
+      Runtime.canvasRegistry.has(currentRuntime.getCanvasId()!);
+
+    // 如果当前无效或没有，则尝试连接新的
+    if (!isCurrentValid) {
+      const list = Array.from(Runtime.canvasRegistry.values());
       if (list.length > 0) {
         setRuntime(list[0].runtime);
+      } else if (currentRuntime) {
+        // 如果当前有但无效，且没有新的，则置空
+        setRuntime(null);
       }
     }
   };

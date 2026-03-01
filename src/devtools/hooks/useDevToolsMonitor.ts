@@ -21,22 +21,6 @@ export function useDevToolsMonitor() {
   const timerIdRef = useRef<number | null>(null);
   const rateLimitRef = useRef({ count: 0, startTime: Date.now() });
 
-  // 同步 store 中的 hash
-  useEffect(() => {
-    console.log('[useDevToolsMonitor] Mount');
-    return () => console.log('[useDevToolsMonitor] Unmount');
-  }, []);
-
-  useEffect(() => {
-    return usePanelStore.subscribe((state) => {
-      // Debug: Log if lastTreeHash is a float or unexpected
-      if (state.lastTreeHash !== 0 && !Number.isInteger(state.lastTreeHash)) {
-        console.warn('[useDevToolsMonitor] State lastTreeHash is float:', state.lastTreeHash);
-      }
-      lastTreeHashRef.current = state.lastTreeHash;
-    });
-  }, []);
-
   useEffect(() => {
     // 页面可见性监听
     const handleVisibilityChange = () => {
@@ -77,8 +61,12 @@ export function useDevToolsMonitor() {
       }
 
       // 检查 Runtime 有效性
-      if (!runtime.getCanvasId?.() || !runtime.container) {
-        schedule();
+      // 必须确保 container 仍在文档中，否则说明页面已切换，应立即停止
+      if (!runtime.getCanvasId?.() || !runtime.container || !document.contains(runtime.container)) {
+        // 如果容器已不在文档中，强制关闭 DevTools (安全网)
+        if (runtime.container && !document.contains(runtime.container)) {
+          usePanelStore.getState().reset();
+        }
         return;
       }
 
@@ -92,7 +80,7 @@ export function useDevToolsMonitor() {
         const nextHash = Math.imul(h, 16777619) >>> 0;
 
         if (nextHash !== lastTreeHashRef.current) {
-          // Rate limiting logic
+          // 频率限制逻辑
           const now = Date.now();
           if (now - rateLimitRef.current.startTime > 5000) {
             rateLimitRef.current = { count: 0, startTime: now };
@@ -100,22 +88,11 @@ export function useDevToolsMonitor() {
           rateLimitRef.current.count++;
 
           if (rateLimitRef.current.count > 50) {
-            console.warn(
-              '[DevTools Monitor] Infinite loop detected (>50 updates in 5s). Stopping monitor.',
-            );
             isPollingRef.current = false;
             return;
           }
 
-          console.log('[DevTools Monitor] Tree Hash Changed:', {
-            old: lastTreeHashRef.current,
-            new: nextHash,
-            rootHash,
-            overlayHash,
-            oldRootHash: lastRootHashRef.current,
-            oldOverlayHash: lastOverlayHashRef.current,
-            runtimeId: runtime.getCanvasId?.(),
-          });
+          // 日志已移除，避免调试干扰
           lastTreeHashRef.current = nextHash;
           lastRootHashRef.current = rootHash;
           lastOverlayHashRef.current = overlayHash;
@@ -127,18 +104,13 @@ export function useDevToolsMonitor() {
           store.updateTreeBuild();
         }
       } catch (e) {
-        console.error('[DevTools] Tree Hash Check Failed:', e);
+        // ignore
       }
 
       schedule();
     };
 
     const schedule = () => {
-      if (!isPollingRef.current) {
-        return;
-      }
-
-      // 优先使用 requestIdleCallback
       if (typeof requestIdleCallback !== 'undefined') {
         idleIdRef.current = requestIdleCallback(
           () => {
@@ -161,9 +133,11 @@ export function useDevToolsMonitor() {
       isPollingRef.current = false;
       if (idleIdRef.current) {
         cancelIdleCallback(idleIdRef.current);
+        idleIdRef.current = null;
       }
       if (timerIdRef.current) {
         clearTimeout(timerIdRef.current);
+        timerIdRef.current = null;
       }
     };
   }, [visible, runtime]);

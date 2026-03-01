@@ -32,11 +32,11 @@ export const DevToolsPanelInner = function DevToolsPanelInner({
 }: {
   helpContent: ReactElement;
 }) {
-  // Debug log for render
-  console.log('[DevToolsPanelInner] Render');
+  // 渲染调试日志
+  console.log('[DevToolsPanelInner] 渲染');
   useLayoutEffect(() => {
-    console.log('[DevToolsPanelInner] Mount');
-    return () => console.log('[DevToolsPanelInner] Unmount');
+    console.log('[DevToolsPanelInner] 挂载');
+    return () => console.log('[DevToolsPanelInner] 卸载');
   }, []);
 
   useDevToolsMonitor();

@@ -12,14 +12,11 @@
  * - CSR：挂载 React Playground（支持渲染/编辑等模式）
  * - 代码内容通过 base64 传入，避免 VitePress 对特殊字符的转义影响
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import React, { Suspense } from 'react';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import { DemoLoading } from '../../../src/demo/common/loading';
-
-// Lazy load InkPlayground to avoid bundling it in the main chunk
-const InkPlayground = React.lazy(() => import('../../../src/site/components/ink-playground'));
+import InkPlayground from '../../../src/site/components/ink-playground';
 
 type Props = {
   codeBase64: string;
@@ -83,15 +80,11 @@ function renderReact() {
     rootRef.value = createRoot(el);
   }
   rootRef.value.render(
-    React.createElement(
-      Suspense,
-      { fallback: React.createElement(DemoLoading, {}) },
-      React.createElement(InkPlayground as any, {
-        code: decodedCode.value,
-        mode: mode.value,
-        height: height.value,
-      }),
-    ),
+    React.createElement(InkPlayground as any, {
+      code: decodedCode.value,
+      mode: mode.value,
+      height: height.value,
+    }),
   );
 }
 

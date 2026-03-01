@@ -28,9 +28,11 @@ const showcaseCode = `
 
 function App() {
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <InkPlayground mode="readonly" code={showcaseCode} width={800} height={600} />
-    </div>
+    <>
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <InkPlayground mode="readonly" code={showcaseCode} width={800} height={600} />
+      </div>
+    </>
   );
 }
 

@@ -28,7 +28,7 @@ export function useDevToolsInteraction() {
     });
   }, []);
 
-  // Debug: Freeze Reproduction Monitor
+  // 调试：冻结复现监控
   const debugRef = useRef({
     lastOverCanvas: false,
     flipCount: 0,
@@ -77,16 +77,16 @@ export function useDevToolsInteraction() {
           }
         }
 
-        // Freeze Reproduction Logic
+        // 冻结复现逻辑
         const now = Date.now();
         if (overCanvas !== debugRef.current.lastOverCanvas) {
           if (now - debugRef.current.lastFlipTime < 200) {
             debugRef.current.flipCount++;
             if (debugRef.current.flipCount > 5) {
-              console.error(
-                '[DevTools Freeze Detected] overCanvas is flipping rapidly! Possible infinite loop.',
-                { overCanvas, elAt: document.elementFromPoint(cx, cy) }
-              );
+              console.error('[DevTools 冻结检测] overCanvas 频繁切换！可能存在死循环。', {
+                overCanvas,
+                elAt: document.elementFromPoint(cx, cy),
+              });
             }
           } else {
             debugRef.current.flipCount = 0;

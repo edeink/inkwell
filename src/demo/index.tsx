@@ -14,7 +14,6 @@ import { DemoKey, ThemeType } from './type';
 import WidgetGallery, { meta as WidgetGalleryMeta } from './widget-gallery';
 import Wiki, { meta as WikiMeta } from './wiki';
 
-import { DevTools } from '@/devtools';
 import {
   getCurrentThemeMode,
   getCurrentThemePreset,
@@ -189,7 +188,6 @@ export default function UnifiedDemo() {
                   </div>
                   <div className={styles.demoWrap}>
                     <demo.Component />
-                    <DevTools />
                   </div>
                 </>
               ),

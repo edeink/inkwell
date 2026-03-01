@@ -13,7 +13,7 @@ function getGlobalState(): DevtoolsGlobalState | null {
   if (typeof globalThis === 'undefined') {
     return null;
   }
-  const key = DEVTOOLS_GLOBAL.STATE_KEY;
+  const key = DEVTOOLS_GLOBAL.RUNTIME_STATE_KEY;
   const g = globalThis as typeof globalThis & { [key: string]: DevtoolsGlobalState | undefined };
   const existing = g[key];
   if (existing) {

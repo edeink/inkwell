@@ -1,27 +1,13 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { DevToolsLoading } from './components/loading';
-import {
-  DEVTOOLS_EVENTS,
-  DEVTOOLS_GLOBAL,
-  HOTKEY_ACTION,
-  isTypeObject,
-  isTypeString,
-} from './constants';
-import {
-  emitDevtoolsEvent,
-  ensureDevtoolsContainer,
-  isDevtoolsCreated,
-  markDevtoolsCreated,
-} from './devtools-runtime';
+import { DEVTOOLS_EVENTS } from './constants';
 import { useDevtoolsHotkeys } from './hooks/useDevtoolsHotkeys';
+import { usePanelStore } from './store';
 
-import type { DevToolsProps } from './components/devtools-panel';
+import Runtime from '@/runtime';
 
-export { Devtools } from './devtools-runtime';
-
-// Lazy load the heavy panel
+// 懒加载重量级面板
 const LazyDevToolsPanel = lazy(() =>
   // eslint-disable-next-line no-restricted-syntax
   import('./components/devtools-panel').then((module) => ({
@@ -29,156 +15,118 @@ const LazyDevToolsPanel = lazy(() =>
   })),
 );
 
-type DevtoolsSingletonState = {
-  ownerId: string | null;
-  mounts: number;
-  listeners: Set<() => void>;
-};
-
-function getSingletonState(): DevtoolsSingletonState | null {
-  if (typeof globalThis === 'undefined') {
-    return null;
-  }
-  const key = DEVTOOLS_GLOBAL.STATE_KEY;
-  const g = globalThis as typeof globalThis & { [key: string]: DevtoolsSingletonState | undefined };
-  const existing = g[key];
-  if (existing) {
-    return existing;
-  }
-  const next = { ownerId: null, mounts: 0, listeners: new Set<() => void>() };
-  g[key] = next;
-  return next;
-}
-
 /**
  * Devtools 开发工具入口
  *
- * 负责管理单例状态与懒加载面板。
- * 修复了 HMR 或多实例场景下所有权丢失的问题。
+ * 全局单例组件，仅由 VitePress 主题加载一次。
+ * 负责监听全局事件并管理面板显示/隐藏。
  */
-export function DevTools(props: DevToolsProps) {
-  const instanceIdRef = useRef(`devtools-${Math.random().toString(36).slice(2)}`);
+export function DevTools() {
+  const [visible, setVisible] = useState(false);
 
-  // 使用 useSyncExternalStore 或手动订阅模式管理所有权
-  const [isOwner, setIsOwner] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [shouldOpen, setShouldOpen] = useState(false);
+  const handleOpen = (e: Event) => {
+    // 打开前重置 Store，确保状态纯净
+    usePanelStore.getState().reset();
 
-  const propsRef = useRef(props);
-  propsRef.current = props;
+    const customEvent = e as CustomEvent;
+    const instanceId = customEvent.detail?.instanceId;
 
-  const combo = isTypeString(props.shortcut)
-    ? props.shortcut
-    : isTypeObject(props.shortcut)
-      ? props.shortcut?.combo
-      : undefined;
-  const action =
-    isTypeObject(props.shortcut) && props.shortcut?.action
-      ? props.shortcut.action
-      : HOTKEY_ACTION.OPEN;
-
-  const activate = (event: string) => {
-    if (!ensureDevtoolsContainer()) {
-      return;
-    }
-    if (!isLoaded) {
-      setIsLoaded(true);
-      if (event === DEVTOOLS_EVENTS.OPEN || event === DEVTOOLS_EVENTS.INSPECT_TOGGLE) {
-        setShouldOpen(true);
+    if (instanceId) {
+      // 根据 instanceId 查找对应的 Runtime
+      const entry = Runtime.canvasRegistry.get(instanceId);
+      if (entry) {
+        usePanelStore.getState().setRuntime(entry.runtime);
+      }
+    } else {
+      // 如果没有指定 ID，尝试连接第一个可用的 Runtime
+      const list = Array.from(Runtime.canvasRegistry.values());
+      if (list.length > 0) {
+        usePanelStore.getState().setRuntime(list[0].runtime);
       }
     }
-    if (!isDevtoolsCreated()) {
-      markDevtoolsCreated();
-    }
-    emitDevtoolsEvent(event);
+
+    setVisible(true);
+    usePanelStore.getState().setVisible(true);
   };
 
-  // 尝试获取所有权
-  const tryClaimOwnership = () => {
-    const state = getSingletonState();
-    if (!state) {
-      return false;
-    }
-
-    if (!state.ownerId) {
-      state.ownerId = instanceIdRef.current;
-      return true;
-    }
-    return state.ownerId === instanceIdRef.current;
+  const handleClose = () => {
+    setVisible(false);
+    usePanelStore.getState().setVisible(false);
+    usePanelStore.getState().setRuntime(null);
   };
+
+  const handleToggle = (e?: Event) => {
+    if (visible) {
+      handleClose();
+    } else {
+      handleOpen(e || new CustomEvent(DEVTOOLS_EVENTS.OPEN));
+    }
+  };
+
+  // 快捷键支持 (仅在开发环境启用)
+  useDevtoolsHotkeys({
+    enabled: import.meta.env.DEV,
+    onToggle: () => handleToggle(),
+    onClose: handleClose,
+  });
 
   useEffect(() => {
-    const state = getSingletonState();
-    if (!state) {
-      return;
-    }
-
-    const instanceId = instanceIdRef.current;
-
-    // 注册监听器，当所有权释放时尝试获取
-    const checkOwnership = () => {
-      if (tryClaimOwnership()) {
-        setIsOwner(true);
-      }
-    };
-
-    state.listeners.add(checkOwnership);
-    state.mounts += 1;
-
-    // 立即尝试获取
-    checkOwnership();
+    // 绑定全局事件
+    // 注意：这里不再在 Effect 中调用 reset()，避免 visible 变化时的循环重置
+    window.addEventListener(DEVTOOLS_EVENTS.OPEN, handleOpen);
+    window.addEventListener(DEVTOOLS_EVENTS.CLOSE, handleClose);
 
     return () => {
-      state.listeners.delete(checkOwnership);
-      state.mounts = Math.max(0, state.mounts - 1);
+      window.removeEventListener(DEVTOOLS_EVENTS.OPEN, handleOpen);
+      window.removeEventListener(DEVTOOLS_EVENTS.CLOSE, handleClose);
+    };
+  }, [visible]); // 依赖 visible 是因为 handleToggle 闭包需要最新状态? 不，handleToggle 是在此 effect 外定义的?
+  // 注意：上面的 handleOpen/handleClose/handleToggle 定义在组件内，每次 render 都会重新创建。
+  // useEffect 依赖 [visible]，所以每次 visible 变化，effect 重新运行，绑定新的 handler。
+  // 这虽然有性能损耗，但对于 DevTools 这种低频操作是可以接受的，且保证了闭包状态正确。
 
-      if (state.ownerId === instanceId) {
-        state.ownerId = null;
-        setIsOwner(false);
-        // 通知其他监听者尝试获取
-        state.listeners.forEach((listener) => listener());
-      }
+  // 路由变化时自动关闭 DevTools
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setVisible(false);
+      usePanelStore.getState().setVisible(false);
+      usePanelStore.getState().setRuntime(null);
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+
+    // 劫持 pushState 和 replaceState 以检测路由变化 (VitePress 使用 history API)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      originalPushState.apply(this, args);
+      handleRouteChange();
+    };
+
+    history.replaceState = function (...args) {
+      originalReplaceState.apply(this, args);
+      handleRouteChange();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
     };
   }, []);
 
-  useEffect(() => {
-    if (!isOwner) {
-      return;
-    }
-    if (!ensureDevtoolsContainer()) {
-      return;
-    }
-    if (!isDevtoolsCreated()) {
-      markDevtoolsCreated();
-    }
-  }, [isOwner]);
+  if (!visible) {
+    return null;
+  }
 
-  useDevtoolsHotkeys({
-    combo,
-    action,
-    enabled: isOwner,
-    onToggle: () => activate(DEVTOOLS_EVENTS.OPEN),
-    onClose: () => {
-      emitDevtoolsEvent(DEVTOOLS_EVENTS.CLOSE);
-      propsRef.current.onClose?.();
-    },
-    onInspectToggle: () => activate(DEVTOOLS_EVENTS.INSPECT_TOGGLE),
-  });
-
-  if (!isOwner) {
-    return null;
-  }
-  if (!isLoaded) {
-    return null;
-  }
-  const container = ensureDevtoolsContainer();
-  if (!container) {
-    return null;
-  }
-  return createPortal(
+  return (
     <Suspense fallback={<DevToolsLoading />}>
-      <LazyDevToolsPanel {...propsRef.current} defaultOpen={shouldOpen} />
-    </Suspense>,
-    container,
+      <LazyDevToolsPanel
+        onClose={() => {
+          window.dispatchEvent(new CustomEvent(DEVTOOLS_EVENTS.CLOSE));
+        }}
+      />
+    </Suspense>
   );
 }

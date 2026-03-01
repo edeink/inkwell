@@ -1,5 +1,9 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { type EnhanceAppContext, type Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 
+import { DevTools } from '../../src/devtools';
 import { setThemeMode } from '../../src/styles/theme';
 
 import InkBenchmarkPage from './components/InkBenchmarkPage.vue';
@@ -9,8 +13,6 @@ import InkHomePage from './components/InkHomePage.vue';
 import InkMermaidBlock from './components/InkMermaidBlock.vue';
 
 import './style.css';
-
-import type { EnhanceAppContext, Theme } from 'vitepress';
 
 export default {
   extends: DefaultTheme,
@@ -24,6 +26,13 @@ export default {
     app.component('InkBenchmarkPage', InkBenchmarkPage);
 
     if (typeof window !== 'undefined') {
+      // Mount DevTools (Singleton)
+      const devtoolsRoot = document.createElement('div');
+      devtoolsRoot.id = 'inkwell-devtools-root';
+      document.body.appendChild(devtoolsRoot);
+      const root = createRoot(devtoolsRoot);
+      root.render(React.createElement(DevTools));
+
       const w = window as unknown as { __INK_VP_PINCH_BLOCKED__?: boolean };
       if (!w.__INK_VP_PINCH_BLOCKED__) {
         w.__INK_VP_PINCH_BLOCKED__ = true;

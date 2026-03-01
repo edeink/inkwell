@@ -150,7 +150,7 @@ export const PropsEditor = function PropsEditor({
   );
 
   const onPropsChange = (newEditableProps: Record<string, unknown>) => {
-    // Merge back: keep non-editable props from localProps, add new editable props
+    // 合并更改：保留 localProps 中的不可编辑属性，添加新的可编辑属性
     const nonEditableProps = Object.fromEntries(
       Object.entries(localProps).filter(([k]) => !isPropEditable(k)),
     );

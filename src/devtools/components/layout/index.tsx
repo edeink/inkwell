@@ -120,13 +120,13 @@ export const LayoutPanel = function LayoutPanel({
           if (prev === isNarrowNow) {
             return prev;
           }
-          // Hysteresis to prevent flickering at boundary
+          // 迟滞处理以防止边界闪烁
           if (prev && w > 610) {
-            console.log('[LayoutPanel] Switching to wide mode');
+            console.log('[LayoutPanel] 切换到宽屏模式');
             return false;
           }
           if (!prev && w < 590) {
-            console.log('[LayoutPanel] Switching to narrow mode');
+            console.log('[LayoutPanel] 切换到窄屏模式');
             return true;
           }
           return prev;

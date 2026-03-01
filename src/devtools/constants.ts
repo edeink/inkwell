@@ -36,6 +36,7 @@ export const DEVTOOLS_CSS = {
 
 export const DEVTOOLS_GLOBAL = {
   STATE_KEY: '__INKWELL_DEVTOOLS_SINGLETON__',
+  RUNTIME_STATE_KEY: '__INKWELL_DEVTOOLS_RUNTIME__',
   BOOTSTRAP_DETAIL_KEY: '__inkwellDevtoolsBootstrap',
 } as const;
 

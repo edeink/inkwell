@@ -14,7 +14,6 @@ import { MindmapDemo } from '@/demo/mindmap/app';
 import { SpreadsheetDemoApp } from '@/demo/spreadsheet/app';
 import { Swiper } from '@/demo/swiper/widgets/swiper';
 import { WidgetGalleryDemo } from '@/demo/widget-gallery/app';
-import { DevTools } from '@/devtools';
 import Runtime from '@/runtime';
 import * as Theme from '@/styles/theme';
 import { Fragment, createElement } from '@/utils/compiler/jsx-runtime';
@@ -138,7 +137,6 @@ export default function Inkwell({
           'createElement',
           'Fragment',
           'Editor',
-          'DevTools',
           'InkConsole',
           'Scene',
           'canvasId',
@@ -157,7 +155,6 @@ export default function Inkwell({
           createElement,
           Fragment,
           Runtime,
-          DevTools,
           ink,
           Scene,
           canvasId,

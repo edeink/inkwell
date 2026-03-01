@@ -8,9 +8,7 @@ import styles from './index.module.less';
 
 import type { InkPlaygroundProps } from './types';
 
-import { DevTools } from '@/devtools';
 import { stripJsxImportSource } from '@/site/utils/strip-jsx';
-import { CopyOutlined } from '@/ui/icons';
 
 /**
  * InkPlayground 组件，用于展示和编辑代码
@@ -94,7 +92,6 @@ export default function InkPlayground({
             </div>
           </div>
         </div>
-        <DevTools />
       </>
     );
   }
@@ -104,86 +101,41 @@ export default function InkPlayground({
       <div className={styles.scope} data-mode="code">
         <div className={styles.card}>
           <div className={styles.cardInner}>
-            <div className={styles.section}>
-              <button
-                className={styles.copyBtn}
-                onClick={() => {
-                  navigator.clipboard
-                    .writeText(stripJsxImportSource(localCode))
-                    .catch(() => undefined);
-                }}
-                aria-label="复制代码"
-              >
-                <CopyOutlined /> 复制
-              </button>
-              <EditorPane readOnly value={localCode} />
-            </div>
+            <EditorPane value={localCode} readOnly />
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (effectiveMode === 'readonly') {
-    return (
-      <>
-        <div className={styles.scope} data-mode="readonly">
-          <div className={styles.card}>
-            <div className={`${styles.cardInner} ${styles.split}`}>
-              <div className={`${styles.section} ${styles.splitLeft}`}>
-                <EditorPane readOnly value={localCode} collapsedHeight={280} />
-              </div>
-              <div className={`${styles.section} ${styles.splitRight}`}>
-                <Inkwell
-                  instanceId={uniqId}
-                  data={committedCode}
-                  width={width}
-                  height={height}
-                  readonly={true}
-                  onError={handleError}
-                  onSuccess={handleSuccess}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        <DevTools />
-      </>
     );
   }
 
   return (
     <>
-      <div className={styles.scope} data-mode="edit">
+      <div className={styles.scope} data-mode={effectiveMode}>
         <div className={styles.card}>
           <div className={styles.cardInner}>
-            <div className={`${styles.section} ${styles.previewSection}`}>
+            <div className={styles.pane}>
+              <EditorPane value={localCode} onChange={setLocalCode} />
+            </div>
+            <div className={styles.pane}>
               <Inkwell
                 instanceId={uniqId}
                 data={committedCode}
                 width={width}
                 height={height}
-                readonly={false}
+                readonly={effectiveMode === 'readonly'}
                 onError={handleError}
                 onSuccess={handleSuccess}
               />
             </div>
-            <div className={`${styles.section} ${styles.codeSection}`}>
-              <EditorPane value={localCode} onChange={setLocalCode} collapsedHeight={280} />
-            </div>
-            <div className={`${styles.section} ${styles.controlSection}`}>
-              <ControlPanel
-                instanceId={uniqId}
-                running={running}
-                error={error}
-                onRun={onRun}
-                onClear={onClear}
-              />
-            </div>
           </div>
         </div>
+        {effectiveMode !== 'readonly' && (
+          <div className={styles.toolbar}>
+            <ControlPanel running={running} error={error} onRun={onRun} onClear={onClear} />
+          </div>
+        )}
+        {error && <div className={styles.error}>{error}</div>}
       </div>
-      <DevTools />
     </>
   );
 }

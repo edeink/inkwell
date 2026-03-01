@@ -303,7 +303,6 @@ const Overlay = function Overlay() {
     }
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
-      console.log('[DevTools] Overlay computing render state');
       const next = computeRenderState(widget);
       if (!next) {
         return;
@@ -343,7 +342,7 @@ const Overlay = function Overlay() {
         rafIdRef.current = null;
       }
       lastCommittedRef.current = { active: false };
-      setRenderState({ active: false });
+      // 组件卸载时无需更新状态，直接移除 DOM 即可
       // 避免卸载时与 React commit/DOM 更新顺序交错，延后移除宿主节点更稳妥。
       runtime.nextTick(() => el.remove());
     };

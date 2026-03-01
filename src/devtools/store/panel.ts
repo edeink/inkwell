@@ -80,6 +80,8 @@ interface PanelState {
   handlePrintSelected: () => void;
   /** 处理面包屑点击 */
   handleClickBreadcrumbKey: (key: string) => void;
+  /** 重置所有状态 (用于路由切换或销毁) */
+  reset: () => void;
 }
 
 /**
@@ -106,6 +108,30 @@ export const usePanelStore = create<PanelState>((set, get) => ({
   treeBuild: buildDevtoolsTree(null, null),
 
   // --- Actions ---
+
+  reset: () => {
+    // 强制关闭 inspect 全局标记
+    (globalThis as unknown as Record<string, unknown>)[INKWELL_DEVTOOLS_INSPECT_ACTIVE] = false;
+
+    set({
+      visible: false,
+      activeInspect: false,
+      runtime: null,
+      selectedNodeKey: null,
+      inspectHoverWidget: null,
+      treeHoverWidget: null,
+      pickedWidget: null,
+      expandedKeys: new Set(),
+      version: 0,
+      isPageVisible: true,
+      lastTreeHash: 0,
+      runtimeId: null,
+      isMultiRuntime: false,
+      overlapWarning: false,
+      canvasRegistryVersion: 0,
+      treeBuild: buildDevtoolsTree(null, null),
+    });
+  },
 
   setVisible: (next) => {
     set((state) => {
